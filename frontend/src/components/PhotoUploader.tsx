@@ -1,0 +1,102 @@
+import { useState, useRef } from 'react';
+import { uploadPhoto } from '../api/photos';
+import toast from 'react-hot-toast';
+
+interface PhotoUploaderProps {
+  dogId: string;
+  onUploaded: () => void;
+  compact?: boolean;
+}
+
+export default function PhotoUploader({ dogId, onUploaded, compact }: PhotoUploaderProps) {
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File too large (max 10MB)');
+      return;
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Only JPEG, PNG, and WebP allowed');
+      return;
+    }
+    setUploading(true);
+    setProgress(0);
+    try {
+      await uploadPhoto(dogId, file, setProgress);
+      toast.success('Photo uploaded!');
+      onUploaded();
+    } catch {
+      toast.error('Upload failed');
+    } finally {
+      setUploading(false);
+      setProgress(0);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  if (uploading) {
+    return (
+      <div className="rounded-xl bg-gray-50 p-4">
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+          <div
+            className="bg-brand-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="text-xs text-gray-500 text-center">Uploading... {progress}%</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`rounded-xl cursor-pointer transition-all ${
+        dragOver
+          ? 'border-2 border-brand-500 bg-brand-50'
+          : compact
+          ? 'border border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50'
+          : 'border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50'
+      } ${compact ? 'p-3' : 'p-5'}`}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+          // Reset so same file can be re-selected
+          e.target.value = '';
+        }}
+      />
+      <div className={`flex items-center gap-3 ${compact ? '' : 'flex-col'}`}>
+        <span className={compact ? 'text-lg' : 'text-2xl'}>{'\ud83d\udcf7'}</span>
+        <div className={compact ? '' : 'text-center'}>
+          <p className={`font-medium ${compact ? 'text-sm text-brand-600' : 'text-brand-600'}`}>
+            {compact ? 'Add another photo' : 'Add a photo'}
+          </p>
+          {!compact && (
+            <p className="text-xs text-gray-400 mt-0.5">
+              Tap to choose or drag & drop. JPEG, PNG, WebP up to 10MB.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

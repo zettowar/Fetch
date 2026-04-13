@@ -1,0 +1,76 @@
+import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
+import type { Dog } from '../types';
+import { dogAge } from '../utils/time';
+
+interface SwipeCardProps {
+  dog: Dog;
+  onSwipe: (direction: 'left' | 'right') => void;
+  isTop: boolean;
+}
+
+const SWIPE_THRESHOLD = 120;
+const EXIT_X = 500;
+
+export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-200, 200], [-15, 15]);
+  const likeOpacity = useTransform(x, [0, 100], [0, 1]);
+  const passOpacity = useTransform(x, [-100, 0], [1, 0]);
+
+  const photoUrl = dog.primary_photo_url || dog.photos[0]?.url;
+
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (info.offset.x > SWIPE_THRESHOLD) {
+      animate(x, EXIT_X, { duration: 0.3 });
+      onSwipe('right');
+    } else if (info.offset.x < -SWIPE_THRESHOLD) {
+      animate(x, -EXIT_X, { duration: 0.3 });
+      onSwipe('left');
+    }
+  };
+
+  return (
+    <motion.div
+      className="absolute inset-0 bg-white rounded-2xl shadow-lg overflow-hidden cursor-grab active:cursor-grabbing"
+      style={{ x, rotate, zIndex: isTop ? 10 : 1 }}
+      drag={isTop ? 'x' : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.7}
+      onDragEnd={handleDragEnd}
+      whileDrag={{ scale: 1.02 }}
+    >
+      {photoUrl ? (
+        <img src={photoUrl} alt={dog.name} className="w-full h-[70%] object-cover" />
+      ) : (
+        <div className="w-full h-[70%] bg-gray-100 flex items-center justify-center text-gray-400 text-lg">
+          No photo
+        </div>
+      )}
+
+      {/* Like/Pass overlays */}
+      <motion.div
+        className="absolute top-6 right-6 bg-green-500 text-white px-4 py-2 rounded-xl text-xl font-bold rotate-12 border-4 border-green-500"
+        style={{ opacity: likeOpacity }}
+      >
+        LIKE
+      </motion.div>
+      <motion.div
+        className="absolute top-6 left-6 bg-red-400 text-white px-4 py-2 rounded-xl text-xl font-bold -rotate-12 border-4 border-red-400"
+        style={{ opacity: passOpacity }}
+      >
+        PASS
+      </motion.div>
+
+      <div className="p-4">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-xl font-bold">{dog.name}</h2>
+          {dog.birthday && (
+            <span className="text-sm text-gray-400">{dogAge(dog.birthday)}</span>
+          )}
+        </div>
+        {dog.breed && <p className="text-gray-500">{dog.breed}</p>}
+        {dog.bio && <p className="text-sm text-gray-600 mt-1 line-clamp-2">{dog.bio}</p>}
+      </div>
+    </motion.div>
+  );
+}
