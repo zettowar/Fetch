@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
@@ -10,8 +10,11 @@ import {
   getParkReviews,
   createParkReview,
   getParkIncidents,
+  getParkCheckins,
   checkinPark,
+  checkoutPark,
 } from '../api/parks';
+import { getMyDogs } from '../api/dogs';
 import Button from '../components/ui/Button';
 
 export default function ParkDetailPage() {
@@ -37,6 +40,39 @@ export default function ParkDetailPage() {
     enabled: !!id,
   });
 
+  const { data: checkins = [] } = useQuery({
+    queryKey: ['park-checkins', id],
+    queryFn: () => getParkCheckins(id!),
+    enabled: !!id,
+    refetchInterval: 30_000,
+  });
+
+  const { data: myDogs = [] } = useQuery({
+    queryKey: ['my-dogs'],
+    queryFn: getMyDogs,
+  });
+
+  const [showCheckinPicker, setShowCheckinPicker] = useState(false);
+
+  const checkinMutation = useMutation({
+    mutationFn: (dogId: string) => checkinPark(id!, dogId),
+    onSuccess: () => {
+      toast.success('Checked in!');
+      setShowCheckinPicker(false);
+      queryClient.invalidateQueries({ queryKey: ['park-checkins', id] });
+    },
+    onError: () => toast.error('Failed to check in'),
+  });
+
+  const checkoutMutation = useMutation({
+    mutationFn: (dogId: string) => checkoutPark(id!, dogId),
+    onSuccess: () => {
+      toast.success('Checked out');
+      queryClient.invalidateQueries({ queryKey: ['park-checkins', id] });
+    },
+    onError: () => toast.error('Failed to check out'),
+  });
+
   // Review form
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [rating, setRating] = useState(5);
@@ -58,12 +94,6 @@ export default function ParkDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['park', id] });
     },
     onError: () => toast.error('Failed to post review'),
-  });
-
-  const checkinMutation = useMutation({
-    mutationFn: () => checkinPark(id!),
-    onSuccess: () => toast.success('Checked in!'),
-    onError: () => toast.error('Failed to check in'),
   });
 
   if (isLoading) {
@@ -126,8 +156,7 @@ export default function ParkDetailPage() {
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => checkinMutation.mutate()}
-          loading={checkinMutation.isPending}
+          onClick={() => setShowCheckinPicker(!showCheckinPicker)}
         >
           Check In
         </Button>
@@ -139,6 +168,75 @@ export default function ParkDetailPage() {
           Edit
         </Button>
       </div>
+
+      {/* Dog picker for check-in */}
+      {showCheckinPicker && (
+        <div className="mt-3 p-3 bg-gray-50 rounded-xl">
+          <p className="text-sm font-medium text-gray-700 mb-2">Which dog is with you?</p>
+          {myDogs.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              <Link to="/dogs/new" className="text-brand-500 hover:underline">Add a dog</Link> first
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {myDogs.map((dog) => (
+                <button
+                  key={dog.id}
+                  onClick={() => checkinMutation.mutate(dog.id)}
+                  disabled={checkinMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm hover:border-brand-400 transition-colors"
+                >
+                  {dog.primary_photo_url && (
+                    <img src={dog.primary_photo_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  )}
+                  {dog.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Who's here */}
+      {checkins.length > 0 && (
+        <div className="mt-5">
+          <h2 className="font-semibold mb-2 text-sm text-gray-700">
+            Dogs here now <span className="text-brand-500">({checkins.length})</span>
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {checkins.map((ci) => {
+              const isMyDog = myDogs.some((d) => d.id === ci.dog_id);
+              return (
+                <div
+                  key={ci.id}
+                  className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-100 rounded-xl"
+                >
+                  {ci.dog_photo_url ? (
+                    <img src={ci.dog_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-xs text-brand-600 font-bold">
+                      {ci.dog_name?.[0] ?? '?'}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium leading-none">{ci.dog_name ?? 'Unknown'}</p>
+                    {ci.dog_breed && <p className="text-[11px] text-gray-400">{ci.dog_breed}</p>}
+                  </div>
+                  {isMyDog && ci.dog_id && (
+                    <button
+                      onClick={() => checkoutMutation.mutate(ci.dog_id!)}
+                      className="ml-1 text-[11px] text-gray-400 hover:text-red-500"
+                      title="Check out"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Review form */}
       {showReviewForm && (

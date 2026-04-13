@@ -91,3 +91,20 @@ class ParkIncidentOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class CheckinCreate(BaseModel):
+    dog_id: UUID
+
+
+class ParkCheckinOut(BaseModel):
+    id: UUID
+    park_id: UUID
+    dog_id: UUID | None
+    dog_name: str | None = None
+    dog_breed: str | None = None
+    dog_photo_url: str | None = None
+    checked_in_at: datetime
+    checked_out_at: datetime | None = None
+
+    model_config = {"from_attributes": True}

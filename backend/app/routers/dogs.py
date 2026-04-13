@@ -39,6 +39,7 @@ def _dog_to_out(dog: Dog) -> DogOut:
         birthday=dog.birthday,
         bio=dog.bio,
         location_rough=dog.location_rough,
+        traits=dog.traits or [],
         primary_photo_id=dog.primary_photo_id,
         primary_photo_url=primary_url,
         is_active=dog.is_active,

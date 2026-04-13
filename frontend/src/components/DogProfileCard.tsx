@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
-import type { Dog } from '../types';
+import type { Dog, DogStats } from '../types';
 
 interface DogProfileCardProps {
   dog: Dog;
   showEdit?: boolean;
+  stats?: DogStats;
 }
 
-export default function DogProfileCard({ dog, showEdit }: DogProfileCardProps) {
+export default function DogProfileCard({ dog, showEdit, stats }: DogProfileCardProps) {
   const photoUrl = dog.primary_photo_url || dog.photos[0]?.url;
   const hasPhotos = dog.photos.length > 0;
 
@@ -55,6 +56,12 @@ export default function DogProfileCard({ dog, showEdit }: DogProfileCardProps) {
           </div>
         </div>
         {dog.bio && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{dog.bio}</p>}
+        {stats && (
+          <div className="flex gap-4 mt-2 pt-2 border-t border-gray-50">
+            <span className="text-xs font-semibold text-green-500">{stats.likes} likes</span>
+            <span className="text-xs font-semibold text-gray-300">{stats.passes} passes</span>
+          </div>
+        )}
       </div>
     </Link>
   );

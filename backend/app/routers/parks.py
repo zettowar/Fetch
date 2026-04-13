@@ -12,7 +12,12 @@ from app.deps import get_current_user, require_admin
 from app.limiter import limiter
 from app.models.park import Park, ParkCheckin, ParkIncident, ParkReview
 from app.models.user import User
+from app.storage import get_storage
+from app.models.dog import Dog
+from app.models.photo import Photo
 from app.schemas.park import (
+    CheckinCreate,
+    ParkCheckinOut,
     ParkCreate,
     ParkIncidentCreate,
     ParkIncidentOut,
@@ -256,9 +261,32 @@ async def list_incidents(
 
 # --- Check-ins ---
 
-@router.post("/{park_id}/checkin", status_code=status.HTTP_201_CREATED)
+def _checkin_to_out(ci: ParkCheckin, storage) -> ParkCheckinOut:
+    photo_url = None
+    if ci.dog and ci.dog.primary_photo_id:
+        for p in (ci.dog.photos or []):
+            if p.id == ci.dog.primary_photo_id:
+                photo_url = storage.url(p.storage_key)
+                break
+    if photo_url is None and ci.dog and ci.dog.photos:
+        photo_url = storage.url(ci.dog.photos[0].storage_key)
+
+    return ParkCheckinOut(
+        id=ci.id,
+        park_id=ci.park_id,
+        dog_id=ci.dog_id,
+        dog_name=ci.dog.name if ci.dog else None,
+        dog_breed=ci.dog.breed if ci.dog else None,
+        dog_photo_url=photo_url,
+        checked_in_at=ci.created_at,
+        checked_out_at=ci.checked_out_at,
+    )
+
+
+@router.post("/{park_id}/checkin", response_model=ParkCheckinOut, status_code=status.HTTP_201_CREATED)
 async def checkin(
     park_id: UUID,
+    body: CheckinCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -266,7 +294,71 @@ async def checkin(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Park not found")
 
-    ci = ParkCheckin(park_id=park_id, user_id=user.id)
+    # Verify user owns the dog
+    dog_result = await db.execute(
+        select(Dog).options(selectinload(Dog.photos))
+        .where(Dog.id == body.dog_id, Dog.owner_id == user.id, Dog.is_active == True)
+    )
+    dog = dog_result.scalar_one_or_none()
+    if not dog:
+        raise HTTPException(status_code=404, detail="Dog not found or not yours")
+
+    # End any existing active checkin for this dog at this park
+    existing = await db.execute(
+        select(ParkCheckin).where(
+            ParkCheckin.dog_id == body.dog_id,
+            ParkCheckin.checked_out_at == None,  # noqa: E711
+        )
+    )
+    for old_ci in existing.scalars().all():
+        old_ci.checked_out_at = datetime.now(timezone.utc)
+
+    ci = ParkCheckin(park_id=park_id, user_id=user.id, dog_id=body.dog_id)
     db.add(ci)
     await db.commit()
-    return {"detail": "Checked in"}
+    await db.refresh(ci)
+    ci.dog = dog
+    return _checkin_to_out(ci, get_storage())
+
+
+@router.delete("/{park_id}/checkin/{dog_id}", status_code=status.HTTP_200_OK)
+async def checkout(
+    park_id: UUID,
+    dog_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(ParkCheckin).where(
+            ParkCheckin.park_id == park_id,
+            ParkCheckin.dog_id == dog_id,
+            ParkCheckin.user_id == user.id,
+            ParkCheckin.checked_out_at == None,  # noqa: E711
+        )
+    )
+    ci = result.scalar_one_or_none()
+    if not ci:
+        raise HTTPException(status_code=404, detail="No active check-in found")
+    ci.checked_out_at = datetime.now(timezone.utc)
+    await db.commit()
+    return {"detail": "Checked out"}
+
+
+@router.get("/{park_id}/checkins", response_model=list[ParkCheckinOut])
+async def list_checkins(
+    park_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(ParkCheckin)
+        .options(selectinload(ParkCheckin.dog).selectinload(Dog.photos))
+        .where(
+            ParkCheckin.park_id == park_id,
+            ParkCheckin.checked_out_at == None,  # noqa: E711
+        )
+        .order_by(ParkCheckin.created_at.desc())
+    )
+    checkins = result.scalars().all()
+    storage = get_storage()
+    return [_checkin_to_out(ci, storage) for ci in checkins]

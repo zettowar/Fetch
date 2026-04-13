@@ -6,12 +6,27 @@ from pydantic import BaseModel, field_validator
 from app.schemas.photo import PhotoSummary
 
 
+VALID_TRAITS = {
+    "Playful", "Calm", "Energetic", "Good with kids", "Good with dogs",
+    "Loves fetch", "Couch potato", "Swimmer", "Cuddly", "Independent", "Senior",
+}
+
+
 class DogCreate(BaseModel):
     name: str
     breed: str | None = None
     birthday: date | None = None
     bio: str | None = None
     location_rough: str | None = None
+    traits: list[str] = []
+
+    @field_validator("traits")
+    @classmethod
+    def valid_traits(cls, v: list[str]) -> list[str]:
+        for t in v:
+            if t not in VALID_TRAITS:
+                raise ValueError(f"Unknown trait: {t}")
+        return list(dict.fromkeys(v))  # deduplicate, preserve order
 
     @field_validator("name")
     @classmethod
@@ -34,6 +49,17 @@ class DogUpdate(BaseModel):
     birthday: date | None = None
     bio: str | None = None
     location_rough: str | None = None
+    traits: list[str] | None = None
+
+    @field_validator("traits")
+    @classmethod
+    def valid_traits(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        for t in v:
+            if t not in VALID_TRAITS:
+                raise ValueError(f"Unknown trait: {t}")
+        return list(dict.fromkeys(v))
 
 
 class DogOut(BaseModel):
@@ -44,6 +70,7 @@ class DogOut(BaseModel):
     birthday: date | None = None
     bio: str | None = None
     location_rough: str | None = None
+    traits: list[str] = []
     primary_photo_id: UUID | None = None
     primary_photo_url: str | None = None
     is_active: bool

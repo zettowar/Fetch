@@ -47,6 +47,12 @@ export default function NavBar() {
                 Admin
               </Link>
             )}
+            <Link
+              to={`/users/${user?.id}`}
+              className="text-xs text-gray-400 hover:text-brand-500 transition-colors"
+            >
+              Profile
+            </Link>
             <button
               onClick={handleLogout}
               className="text-xs text-gray-400 hover:text-red-500 transition-colors"

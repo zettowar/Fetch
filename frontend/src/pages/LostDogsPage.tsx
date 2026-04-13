@@ -1,17 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { getNearbyReports, type NearbyReport } from '../api/lost';
+import { getNearbyReports, getMySubscription, type NearbyReport } from '../api/lost';
 import Map from '../components/Map';
 import Button from '../components/ui/Button';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // San Francisco
+const LAST_VISITED_KEY = 'lost-last-visited';
 
 export default function LostDogsPage() {
   const [center] = useState(DEFAULT_CENTER);
   const [selectedReport, setSelectedReport] = useState<NearbyReport | null>(null);
   const [filter, setFilter] = useState<'all' | 'missing' | 'found'>('all');
+  const [newCount, setNewCount] = useState(0);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const lastVisitedRef = useRef<string | null>(localStorage.getItem(LAST_VISITED_KEY));
   const navigate = useNavigate();
+
+  const { data: subscription } = useQuery({
+    queryKey: ['lost-subscription'],
+    queryFn: getMySubscription,
+    retry: false,
+  });
 
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ['lost-nearby', center[1], center[0], filter],
@@ -23,6 +33,16 @@ export default function LostDogsPage() {
         filter === 'all' ? undefined : filter,
       ),
   });
+
+  useEffect(() => {
+    if (!subscription?.enabled || !reports.length) return;
+    const lastVisited = lastVisitedRef.current;
+    if (lastVisited) {
+      const count = reports.filter((r) => r.created_at > lastVisited).length;
+      if (count > 0) setNewCount(count);
+    }
+    localStorage.setItem(LAST_VISITED_KEY, new Date().toISOString());
+  }, [subscription, reports]);
 
   const markers = reports.map((r) => ({
     id: r.id,
@@ -69,6 +89,20 @@ export default function LostDogsPage() {
         <p className="text-xs text-gray-400 mt-2">
           This is a community tool, not a replacement for contacting local animal control.
         </p>
+
+        {newCount > 0 && !bannerDismissed && (
+          <div className="mt-2 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">
+            <span className="text-amber-800 font-medium">
+              {newCount} new report{newCount !== 1 ? 's' : ''} near you since your last visit
+            </span>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="text-amber-500 hover:text-amber-700 ml-2 text-xs"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Map */}

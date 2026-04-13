@@ -1,6 +1,11 @@
 import client from './client';
 import type { Dog } from '../types';
 
+export const DOG_TRAITS = [
+  'Playful', 'Calm', 'Energetic', 'Good with kids', 'Good with dogs',
+  'Loves fetch', 'Couch potato', 'Swimmer', 'Cuddly', 'Independent', 'Senior',
+] as const;
+
 export async function getMyDogs(): Promise<Dog[]> {
   const res = await client.get('/dogs/mine');
   return res.data;
@@ -24,7 +29,7 @@ export async function createDog(data: {
 
 export async function updateDog(
   id: string,
-  data: Partial<{ name: string; breed: string; birthday: string; bio: string; location_rough: string }>,
+  data: Partial<{ name: string; breed: string; birthday: string; bio: string; location_rough: string; traits: string[] }>,
 ): Promise<Dog> {
   const res = await client.patch(`/dogs/${id}`, data);
   return res.data;

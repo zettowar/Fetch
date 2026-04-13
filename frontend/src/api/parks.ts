@@ -34,6 +34,17 @@ export interface ParkIncident {
   created_at: string;
 }
 
+export interface ParkCheckin {
+  id: string;
+  park_id: string;
+  dog_id: string | null;
+  dog_name: string | null;
+  dog_breed: string | null;
+  dog_photo_url: string | null;
+  checked_in_at: string;
+  checked_out_at: string | null;
+}
+
 export async function getNearbyParks(lat: number, lng: number, radius_km = 10): Promise<Park[]> {
   const res = await client.get('/parks/nearby', { params: { lat, lng, radius_km } });
   return res.data;
@@ -74,6 +85,16 @@ export async function createParkIncident(parkId: string, data: { kind: string; d
   return res.data;
 }
 
-export async function checkinPark(parkId: string): Promise<void> {
-  await client.post(`/parks/${parkId}/checkin`);
+export async function getParkCheckins(parkId: string): Promise<ParkCheckin[]> {
+  const res = await client.get(`/parks/${parkId}/checkins`);
+  return res.data;
+}
+
+export async function checkinPark(parkId: string, dogId: string): Promise<ParkCheckin> {
+  const res = await client.post(`/parks/${parkId}/checkin`, { dog_id: dogId });
+  return res.data;
+}
+
+export async function checkoutPark(parkId: string, dogId: string): Promise<void> {
+  await client.delete(`/parks/${parkId}/checkin/${dogId}`);
 }

@@ -34,6 +34,9 @@ import AdminRescuesPage from './pages/admin/AdminRescuesPage';
 import AdminFeedbackPage from './pages/admin/AdminFeedbackPage';
 import AdminInvitesPage from './pages/admin/AdminInvitesPage';
 import AdminFAQPage from './pages/admin/AdminFAQPage';
+import NotificationsPage from './pages/NotificationsPage';
+import FollowingPage from './pages/FollowingPage';
+import RescuesPage from './pages/RescuesPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -98,6 +101,9 @@ function AppContent() {
             <Route path="/parks/new" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
             <Route path="/parks/:id/edit" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
             <Route path="/parks/:id" element={<AuthGuard><ParkDetailPage /></AuthGuard>} />
+            <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
+            <Route path="/following" element={<AuthGuard><FollowingPage /></AuthGuard>} />
+            <Route path="/rescues" element={<AuthGuard><RescuesPage /></AuthGuard>} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
           <FeedbackWidget />

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import BackButton from '../components/ui/BackButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { createDog, getDog, updateDog, deleteDog } from '../api/dogs';
+import { createDog, getDog, updateDog, deleteDog, DOG_TRAITS } from '../api/dogs';
 import { deletePhoto } from '../api/photos';
 import PhotoUploader from '../components/PhotoUploader';
 import Button from '../components/ui/Button';
@@ -20,6 +20,7 @@ export default function DogEditorPage() {
   const [breed, setBreed] = useState('');
   const [bio, setBio] = useState('');
   const [birthday, setBirthday] = useState('');
+  const [traits, setTraits] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const { data: dog, refetch } = useQuery({
@@ -34,6 +35,7 @@ export default function DogEditorPage() {
       setBreed(dog.breed || '');
       setBio(dog.bio || '');
       setBirthday(dog.birthday || '');
+      setTraits(dog.traits || []);
     }
   }, [dog]);
 
@@ -42,11 +44,11 @@ export default function DogEditorPage() {
     setSaving(true);
     try {
       if (isEditing) {
-        await updateDog(id!, { name, breed: breed || undefined, bio: bio || undefined, birthday: birthday || undefined });
+        await updateDog(id!, { name, breed: breed || undefined, bio: bio || undefined, birthday: birthday || undefined, traits });
         toast.success('Dog updated!');
         queryClient.invalidateQueries({ queryKey: ['dog', id] });
       } else {
-        const newDog = await createDog({ name, breed: breed || undefined, bio: bio || undefined, birthday: birthday || undefined });
+        const newDog = await createDog({ name, breed: breed || undefined, bio: bio || undefined, birthday: birthday || undefined, traits });
         toast.success('Dog created! Now add some photos.');
         queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
         // Go to detail page where photo upload is front and center
@@ -109,6 +111,32 @@ export default function DogEditorPage() {
             onChange={(e) => setBio(e.target.value)}
           />
           <p className="text-xs text-gray-400 text-right">{bio.length}/500</p>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Personality traits</label>
+          <div className="flex flex-wrap gap-2">
+            {DOG_TRAITS.map((trait) => {
+              const selected = traits.includes(trait);
+              return (
+                <button
+                  key={trait}
+                  type="button"
+                  onClick={() =>
+                    setTraits((prev) =>
+                      selected ? prev.filter((t) => t !== trait) : [...prev, trait]
+                    )
+                  }
+                  className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
+                    selected
+                      ? 'bg-brand-500 text-white border-brand-500'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'
+                  }`}
+                >
+                  {trait}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <Button type="submit" loading={saving} className="w-full">
           {isEditing ? 'Save Changes' : 'Create Dog & Add Photos'}

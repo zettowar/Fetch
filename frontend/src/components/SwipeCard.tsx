@@ -69,6 +69,15 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
           )}
         </div>
         {dog.breed && <p className="text-gray-500">{dog.breed}</p>}
+        {dog.traits && dog.traits.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {dog.traits.slice(0, 3).map((t) => (
+              <span key={t} className="px-2 py-0.5 bg-brand-50 text-brand-600 text-[11px] rounded-full font-medium">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
         {dog.bio && <p className="text-sm text-gray-600 mt-1 line-clamp-2">{dog.bio}</p>}
       </div>
     </motion.div>

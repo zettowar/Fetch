@@ -28,6 +28,7 @@ export interface Dog {
   birthday: string | null;
   bio: string | null;
   location_rough: string | null;
+  traits: string[];
   primary_photo_id: string | null;
   primary_photo_url: string | null;
   is_active: boolean;

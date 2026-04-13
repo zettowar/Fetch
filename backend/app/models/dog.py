@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, Date, ForeignKey, String, Text
+from sqlalchemy import ARRAY, Boolean, Date, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,6 +23,7 @@ class Dog(Base, UUIDPrimaryKey, TimestampMixin):
     primary_photo_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )
+    traits: Mapped[list[str]] = mapped_column(ARRAY(String(50)), default=list, nullable=False, server_default="{}")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     owner = relationship("User", back_populates="dogs")

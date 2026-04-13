@@ -62,6 +62,10 @@ export default function HomePage() {
             <span className="text-2xl">{'\ud83c\udf33'}</span>
             <span className="text-sm font-medium text-green-700">Dog Parks</span>
           </Link>
+          <Link to="/rescues" className="flex flex-col items-center gap-2 p-4 bg-purple-50 rounded-2xl hover:bg-purple-100 transition-colors col-span-2">
+            <span className="text-2xl">{'\ud83c\udfe0'}</span>
+            <span className="text-sm font-medium text-purple-700">Rescue Organizations</span>
+          </Link>
         </div>
 
         <Link to="/rankings" className="block mt-3">

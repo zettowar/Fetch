@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { getDog } from '../api/dogs';
+import { getDog, setPrimaryPhoto } from '../api/dogs';
+import { deletePhoto } from '../api/photos';
 import { getDogStats } from '../api/rankings';
+import { getNearbyParks, checkinPark, checkoutPark, getParkCheckins } from '../api/parks';
 import { useAuth } from '../store/AuthContext';
 import FollowButton from '../components/FollowButton';
 import ReactionBar from '../components/ReactionBar';
@@ -28,6 +30,35 @@ export default function DogDetailPage() {
     queryKey: ['dog-stats', id],
     queryFn: () => getDogStats(id!),
     enabled: !!id,
+  });
+
+  const isOwner = user?.id === dog?.owner_id?.toString();
+
+  // Checkin state (owner only)
+  const [showCheckinPicker, setShowCheckinPicker] = useState(false);
+  const { data: nearbyParks = [] } = useQuery({
+    queryKey: ['parks-nearby-checkin'],
+    queryFn: () => getNearbyParks(37.7749, -122.4194, 25),
+    enabled: isOwner && showCheckinPicker,
+  });
+
+  const checkinMutation = useMutation({
+    mutationFn: (parkId: string) => checkinPark(parkId, id!),
+    onSuccess: (_, parkId) => {
+      toast.success('Checked in!');
+      setShowCheckinPicker(false);
+      queryClient.invalidateQueries({ queryKey: ['park-checkins', parkId] });
+    },
+    onError: () => toast.error('Failed to check in'),
+  });
+
+  const checkoutMutation = useMutation({
+    mutationFn: (parkId: string) => checkoutPark(parkId, id!),
+    onSuccess: (_, parkId) => {
+      toast.success('Checked out');
+      queryClient.invalidateQueries({ queryKey: ['park-checkins', parkId] });
+    },
+    onError: () => toast.error('Failed to check out'),
   });
 
   const handleShare = async () => {
@@ -55,8 +86,7 @@ export default function DogDetailPage() {
     return <div className="p-4 text-center text-gray-500">Dog not found</div>;
   }
 
-  const isOwner = user?.id === dog.owner_id;
-  const photoUrl = dog.primary_photo_url || dog.photos[0]?.url;
+  const heroPhotoUrl = dog.primary_photo_url || dog.photos[0]?.url;
   const hasPhotos = dog.photos.length > 0;
   const age = dogAge(dog.birthday);
 
@@ -80,12 +110,12 @@ export default function DogDetailPage() {
       )}
 
       {/* Hero photo / placeholder */}
-      {photoUrl ? (
+      {heroPhotoUrl ? (
         <img
-          src={photoUrl}
+          src={heroPhotoUrl}
           alt={dog.name}
           className="w-full h-56 object-cover cursor-pointer"
-          onClick={() => setFullscreenPhoto(photoUrl)}
+          onClick={() => setFullscreenPhoto(heroPhotoUrl)}
         />
       ) : isOwner ? (
         <div className="w-full bg-gradient-to-br from-brand-50 to-brand-100 p-6">
@@ -132,6 +162,15 @@ export default function DogDetailPage() {
         </div>
         {dog.breed && <p className="text-gray-500">{dog.breed}</p>}
         {dog.bio && <p className="text-gray-600 mt-2">{dog.bio}</p>}
+        {dog.traits && dog.traits.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {dog.traits.map((t) => (
+              <span key={t} className="px-2.5 py-0.5 bg-brand-50 text-brand-600 text-xs rounded-full font-medium border border-brand-100">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-3 mt-1">
           <Link
@@ -157,6 +196,37 @@ export default function DogDetailPage() {
           </div>
         )}
 
+        {/* Check-in widget (owner only) */}
+        {isOwner && (
+          <div className="mt-4">
+            <button
+              onClick={() => setShowCheckinPicker(!showCheckinPicker)}
+              className="text-sm text-brand-500 font-medium hover:underline"
+            >
+              {showCheckinPicker ? 'Cancel' : '+ Check in to a park'}
+            </button>
+            {showCheckinPicker && (
+              <div className="mt-2 flex flex-col gap-2">
+                {nearbyParks.length === 0 ? (
+                  <p className="text-sm text-gray-400">No parks found nearby</p>
+                ) : (
+                  nearbyParks.map((park) => (
+                    <button
+                      key={park.id}
+                      onClick={() => checkinMutation.mutate(park.id)}
+                      disabled={checkinMutation.isPending}
+                      className="flex items-center justify-between px-3 py-2 bg-white border border-gray-100 rounded-xl text-sm hover:border-brand-300 transition-colors text-left"
+                    >
+                      <span className="font-medium">{park.name}</span>
+                      {park.address && <span className="text-xs text-gray-400 truncate ml-2">{park.address}</span>}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Photo gallery */}
         {hasPhotos && (
           <div className="mt-4">
@@ -165,15 +235,54 @@ export default function DogDetailPage() {
               <span className="text-xs text-gray-400">{dog.photos.length} photo{dog.photos.length !== 1 ? 's' : ''}</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {dog.photos.map((photo) => (
-                <img
-                  key={photo.id}
-                  src={photoUrl(photo)}
-                  alt=""
-                  className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setFullscreenPhoto(photoUrl(photo))}
-                />
-              ))}
+              {dog.photos.map((photo) => {
+                const url = photoUrl(photo);
+                const isPrimary = photo.id === dog.primary_photo_id;
+                return (
+                  <div key={photo.id} className="relative group">
+                    <img
+                      src={url}
+                      alt=""
+                      className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => setFullscreenPhoto(url)}
+                    />
+                    {isOwner && (
+                      <>
+                        <button
+                          className={`absolute top-1 right-1 rounded-full w-6 h-6 flex items-center justify-center text-xs transition-opacity shadow ${
+                            isPrimary
+                              ? 'bg-brand-500 text-white opacity-100'
+                              : 'bg-white/80 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-brand-500'
+                          }`}
+                          title={isPrimary ? 'Primary photo' : 'Set as primary'}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!isPrimary) {
+                              await setPrimaryPhoto(dog.id.toString(), photo.id.toString());
+                              queryClient.invalidateQueries({ queryKey: ['dog', id] });
+                            }
+                          }}
+                        >
+                          ★
+                        </button>
+                        <button
+                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity shadow"
+                          title="Delete photo"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm('Delete this photo?')) {
+                              await deletePhoto(photo.id.toString());
+                              queryClient.invalidateQueries({ queryKey: ['dog', id] });
+                            }
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

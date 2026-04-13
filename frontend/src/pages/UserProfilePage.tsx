@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import BackButton from '../components/ui/BackButton';
 import { relativeTime } from '../utils/time';
 import { useQuery } from '@tanstack/react-query';
@@ -55,7 +55,22 @@ export default function UserProfilePage() {
       </div>
 
       {isMe && (
-        <p className="text-sm text-gray-400 text-center">This is your profile</p>
+        <div className="flex flex-col gap-2 mt-4">
+          <Link
+            to="/following"
+            className="flex items-center justify-between p-3 bg-gray-50 rounded-xl text-sm hover:bg-gray-100 transition-colors"
+          >
+            <span className="font-medium text-gray-700">Dogs I follow</span>
+            <span className="text-gray-400">›</span>
+          </Link>
+          <Link
+            to="/notifications"
+            className="flex items-center justify-between p-3 bg-gray-50 rounded-xl text-sm hover:bg-gray-100 transition-colors"
+          >
+            <span className="font-medium text-gray-700">Notification settings</span>
+            <span className="text-gray-400">›</span>
+          </Link>
+        </div>
       )}
     </div>
   );

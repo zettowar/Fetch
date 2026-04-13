@@ -19,7 +19,6 @@ export default function AdminUsersPage() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['admin-users', searchTerm],
     queryFn: () => searchUsers(searchTerm),
-    enabled: searchTerm.length >= 1,
   });
 
   const { data: strikes = [] } = useQuery({
@@ -101,12 +100,10 @@ export default function AdminUsersPage() {
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
         </div>
-      ) : !searchTerm ? (
-        <div className="text-center py-12 text-gray-400">
-          <p>Search for a user by email or name to get started.</p>
-        </div>
       ) : users.length === 0 ? (
-        <p className="text-gray-400 text-center py-8">No users found for "{searchTerm}".</p>
+        <p className="text-gray-400 text-center py-8">
+          {searchTerm ? `No users found for "${searchTerm}".` : 'No users found.'}
+        </p>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 divide-y">
           {users.map((u) => (

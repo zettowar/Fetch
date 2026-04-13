@@ -84,21 +84,18 @@ async def dashboard_stats(
 
 @router.get("/users/search", response_model=list[AdminUserOut])
 async def search_users(
-    q: str = Query(..., min_length=1),
+    q: str = Query(default=""),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    query = (
-        select(User)
-        .where(
+    query = select(User).order_by(User.created_at.desc()).limit(50)
+    if q:
+        query = query.where(
             or_(
                 User.email.ilike(f"%{q}%"),
                 User.display_name.ilike(f"%{q}%"),
             )
         )
-        .order_by(User.created_at.desc())
-        .limit(50)
-    )
     result = await db.execute(query)
     users = result.scalars().all()
 
