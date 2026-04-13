@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     SIGHTENGINE_API_SECRET: str = ""
     MODERATION_TIMEOUT_S: int = 10
 
+    # Password reset (set to True in dev/staging to return token in response)
+    RESET_TOKEN_TTL_MIN: int = 30
+    DEBUG_RESET_TOKEN: bool = False
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

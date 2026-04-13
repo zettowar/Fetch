@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
-import { createPark } from '../api/parks';
+import { createPark, getPark, updatePark } from '../api/parks';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 
@@ -12,6 +12,8 @@ const PARK_ATTRIBUTES = [
 ];
 
 export default function ParkEditorPage() {
+  const { id: parkId } = useParams<{ id?: string }>();
+  const isEditing = Boolean(parkId);
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -19,6 +21,21 @@ export default function ParkEditorPage() {
   const [lng, setLng] = useState('');
   const [attrs, setAttrs] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(isEditing);
+
+  useEffect(() => {
+    if (!parkId) return;
+    getPark(parkId)
+      .then((park) => {
+        setName(park.name);
+        setAddress(park.address ?? '');
+        setLat(park.lat.toString());
+        setLng(park.lng.toString());
+        setAttrs(park.attributes ?? {});
+      })
+      .catch(() => toast.error('Failed to load park'))
+      .finally(() => setLoading(false));
+  }, [parkId]);
 
   const handleGetLocation = () => {
     navigator.geolocation.getCurrentPosition(
@@ -43,29 +60,49 @@ export default function ParkEditorPage() {
     }
     setSaving(true);
     try {
-      const park = await createPark({
-        name: name.trim(),
-        lat: parseFloat(lat),
-        lng: parseFloat(lng),
-        address: address.trim() || undefined,
-        attributes: Object.keys(attrs).length > 0 ? attrs : undefined,
-      });
-      toast.success('Park submitted for review');
-      navigate(`/parks/${park.id}`);
+      if (isEditing && parkId) {
+        await updatePark(parkId, {
+          name: name.trim(),
+          lat: parseFloat(lat),
+          lng: parseFloat(lng),
+          address: address.trim() || undefined,
+          attributes: Object.keys(attrs).length > 0 ? attrs : undefined,
+        });
+        toast.success('Park updated');
+        navigate(`/parks/${parkId}`);
+      } else {
+        const park = await createPark({
+          name: name.trim(),
+          lat: parseFloat(lat),
+          lng: parseFloat(lng),
+          address: address.trim() || undefined,
+          attributes: Object.keys(attrs).length > 0 ? attrs : undefined,
+        });
+        toast.success('Park submitted for review');
+        navigate(`/parks/${park.id}`);
+      }
     } catch {
-      toast.error('Failed to add park');
+      toast.error(isEditing ? 'Failed to update park' : 'Failed to add park');
     } finally {
       setSaving(false);
     }
   };
 
+  if (loading) {
+    return <div className="p-4 text-center text-gray-400">Loading…</div>;
+  }
+
   return (
     <div className="p-4">
-      <BackButton fallback="/parks" />
-      <h1 className="text-2xl font-bold mb-4">Add a Dog Park</h1>
-      <p className="text-sm text-gray-500 mb-6">
-        New parks will be reviewed before appearing publicly.
-      </p>
+      <BackButton fallback={isEditing ? `/parks/${parkId}` : '/parks'} />
+      <h1 className="text-2xl font-bold mb-4">
+        {isEditing ? 'Edit Park' : 'Add a Dog Park'}
+      </h1>
+      {!isEditing && (
+        <p className="text-sm text-gray-500 mb-6">
+          New parks will be reviewed before appearing publicly.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input label="Park Name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -103,7 +140,7 @@ export default function ParkEditorPage() {
         </div>
 
         <Button type="submit" loading={saving} className="w-full">
-          Submit Park
+          {isEditing ? 'Save Changes' : 'Submit Park'}
         </Button>
       </form>
     </div>

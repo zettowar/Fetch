@@ -1,5 +1,5 @@
 from app.models.base import Base
-from app.models.user import User, RefreshToken
+from app.models.user import User, RefreshToken, PasswordResetToken
 from app.models.dog import Dog
 from app.models.photo import Photo
 from app.models.vote import Vote
@@ -25,6 +25,7 @@ __all__ = [
     "Base",
     "User",
     "RefreshToken",
+    "PasswordResetToken",
     "Dog",
     "Photo",
     "Vote",

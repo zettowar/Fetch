@@ -8,6 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKey
 
 
+
+
 class User(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "users"
 
@@ -35,3 +37,14 @@ class RefreshToken(Base, UUIDPrimaryKey, TimestampMixin):
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     user = relationship("User", back_populates="refresh_tokens")
+
+
+class PasswordResetToken(Base, UUIDPrimaryKey, TimestampMixin):
+    __tablename__ = "password_reset_tokens"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

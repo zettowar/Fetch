@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,17 +8,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
-from app.models.user import RefreshToken, User
+from app.models.user import PasswordResetToken, RefreshToken, User
 from app.config import settings
 from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse
 from app.schemas.user import UserOut
 from app.security import (
     create_access_token,
     generate_refresh_token,
+    generate_reset_token,
     hash_password,
     hash_refresh_token,
+    hash_reset_token,
     verify_password,
 )
+
+logger = structlog.stdlib.get_logger()
 
 router = APIRouter()
 
@@ -119,3 +124,82 @@ async def logout(request: Request, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)):
     return user
+
+
+@router.post("/forgot-password")
+@limiter.limit("3/minute")
+async def forgot_password(request: Request, db: AsyncSession = Depends(get_db)):
+    body = await request.json()
+    email = body.get("email", "").lower().strip()
+    if not email:
+        raise HTTPException(status_code=400, detail="email required")
+
+    result = await db.execute(select(User).where(User.email == email, User.is_active == True))
+    user = result.scalar_one_or_none()
+
+    # Always return 200 to avoid email enumeration
+    if not user:
+        return {"detail": "If that email is registered, a reset link has been sent."}
+
+    # Invalidate any existing reset tokens for this user
+    existing = await db.execute(
+        select(PasswordResetToken).where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used == False,
+        )
+    )
+    for old_token in existing.scalars().all():
+        old_token.used = True
+
+    raw_token = generate_reset_token()
+    prt = PasswordResetToken(
+        user_id=user.id,
+        token_hash=hash_reset_token(raw_token),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=settings.RESET_TOKEN_TTL_MIN),
+    )
+    db.add(prt)
+    await db.commit()
+
+    logger.info("password_reset_requested", user_id=str(user.id), email=user.email)
+
+    response: dict = {"detail": "If that email is registered, a reset link has been sent."}
+    if settings.DEBUG_RESET_TOKEN:
+        response["debug_token"] = raw_token
+    return response
+
+
+@router.post("/reset-password")
+@limiter.limit("5/minute")
+async def reset_password(request: Request, db: AsyncSession = Depends(get_db)):
+    body = await request.json()
+    raw_token = body.get("token", "").strip()
+    new_password = body.get("password", "")
+
+    if not raw_token or not new_password:
+        raise HTTPException(status_code=400, detail="token and password required")
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    token_hash = hash_reset_token(raw_token)
+    result = await db.execute(
+        select(PasswordResetToken).where(
+            PasswordResetToken.token_hash == token_hash,
+            PasswordResetToken.used == False,
+            PasswordResetToken.expires_at > datetime.now(timezone.utc),
+        )
+    )
+    prt = result.scalar_one_or_none()
+    if not prt:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user_result = await db.execute(select(User).where(User.id == prt.user_id, User.is_active == True))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user.password_hash = hash_password(new_password)
+    prt.used = True
+    await db.commit()
+
+    logger.info("password_reset_completed", user_id=str(user.id))
+    return {"detail": "Password updated successfully"}

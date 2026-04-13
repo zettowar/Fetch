@@ -4,11 +4,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, contains_eager
 
 from app.db import get_db
 from app.deps import get_current_user
 from app.models.dog import Dog
+from app.models.photo import Photo
 from app.models.lost_report import (
     LostReport,
     LostReportPhoto,
@@ -56,10 +57,13 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
     if report.dog:
         dog_name = report.dog.name
         dog_breed = report.dog.breed
-        if report.dog.primary_photo_id:
-            from app.models.photo import Photo
-            # We'd need another query, but for now just use dog info
-            pass
+        if report.dog.primary_photo_id and report.dog.photos:
+            primary = next(
+                (p for p in report.dog.photos if p.id == report.dog.primary_photo_id),
+                report.dog.photos[0] if report.dog.photos else None,
+            )
+            if primary:
+                dog_photo_url = storage.url(primary.storage_key)
 
     sighting_count = len(report.sightings) if report.sightings else 0
 
@@ -134,15 +138,18 @@ async def create_report(
     # Re-fetch with relationships
     result = await db.execute(
         select(LostReport)
-        .options(selectinload(LostReport.photos), selectinload(LostReport.sightings))
+        .options(
+            selectinload(LostReport.photos),
+            selectinload(LostReport.sightings),
+            selectinload(LostReport.dog).selectinload(Dog.photos),
+        )
         .where(LostReport.id == report.id)
     )
     report = result.scalar_one()
 
-    # PHASE2: Trigger proximity alert task here
-    # if report.last_seen_lat and report.last_seen_lng:
-    #     from app.tasks.lost_alerts import send_proximity_alerts
-    #     send_proximity_alerts.delay(str(report.id))
+    if report.last_seen_lat and report.last_seen_lng:
+        from app.tasks.lost_alerts import send_proximity_alerts
+        send_proximity_alerts.delay(str(report.id))
 
     return _report_to_out(report, is_owner=True)
 
@@ -158,11 +165,20 @@ async def nearby_reports(
 ):
     reports = await get_nearby_reports(db, lat, lng, radius_km, kind=kind)
 
+    storage = get_storage()
     out = []
     for r in reports:
         f_lat, f_lng = fuzz_coordinate(r.last_seen_lat, r.last_seen_lng, r.location_fuzz_m)
         dog_name = r.dog.name if r.dog else None
         dog_breed = r.dog.breed if r.dog else None
+        dog_photo_url = None
+        if r.dog and r.dog.primary_photo_id and r.dog.photos:
+            primary = next(
+                (p for p in r.dog.photos if p.id == r.dog.primary_photo_id),
+                r.dog.photos[0] if r.dog.photos else None,
+            )
+            if primary:
+                dog_photo_url = storage.url(primary.storage_key)
 
         out.append(NearbyReportOut(
             id=r.id,
@@ -172,7 +188,7 @@ async def nearby_reports(
             fuzzed_lng=f_lng,
             dog_name=dog_name,
             dog_breed=dog_breed,
-            dog_photo_url=None,
+            dog_photo_url=dog_photo_url,
             description=r.description,
             created_at=r.created_at,
         ))
@@ -190,7 +206,7 @@ async def get_report(
         .options(
             selectinload(LostReport.photos),
             selectinload(LostReport.sightings),
-            selectinload(LostReport.dog),
+            selectinload(LostReport.dog).selectinload(Dog.photos),
         )
         .where(LostReport.id == report_id)
     )

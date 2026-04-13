@@ -18,10 +18,14 @@ async def check_image(image_bytes: bytes) -> ModerationResult:
     """Check image content using Sightengine API.
 
     Falls back to approved if no API key is configured or on timeout.
+    Set SIGHTENGINE_API_USER and SIGHTENGINE_API_SECRET in .env for production.
     """
     if not settings.SIGHTENGINE_API_USER or not settings.SIGHTENGINE_API_SECRET:
-        logger.info("Moderation check skipped (no API key), approving image (%d bytes)", len(image_bytes))
-        return ModerationResult(status="approved")
+        logger.warning(
+            "SIGHTENGINE_API_USER/SECRET not configured — image moderation is DISABLED. "
+            "All uploads will be auto-approved. Set API keys in .env for production."
+        )
+        return ModerationResult(status="approved", reason="moderation_disabled")
 
     try:
         async with httpx.AsyncClient(timeout=settings.MODERATION_TIMEOUT_S) as client:

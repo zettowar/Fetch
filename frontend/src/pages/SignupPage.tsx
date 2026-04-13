@@ -25,6 +25,7 @@ export default function SignupPage() {
     try {
       const data = await signup(email, password, displayName);
       login(data.tokens.access_token, data.tokens.refresh_token, data.user);
+      toast.success('Account created! Check your email to verify your address.');
       navigate('/home');
     } catch {
       toast.error('Signup failed. Email may already be registered.');

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
@@ -16,6 +16,7 @@ import Button from '../components/ui/Button';
 
 export default function ParkDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: park, isLoading } = useQuery({
@@ -118,7 +119,7 @@ export default function ParkDetailPage() {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-2 mt-4 flex-wrap">
         <Button size="sm" onClick={() => setShowReviewForm(!showReviewForm)}>
           Write Review
         </Button>
@@ -129,6 +130,13 @@ export default function ParkDetailPage() {
           loading={checkinMutation.isPending}
         >
           Check In
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => navigate(`/parks/${id}/edit`)}
+        >
+          Edit
         </Button>
       </div>
 

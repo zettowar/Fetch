@@ -2,13 +2,14 @@ import math
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
 from app.deps import get_current_user, require_admin
+from app.limiter import limiter
 from app.models.park import Park, ParkCheckin, ParkIncident, ParkReview
 from app.models.user import User
 from app.schemas.park import (
@@ -144,7 +145,9 @@ async def update_park(
 # --- Reviews ---
 
 @router.post("/{park_id}/reviews", response_model=ParkReviewOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/hour")
 async def create_review(
+    request: Request,
     park_id: UUID,
     body: ParkReviewCreate,
     user: User = Depends(get_current_user),
@@ -211,7 +214,9 @@ async def list_reviews(
 # --- Incidents ---
 
 @router.post("/{park_id}/incidents", response_model=ParkIncidentOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/hour")
 async def create_incident(
+    request: Request,
     park_id: UUID,
     body: ParkIncidentCreate,
     user: User = Depends(get_current_user),

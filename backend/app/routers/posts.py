@@ -1,11 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import get_current_user
+from app.limiter import limiter
 from app.models.post import Post
 from app.models.user import User
 from app.schemas.post import PostCreate, PostOut
@@ -14,7 +15,9 @@ router = APIRouter()
 
 
 @router.post("", response_model=PostOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def create_post(
+    request: Request,
     body_data: PostCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

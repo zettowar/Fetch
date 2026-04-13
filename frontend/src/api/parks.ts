@@ -49,6 +49,11 @@ export async function createPark(data: { name: string; lat: number; lng: number;
   return res.data;
 }
 
+export async function updatePark(id: string, data: { name?: string; address?: string; lat?: number; lng?: number; attributes?: Record<string, boolean> }): Promise<Park> {
+  const res = await client.patch(`/parks/${id}`, data);
+  return res.data;
+}
+
 export async function getParkReviews(parkId: string): Promise<ParkReview[]> {
   const res = await client.get(`/parks/${parkId}/reviews`);
   return res.data;

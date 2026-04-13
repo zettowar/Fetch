@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, func, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.db import get_db
 from app.deps import get_current_user
+from app.limiter import limiter
 from app.models.dog import Dog
 from app.models.photo import Photo
 from app.models.social import Comment, Follow, Reaction
@@ -100,7 +101,9 @@ async def follower_count(
 # --- Comments ---
 
 @router.post("/comments", response_model=CommentOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 async def create_comment(
+    request: Request,
     body: CommentCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

@@ -1,3 +1,4 @@
+import { Component, type ReactNode } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './store/AuthContext';
 import AuthGuard from './components/AuthGuard';
@@ -21,6 +22,8 @@ import UserProfilePage from './pages/UserProfilePage';
 import ParksPage from './pages/ParksPage';
 import ParkDetailPage from './pages/ParkDetailPage';
 import ParkEditorPage from './pages/ParkEditorPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import FeedbackWidget from './components/FeedbackWidget';
 import ScrollToTop from './components/ScrollToTop';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -32,6 +35,35 @@ import AdminFeedbackPage from './pages/admin/AdminFeedbackPage';
 import AdminInvitesPage from './pages/admin/AdminInvitesPage';
 import AdminFAQPage from './pages/admin/AdminFAQPage';
 import NotFoundPage from './pages/NotFoundPage';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
+          <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
+          <p className="text-gray-500 mb-4">Try refreshing the page.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-brand-500 text-white rounded-lg"
+          >
+            Refresh
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function AppContent() {
   const location = useLocation();
@@ -48,6 +80,8 @@ function AppContent() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
             <Route path="/swipe" element={<AuthGuard><SwipePage /></AuthGuard>} />
             <Route path="/dogs" element={<AuthGuard><MyDogsPage /></AuthGuard>} />
@@ -62,6 +96,7 @@ function AppContent() {
             <Route path="/users/:id" element={<AuthGuard><UserProfilePage /></AuthGuard>} />
             <Route path="/parks" element={<AuthGuard><ParksPage /></AuthGuard>} />
             <Route path="/parks/new" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
+            <Route path="/parks/:id/edit" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
             <Route path="/parks/:id" element={<AuthGuard><ParkDetailPage /></AuthGuard>} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
@@ -90,9 +125,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

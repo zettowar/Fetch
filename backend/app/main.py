@@ -1,6 +1,10 @@
+import structlog
 import sentry_sdk
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -10,6 +14,8 @@ from app.limiter import limiter
 from app.logging import setup_logging
 from app.middleware import RequestIDMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
 from app.routers import auth, users, dogs, photos, feed, votes, rankings, reports, admin, lost, social, parks, posts, rescues, support, billing, notifications, feedback
+
+logger = structlog.stdlib.get_logger()
 
 # Initialize structured logging
 setup_logging()
@@ -39,6 +45,23 @@ app.add_middleware(
 
 # Rate limiting error handler
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": jsonable_encoder(exc.errors())},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("unhandled_exception", path=request.url.path, exc=str(exc))
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected error occurred. Please try again later."},
+    )
 
 # Prometheus metrics
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
@@ -75,6 +98,9 @@ async def readyz():
 
     from app.db import engine
 
-    async with engine.connect() as conn:
-        await conn.execute(text("SELECT 1"))
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "unavailable"})
     return {"status": "ready"}

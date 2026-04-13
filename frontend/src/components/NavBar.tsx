@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { logout as apiLogout } from '../api/auth';
@@ -16,6 +17,8 @@ export default function NavBar() {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const showVerifyBanner = isAuthenticated && user && !user.is_verified && !bannerDismissed;
 
   const handleLogout = async () => {
     const rt = getRefreshToken();
@@ -65,6 +68,20 @@ export default function NavBar() {
           </div>
         )}
       </nav>
+
+      {/* Email verification banner */}
+      {showVerifyBanner && (
+        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-sm text-amber-800">
+          <span>Please verify your email address to unlock all features.</span>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            className="text-amber-600 hover:text-amber-800 font-bold leading-none flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Bottom tab bar (authenticated only) */}
       {isAuthenticated && (

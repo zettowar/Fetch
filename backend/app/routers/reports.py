@@ -1,11 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import get_current_user
+from app.limiter import limiter
 from app.models.report import Report
 from app.models.user import User
 from app.schemas.report import ReportCreate, ReportOut
@@ -16,7 +17,9 @@ MAX_REPORTS_PER_USER_PER_DAY = 10
 
 
 @router.post("", response_model=ReportOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("20/hour")
 async def create_report(
+    request: Request,
     body: ReportCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
