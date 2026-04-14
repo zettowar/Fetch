@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { uploadPhoto } from '../api/photos';
+import CropModal from './CropModal';
 import toast from 'react-hot-toast';
 
 interface PhotoUploaderProps {
@@ -9,23 +10,36 @@ interface PhotoUploaderProps {
 }
 
 export default function PhotoUploader({ dogId, onUploaded, compact }: PhotoUploaderProps) {
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = async (file: File) => {
+  const validateFile = (file: File): boolean => {
     if (file.size > 10 * 1024 * 1024) {
       toast.error('File too large (max 10MB)');
-      return;
+      return false;
     }
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       toast.error('Only JPEG, PNG, and WebP allowed');
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const handleFile = (file: File) => {
+    if (!validateFile(file)) return;
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+  };
+
+  const handleCropConfirm = async (blob: Blob) => {
+    setCropSrc(null);
     setUploading(true);
     setProgress(0);
     try {
+      const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
       await uploadPhoto(dogId, file, setProgress);
       toast.success('Photo uploaded!');
       onUploaded();
@@ -37,12 +51,28 @@ export default function PhotoUploader({ dogId, onUploaded, compact }: PhotoUploa
     }
   };
 
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
   };
+
+  if (cropSrc) {
+    return (
+      <CropModal
+        imageSrc={cropSrc}
+        onConfirm={handleCropConfirm}
+        onCancel={handleCropCancel}
+      />
+    );
+  }
 
   if (uploading) {
     return (
@@ -80,7 +110,6 @@ export default function PhotoUploader({ dogId, onUploaded, compact }: PhotoUploa
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) handleFile(file);
-          // Reset so same file can be re-selected
           e.target.value = '';
         }}
       />
