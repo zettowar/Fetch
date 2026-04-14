@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider } from './store/AuthContext';
 import AuthGuard from './components/AuthGuard';
 import AdminGuard from './components/AdminGuard';
@@ -29,6 +30,7 @@ import ScrollToTop from './components/ScrollToTop';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
 import AdminContentPage from './pages/admin/AdminContentPage';
 import AdminLostReportsPage from './pages/admin/AdminLostReportsPage';
 import AdminTicketsPage from './pages/admin/AdminTicketsPage';
@@ -80,35 +82,45 @@ function AppContent() {
       <ScrollToTop />
       {/* Consumer app shell (hidden on admin routes) */}
       {!isAdmin && (
-        <div className="mx-auto max-w-app min-h-screen bg-white pb-16">
+        <div className="mx-auto max-w-app min-h-screen bg-white pb-20 shadow-soft-lg">
           <NavBar />
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
-            <Route path="/swipe" element={<AuthGuard><SwipePage /></AuthGuard>} />
-            <Route path="/dogs" element={<AuthGuard><MyDogsPage /></AuthGuard>} />
-            <Route path="/dogs/new" element={<AuthGuard><DogEditorPage /></AuthGuard>} />
-            <Route path="/dogs/:id" element={<AuthGuard><DogDetailPage /></AuthGuard>} />
-            <Route path="/dogs/:id/edit" element={<AuthGuard><DogEditorPage /></AuthGuard>} />
-            <Route path="/rankings" element={<AuthGuard><RankingsPage /></AuthGuard>} />
-            <Route path="/lost" element={<AuthGuard><LostDogsPage /></AuthGuard>} />
-            <Route path="/lost/report-missing" element={<AuthGuard><ReportMissingPage /></AuthGuard>} />
-            <Route path="/lost/report-found" element={<AuthGuard><ReportFoundPage /></AuthGuard>} />
-            <Route path="/lost/:id" element={<AuthGuard><LostReportDetailPage /></AuthGuard>} />
-            <Route path="/users/:id" element={<AuthGuard><UserProfilePage /></AuthGuard>} />
-            <Route path="/parks" element={<AuthGuard><ParksPage /></AuthGuard>} />
-            <Route path="/parks/new" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
-            <Route path="/parks/:id/edit" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
-            <Route path="/parks/:id" element={<AuthGuard><ParkDetailPage /></AuthGuard>} />
-            <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
-            <Route path="/following" element={<AuthGuard><FollowingPage /></AuthGuard>} />
-            <Route path="/rescues" element={<AuthGuard><RescuesPage /></AuthGuard>} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Routes location={location}>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
+                <Route path="/swipe" element={<AuthGuard><SwipePage /></AuthGuard>} />
+                <Route path="/dogs" element={<AuthGuard><MyDogsPage /></AuthGuard>} />
+                <Route path="/dogs/new" element={<AuthGuard><DogEditorPage /></AuthGuard>} />
+                <Route path="/dogs/:id" element={<AuthGuard><DogDetailPage /></AuthGuard>} />
+                <Route path="/dogs/:id/edit" element={<AuthGuard><DogEditorPage /></AuthGuard>} />
+                <Route path="/rankings" element={<AuthGuard><RankingsPage /></AuthGuard>} />
+                <Route path="/lost" element={<AuthGuard><LostDogsPage /></AuthGuard>} />
+                <Route path="/lost/report-missing" element={<AuthGuard><ReportMissingPage /></AuthGuard>} />
+                <Route path="/lost/report-found" element={<AuthGuard><ReportFoundPage /></AuthGuard>} />
+                <Route path="/lost/:id" element={<AuthGuard><LostReportDetailPage /></AuthGuard>} />
+                <Route path="/users/:id" element={<AuthGuard><UserProfilePage /></AuthGuard>} />
+                <Route path="/parks" element={<AuthGuard><ParksPage /></AuthGuard>} />
+                <Route path="/parks/new" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
+                <Route path="/parks/:id/edit" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
+                <Route path="/parks/:id" element={<AuthGuard><ParkDetailPage /></AuthGuard>} />
+                <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
+                <Route path="/following" element={<AuthGuard><FollowingPage /></AuthGuard>} />
+                <Route path="/rescues" element={<AuthGuard><RescuesPage /></AuthGuard>} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </motion.div>
+          </AnimatePresence>
           <FeedbackWidget />
         </div>
       )}
@@ -120,6 +132,7 @@ function AppContent() {
             <Route index element={<AdminDashboardPage />} />
             <Route path="reports" element={<AdminReportsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="users/:id" element={<AdminUserDetailPage />} />
             <Route path="content" element={<AdminContentPage />} />
             <Route path="lost" element={<AdminLostReportsPage />} />
             <Route path="tickets" element={<AdminTicketsPage />} />

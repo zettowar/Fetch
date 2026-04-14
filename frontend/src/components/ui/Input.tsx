@@ -11,21 +11,25 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const id = externalId || generatedId;
 
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={id} className="text-sm font-medium text-gray-700">
+          <label htmlFor={id} className="text-sm font-medium text-gray-700 tracking-tight">
             {label}
           </label>
         )}
         <input
           ref={ref}
           id={id}
-          className={`rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-200 ${
-            error ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''
+          className={`w-full rounded-xl border bg-white px-4 py-2.5 text-base text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 ease-soft-out shadow-soft-sm ${
+            error
+              ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100'
+              : 'border-gray-200 hover:border-gray-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-100'
           } ${className}`}
           {...props}
         />
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-500 animate-fade-in-up">{error}</p>
+        )}
       </div>
     );
   },

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import get_current_user, require_admin
+from app.models.audit_log import AuditLog
 from app.models.rescue import Rescue
 from app.models.user import User
 from app.schemas.rescue import RescueCreate, RescueOut
@@ -84,6 +85,13 @@ async def verify_rescue(
     if not rescue:
         raise HTTPException(status_code=404, detail="Rescue not found")
     rescue.verified = True
+    db.add(AuditLog(
+        actor_id=admin.id,
+        action="rescue.verify",
+        target_type="rescue",
+        target_id=rescue_id,
+        metadata_={"name": rescue.name},
+    ))
     await db.commit()
     await db.refresh(rescue)
     return rescue

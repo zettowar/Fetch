@@ -5,6 +5,7 @@ import { getNearbyReports, getMySubscription, type NearbyReport } from '../api/l
 import Map from '../components/Map';
 import Button from '../components/ui/Button';
 import { Spinner } from '../components/ui/Skeleton';
+import TimeAgo from '../components/TimeAgo';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // San Francisco
 const LAST_VISITED_KEY = 'lost-last-visited';
@@ -34,6 +35,17 @@ export default function LostDogsPage() {
         filter === 'all' ? undefined : filter,
       ),
   });
+
+  const { data: allReports = [] } = useQuery({
+    queryKey: ['lost-nearby', center[1], center[0], 'all'],
+    queryFn: () => getNearbyReports(center[1], center[0], 25),
+  });
+
+  const counts = {
+    all: allReports.length,
+    missing: allReports.filter((r) => r.kind === 'missing').length,
+    found: allReports.filter((r) => r.kind === 'found').length,
+  };
 
   useEffect(() => {
     if (!subscription?.enabled || !reports.length) return;
@@ -74,19 +86,31 @@ export default function LostDogsPage() {
 
         {/* Filter tabs */}
         <div className="flex gap-2">
-          {(['all', 'missing', 'found'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                filter === f
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
+          {(['all', 'missing', 'found'] as const).map((f) => {
+            const active = filter === f;
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-brand-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+                <span
+                  className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-[11px] font-semibold ${
+                    active
+                      ? 'bg-white/25 text-white'
+                      : 'bg-white text-gray-500'
+                  }`}
+                >
+                  {counts[f]}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <p className="text-xs text-gray-400 mt-2">
@@ -128,7 +152,11 @@ export default function LostDogsPage() {
         </div>
 
         {/* Selected report card */}
-        {selectedReport && (
+        {selectedReport && (() => {
+          const ageMs = Date.now() - new Date(selectedReport.created_at).getTime();
+          const isFresh = selectedReport.kind === 'missing' && ageMs < 6 * 60 * 60 * 1000;
+          const isMissing = selectedReport.kind === 'missing';
+          return (
           <div className="absolute bottom-4 right-4 left-4 sm:left-auto sm:w-72 bg-white rounded-xl shadow-lg p-4">
             <div className="flex justify-between items-start">
               <div>
@@ -143,6 +171,26 @@ export default function LostDogsPage() {
                 {selectedReport.dog_breed && (
                   <p className="text-sm text-gray-500">{selectedReport.dog_breed}</p>
                 )}
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                      isMissing
+                        ? 'bg-red-100 text-red-600'
+                        : 'bg-blue-100 text-blue-600'
+                    }`}
+                  >
+                    {isMissing ? 'Missing' : 'Found'} <TimeAgo value={selectedReport.created_at} />
+                  </span>
+                  {isFresh && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-medium rounded-full">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                      </span>
+                      Fresh
+                    </span>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => setSelectedReport(null)}
@@ -162,7 +210,8 @@ export default function LostDogsPage() {
               View Details
             </Button>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {isLoading && (

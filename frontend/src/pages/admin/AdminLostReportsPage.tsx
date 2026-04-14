@@ -9,7 +9,9 @@ import {
 } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Skeleton';
-import { relativeTime } from '../../utils/time';
+import TimeAgo from '../../components/TimeAgo';
+
+const PAGE_SIZE = 50;
 
 const STATUS_TABS = [
   { value: 'open', label: 'Open' },
@@ -31,13 +33,16 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AdminLostReportsPage() {
   const [statusFilter, setStatusFilter] = useState('open');
+  const [offset, setOffset] = useState(0);
   const queryClient = useQueryClient();
 
-  const { data: reports = [], isLoading } = useQuery({
-    queryKey: ['admin-lost-reports', statusFilter],
-    queryFn: () => getAdminLostReports(statusFilter),
+  const { data: page, isLoading } = useQuery({
+    queryKey: ['admin-lost-reports', statusFilter, offset],
+    queryFn: () => getAdminLostReports({ status: statusFilter, offset, limit: PAGE_SIZE }),
     staleTime: 2 * 60 * 1000,
   });
+  const reports = page?.items ?? [];
+  const total = page?.total ?? 0;
 
   const closeMutation = useMutation({
     mutationFn: closeLostReport,
@@ -61,7 +66,7 @@ export default function AdminLostReportsPage() {
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
-            onClick={() => setStatusFilter(tab.value)}
+            onClick={() => { setStatusFilter(tab.value); setOffset(0); }}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               statusFilter === tab.value
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -75,9 +80,9 @@ export default function AdminLostReportsPage() {
 
       {reports.length > 0 && (
         <div className="flex gap-3 mb-3 text-xs text-gray-500">
-          <span>{reports.length} total</span>
-          {missingCount > 0 && <span>🔴 {missingCount} missing</span>}
-          {foundCount > 0 && <span>🟢 {foundCount} found</span>}
+          <span>{total} total</span>
+          {missingCount > 0 && <span>🔴 {missingCount} missing (page)</span>}
+          {foundCount > 0 && <span>🟢 {foundCount} found (page)</span>}
         </div>
       )}
 
@@ -132,7 +137,7 @@ export default function AdminLostReportsPage() {
                         </Link>
                       </span>
                     )}
-                    <span className="ml-auto">{relativeTime(report.created_at)}</span>
+                    <span className="ml-auto"><TimeAgo value={report.created_at} /></span>
                   </div>
                 </div>
 
@@ -153,6 +158,26 @@ export default function AdminLostReportsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={offset === 0}
+            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+          >← Prev</Button>
+          <span className="text-xs text-gray-500">
+            {offset + 1}–{Math.min(offset + reports.length, total)} of {total}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={offset + reports.length >= total}
+            onClick={() => setOffset(offset + PAGE_SIZE)}
+          >Next →</Button>
         </div>
       )}
     </div>

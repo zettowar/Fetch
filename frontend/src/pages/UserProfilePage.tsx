@@ -1,9 +1,11 @@
 import { useParams, Link } from 'react-router-dom';
 import BackButton from '../components/ui/BackButton';
-import { relativeTime } from '../utils/time';
+import TimeAgo from '../components/TimeAgo';
 import { useQuery } from '@tanstack/react-query';
 import { getUserProfile } from '../api/social';
 import { useAuth } from '../store/AuthContext';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { shareLink } from '../utils/shareLink';
 
 export default function UserProfilePage() {
   const { id } = useParams();
@@ -14,6 +16,8 @@ export default function UserProfilePage() {
     queryFn: () => getUserProfile(id!),
     enabled: !!id,
   });
+
+  useDocumentTitle(profile ? `${profile.display_name} · Fetch` : null);
 
   if (isLoading) {
     return (
@@ -27,6 +31,11 @@ export default function UserProfilePage() {
 
   const isMe = currentUser?.id === profile.id;
 
+  const handleShare = () => {
+    const url = `${window.location.origin}/users/${profile.id}`;
+    shareLink(url, `${profile.display_name} on Fetch`);
+  };
+
   return (
     <div className="p-4">
       <BackButton />
@@ -34,12 +43,21 @@ export default function UserProfilePage() {
         <div className="w-20 h-20 mx-auto rounded-full bg-brand-100 flex items-center justify-center text-3xl text-brand-600 font-bold mb-3">
           {profile.display_name[0].toUpperCase()}
         </div>
-        <h1 className="text-2xl font-bold">{profile.display_name}</h1>
+        <div className="flex items-center justify-center gap-2">
+          <h1 className="text-2xl font-bold">{profile.display_name}</h1>
+          <button
+            onClick={handleShare}
+            className="text-xs text-gray-400 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors"
+            title="Share profile"
+          >
+            Share
+          </button>
+        </div>
         {profile.location_rough && (
           <p className="text-gray-500">{profile.location_rough}</p>
         )}
         <p className="text-xs text-gray-400 mt-1">
-          Joined {relativeTime(profile.created_at)}
+          Joined <TimeAgo value={profile.created_at} />
         </p>
       </div>
 

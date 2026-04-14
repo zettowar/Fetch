@@ -1,7 +1,7 @@
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getMyDogs } from '../api/dogs';
-import { getDogStats } from '../api/rankings';
+import { getDogStats, getCurrentRankings } from '../api/rankings';
 import DogProfileCard from '../components/DogProfileCard';
 import Button from '../components/ui/Button';
 import { CardSkeleton } from '../components/ui/Skeleton';
@@ -11,6 +11,15 @@ export default function MyDogsPage() {
     queryKey: ['my-dogs'],
     queryFn: getMyDogs,
   });
+
+  const { data: leaderboard } = useQuery({
+    queryKey: ['rankings', 'current'],
+    queryFn: getCurrentRankings,
+  });
+
+  const dogIdToRank = new Map<string, number>(
+    (leaderboard ?? []).map((entry) => [entry.dog_id.toString(), entry.rank]),
+  );
 
   const statsQueries = useQueries({
     queries: (dogs ?? []).map((dog) => ({
@@ -36,7 +45,13 @@ export default function MyDogsPage() {
       ) : dogs && dogs.length > 0 ? (
         <div className="grid gap-4">
           {dogs.map((dog, i) => (
-            <DogProfileCard key={dog.id} dog={dog} showEdit stats={statsQueries[i]?.data} />
+            <DogProfileCard
+              key={dog.id}
+              dog={dog}
+              showEdit
+              stats={statsQueries[i]?.data}
+              rank={dogIdToRank.get(dog.id.toString())}
+            />
           ))}
         </div>
       ) : (

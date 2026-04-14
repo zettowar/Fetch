@@ -10,6 +10,7 @@ export interface Park {
   attributes: Record<string, boolean> | null;
   avg_rating: number | null;
   review_count: number;
+  active_dogs_count: number;
   created_at: string;
 }
 

@@ -3,14 +3,12 @@ interface SkeletonProps {
 }
 
 export default function Skeleton({ className = '' }: SkeletonProps) {
-  return (
-    <div className={`animate-pulse bg-gray-200 rounded-xl ${className}`} />
-  );
+  return <div className={`shimmer rounded-xl ${className}`} />;
 }
 
 export function CardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-soft-sm overflow-hidden animate-fade-in">
       <Skeleton className="w-full h-44 rounded-none" />
       <div className="p-3 space-y-2">
         <Skeleton className="h-5 w-24" />
@@ -21,15 +19,19 @@ export function CardSkeleton() {
 }
 
 export function Spinner({ className = '' }: { className?: string }) {
-  return <div className={`animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 ${className}`} />;
+  return (
+    <div
+      className={`animate-spin rounded-full h-8 w-8 border-2 border-brand-200 border-t-brand-500 ${className}`}
+    />
+  );
 }
 
 export function ListSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 divide-y">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-soft-sm divide-y divide-gray-100 animate-fade-in">
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 p-3">
-          <Skeleton className="w-8 h-8 rounded-full" />
+          <Skeleton className="w-9 h-9 rounded-full" />
           <div className="flex-1 space-y-1.5">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-3 w-20" />

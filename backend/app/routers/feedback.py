@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import get_current_user, require_admin
+from app.models.audit_log import AuditLog
 from app.models.beta import Feedback, InviteCode
 from app.models.user import User
 from app.schemas.beta import FeedbackCreate, FeedbackOut, InviteCodeBatchCreate, InviteCodeOut
@@ -59,6 +60,12 @@ async def generate_invite_codes(
         db.add(code)
         codes.append(code)
 
+    db.add(AuditLog(
+        actor_id=admin.id,
+        action="invite.generate",
+        target_type="invite",
+        metadata_={"count": len(codes)},
+    ))
     await db.commit()
     for c in codes:
         await db.refresh(c)

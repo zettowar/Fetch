@@ -29,6 +29,13 @@ from app.schemas.park import (
 
 router = APIRouter()
 
+# How long an open check-in counts as "active" before it decays.
+ACTIVE_CHECKIN_WINDOW = timedelta(hours=4)
+
+
+def _active_checkin_cutoff() -> datetime:
+    return datetime.now(timezone.utc) - ACTIVE_CHECKIN_WINDOW
+
 
 async def _park_to_out(park: Park, db: AsyncSession) -> ParkOut:
     avg_result = await db.execute(
@@ -41,6 +48,15 @@ async def _park_to_out(park: Park, db: AsyncSession) -> ParkOut:
     )
     count = count_result.scalar() or 0
 
+    active_result = await db.execute(
+        select(func.count()).where(
+            ParkCheckin.park_id == park.id,
+            ParkCheckin.checked_out_at == None,  # noqa: E711
+            ParkCheckin.created_at > _active_checkin_cutoff(),
+        )
+    )
+    active = active_result.scalar() or 0
+
     return ParkOut(
         id=park.id,
         name=park.name,
@@ -51,6 +67,7 @@ async def _park_to_out(park: Park, db: AsyncSession) -> ParkOut:
         attributes=park.attributes,
         avg_rating=round(float(avg), 1) if avg else None,
         review_count=count,
+        active_dogs_count=active,
         created_at=park.created_at,
     )
 
@@ -69,8 +86,39 @@ async def nearby_parks(
     dlat = radius_km * deg_per_km
     dlng = radius_km * deg_per_km / max(math.cos(math.radians(lat)), 0.01)
 
+    review_stats = (
+        select(
+            ParkReview.park_id.label("park_id"),
+            func.avg(ParkReview.rating).label("avg_rating"),
+            func.count(ParkReview.id).label("review_count"),
+        )
+        .group_by(ParkReview.park_id)
+        .subquery()
+    )
+
+    cutoff = _active_checkin_cutoff()
+    active_stats = (
+        select(
+            ParkCheckin.park_id.label("park_id"),
+            func.count(ParkCheckin.id).label("active_count"),
+        )
+        .where(
+            ParkCheckin.checked_out_at == None,  # noqa: E711
+            ParkCheckin.created_at > cutoff,
+        )
+        .group_by(ParkCheckin.park_id)
+        .subquery()
+    )
+
     result = await db.execute(
-        select(Park)
+        select(
+            Park,
+            review_stats.c.avg_rating,
+            review_stats.c.review_count,
+            active_stats.c.active_count,
+        )
+        .outerjoin(review_stats, review_stats.c.park_id == Park.id)
+        .outerjoin(active_stats, active_stats.c.park_id == Park.id)
         .where(
             Park.lat.between(lat - dlat, lat + dlat),
             Park.lng.between(lng - dlng, lng + dlng),
@@ -78,8 +126,23 @@ async def nearby_parks(
         .order_by(Park.name)
         .limit(100)
     )
-    parks = result.scalars().all()
-    return [await _park_to_out(p, db) for p in parks]
+    rows = result.all()
+    return [
+        ParkOut(
+            id=park.id,
+            name=park.name,
+            address=park.address,
+            lat=park.lat,
+            lng=park.lng,
+            verified=park.verified,
+            attributes=park.attributes,
+            avg_rating=round(float(avg_rating), 1) if avg_rating is not None else None,
+            review_count=review_count or 0,
+            active_dogs_count=active_count or 0,
+            created_at=park.created_at,
+        )
+        for park, avg_rating, review_count, active_count in rows
+    ]
 
 
 # --- CRUD ---
@@ -349,6 +412,7 @@ async def list_checkins(
         .where(
             ParkCheckin.park_id == park_id,
             ParkCheckin.checked_out_at == None,  # noqa: E711
+            ParkCheckin.created_at > _active_checkin_cutoff(),
         )
         .order_by(ParkCheckin.created_at.desc())
     )

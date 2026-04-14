@@ -5,7 +5,8 @@ import { createComment, getComments, deleteComment } from '../api/social';
 import { useAuth } from '../store/AuthContext';
 import Button from './ui/Button';
 import Avatar from './ui/Avatar';
-import { relativeTime } from '../utils/time';
+import Linkify from './Linkify';
+import TimeAgo from './TimeAgo';
 
 interface CommentSectionProps {
   targetType: string;
@@ -59,18 +60,22 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
                     <span className="text-sm font-medium text-gray-700">
                       {c.author_name || 'Unknown'}
                     </span>
-                    <span className="text-xs text-gray-400">{relativeTime(c.created_at)}</span>
+                    <TimeAgo value={c.created_at} className="text-xs text-gray-400" />
                   </div>
                   {user?.id === c.author_id && (
                     <button
-                      onClick={() => deleteMutation.mutate(c.id)}
+                      onClick={() => {
+                        if (confirm('Delete this comment?')) deleteMutation.mutate(c.id);
+                      }}
                       className="text-xs text-gray-400 hover:text-red-500 transition-colors px-1"
                     >
                       Delete
                     </button>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 mt-0.5">{c.body}</p>
+                <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap break-words">
+                  <Linkify>{c.body}</Linkify>
+                </p>
               </div>
             </div>
           ))}

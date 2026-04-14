@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { listRescues, getMyRescues, submitRescue, type Rescue } from '../api/rescues';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { ListSkeleton, Spinner } from '../components/ui/Skeleton';
+import { Spinner } from '../components/ui/Skeleton';
 
 type Tab = 'all' | 'mine';
 

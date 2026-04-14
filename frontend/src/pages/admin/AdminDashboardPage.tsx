@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { getStats } from '../../api/admin';
+import { getStats, getStatsTimeseries } from '../../api/admin';
 
 function formatHours(h: number | null): string {
   if (h === null) return '--';
@@ -14,6 +14,12 @@ export default function AdminDashboardPage() {
     queryKey: ['admin-stats'],
     queryFn: getStats,
     refetchInterval: 30000,
+  });
+
+  const { data: series } = useQuery({
+    queryKey: ['admin-timeseries', 14],
+    queryFn: () => getStatsTimeseries(14),
+    refetchInterval: 60_000,
   });
 
   if (isLoading || !stats) {
@@ -64,6 +70,15 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
+      {/* 14-day trends */}
+      {series && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          <TrendCard label="New Users" color="#2563eb" values={series.new_users} />
+          <TrendCard label="New Reports" color="#dc2626" values={series.new_reports} />
+          <TrendCard label="New Dogs" color="#16a34a" values={series.new_dogs} />
+        </div>
+      )}
+
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <StatCard label="Total Users" value={stats.total_users} />
@@ -102,6 +117,65 @@ function StatCard({ label, value, color = 'text-gray-800', link }: { label: stri
     </div>
   );
   return link ? <Link to={link}>{content}</Link> : content;
+}
+
+function TrendCard({ label, color, values }: { label: string; color: string; values: number[] }) {
+  const latest = values[values.length - 1] ?? 0;
+  const half = Math.floor(values.length / 2);
+  const currentTotal = values.slice(half).reduce((a, b) => a + b, 0);
+  const priorTotal = values.slice(0, half).reduce((a, b) => a + b, 0);
+  const delta = currentTotal - priorTotal;
+  const deltaColor =
+    delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-gray-400';
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4">
+      <p className="text-xs text-gray-500">{label} · 14d</p>
+      <div className="flex items-baseline gap-2 mt-1">
+        <span className="text-2xl font-bold text-gray-800">{latest}</span>
+        <span className={`text-xs font-medium ${deltaColor}`}>
+          {delta > 0 ? '+' : ''}{delta} vs. prior 7d
+        </span>
+      </div>
+      <Sparkline values={values} color={color} className="mt-2" />
+    </div>
+  );
+}
+
+function Sparkline({
+  values,
+  color,
+  width = 160,
+  height = 32,
+  className,
+}: { values: number[]; color: string; width?: number; height?: number; className?: string }) {
+  if (!values.length) return null;
+  const max = Math.max(1, ...values);
+  const step = values.length > 1 ? width / (values.length - 1) : 0;
+  const points = values.map((v, i) => {
+    const x = i * step;
+    const y = height - (v / max) * height;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      width="100%"
+      height={height}
+      className={className}
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
 }
 
 function QuickAction({ to, label, count, urgent }: { to: string; label: string; count: number; urgent?: boolean }) {

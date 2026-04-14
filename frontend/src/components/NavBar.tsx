@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../store/AuthContext';
 import { logout as apiLogout } from '../api/auth';
 import { getRefreshToken } from '../api/client';
@@ -33,41 +34,58 @@ export default function NavBar() {
     navigate('/');
   };
 
+  const activePath = NAV_ITEMS.find(({ path }) => {
+    if (location.pathname === path) return true;
+    if (path === '/dogs' && location.pathname.startsWith('/dogs')) return true;
+    if (path === '/lost' && location.pathname.startsWith('/lost')) return true;
+    if (path === '/parks' && location.pathname.startsWith('/parks')) return true;
+    return false;
+  })?.path;
+
   return (
     <>
       {/* Top bar */}
-      <nav className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-100">
-        <Link to={isAuthenticated ? '/home' : '/'} className="text-lg font-bold text-brand-600">
-          Fetch
+      <nav className="sticky top-0 z-40 flex items-center justify-between px-4 py-2.5 glass border-b border-gray-200/60">
+        <Link
+          to={isAuthenticated ? '/home' : '/'}
+          className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-brand-600 transition-transform duration-200 ease-soft-out hover:scale-[1.02] active:scale-95"
+        >
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-[12px] text-white shadow-brand-glow">
+            🐾
+          </span>
+          <span>Fetch</span>
         </Link>
         {isAuthenticated ? (
           <div className="flex items-center gap-3">
             {user?.role === 'admin' && (
-              <Link to="/admin" className="text-xs text-gray-500 hover:text-brand-500 transition-colors font-medium">
+              <Link
+                to="/admin"
+                className="text-xs font-medium text-gray-500 transition-colors hover:text-brand-500"
+              >
                 Admin
               </Link>
             )}
             <Link
               to={`/users/${user?.id}`}
-              className="text-xs text-gray-400 hover:text-brand-500 transition-colors"
+              className="text-xs text-gray-500 transition-colors hover:text-brand-500"
             >
               Profile
             </Link>
             <button
               onClick={handleLogout}
-              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+              className="text-xs text-gray-500 transition-colors hover:text-red-500"
             >
               Log out
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-3 text-sm">
-            <Link to="/login" className="text-gray-600 hover:text-brand-500">
+            <Link to="/login" className="text-gray-600 transition-colors hover:text-brand-500">
               Log in
             </Link>
             <Link
               to="/signup"
-              className="bg-brand-500 text-white px-3 py-1.5 rounded-lg hover:bg-brand-600 transition-colors"
+              className="rounded-lg bg-brand-500 px-3 py-1.5 text-white shadow-soft-sm transition-all duration-200 ease-soft-out hover:bg-brand-600 hover:shadow-brand-glow active:scale-95"
             >
               Sign up
             </Link>
@@ -77,7 +95,7 @@ export default function NavBar() {
 
       {/* Email verification banner */}
       {showVerifyBanner && (
-        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-sm text-amber-800">
+        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-sm text-amber-800 animate-fade-in-up">
           <span>Please verify your email address to unlock all features.</span>
           <button
             onClick={() => setBannerDismissed(true)}
@@ -91,25 +109,35 @@ export default function NavBar() {
 
       {/* Bottom tab bar (authenticated only) */}
       {isAuthenticated && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
+        <div className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gray-200/60 safe-bottom">
           <div className="mx-auto max-w-app flex justify-around py-1.5">
             {NAV_ITEMS.map(({ path, label, icon }) => {
-              const isActive = location.pathname === path ||
-                (path === '/dogs' && location.pathname.startsWith('/dogs')) ||
-                (path === '/lost' && location.pathname.startsWith('/lost')) ||
-                (path === '/parks' && location.pathname.startsWith('/parks'));
+              const isActive = activePath === path;
               return (
                 <Link
                   key={path}
                   to={path}
-                  className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors min-w-[3rem] ${
-                    isActive
-                      ? 'text-brand-600'
-                      : 'text-gray-400 hover:text-gray-600'
+                  className={`relative flex flex-col items-center gap-0.5 px-2 py-1.5 min-w-[3rem] transition-colors duration-200 ease-soft-out ${
+                    isActive ? 'text-brand-600' : 'text-gray-400 hover:text-gray-700'
                   }`}
                 >
-                  <span className="text-lg leading-none">{icon}</span>
-                  <span className="text-[10px] font-medium leading-none">{label}</span>
+                  {isActive && (
+                    <motion.span
+                      layoutId="tab-pill"
+                      className="absolute inset-x-2 inset-y-0.5 -z-10 rounded-xl bg-brand-50"
+                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                    />
+                  )}
+                  <span
+                    className={`text-lg leading-none transition-transform duration-200 ease-soft-out ${
+                      isActive ? 'scale-110' : ''
+                    }`}
+                  >
+                    {icon}
+                  </span>
+                  <span className="text-[10px] font-semibold leading-none tracking-tight">
+                    {label}
+                  </span>
                 </Link>
               );
             })}

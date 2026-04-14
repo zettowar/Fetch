@@ -1,23 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getMyFollows } from '../api/social';
-import { getDog } from '../api/dogs';
 import { dogAge, dogHeroPhoto } from '../utils/time';
 import Skeleton from '../components/ui/Skeleton';
+import Button from '../components/ui/Button';
 import type { Dog } from '../types';
 
-function FollowedDogCard({ dogId }: { dogId: string }) {
-  const { data: dog, isLoading } = useQuery<Dog>({
-    queryKey: ['dog', dogId],
-    queryFn: () => getDog(dogId),
-  });
-
-  if (isLoading) {
-    return <Skeleton className="h-20 w-full rounded-2xl" />;
-  }
-
-  if (!dog) return null;
-
+function FollowedDogCard({ dog }: { dog: Dog }) {
   const hero = dogHeroPhoto(dog);
   const age = dogAge(dog.birthday);
 
@@ -49,12 +38,14 @@ export default function FollowingPage() {
     queryFn: getMyFollows,
   });
 
+  const followedDogs = follows.map((f) => f.dog).filter((d): d is Dog => !!d);
+
   return (
     <div className="p-4 pb-8">
       <h1 className="text-xl font-bold mb-1">Following</h1>
       <p className="text-sm text-gray-400 mb-5">
-        {follows.length > 0
-          ? `${follows.length} dog${follows.length !== 1 ? 's' : ''} you follow`
+        {followedDogs.length > 0
+          ? `${followedDogs.length} dog${followedDogs.length !== 1 ? 's' : ''} you follow`
           : 'Dogs you follow will appear here'}
       </p>
 
@@ -64,18 +55,26 @@ export default function FollowingPage() {
         </div>
       )}
 
-      {!isLoading && follows.length === 0 && (
+      {!isLoading && followedDogs.length === 0 && (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">🐾</p>
           <p className="font-medium">No dogs followed yet</p>
-          <p className="text-sm mt-1">Follow dogs from their profile page to see them here</p>
+          <p className="text-sm mt-1 mb-5">Follow dogs from their profile page to see them here</p>
+          <div className="flex items-center justify-center gap-2">
+            <Link to="/">
+              <Button size="sm">Start swiping</Button>
+            </Link>
+            <Link to="/rankings">
+              <Button size="sm" variant="secondary">Browse top dogs</Button>
+            </Link>
+          </div>
         </div>
       )}
 
-      {!isLoading && follows.length > 0 && (
+      {!isLoading && followedDogs.length > 0 && (
         <div className="flex flex-col gap-3">
-          {follows.map((follow) => (
-            <FollowedDogCard key={follow.id} dogId={follow.dog_id} />
+          {followedDogs.map((dog) => (
+            <FollowedDogCard key={dog.id} dog={dog} />
           ))}
         </div>
       )}

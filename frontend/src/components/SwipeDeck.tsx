@@ -7,13 +7,14 @@ import { castVote } from '../api/votes';
 import SwipeCard from './SwipeCard';
 import Button from './ui/Button';
 import { CardSkeleton } from './ui/Skeleton';
+import ErrorState from './ui/ErrorState';
 
 export default function SwipeDeck() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lastVote, setLastVote] = useState<{ dogId: string; index: number } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data: dogs = [], isLoading, refetch } = useQuery({
+  const { data: dogs = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['feed'],
     queryFn: () => getFeed(20),
   });
@@ -33,6 +34,7 @@ export default function SwipeDeck() {
       if (!dog) return;
 
       const value: 1 | -1 = direction === 'right' ? 1 : -1;
+      navigator.vibrate?.(direction === 'right' ? 20 : 10);
       setLastVote({ dogId: dog.id, index: currentIndex });
       setCurrentIndex((i) => i + 1);
       voteMutation.mutate({ dogId: dog.id, value });
@@ -50,6 +52,7 @@ export default function SwipeDeck() {
 
   const handleUndo = () => {
     if (!lastVote) return;
+    navigator.vibrate?.([10, 40, 10]);
     setCurrentIndex(lastVote.index);
     setLastVote(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -61,6 +64,15 @@ export default function SwipeDeck() {
       <div className="px-4">
         <CardSkeleton />
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <ErrorState
+        message="Couldn't load the feed."
+        onRetry={() => refetch()}
+      />
     );
   }
 

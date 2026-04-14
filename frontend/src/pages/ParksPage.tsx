@@ -10,6 +10,8 @@ const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749];
 
 export default function ParksPage() {
   const [center] = useState(DEFAULT_CENTER);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'active' | 'verified'>('all');
   const navigate = useNavigate();
 
   const { data: parks = [], isLoading, isError } = useQuery({
@@ -17,14 +19,32 @@ export default function ParksPage() {
     queryFn: () => getNearbyParks(center[1], center[0], 25),
   });
 
-  const markers = parks.map((p) => ({
+  const searchLower = search.trim().toLowerCase();
+  const filteredParks = parks.filter((p) => {
+    if (filter === 'active' && p.active_dogs_count <= 0) return false;
+    if (filter === 'verified' && !p.verified) return false;
+    if (searchLower) {
+      const name = p.name.toLowerCase();
+      const addr = (p.address || '').toLowerCase();
+      if (!name.includes(searchLower) && !addr.includes(searchLower)) return false;
+    }
+    return true;
+  });
+
+  const markers = filteredParks.map((p) => ({
     id: p.id,
     lat: p.lat,
     lng: p.lng,
-    color: p.verified ? '#22c55e' : '#9ca3af',
+    color: p.active_dogs_count > 0 ? '#f97316' : p.verified ? '#22c55e' : '#9ca3af',
     label: p.name,
     onClick: () => navigate(`/parks/${p.id}`),
   }));
+
+  const filterOptions: { key: typeof filter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'active', label: 'Active now' },
+    { key: 'verified', label: 'Verified' },
+  ];
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)]">
@@ -34,6 +54,28 @@ export default function ParksPage() {
           <Link to="/parks/new">
             <Button size="sm">Add Park</Button>
           </Link>
+        </div>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search parks..."
+          className="mt-3 bg-gray-100 rounded-full px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-brand-300"
+        />
+        <div className="flex gap-2 mt-2">
+          {filterOptions.map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => setFilter(opt.key)}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                filter === opt.key
+                  ? 'bg-brand-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -47,9 +89,9 @@ export default function ParksPage() {
             </div>
           ) : isError ? (
             <p className="text-red-500 text-sm text-center py-4">Failed to load parks. Check your connection.</p>
-          ) : parks.length > 0 ? (
+          ) : filteredParks.length > 0 ? (
             <div className="flex flex-col gap-2">
-              {parks.map((park) => (
+              {filteredParks.map((park) => (
                 <Link
                   key={park.id}
                   to={`/parks/${park.id}`}
@@ -57,7 +99,18 @@ export default function ParksPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-medium">{park.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium">{park.name}</h3>
+                        {park.active_dogs_count > 0 && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-600 text-[11px] font-medium rounded-full">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500"></span>
+                            </span>
+                            {park.active_dogs_count} here now
+                          </span>
+                        )}
+                      </div>
                       {park.address && <p className="text-xs text-gray-500">{park.address}</p>}
                     </div>
                     <div className="text-right">
@@ -76,6 +129,8 @@ export default function ParksPage() {
                 </Link>
               ))}
             </div>
+          ) : parks.length > 0 ? (
+            <p className="text-gray-500 text-center py-4">No parks match your search.</p>
           ) : (
             <p className="text-gray-500 text-center py-4">No parks found nearby.</p>
           )}

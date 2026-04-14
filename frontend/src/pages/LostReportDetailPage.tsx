@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
-import { relativeTime } from '../utils/time';
+import TimeAgo from '../components/TimeAgo';
+import Linkify from '../components/Linkify';
 import {
   getLostReport,
   getSightings,
@@ -16,6 +17,7 @@ import {
 import { useAuth } from '../store/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import { shareLink } from '../utils/shareLink';
 
 export default function LostReportDetailPage() {
   const { id } = useParams();
@@ -119,10 +121,26 @@ export default function LostReportDetailPage() {
       </div>
 
       {/* Dog info */}
-      {report.dog_name && (
-        <h1 className="text-2xl font-bold">{report.dog_name}</h1>
-      )}
-      {report.dog_breed && <p className="text-gray-500">{report.dog_breed}</p>}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          {report.dog_name && (
+            <h1 className="text-2xl font-bold">{report.dog_name}</h1>
+          )}
+          {report.dog_breed && <p className="text-gray-500">{report.dog_breed}</p>}
+        </div>
+        <button
+          onClick={() =>
+            shareLink(
+              `${window.location.origin}/lost/${id}`,
+              `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.dog_name || 'Dog'}`,
+            )
+          }
+          className="text-xs text-gray-400 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0"
+          title="Share report"
+        >
+          Share
+        </button>
+      </div>
 
       {/* Photos */}
       {report.photos.length > 0 && (
@@ -139,7 +157,9 @@ export default function LostReportDetailPage() {
       )}
 
       {/* Description */}
-      <p className="mt-4 text-gray-700">{report.description}</p>
+      <p className="mt-4 text-gray-700 whitespace-pre-wrap break-words">
+        <Linkify>{report.description}</Linkify>
+      </p>
 
       {/* Location */}
       {report.last_seen_lat && report.last_seen_lng && (
@@ -150,7 +170,7 @@ export default function LostReportDetailPage() {
       )}
 
       <p className="text-xs text-gray-400 mt-1">
-        Reported {relativeTime(report.created_at)}
+        Reported <TimeAgo value={report.created_at} />
       </p>
 
       {/* Microchip registry links */}
@@ -251,10 +271,12 @@ export default function LostReportDetailPage() {
           <div className="flex flex-col gap-2">
             {sightings.map((s) => (
               <div key={s.id} className="p-3 bg-white border border-gray-100 rounded-xl">
-                <p className="text-sm text-gray-700">{s.note || 'No details'}</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                  {s.note ? <Linkify>{s.note}</Linkify> : 'No details'}
+                </p>
                 <p className="text-xs text-gray-400 mt-1">
                   {s.lat.toFixed(3)}, {s.lng.toFixed(3)} —{' '}
-                  {relativeTime(s.created_at)}
+                  <TimeAgo value={s.created_at} />
                 </p>
               </div>
             ))}

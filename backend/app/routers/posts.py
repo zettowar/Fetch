@@ -44,10 +44,12 @@ async def list_posts(
     kind: str | None = Query(None),
     tag: str | None = Query(None),
     search: str | None = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=50),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Post).order_by(Post.pinned.desc(), Post.created_at.desc()).limit(50)
+    query = select(Post).order_by(Post.pinned.desc(), Post.created_at.desc())
     if kind:
         query = query.where(Post.kind == kind)
     if tag:
@@ -57,6 +59,7 @@ async def list_posts(
             text("to_tsvector('english', title || ' ' || body) @@ plainto_tsquery('english', :q)")
         ).params(q=search)
 
+    query = query.offset(skip).limit(limit)
     result = await db.execute(query)
     return [
         PostOut(

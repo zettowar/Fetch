@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -14,13 +14,17 @@ import PhotoUploader from '../components/PhotoUploader';
 import BackButton from '../components/ui/BackButton';
 import Skeleton from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
-import { dogAge, relativeTime, photoUrl, dogHeroPhoto } from '../utils/time';
+import Linkify from '../components/Linkify';
+import TimeAgo from '../components/TimeAgo';
+import { dogAge, photoUrl, dogHeroPhoto } from '../utils/time';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { shareLink } from '../utils/shareLink';
 
 export default function DogDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
 
   const { data: dog, isLoading } = useQuery({
     queryKey: ['dog', id],
@@ -32,6 +36,8 @@ export default function DogDetailPage() {
     queryFn: () => getDogStats(id!),
     enabled: !!id,
   });
+
+  useDocumentTitle(dog ? `${dog.name} · Fetch` : null);
 
   const isOwner = user?.id === dog?.owner_id?.toString();
 
@@ -77,14 +83,9 @@ export default function DogDetailPage() {
     onError: () => toast.error('Failed to delete photo'),
   });
 
-  const handleShare = async () => {
+  const handleShare = () => {
     const url = `${window.location.origin}/dogs/${id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success('Link copied!');
-    } catch {
-      toast('Could not copy link');
-    }
+    shareLink(url, dog?.name ? `${dog.name} on Fetch` : 'Fetch');
   };
 
   if (isLoading) {
@@ -98,6 +99,22 @@ export default function DogDetailPage() {
     );
   }
 
+  // Keyboard navigation for fullscreen lightbox.
+  useEffect(() => {
+    if (fullscreenIndex === null || !dog) return;
+    const photoCount = dog.photos.length;
+    if (photoCount === 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFullscreenIndex(null);
+      else if (e.key === 'ArrowLeft')
+        setFullscreenIndex((i) => (i === null ? null : (i - 1 + photoCount) % photoCount));
+      else if (e.key === 'ArrowRight')
+        setFullscreenIndex((i) => (i === null ? null : (i + 1) % photoCount));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fullscreenIndex, dog]);
+
   if (!dog) {
     return <ErrorState message="Dog not found." />;
   }
@@ -105,6 +122,11 @@ export default function DogDetailPage() {
   const heroPhotoUrl = dogHeroPhoto(dog);
   const hasPhotos = dog.photos.length > 0;
   const age = dogAge(dog.birthday);
+  const openHeroLightbox = () => {
+    if (!hasPhotos) return;
+    const primaryIdx = dog.photos.findIndex((p) => p.id === dog.primary_photo_id);
+    setFullscreenIndex(primaryIdx >= 0 ? primaryIdx : 0);
+  };
 
   const handlePhotoUploaded = () => {
     queryClient.invalidateQueries({ queryKey: ['dog', id] });
@@ -113,21 +135,59 @@ export default function DogDetailPage() {
   return (
     <div className="pb-8">
       {/* Fullscreen photo overlay */}
-      {fullscreenPhoto && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-          onClick={() => setFullscreenPhoto(null)}
-        >
-          <img src={fullscreenPhoto} alt="" className="max-w-full max-h-full object-contain" />
-          <button
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-            onClick={() => setFullscreenPhoto(null)}
-            aria-label="Close"
+      {fullscreenIndex !== null && dog.photos[fullscreenIndex] && (() => {
+        const total = dog.photos.length;
+        const current = dog.photos[fullscreenIndex];
+        const goPrev = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          setFullscreenIndex((i) => (i === null ? null : (i - 1 + total) % total));
+        };
+        const goNext = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          setFullscreenIndex((i) => (i === null ? null : (i + 1) % total));
+        };
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+            onClick={() => setFullscreenIndex(null)}
           >
-            ✕
-          </button>
-        </div>
-      )}
+            <img
+              src={photoUrl(current)}
+              alt=""
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+              onClick={() => setFullscreenIndex(null)}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+            {total > 1 && (
+              <>
+                <button
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 text-white text-2xl flex items-center justify-center hover:bg-black/70 transition-colors"
+                  onClick={goPrev}
+                  aria-label="Previous photo"
+                >
+                  ‹
+                </button>
+                <button
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 text-white text-2xl flex items-center justify-center hover:bg-black/70 transition-colors"
+                  onClick={goNext}
+                  aria-label="Next photo"
+                >
+                  ›
+                </button>
+                <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/80 bg-black/40 px-2 py-0.5 rounded-full">
+                  {fullscreenIndex + 1} / {total}
+                </span>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Hero photo / placeholder */}
       {heroPhotoUrl ? (
@@ -135,7 +195,7 @@ export default function DogDetailPage() {
           src={heroPhotoUrl}
           alt={dog.name}
           className="w-full h-56 object-cover cursor-pointer"
-          onClick={() => setFullscreenPhoto(heroPhotoUrl)}
+          onClick={openHeroLightbox}
         />
       ) : isOwner ? (
         <div className="w-full bg-gradient-to-br from-brand-50 to-brand-100 p-6">
@@ -181,7 +241,11 @@ export default function DogDetailPage() {
           </div>
         </div>
         {dog.breed && <p className="text-gray-500">{dog.breed}</p>}
-        {dog.bio && <p className="text-gray-600 mt-2">{dog.bio}</p>}
+        {dog.bio && (
+          <p className="text-gray-600 mt-2 whitespace-pre-wrap">
+            <Linkify>{dog.bio}</Linkify>
+          </p>
+        )}
         {dog.traits && dog.traits.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {dog.traits.map((t) => (
@@ -199,7 +263,7 @@ export default function DogDetailPage() {
           >
             Owner profile
           </Link>
-          <span className="text-xs text-gray-400">Added {relativeTime(dog.created_at)}</span>
+          <span className="text-xs text-gray-400">Added <TimeAgo value={dog.created_at} /></span>
         </div>
 
         {/* Stats */}
@@ -255,7 +319,7 @@ export default function DogDetailPage() {
               <span className="text-xs text-gray-400">{dog.photos.length} photo{dog.photos.length !== 1 ? 's' : ''}</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {dog.photos.map((photo) => {
+              {dog.photos.map((photo, idx) => {
                 const url = photoUrl(photo);
                 const isPrimary = photo.id === dog.primary_photo_id;
                 return (
@@ -264,7 +328,7 @@ export default function DogDetailPage() {
                       src={url}
                       alt=""
                       className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => setFullscreenPhoto(url)}
+                      onClick={() => setFullscreenIndex(idx)}
                     />
                     {isOwner && (
                       <>

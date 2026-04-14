@@ -13,6 +13,7 @@ from app.models.dog import Dog
 from app.models.photo import Photo
 from app.models.social import Comment, Follow, Reaction
 from app.models.user import User
+from app.routers.dogs import _dog_to_out
 from app.schemas.social import (
     CommentCreate,
     CommentOut,
@@ -47,7 +48,13 @@ async def follow_dog(
         await db.rollback()
         raise HTTPException(status_code=409, detail="Already following this dog")
     await db.refresh(follow)
-    return follow
+    return FollowOut(
+        id=follow.id,
+        follower_id=follow.follower_id,
+        dog_id=follow.dog_id,
+        created_at=follow.created_at,
+        dog=None,
+    )
 
 
 @router.delete("/follows/{dog_id}")
@@ -73,9 +80,22 @@ async def my_follows(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Follow).where(Follow.follower_id == user.id).order_by(Follow.created_at.desc())
+        select(Follow)
+        .options(selectinload(Follow.dog).selectinload(Dog.photos))
+        .where(Follow.follower_id == user.id)
+        .order_by(Follow.created_at.desc())
     )
-    return list(result.scalars().all())
+    follows = list(result.scalars().all())
+    return [
+        FollowOut(
+            id=f.id,
+            follower_id=f.follower_id,
+            dog_id=f.dog_id,
+            created_at=f.created_at,
+            dog=_dog_to_out(f.dog) if f.dog and f.dog.is_active else None,
+        )
+        for f in follows
+    ]
 
 
 @router.get("/dogs/{dog_id}/followers/count")

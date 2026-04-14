@@ -14,6 +14,7 @@ from app.models.lost_report import (
 )
 from app.models.social import Follow, Comment, Reaction
 from app.models.park import Park, ParkReview, ParkIncident, ParkCheckin
+from app.models.playdate import PlayDate, PlayDateRsvp
 from app.models.post import Post
 from app.models.rescue import Rescue
 from app.models.support import FAQEntry, SupportTicket
@@ -44,6 +45,8 @@ __all__ = [
     "ParkReview",
     "ParkIncident",
     "ParkCheckin",
+    "PlayDate",
+    "PlayDateRsvp",
     "Post",
     "Rescue",
     "FAQEntry",

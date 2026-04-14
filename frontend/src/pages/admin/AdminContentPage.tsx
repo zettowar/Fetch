@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -11,19 +11,29 @@ import {
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Skeleton';
-import { relativeTime } from '../../utils/time';
+import TimeAgo from '../../components/TimeAgo';
+
+const PAGE_SIZE = 50;
 
 export default function AdminContentPage() {
   const [dogQuery, setDogQuery] = useState('');
   const [dogSearch, setDogSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const [offset, setOffset] = useState(0);
   const queryClient = useQueryClient();
 
-  const { data: dogs = [], isLoading } = useQuery({
-    queryKey: ['admin-dogs', dogSearch, showInactive],
-    queryFn: () => getAdminDogs({ q: dogSearch || undefined, active_only: showInactive ? undefined : true }),
+  const { data: page, isLoading } = useQuery({
+    queryKey: ['admin-dogs', dogSearch, showInactive, offset],
+    queryFn: () => getAdminDogs({
+      q: dogSearch || undefined,
+      active_only: showInactive ? undefined : true,
+      offset,
+      limit: PAGE_SIZE,
+    }),
     staleTime: 60_000,
   });
+  const dogs = page?.items ?? [];
+  const total = page?.total ?? 0;
 
   const deactivateMutation = useMutation({
     mutationFn: deactivateDog,
@@ -43,11 +53,6 @@ export default function AdminContentPage() {
     onError: () => toast.error('Failed to reactivate'),
   });
 
-  const { activeDogs, inactiveDogs } = useMemo(() => ({
-    activeDogs: dogs.filter((d: AdminDog) => d.is_active),
-    inactiveDogs: dogs.filter((d: AdminDog) => !d.is_active),
-  }), [dogs]);
-
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Content Moderation</h1>
@@ -56,13 +61,13 @@ export default function AdminContentPage() {
         <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
           Dog Profiles
           <span className="text-xs font-normal text-gray-400">
-            ({activeDogs.length} active{inactiveDogs.length > 0 ? `, ${inactiveDogs.length} inactive` : ''})
+            ({total} total)
           </span>
         </h2>
 
         <form
           className="flex gap-2 mb-3"
-          onSubmit={(e) => { e.preventDefault(); setDogSearch(dogQuery); }}
+          onSubmit={(e) => { e.preventDefault(); setDogSearch(dogQuery); setOffset(0); }}
         >
           <div className="flex-1">
             <Input
@@ -79,7 +84,7 @@ export default function AdminContentPage() {
             type="checkbox"
             className="rounded"
             checked={showInactive}
-            onChange={(e) => setShowInactive(e.target.checked)}
+            onChange={(e) => { setShowInactive(e.target.checked); setOffset(0); }}
           />
           Show inactive dogs
         </label>
@@ -124,7 +129,7 @@ export default function AdminContentPage() {
                       <span className="text-gray-400 ml-1">({dog.owner_email})</span>
                     )}
                     {' · '}
-                    {relativeTime(dog.created_at)}
+                    <TimeAgo value={dog.created_at} />
                   </p>
                 </div>
                 <div className="shrink-0">
@@ -154,6 +159,30 @@ export default function AdminContentPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {total > PAGE_SIZE && (
+          <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={offset === 0}
+              onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+            >
+              ← Prev
+            </Button>
+            <span className="text-xs text-gray-500">
+              {offset + 1}–{Math.min(offset + dogs.length, total)} of {total}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={offset + dogs.length >= total}
+              onClick={() => setOffset(offset + PAGE_SIZE)}
+            >
+              Next →
+            </Button>
           </div>
         )}
       </div>

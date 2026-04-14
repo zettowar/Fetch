@@ -7,16 +7,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary: 'bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700',
-  secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400',
-  danger: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700',
-  ghost: 'bg-transparent text-gray-600 hover:bg-gray-100',
+  primary:
+    'bg-brand-500 text-white shadow-soft-sm hover:bg-brand-600 hover:shadow-brand-glow active:bg-brand-700',
+  secondary:
+    'bg-white text-gray-800 border border-gray-200 shadow-soft-sm hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100',
+  danger:
+    'bg-red-500 text-white shadow-soft-sm hover:bg-red-600 active:bg-red-700',
+  ghost:
+    'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200',
 };
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-6 py-3 text-lg',
+  sm: 'px-3 py-1.5 text-sm rounded-lg',
+  md: 'px-4 py-2 text-base rounded-xl',
+  lg: 'px-6 py-3 text-lg rounded-xl',
 };
 
 export default function Button({
@@ -30,18 +34,14 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`relative inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 ease-soft-out transform-gpu active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:shadow-none ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? (
-        <span className="flex items-center gap-2">
-          <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-current flex-shrink-0" />
-          {children}
-        </span>
-      ) : (
-        children
+      {loading && (
+        <span className="inline-block h-4 w-4 flex-shrink-0 rounded-full border-2 border-current border-t-transparent animate-spin" />
       )}
+      <span className={loading ? 'opacity-90' : ''}>{children}</span>
     </button>
   );
 }

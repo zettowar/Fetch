@@ -1,10 +1,12 @@
 import client from './client';
+import type { Dog } from '../types';
 
 export interface Follow {
   id: string;
   follower_id: string;
   dog_id: string;
   created_at: string;
+  dog?: Dog | null;
 }
 
 export interface Comment {

@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getReports, reviewReport } from '../../api/admin';
 import Button from '../../components/ui/Button';
-import { relativeTime } from '../../utils/time';
+import TimeAgo from '../../components/TimeAgo';
 
 const TABS = ['pending', 'reviewed', 'dismissed', 'all'] as const;
+const PAGE_SIZE = 50;
 
 function targetLink(type: string, id: string): string {
   if (type === 'dog') return `/dogs/${id}`;
@@ -17,16 +18,19 @@ function targetLink(type: string, id: string): string {
 
 export default function AdminReportsPage() {
   const [tab, setTab] = useState<string>('pending');
+  const [offset, setOffset] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [strikeReason, setStrikeReason] = useState('');
   const [applyStrike, setApplyStrike] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: reports = [], isLoading } = useQuery({
-    queryKey: ['admin-reports', tab],
-    queryFn: () => getReports(tab),
+  const { data: page, isLoading } = useQuery({
+    queryKey: ['admin-reports', tab, offset],
+    queryFn: () => getReports({ status: tab, offset, limit: PAGE_SIZE }),
   });
+  const reports = page?.items ?? [];
+  const total = page?.total ?? 0;
 
   const reviewMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
@@ -56,7 +60,7 @@ export default function AdminReportsPage() {
         {TABS.map((t) => (
           <button
             key={t}
-            onClick={() => { setTab(t); setExpanded(null); }}
+            onClick={() => { setTab(t); setExpanded(null); setOffset(0); }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
               tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
@@ -90,14 +94,14 @@ export default function AdminReportsPage() {
                   'bg-gray-100 text-gray-700'
                 }`}>{r.target_type}</span>
                 <span className="flex-1 text-sm truncate">{r.reason}</span>
-                <span className="text-xs text-gray-400 shrink-0">{relativeTime(r.created_at)}</span>
+                <span className="text-xs text-gray-400 shrink-0"><TimeAgo value={r.created_at} /></span>
               </button>
 
               {expanded === r.id && (
                 <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-gray-600">
                     <p><span className="font-medium">Reason:</span> {r.reason}</p>
-                    <p><span className="font-medium">Reported:</span> {relativeTime(r.created_at)}</p>
+                    <p><span className="font-medium">Reported:</span> <TimeAgo value={r.created_at} /></p>
                     <p>
                       <span className="font-medium">Reporter:</span>{' '}
                       <Link to={`/users/${r.reporter_id}`} className="text-brand-500 hover:underline" target="_blank">
@@ -167,6 +171,26 @@ export default function AdminReportsPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={offset === 0}
+            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+          >← Prev</Button>
+          <span className="text-xs text-gray-500">
+            {offset + 1}–{Math.min(offset + reports.length, total)} of {total}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={offset + reports.length >= total}
+            onClick={() => setOffset(offset + PAGE_SIZE)}
+          >Next →</Button>
         </div>
       )}
     </div>

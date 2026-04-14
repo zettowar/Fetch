@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.dog import DogOut
+
 
 # --- Follows ---
 
@@ -11,6 +13,7 @@ class FollowOut(BaseModel):
     follower_id: UUID
     dog_id: UUID
     created_at: datetime
+    dog: DogOut | None = None
 
     model_config = {"from_attributes": True}
 

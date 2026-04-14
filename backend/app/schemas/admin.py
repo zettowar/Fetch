@@ -45,6 +45,13 @@ class AdminLostReportOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DashboardTimeseries(BaseModel):
+    dates: list[str]
+    new_users: list[int]
+    new_reports: list[int]
+    new_dogs: list[int]
+
+
 class DashboardStats(BaseModel):
     total_users: int = 0
     active_users: int = 0

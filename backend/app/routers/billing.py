@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import get_current_user, require_admin
+from app.models.audit_log import AuditLog
 from app.models.entitlement import Entitlement
 from app.models.user import User
 from app.schemas.billing import EntitlementOut, ManualGrantRequest, PremiumStatus
@@ -62,6 +63,13 @@ async def grant_entitlement(
         source=body.source,
     )
     db.add(ent)
+    db.add(AuditLog(
+        actor_id=admin.id,
+        action="entitlement.grant",
+        target_type="user",
+        target_id=body.user_id,
+        metadata_={"entitlement_key": body.entitlement_key, "source": body.source},
+    ))
     await db.commit()
     await db.refresh(ent)
     return ent

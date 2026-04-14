@@ -1,5 +1,10 @@
 import client from './client';
 
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+}
+
 // --- Types ---
 
 export interface DashboardStats {
@@ -101,8 +106,31 @@ export interface InviteCode {
 export const getStats = async (): Promise<DashboardStats> =>
   (await client.get('/admin/stats')).data;
 
-export const searchUsers = async (q: string): Promise<AdminUser[]> =>
-  (await client.get('/admin/users/search', { params: { q } })).data;
+export interface DashboardTimeseries {
+  dates: string[];
+  new_users: number[];
+  new_reports: number[];
+  new_dogs: number[];
+}
+
+export const getStatsTimeseries = async (days = 14): Promise<DashboardTimeseries> =>
+  (await client.get('/admin/stats/timeseries', { params: { days } })).data;
+
+function readTotal(headers: unknown, fallback: number): number {
+  const h = headers as { get?: (k: string) => string | null; [k: string]: unknown };
+  const raw = typeof h?.get === 'function'
+    ? h.get('x-total-count')
+    : (h?.['x-total-count'] as string | undefined);
+  const n = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(n) ? n : fallback;
+}
+
+export const searchUsers = async (
+  params: { q?: string; offset?: number; limit?: number } = {},
+): Promise<Paginated<AdminUser>> => {
+  const res = await client.get('/admin/users/search', { params });
+  return { items: res.data, total: readTotal(res.headers, res.data.length) };
+};
 
 export const getAdminUser = async (id: string): Promise<AdminUser> =>
   (await client.get(`/admin/users/${id}`)).data;
@@ -113,8 +141,18 @@ export const suspendUser = async (id: string) =>
 export const reinstateUser = async (id: string) =>
   (await client.post(`/admin/users/${id}/reinstate`)).data;
 
-export const getReports = async (status = 'pending'): Promise<Report[]> =>
-  (await client.get('/admin/reports', { params: { status_filter: status } })).data;
+export const getReports = async (
+  params: { status?: string; offset?: number; limit?: number } = {},
+): Promise<Paginated<Report>> => {
+  const res = await client.get('/admin/reports', {
+    params: {
+      status_filter: params.status ?? 'pending',
+      offset: params.offset,
+      limit: params.limit,
+    },
+  });
+  return { items: res.data, total: readTotal(res.headers, res.data.length) };
+};
 
 export const reviewReport = async (id: string, data: { status: string; admin_notes?: string; apply_strike?: boolean; strike_reason?: string }) =>
   (await client.post(`/admin/reports/${id}/review`, data)).data;
@@ -177,9 +215,21 @@ export const getAuditLog = async (params?: {
   action?: string;
   target_type?: string;
   actor_id?: string;
+  target_id?: string;
   limit?: number;
 }): Promise<AuditLogEntry[]> =>
   (await client.get('/admin/audit', { params })).data;
+
+// --- Per-user detail ---
+
+export const getUserReportsFiled = async (userId: string): Promise<Report[]> =>
+  (await client.get(`/admin/users/${userId}/reports-filed`)).data;
+
+export const getUserReportsAgainst = async (userId: string): Promise<Report[]> =>
+  (await client.get(`/admin/users/${userId}/reports-against`)).data;
+
+export const getUserRescues = async (userId: string): Promise<RescueAdmin[]> =>
+  (await client.get(`/admin/users/${userId}/rescues`)).data;
 
 // --- Content moderation: dogs ---
 
@@ -195,8 +245,12 @@ export interface AdminDog {
   created_at: string;
 }
 
-export const getAdminDogs = async (params?: { q?: string; active_only?: boolean }): Promise<AdminDog[]> =>
-  (await client.get('/admin/dogs', { params })).data;
+export const getAdminDogs = async (
+  params: { q?: string; active_only?: boolean; offset?: number; limit?: number } = {},
+): Promise<Paginated<AdminDog>> => {
+  const res = await client.get('/admin/dogs', { params });
+  return { items: res.data, total: readTotal(res.headers, res.data.length) };
+};
 
 export const deactivateDog = async (id: string) =>
   (await client.post(`/admin/dogs/${id}/deactivate`)).data;
@@ -218,8 +272,18 @@ export interface AdminLostReport {
   created_at: string;
 }
 
-export const getAdminLostReports = async (status = 'open'): Promise<AdminLostReport[]> =>
-  (await client.get('/admin/lost-reports', { params: { status_filter: status } })).data;
+export const getAdminLostReports = async (
+  params: { status?: string; offset?: number; limit?: number } = {},
+): Promise<Paginated<AdminLostReport>> => {
+  const res = await client.get('/admin/lost-reports', {
+    params: {
+      status_filter: params.status ?? 'open',
+      offset: params.offset,
+      limit: params.limit,
+    },
+  });
+  return { items: res.data, total: readTotal(res.headers, res.data.length) };
+};
 
 export const closeLostReport = async (id: string) =>
   (await client.post(`/admin/lost-reports/${id}/close`)).data;

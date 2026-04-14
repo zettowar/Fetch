@@ -13,7 +13,7 @@ from app.config import settings
 from app.limiter import limiter
 from app.logging import setup_logging
 from app.middleware import RequestIDMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
-from app.routers import auth, users, dogs, photos, feed, votes, rankings, reports, admin, lost, social, parks, posts, rescues, support, billing, notifications, feedback
+from app.routers import auth, users, dogs, photos, feed, votes, rankings, reports, admin, lost, social, parks, playdates, posts, rescues, support, billing, notifications, feedback
 
 logger = structlog.stdlib.get_logger()
 
@@ -79,6 +79,7 @@ app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(lost.router, prefix="/api/v1/lost", tags=["lost"])
 app.include_router(social.router, prefix="/api/v1/social", tags=["social"])
 app.include_router(parks.router, prefix="/api/v1/parks", tags=["parks"])
+app.include_router(playdates.router, prefix="/api/v1/playdates", tags=["playdates"])
 app.include_router(posts.router, prefix="/api/v1/posts", tags=["posts"])
 app.include_router(rescues.router, prefix="/api/v1/rescues", tags=["rescues"])
 app.include_router(support.router, prefix="/api/v1/support", tags=["support"])

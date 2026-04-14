@@ -71,16 +71,26 @@ async def winner_history(
     )
     winners = result.scalars().all()
 
+    if not winners:
+        return []
+
+    dog_ids = {w.dog_id for w in winners}
+    dogs_result = await db.execute(select(Dog).where(Dog.id.in_(dog_ids)))
+    dogs_by_id = {d.id: d for d in dogs_result.scalars().all()}
+
+    photo_ids = {d.primary_photo_id for d in dogs_by_id.values() if d.primary_photo_id}
+    photos_by_id: dict = {}
+    if photo_ids:
+        photos_result = await db.execute(select(Photo).where(Photo.id.in_(photo_ids)))
+        photos_by_id = {p.id: p for p in photos_result.scalars().all()}
+
     storage = get_storage()
     out = []
     for w in winners:
-        dog_result = await db.execute(select(Dog).where(Dog.id == w.dog_id))
-        dog = dog_result.scalar_one_or_none()
-
+        dog = dogs_by_id.get(w.dog_id)
         photo_url = None
         if dog and dog.primary_photo_id:
-            photo_result = await db.execute(select(Photo).where(Photo.id == dog.primary_photo_id))
-            photo = photo_result.scalar_one_or_none()
+            photo = photos_by_id.get(dog.primary_photo_id)
             if photo:
                 photo_url = storage.url(photo.storage_key)
 

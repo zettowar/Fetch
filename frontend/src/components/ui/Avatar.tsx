@@ -1,11 +1,11 @@
 const COLORS = [
-  'bg-brand-200 text-brand-700',
-  'bg-blue-200 text-blue-700',
-  'bg-green-200 text-green-700',
-  'bg-purple-200 text-purple-700',
-  'bg-amber-200 text-amber-700',
-  'bg-pink-200 text-pink-700',
-  'bg-teal-200 text-teal-700',
+  'from-brand-300 to-brand-500 text-white',
+  'from-sky-300 to-sky-500 text-white',
+  'from-emerald-300 to-emerald-500 text-white',
+  'from-violet-300 to-violet-500 text-white',
+  'from-amber-300 to-amber-500 text-white',
+  'from-pink-300 to-pink-500 text-white',
+  'from-teal-300 to-teal-500 text-white',
 ];
 
 function hashColor(name: string): string {
@@ -22,7 +22,7 @@ interface AvatarProps {
 }
 
 const sizes = {
-  sm: 'w-6 h-6 text-xs',
+  sm: 'w-6 h-6 text-[11px]',
   md: 'w-8 h-8 text-sm',
   lg: 'w-10 h-10 text-base',
 };
@@ -32,7 +32,9 @@ export default function Avatar({ name, size = 'sm' }: AvatarProps) {
   const color = hashColor(name || '');
 
   return (
-    <div className={`${sizes[size]} ${color} rounded-full flex items-center justify-center font-bold shrink-0`}>
+    <div
+      className={`${sizes[size]} bg-gradient-to-br ${color} rounded-full flex items-center justify-center font-semibold shrink-0 shadow-soft-sm ring-1 ring-black/5`}
+    >
       {initial}
     </div>
   );

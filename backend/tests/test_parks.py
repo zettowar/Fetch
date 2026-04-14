@@ -79,7 +79,14 @@ async def test_checkin(client: AsyncClient, auth_headers: dict):
     }, headers=auth_headers)
     park_id = create_res.json()["id"]
 
-    res = await client.post(f"/api/v1/parks/{park_id}/checkin", headers=auth_headers)
+    dog_res = await client.post("/api/v1/dogs", json={"name": "CheckinDog"}, headers=auth_headers)
+    dog_id = dog_res.json()["id"]
+
+    res = await client.post(
+        f"/api/v1/parks/{park_id}/checkin",
+        json={"dog_id": dog_id},
+        headers=auth_headers,
+    )
     assert res.status_code == 201
 
 

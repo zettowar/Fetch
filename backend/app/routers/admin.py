@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func, or_
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import select, func, or_, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -23,12 +23,17 @@ from app.schemas.admin import (
     AdminUserOut,
     AuditLogOut,
     DashboardStats,
+    DashboardTimeseries,
     FAQCreate,
     FAQUpdate,
     TicketStatusUpdate,
 )
 from app.schemas.report import ReportOut, ReportReview, StrikeOut
+from app.schemas.rescue import RescueOut
 from app.schemas.support import FAQOut, TicketOut
+
+DEFAULT_PAGE_LIMIT = 50
+MAX_PAGE_LIMIT = 200
 
 router = APIRouter()
 
@@ -112,6 +117,49 @@ async def dashboard_stats(
     )
 
 
+@router.get("/stats/timeseries", response_model=DashboardTimeseries)
+async def dashboard_timeseries(
+    days: int = Query(14, ge=1, le=90),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Daily counts of new users, reports, and dogs over the last `days` days."""
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    start = today - timedelta(days=days - 1)
+
+    async def daily_counts(date_col) -> dict[datetime, int]:
+        day_col = cast(date_col, Date).label("day")
+        result = await db.execute(
+            select(day_col, func.count())
+            .where(date_col >= datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc))
+            .group_by(day_col)
+        )
+        return {row[0]: row[1] for row in result.all()}
+
+    users_map = await daily_counts(User.created_at)
+    reports_map = await daily_counts(Report.created_at)
+    dogs_map = await daily_counts(Dog.created_at)
+
+    dates: list[str] = []
+    new_users: list[int] = []
+    new_reports: list[int] = []
+    new_dogs: list[int] = []
+    for i in range(days):
+        d = start + timedelta(days=i)
+        dates.append(d.isoformat())
+        new_users.append(users_map.get(d, 0))
+        new_reports.append(reports_map.get(d, 0))
+        new_dogs.append(dogs_map.get(d, 0))
+
+    return DashboardTimeseries(
+        dates=dates,
+        new_users=new_users,
+        new_reports=new_reports,
+        new_dogs=new_dogs,
+    )
+
+
 # --- Audit Log ---
 
 @router.get("/audit", response_model=list[AuditLogOut])
@@ -119,6 +167,7 @@ async def list_audit_log(
     action: str | None = Query(None),
     target_type: str | None = Query(None),
     actor_id: UUID | None = Query(None),
+    target_id: UUID | None = Query(None),
     limit: int = Query(100, ge=1, le=500),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
@@ -130,6 +179,8 @@ async def list_audit_log(
         query = query.where(AuditLog.target_type == target_type)
     if actor_id:
         query = query.where(AuditLog.actor_id == actor_id)
+    if target_id:
+        query = query.where(AuditLog.target_id == target_id)
     result = await db.execute(query)
     return list(result.scalars().all())
 
@@ -138,19 +189,30 @@ async def list_audit_log(
 
 @router.get("/users/search", response_model=list[AdminUserOut])
 async def search_users(
+    response: Response,
     q: str = Query(default=""),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(User).order_by(User.created_at.desc()).limit(50)
+    base = select(User)
     if q:
-        query = query.where(
+        base = base.where(
             or_(
                 User.email.ilike(f"%{q}%"),
                 User.display_name.ilike(f"%{q}%"),
             )
         )
-    result = await db.execute(query)
+
+    count_result = await db.execute(select(func.count()).select_from(base.subquery()))
+    total = count_result.scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+    result = await db.execute(
+        base.order_by(User.created_at.desc()).offset(offset).limit(limit)
+    )
     users = result.scalars().all()
 
     out = []
@@ -264,14 +326,25 @@ async def demote_user(
 
 @router.get("/reports", response_model=list[ReportOut])
 async def list_reports(
+    response: Response,
     status_filter: str = Query("pending"),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Report).order_by(Report.created_at.desc()).limit(100)
+    base = select(Report)
     if status_filter != "all":
-        query = query.where(Report.status == status_filter)
-    result = await db.execute(query)
+        base = base.where(Report.status == status_filter)
+
+    count_result = await db.execute(select(func.count()).select_from(base.subquery()))
+    total = count_result.scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+    result = await db.execute(
+        base.order_by(Report.created_at.desc()).offset(offset).limit(limit)
+    )
     return list(result.scalars().all())
 
 
@@ -330,6 +403,70 @@ async def get_user_strikes(
 ):
     result = await db.execute(
         select(Strike).where(Strike.user_id == user_id).order_by(Strike.created_at.desc())
+    )
+    return list(result.scalars().all())
+
+
+@router.get("/users/{user_id}/reports-filed", response_model=list[ReportOut])
+async def get_user_reports_filed(
+    user_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reports filed BY this user."""
+    result = await db.execute(
+        select(Report)
+        .where(Report.reporter_id == user_id)
+        .order_by(Report.created_at.desc())
+        .limit(200)
+    )
+    return list(result.scalars().all())
+
+
+@router.get("/users/{user_id}/reports-against", response_model=list[ReportOut])
+async def get_user_reports_against(
+    user_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reports that ultimately target this user (direct, via dog ownership, or via photo->dog->owner)."""
+    # Direct reports against the user.
+    direct = select(Report).where(
+        Report.target_type == "user", Report.target_id == user_id
+    )
+    # Reports against any dog owned by this user.
+    owned_dog_ids = select(Dog.id).where(Dog.owner_id == user_id)
+    via_dog = select(Report).where(
+        Report.target_type == "dog", Report.target_id.in_(owned_dog_ids)
+    )
+    # Reports against any photo belonging to any dog owned by this user.
+    owned_photo_ids = select(Photo.id).where(Photo.dog_id.in_(owned_dog_ids))
+    via_photo = select(Report).where(
+        Report.target_type == "photo", Report.target_id.in_(owned_photo_ids)
+    )
+
+    combined = direct.union(via_dog, via_photo).subquery()
+    result = await db.execute(
+        select(Report)
+        .join(combined, Report.id == combined.c.id)
+        .order_by(Report.created_at.desc())
+        .limit(200)
+    )
+    return list(result.scalars().all())
+
+
+@router.get("/users/{user_id}/rescues", response_model=list[RescueOut])
+async def get_user_rescues(
+    user_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rescues submitted by this user."""
+    result = await db.execute(
+        select(Rescue)
+        .where(Rescue.submitted_by == user_id)
+        .order_by(Rescue.created_at.desc())
+        .limit(100)
     )
     return list(result.scalars().all())
 
@@ -434,8 +571,11 @@ async def list_all_rescues(
 
 @router.get("/dogs", response_model=list[AdminDogOut])
 async def list_dogs_admin(
+    response: Response,
     q: str = Query(default=""),
     active_only: bool = Query(False),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -445,11 +585,29 @@ async def list_dogs_admin(
         .correlate(Dog)
         .scalar_subquery()
     )
+
+    filter_base = select(Dog.id)
+    if q:
+        filter_base = filter_base.where(
+            or_(
+                Dog.name.ilike(f"%{q}%"),
+                Dog.breed.ilike(f"%{q}%"),
+            )
+        )
+    if active_only:
+        filter_base = filter_base.where(Dog.is_active == True)  # noqa: E712
+
+    count_result = await db.execute(select(func.count()).select_from(filter_base.subquery()))
+    total = count_result.scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
     query = (
         select(Dog, photo_count_sq.label("photo_count"))
         .options(selectinload(Dog.owner))
         .order_by(Dog.created_at.desc())
-        .limit(100)
+        .offset(offset)
+        .limit(limit)
     )
     if q:
         query = query.where(
@@ -459,7 +617,7 @@ async def list_dogs_admin(
             )
         )
     if active_only:
-        query = query.where(Dog.is_active == True)
+        query = query.where(Dog.is_active == True)  # noqa: E712
 
     result = await db.execute(query)
     return [
@@ -516,15 +674,27 @@ async def reactivate_dog(
 
 @router.get("/lost-reports", response_model=list[AdminLostReportOut])
 async def list_lost_reports_admin(
+    response: Response,
     status_filter: str = Query("open"),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    filter_base = select(LostReport.id)
+    if status_filter != "all":
+        filter_base = filter_base.where(LostReport.status == status_filter)
+    count_result = await db.execute(select(func.count()).select_from(filter_base.subquery()))
+    total = count_result.scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
     query = (
         select(LostReport)
         .options(selectinload(LostReport.reporter), selectinload(LostReport.dog))
         .order_by(LostReport.created_at.desc())
-        .limit(200)
+        .offset(offset)
+        .limit(limit)
     )
     if status_filter != "all":
         query = query.where(LostReport.status == status_filter)

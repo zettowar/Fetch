@@ -6,6 +6,7 @@ import BackButton from '../components/ui/BackButton';
 import ErrorState from '../components/ui/ErrorState';
 import Avatar from '../components/ui/Avatar';
 import { Spinner } from '../components/ui/Skeleton';
+import PlayDatesSection from '../components/PlayDatesSection';
 import { relativeTime } from '../utils/time';
 import {
   getPark,
@@ -18,6 +19,9 @@ import {
 } from '../api/parks';
 import { getMyDogs } from '../api/dogs';
 import Button from '../components/ui/Button';
+import Linkify from '../components/Linkify';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { shareLink } from '../utils/shareLink';
 
 export default function ParkDetailPage() {
   const { id } = useParams();
@@ -29,6 +33,8 @@ export default function ParkDetailPage() {
     queryFn: () => getPark(id!),
     enabled: !!id,
   });
+
+  useDocumentTitle(park ? `${park.name} · Fetch` : null);
 
   const { data: reviews = [] } = useQuery({
     queryKey: ['park-reviews', id],
@@ -116,8 +122,25 @@ export default function ParkDetailPage() {
   return (
     <div className="p-4 pb-8">
       <BackButton fallback="/parks" />
-      <h1 className="text-2xl font-bold">{park.name}</h1>
+      <div className="flex items-start justify-between gap-2">
+        <h1 className="text-2xl font-bold">{park.name}</h1>
+        <button
+          onClick={() => shareLink(`${window.location.origin}/parks/${id}`, `${park.name} · Fetch`)}
+          className="text-xs text-gray-400 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0"
+          title="Share park"
+        >
+          Share
+        </button>
+      </div>
       {park.address && <p className="text-gray-500">{park.address}</p>}
+      <a
+        href={`https://www.google.com/maps/search/?api=1&query=${park.lat},${park.lng}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 mt-1 text-sm text-brand-500 hover:text-brand-600 hover:underline"
+      >
+        <span>📍</span> Open in Maps
+      </a>
       {park.verified && (
         <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
           Verified
@@ -278,6 +301,9 @@ export default function ParkDetailPage() {
         </div>
       )}
 
+      {/* Play dates */}
+      <PlayDatesSection parkId={id!} />
+
       {/* Incidents */}
       {incidents.length > 0 && (
         <div className="mt-6">
@@ -304,7 +330,11 @@ export default function ParkDetailPage() {
                 <p className="font-medium text-sm">{r.author_name || 'Anonymous'}</p>
                 <p className="text-sm text-yellow-400 tracking-tight">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</p>
               </div>
-              {r.body && <p className="text-sm text-gray-600 mt-1">{r.body}</p>}
+              {r.body && (
+                <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
+                  <Linkify>{r.body}</Linkify>
+                </p>
+              )}
               {r.crowd_level && (
                 <p className="text-xs text-gray-400 mt-1">Crowd: {r.crowd_level}</p>
               )}

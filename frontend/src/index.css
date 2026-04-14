@@ -1,3 +1,95 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --brand: 238 122 16;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply font-sans text-gray-900;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1 {
+    @apply tracking-tight;
+    letter-spacing: -0.02em;
+  }
+
+  h2, h3, h4 {
+    @apply tracking-tight;
+    letter-spacing: -0.015em;
+  }
+
+  /* Keyboard-only focus rings — mouse clicks stay clean */
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand) / 0.6);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  button:focus-visible,
+  a:focus-visible {
+    outline-offset: 3px;
+  }
+
+  /* Smoother native controls */
+  select,
+  textarea,
+  input {
+    font-family: inherit;
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgb(243 244 246) 0%,
+      rgb(229 231 235) 50%,
+      rgb(243 244 246) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  .glass {
+    @apply bg-white/80 backdrop-blur-md backdrop-saturate-150;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pressable {
+    @apply transition-transform duration-150 ease-soft-out active:scale-[0.97];
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
