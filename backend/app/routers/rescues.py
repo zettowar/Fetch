@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import nulls_last, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
@@ -30,15 +30,32 @@ async def submit_rescue(
     return rescue
 
 
+@router.get("/mine", response_model=list[RescueOut])
+async def list_my_rescues(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Rescue)
+        .where(Rescue.submitted_by == user.id)
+        .order_by(Rescue.created_at.desc())
+        .limit(50)
+    )
+    return list(result.scalars().all())
+
+
 @router.get("", response_model=list[RescueOut])
 async def list_rescues(
     verified_only: bool = Query(True),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Rescue).order_by(Rescue.name)
+    query = select(Rescue).order_by(
+        nulls_last(Rescue.featured_until.desc()),
+        Rescue.name,
+    )
     if verified_only:
-        query = query.where(Rescue.verified == True)
+        query = query.where(Rescue.verified == True)  # noqa: E712
     result = await db.execute(query.limit(100))
     return list(result.scalars().all())
 

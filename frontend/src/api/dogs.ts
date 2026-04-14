@@ -23,6 +23,7 @@ export async function createDog(data: {
   birthday?: string;
   bio?: string;
   location_rough?: string;
+  traits?: string[];
 }): Promise<Dog> {
   const res = await client.post('/dogs', data);
   return res.data;

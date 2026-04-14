@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { getNearbyParks, type Park } from '../api/parks';
+import { getNearbyParks } from '../api/parks';
 import Map from '../components/Map';
 import Button from '../components/ui/Button';
+import { Spinner } from '../components/ui/Skeleton';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749];
 
@@ -11,7 +12,7 @@ export default function ParksPage() {
   const [center] = useState(DEFAULT_CENTER);
   const navigate = useNavigate();
 
-  const { data: parks = [], isLoading } = useQuery({
+  const { data: parks = [], isLoading, isError } = useQuery({
     queryKey: ['parks-nearby', center[1], center[0]],
     queryFn: () => getNearbyParks(center[1], center[0], 25),
   });
@@ -42,8 +43,10 @@ export default function ParksPage() {
         <div className="p-4 overflow-y-auto h-1/2">
           {isLoading ? (
             <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+              <Spinner className="h-6 w-6" />
             </div>
+          ) : isError ? (
+            <p className="text-red-500 text-sm text-center py-4">Failed to load parks. Check your connection.</p>
           ) : parks.length > 0 ? (
             <div className="flex flex-col gap-2">
               {parks.map((park) => (
@@ -59,11 +62,15 @@ export default function ParksPage() {
                     </div>
                     <div className="text-right">
                       {park.avg_rating ? (
-                        <p className="font-semibold text-brand-600">{park.avg_rating}/5</p>
+                        <>
+                          <p className="text-sm text-yellow-400 tracking-tight leading-none">
+                            {'★'.repeat(Math.round(park.avg_rating))}{'☆'.repeat(5 - Math.round(park.avg_rating))}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">{park.avg_rating.toFixed(1)} · {park.review_count} reviews</p>
+                        </>
                       ) : (
-                        <p className="text-xs text-gray-400">No reviews</p>
+                        <p className="text-xs text-gray-400">No reviews yet</p>
                       )}
-                      <p className="text-xs text-gray-400">{park.review_count} reviews</p>
                     </div>
                   </div>
                 </Link>

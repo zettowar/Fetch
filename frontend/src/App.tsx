@@ -29,11 +29,14 @@ import ScrollToTop from './components/ScrollToTop';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminContentPage from './pages/admin/AdminContentPage';
+import AdminLostReportsPage from './pages/admin/AdminLostReportsPage';
 import AdminTicketsPage from './pages/admin/AdminTicketsPage';
 import AdminRescuesPage from './pages/admin/AdminRescuesPage';
 import AdminFeedbackPage from './pages/admin/AdminFeedbackPage';
 import AdminInvitesPage from './pages/admin/AdminInvitesPage';
 import AdminFAQPage from './pages/admin/AdminFAQPage';
+import AdminAuditPage from './pages/admin/AdminAuditPage';
 import NotificationsPage from './pages/NotificationsPage';
 import FollowingPage from './pages/FollowingPage';
 import RescuesPage from './pages/RescuesPage';
@@ -117,11 +120,14 @@ function AppContent() {
             <Route index element={<AdminDashboardPage />} />
             <Route path="reports" element={<AdminReportsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="content" element={<AdminContentPage />} />
+            <Route path="lost" element={<AdminLostReportsPage />} />
             <Route path="tickets" element={<AdminTicketsPage />} />
             <Route path="rescues" element={<AdminRescuesPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="invites" element={<AdminInvitesPage />} />
             <Route path="faq" element={<AdminFAQPage />} />
+            <Route path="audit" element={<AdminAuditPage />} />
           </Route>
         </Routes>
       )}

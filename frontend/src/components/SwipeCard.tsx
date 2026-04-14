@@ -42,8 +42,9 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
       {photoUrl ? (
         <img src={photoUrl} alt={dog.name} className="w-full h-[70%] object-cover" />
       ) : (
-        <div className="w-full h-[70%] bg-gray-100 flex items-center justify-center text-gray-400 text-lg">
-          No photo
+        <div className="w-full h-[70%] bg-gradient-to-br from-brand-50 to-brand-100 flex flex-col items-center justify-center gap-2">
+          <span className="text-5xl opacity-25">🐾</span>
+          <p className="text-sm text-brand-300 font-medium">No photo yet</p>
         </div>
       )}
 
@@ -76,6 +77,11 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
                 {t}
               </span>
             ))}
+            {dog.traits.length > 3 && (
+              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[11px] rounded-full font-medium">
+                +{dog.traits.length - 3}
+              </span>
+            )}
           </div>
         )}
         {dog.bio && <p className="text-sm text-gray-600 mt-1 line-clamp-2">{dog.bio}</p>}

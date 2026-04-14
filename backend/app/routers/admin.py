@@ -4,22 +4,55 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db import get_db
 from app.deps import require_admin
+from app.models.audit_log import AuditLog
 from app.models.beta import Feedback, InviteCode
 from app.models.dog import Dog
+from app.models.lost_report import LostReport
+from app.models.photo import Photo
 from app.models.report import Report, Strike
 from app.models.rescue import Rescue
 from app.models.support import FAQEntry, SupportTicket
 from app.models.user import User
-from app.schemas.admin import AdminUserOut, DashboardStats, FAQCreate, FAQUpdate, TicketStatusUpdate
+from app.schemas.admin import (
+    AdminDogOut,
+    AdminLostReportOut,
+    AdminUserOut,
+    AuditLogOut,
+    DashboardStats,
+    FAQCreate,
+    FAQUpdate,
+    TicketStatusUpdate,
+)
 from app.schemas.report import ReportOut, ReportReview, StrikeOut
 from app.schemas.support import FAQOut, TicketOut
 
 router = APIRouter()
 
 STRIKE_THRESHOLD = 3
+
+
+# --- Audit logging helper ---
+
+async def _log(
+    db: AsyncSession,
+    *,
+    actor_id: UUID,
+    action: str,
+    target_type: str | None = None,
+    target_id: UUID | None = None,
+    metadata: dict | None = None,
+) -> None:
+    db.add(AuditLog(
+        actor_id=actor_id,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        metadata_=metadata,
+    ))
 
 
 # --- Dashboard ---
@@ -44,7 +77,6 @@ async def dashboard_stats(
     total_feedback = (await db.execute(select(func.count()).select_from(Feedback))).scalar() or 0
     reports_7d = (await db.execute(select(func.count()).where(Report.created_at >= week_ago))).scalar() or 0
 
-    # Oldest pending items (SLA tracking)
     oldest_report_result = await db.execute(
         select(func.min(Report.created_at)).where(Report.status == "pending")
     )
@@ -78,6 +110,28 @@ async def dashboard_stats(
         oldest_pending_report_hours=oldest_report_hours,
         oldest_open_ticket_hours=oldest_ticket_hours,
     )
+
+
+# --- Audit Log ---
+
+@router.get("/audit", response_model=list[AuditLogOut])
+async def list_audit_log(
+    action: str | None = Query(None),
+    target_type: str | None = Query(None),
+    actor_id: UUID | None = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    query = select(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit)
+    if action:
+        query = query.where(AuditLog.action == action)
+    if target_type:
+        query = query.where(AuditLog.target_type == target_type)
+    if actor_id:
+        query = query.where(AuditLog.actor_id == actor_id)
+    result = await db.execute(query)
+    return list(result.scalars().all())
 
 
 # --- User Management ---
@@ -145,6 +199,8 @@ async def suspend_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = False
+    await _log(db, actor_id=admin.id, action="user.suspend", target_type="user", target_id=user_id,
+               metadata={"email": user.email})
     await db.commit()
     return {"detail": "User suspended"}
 
@@ -160,8 +216,48 @@ async def reinstate_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = True
+    await _log(db, actor_id=admin.id, action="user.reinstate", target_type="user", target_id=user_id,
+               metadata={"email": user.email})
     await db.commit()
     return {"detail": "User reinstated"}
+
+
+@router.post("/users/{user_id}/promote")
+async def promote_user(
+    user_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Cannot change your own role")
+    user.role = "admin"
+    await _log(db, actor_id=admin.id, action="user.promote", target_type="user", target_id=user_id,
+               metadata={"email": user.email, "new_role": "admin"})
+    await db.commit()
+    return {"detail": "User promoted to admin"}
+
+
+@router.post("/users/{user_id}/demote")
+async def demote_user(
+    user_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Cannot change your own role")
+    user.role = "user"
+    await _log(db, actor_id=admin.id, action="user.demote", target_type="user", target_id=user_id,
+               metadata={"email": user.email, "new_role": "user"})
+    await db.commit()
+    return {"detail": "User demoted to regular user"}
 
 
 # --- Reports ---
@@ -197,6 +293,7 @@ async def review_report(
     report.admin_notes = body.admin_notes
     report.reviewed_by = admin.id
 
+    strike_applied = False
     if body.apply_strike and body.status == "reviewed":
         target_user_id = await _resolve_target_user(report, db)
         if target_user_id:
@@ -206,6 +303,7 @@ async def review_report(
                 reason=body.strike_reason or report.reason,
             )
             db.add(strike)
+            strike_applied = True
 
             count_result = await db.execute(
                 select(func.count()).where(Strike.user_id == target_user_id)
@@ -217,6 +315,8 @@ async def review_report(
                 if target_user:
                     target_user.is_active = False
 
+    await _log(db, actor_id=admin.id, action="report.review", target_type="report", target_id=report_id,
+               metadata={"status": body.status, "strike_applied": strike_applied})
     await db.commit()
     await db.refresh(report)
     return report
@@ -249,6 +349,8 @@ async def update_ticket(
         raise HTTPException(status_code=404, detail="Ticket not found")
     ticket.status = body.status
     ticket.assigned_to = admin.id
+    await _log(db, actor_id=admin.id, action="ticket.update", target_type="ticket", target_id=ticket_id,
+               metadata={"status": body.status})
     await db.commit()
     await db.refresh(ticket)
     return ticket
@@ -269,6 +371,9 @@ async def create_faq(
         sort_order=body.sort_order,
     )
     db.add(entry)
+    await db.flush()
+    await _log(db, actor_id=admin.id, action="faq.create", target_type="faq", target_id=entry.id,
+               metadata={"question": body.question[:80]})
     await db.commit()
     await db.refresh(entry)
     return entry
@@ -287,6 +392,8 @@ async def update_faq(
         raise HTTPException(status_code=404, detail="FAQ entry not found")
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(entry, field, value)
+    await _log(db, actor_id=admin.id, action="faq.update", target_type="faq", target_id=faq_id,
+               metadata=body.model_dump(exclude_unset=True))
     await db.commit()
     await db.refresh(entry)
     return entry
@@ -302,6 +409,8 @@ async def delete_faq(
     entry = result.scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="FAQ entry not found")
+    await _log(db, actor_id=admin.id, action="faq.delete", target_type="faq", target_id=faq_id,
+               metadata={"question": entry.question[:80]})
     await db.delete(entry)
     await db.commit()
     return {"detail": "FAQ entry deleted"}
@@ -321,6 +430,141 @@ async def list_all_rescues(
     return [RescueOut.model_validate(r) for r in rescues]
 
 
+# --- Content moderation: dogs ---
+
+@router.get("/dogs", response_model=list[AdminDogOut])
+async def list_dogs_admin(
+    q: str = Query(default=""),
+    active_only: bool = Query(False),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    photo_count_sq = (
+        select(func.count())
+        .where(Photo.dog_id == Dog.id)
+        .correlate(Dog)
+        .scalar_subquery()
+    )
+    query = (
+        select(Dog, photo_count_sq.label("photo_count"))
+        .options(selectinload(Dog.owner))
+        .order_by(Dog.created_at.desc())
+        .limit(100)
+    )
+    if q:
+        query = query.where(
+            or_(
+                Dog.name.ilike(f"%{q}%"),
+                Dog.breed.ilike(f"%{q}%"),
+            )
+        )
+    if active_only:
+        query = query.where(Dog.is_active == True)
+
+    result = await db.execute(query)
+    return [
+        AdminDogOut(
+            id=d.id,
+            name=d.name,
+            breed=d.breed,
+            is_active=d.is_active,
+            owner_id=d.owner_id,
+            owner_name=d.owner.display_name if d.owner else None,
+            owner_email=d.owner.email if d.owner else None,
+            photo_count=count,
+            created_at=d.created_at,
+        )
+        for d, count in result.all()
+    ]
+
+
+@router.post("/dogs/{dog_id}/deactivate")
+async def deactivate_dog(
+    dog_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Dog).where(Dog.id == dog_id))
+    dog = result.scalar_one_or_none()
+    if not dog:
+        raise HTTPException(status_code=404, detail="Dog not found")
+    dog.is_active = False
+    await _log(db, actor_id=admin.id, action="dog.deactivate", target_type="dog", target_id=dog_id,
+               metadata={"name": dog.name, "owner_id": str(dog.owner_id)})
+    await db.commit()
+    return {"detail": "Dog deactivated"}
+
+
+@router.post("/dogs/{dog_id}/reactivate")
+async def reactivate_dog(
+    dog_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Dog).where(Dog.id == dog_id))
+    dog = result.scalar_one_or_none()
+    if not dog:
+        raise HTTPException(status_code=404, detail="Dog not found")
+    dog.is_active = True
+    await _log(db, actor_id=admin.id, action="dog.reactivate", target_type="dog", target_id=dog_id,
+               metadata={"name": dog.name, "owner_id": str(dog.owner_id)})
+    await db.commit()
+    return {"detail": "Dog reactivated"}
+
+
+# --- Lost Reports (admin view) ---
+
+@router.get("/lost-reports", response_model=list[AdminLostReportOut])
+async def list_lost_reports_admin(
+    status_filter: str = Query("open"),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    query = (
+        select(LostReport)
+        .options(selectinload(LostReport.reporter), selectinload(LostReport.dog))
+        .order_by(LostReport.created_at.desc())
+        .limit(200)
+    )
+    if status_filter != "all":
+        query = query.where(LostReport.status == status_filter)
+    result = await db.execute(query)
+    reports = result.scalars().all()
+
+    return [
+        AdminLostReportOut(
+            id=r.id,
+            kind=r.kind,
+            status=r.status,
+            description=r.description,
+            reporter_id=r.reporter_id,
+            reporter_name=r.reporter.display_name if r.reporter else None,
+            dog_id=r.dog_id,
+            dog_name=r.dog.name if r.dog else None,
+            created_at=r.created_at,
+        )
+        for r in reports
+    ]
+
+
+@router.post("/lost-reports/{report_id}/close")
+async def close_lost_report(
+    report_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(LostReport).where(LostReport.id == report_id))
+    report = result.scalar_one_or_none()
+    if not report:
+        raise HTTPException(status_code=404, detail="Lost report not found")
+    report.status = "closed"
+    report.resolved_at = datetime.now(timezone.utc)
+    report.resolved_by = admin.id
+    await _log(db, actor_id=admin.id, action="lost_report.close", target_type="lost_report", target_id=report_id)
+    await db.commit()
+    return {"detail": "Lost report closed"}
+
+
 # --- Helpers ---
 
 async def _resolve_target_user(report: Report, db: AsyncSession) -> UUID | None:
@@ -331,8 +575,6 @@ async def _resolve_target_user(report: Report, db: AsyncSession) -> UUID | None:
         row = result.first()
         return row[0] if row else None
     if report.target_type == "photo":
-        from app.models.photo import Photo
-
         result = await db.execute(select(Photo.dog_id).where(Photo.id == report.target_id))
         row = result.first()
         if row:

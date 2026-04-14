@@ -111,7 +111,7 @@ export default function SwipeDeck() {
           onClick={() => handleSwipe('left')}
           className="w-14 h-14 rounded-full bg-red-100 text-red-500 text-2xl font-bold flex items-center justify-center hover:bg-red-200 transition-colors"
         >
-          X
+          ✕
         </button>
 
         {lastVote && (

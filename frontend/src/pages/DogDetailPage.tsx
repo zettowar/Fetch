@@ -13,6 +13,7 @@ import CommentSection from '../components/CommentSection';
 import PhotoUploader from '../components/PhotoUploader';
 import BackButton from '../components/ui/BackButton';
 import Skeleton from '../components/ui/Skeleton';
+import ErrorState from '../components/ui/ErrorState';
 import { dogAge, relativeTime, photoUrl, dogHeroPhoto } from '../utils/time';
 
 export default function DogDetailPage() {
@@ -98,7 +99,7 @@ export default function DogDetailPage() {
   }
 
   if (!dog) {
-    return <div className="p-4 text-center text-gray-500">Dog not found</div>;
+    return <ErrorState message="Dog not found." />;
   }
 
   const heroPhotoUrl = dogHeroPhoto(dog);
@@ -118,8 +119,12 @@ export default function DogDetailPage() {
           onClick={() => setFullscreenPhoto(null)}
         >
           <img src={fullscreenPhoto} alt="" className="max-w-full max-h-full object-contain" />
-          <button className="absolute top-4 right-4 text-white text-2xl" onClick={() => setFullscreenPhoto(null)}>
-            X
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+            onClick={() => setFullscreenPhoto(null)}
+            aria-label="Close"
+          >
+            ✕
           </button>
         </div>
       )}

@@ -2,10 +2,19 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { searchUsers, suspendUser, reinstateUser, getUserStrikes, grantEntitlement } from '../../api/admin';
+import {
+  searchUsers,
+  suspendUser,
+  reinstateUser,
+  getUserStrikes,
+  grantEntitlement,
+  promoteUser,
+  demoteUser,
+} from '../../api/admin';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Avatar from '../../components/ui/Avatar';
+import { Spinner } from '../../components/ui/Skeleton';
 import { relativeTime } from '../../utils/time';
 
 export default function AdminUsersPage() {
@@ -54,6 +63,24 @@ export default function AdminUsersPage() {
     onError: () => toast.error('Failed to grant'),
   });
 
+  const promoteMutation = useMutation({
+    mutationFn: promoteUser,
+    onSuccess: () => {
+      toast.success('User promoted to admin');
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: () => toast.error('Failed to promote'),
+  });
+
+  const demoteMutation = useMutation({
+    mutationFn: demoteUser,
+    onSuccess: () => {
+      toast.success('User demoted to regular user');
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: () => toast.error('Failed to demote'),
+  });
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearchTerm(query);
@@ -98,7 +125,7 @@ export default function AdminUsersPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+          <Spinner className="h-6 w-6" />
         </div>
       ) : users.length === 0 ? (
         <p className="text-gray-400 text-center py-8">
@@ -137,7 +164,6 @@ export default function AdminUsersPage() {
                     </p>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex flex-wrap gap-2 mt-3">
                     {u.is_active ? (
                       <Button size="sm" variant="danger" onClick={() => {
@@ -153,9 +179,31 @@ export default function AdminUsersPage() {
                     <Button size="sm" variant="secondary" onClick={() => setShowGrant(!showGrant)}>
                       Grant Entitlement
                     </Button>
+                    {u.role !== 'admin' ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        loading={promoteMutation.isPending}
+                        onClick={() => {
+                          if (confirm(`Promote ${u.display_name} to admin?`)) promoteMutation.mutate(u.id);
+                        }}
+                      >
+                        Promote to Admin
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        loading={demoteMutation.isPending}
+                        onClick={() => {
+                          if (confirm(`Demote ${u.display_name} from admin?`)) demoteMutation.mutate(u.id);
+                        }}
+                      >
+                        Demote
+                      </Button>
+                    )}
                   </div>
 
-                  {/* Grant entitlement form */}
                   {showGrant && (
                     <div className="mt-2 flex items-center gap-2">
                       <select
@@ -173,7 +221,6 @@ export default function AdminUsersPage() {
                     </div>
                   )}
 
-                  {/* Strike history */}
                   {strikes.length > 0 && (
                     <div className="mt-3">
                       <p className="text-xs font-semibold text-gray-700 mb-1">Strike History ({strikes.length})</p>

@@ -154,3 +154,72 @@ export const deleteFAQ = async (id: string) =>
 
 export const grantEntitlement = async (data: { user_id: string; entitlement_key: string; source?: string }) =>
   (await client.post('/billing/grant', data)).data;
+
+export const promoteUser = async (id: string) =>
+  (await client.post(`/admin/users/${id}/promote`)).data;
+
+export const demoteUser = async (id: string) =>
+  (await client.post(`/admin/users/${id}/demote`)).data;
+
+// --- Audit log ---
+
+export interface AuditLogEntry {
+  id: string;
+  actor_id: string | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  metadata_: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export const getAuditLog = async (params?: {
+  action?: string;
+  target_type?: string;
+  actor_id?: string;
+  limit?: number;
+}): Promise<AuditLogEntry[]> =>
+  (await client.get('/admin/audit', { params })).data;
+
+// --- Content moderation: dogs ---
+
+export interface AdminDog {
+  id: string;
+  name: string;
+  breed: string | null;
+  is_active: boolean;
+  owner_id: string;
+  owner_name: string | null;
+  owner_email: string | null;
+  photo_count: number;
+  created_at: string;
+}
+
+export const getAdminDogs = async (params?: { q?: string; active_only?: boolean }): Promise<AdminDog[]> =>
+  (await client.get('/admin/dogs', { params })).data;
+
+export const deactivateDog = async (id: string) =>
+  (await client.post(`/admin/dogs/${id}/deactivate`)).data;
+
+export const reactivateDog = async (id: string) =>
+  (await client.post(`/admin/dogs/${id}/reactivate`)).data;
+
+// --- Lost reports (admin) ---
+
+export interface AdminLostReport {
+  id: string;
+  kind: string;
+  status: string;
+  description: string;
+  reporter_id: string;
+  reporter_name: string | null;
+  dog_id: string | null;
+  dog_name: string | null;
+  created_at: string;
+}
+
+export const getAdminLostReports = async (status = 'open'): Promise<AdminLostReport[]> =>
+  (await client.get('/admin/lost-reports', { params: { status_filter: status } })).data;
+
+export const closeLostReport = async (id: string) =>
+  (await client.post(`/admin/lost-reports/${id}/close`)).data;

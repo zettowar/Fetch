@@ -247,9 +247,9 @@ export default function ParkDetailPage() {
               <button
                 key={n}
                 onClick={() => setRating(n)}
-                className={`text-2xl ${n <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                className={`text-2xl transition-colors hover:scale-110 active:scale-95 ${n <= rating ? 'text-yellow-400' : 'text-gray-200'}`}
               >
-                *
+                ★
               </button>
             ))}
           </div>
@@ -266,7 +266,7 @@ export default function ParkDetailPage() {
             <option value="packed">Packed</option>
           </select>
           <textarea
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none"
+            className="rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-200"
             rows={3}
             placeholder="Your review..."
             value={reviewBody}
@@ -302,7 +302,7 @@ export default function ParkDetailPage() {
             <div key={r.id} className="p-3 bg-white border border-gray-100 rounded-xl mb-2">
               <div className="flex justify-between">
                 <p className="font-medium text-sm">{r.author_name || 'Anonymous'}</p>
-                <p className="text-sm text-brand-600">{'*'.repeat(r.rating)}</p>
+                <p className="text-sm text-yellow-400 tracking-tight">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</p>
               </div>
               {r.body && <p className="text-sm text-gray-600 mt-1">{r.body}</p>}
               {r.crowd_level && (

@@ -4,11 +4,14 @@ const NAV_ITEMS = [
   { path: '/admin', label: 'Dashboard', end: true },
   { path: '/admin/reports', label: 'Reports' },
   { path: '/admin/users', label: 'Users' },
+  { path: '/admin/content', label: 'Content' },
+  { path: '/admin/lost', label: 'Lost & Found' },
   { path: '/admin/tickets', label: 'Tickets' },
   { path: '/admin/rescues', label: 'Rescues' },
   { path: '/admin/feedback', label: 'Feedback' },
   { path: '/admin/invites', label: 'Invites' },
   { path: '/admin/faq', label: 'FAQ' },
+  { path: '/admin/audit', label: 'Audit Log' },
 ];
 
 export default function AdminLayout() {

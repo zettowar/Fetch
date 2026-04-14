@@ -38,7 +38,7 @@ export default function FeedbackWidget() {
       {/* Floating button — above bottom tab bar */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-[4.5rem] right-3 w-9 h-9 rounded-full bg-gray-200 text-gray-500 text-sm shadow-md hover:bg-brand-500 hover:text-white transition-colors z-50 flex items-center justify-center"
+        className="fixed bottom-[4.5rem] right-3 w-11 h-11 rounded-full bg-gray-200 text-gray-500 shadow-md hover:bg-brand-500 hover:text-white transition-colors z-50 flex items-center justify-center text-base"
         title="Send feedback"
       >
         {'\ud83d\udcac'}

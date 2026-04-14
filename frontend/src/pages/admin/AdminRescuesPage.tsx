@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getAdminRescues, verifyRescue } from '../../api/admin';
 import Button from '../../components/ui/Button';
+import { Spinner } from '../../components/ui/Skeleton';
 import { relativeTime } from '../../utils/time';
 
 export default function AdminRescuesPage() {
@@ -50,7 +51,7 @@ export default function AdminRescuesPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" /></div>
+        <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
       ) : rescues.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           {filter === 'unverified' ? 'No pending verifications.' : 'No rescues found.'}

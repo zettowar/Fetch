@@ -6,7 +6,7 @@ import Button from '../components/ui/Button';
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { data: winner, isError } = useQuery({
+  const { data: winner } = useQuery({
     queryKey: ['weekly-winner'],
     queryFn: getCurrentWinner,
   });

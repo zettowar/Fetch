@@ -8,11 +8,18 @@ export interface Rescue {
   website: string | null;
   donation_url: string | null;
   verified: boolean;
+  featured_until: string | null;
+  submitted_by: string | null;
   created_at: string;
 }
 
 export async function listRescues(): Promise<Rescue[]> {
   const res = await client.get('/rescues', { params: { verified_only: true } });
+  return res.data;
+}
+
+export async function getMyRescues(): Promise<Rescue[]> {
+  const res = await client.get('/rescues/mine');
   return res.data;
 }
 

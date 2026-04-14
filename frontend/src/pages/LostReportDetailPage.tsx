@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
+import { Spinner } from '../components/ui/Skeleton';
+import ErrorState from '../components/ui/ErrorState';
 import { relativeTime } from '../utils/time';
 import {
   getLostReport,
@@ -81,12 +83,12 @@ export default function LostReportDetailPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+        <Spinner />
       </div>
     );
   }
 
-  if (!report) return <div className="p-4 text-gray-500">Report not found</div>;
+  if (!report) return <ErrorState message="Report not found." />;
 
   const isOwner = user?.id === report.reporter_id;
 
@@ -112,7 +114,7 @@ export default function LostReportDetailPage() {
               : 'bg-gray-100 text-gray-600'
           }`}
         >
-          {report.status}
+          {report.status === 'open' ? 'Open' : report.status === 'resolved' ? 'Resolved' : 'Closed'}
         </span>
       </div>
 
@@ -128,7 +130,7 @@ export default function LostReportDetailPage() {
           {report.photos.map((p) => (
             <img
               key={p.id}
-              src={p.url || `/api/v1/photos/file/${p.storage_key}`} /* TODO: use photoUrl utility when LostReportPhoto has storage_key typed */
+              src={p.url || `/api/v1/photos/file/${p.storage_key}`}
               alt=""
               className="w-full h-32 object-cover rounded-lg"
             />
@@ -230,7 +232,7 @@ export default function LostReportDetailPage() {
         <div className="mt-4 p-4 bg-gray-50 rounded-xl">
           <h3 className="font-semibold mb-2">Contact Reporter</h3>
           <textarea
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-brand-500 resize-none"
+            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-200 resize-none"
             rows={3}
             placeholder="Your message..."
             value={contactMessage}
