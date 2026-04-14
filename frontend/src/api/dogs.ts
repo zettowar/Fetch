@@ -1,6 +1,7 @@
 import client from './client';
 import type { Dog } from '../types';
 
+// Keep in sync with backend/app/schemas/dog.py VALID_TRAITS
 export const DOG_TRAITS = [
   'Playful', 'Calm', 'Energetic', 'Good with kids', 'Good with dogs',
   'Loves fetch', 'Couch potato', 'Swimmer', 'Cuddly', 'Independent', 'Senior',

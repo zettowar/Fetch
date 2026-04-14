@@ -2,6 +2,12 @@ export function photoUrl(photo: { url?: string; storage_key: string }): string {
   return photo.url || `/api/v1/photos/file/${photo.storage_key}`;
 }
 
+export function dogHeroPhoto(dog: { primary_photo_url?: string | null; photos: Array<{ url?: string; storage_key: string }> }): string | null {
+  if (dog.primary_photo_url) return dog.primary_photo_url;
+  if (dog.photos[0]) return photoUrl(dog.photos[0]);
+  return null;
+}
+
 export function relativeTime(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();

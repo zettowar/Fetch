@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
 import ErrorState from '../components/ui/ErrorState';
+import Avatar from '../components/ui/Avatar';
+import { Spinner } from '../components/ui/Skeleton';
 import { relativeTime } from '../utils/time';
 import {
   getPark,
@@ -45,6 +47,7 @@ export default function ParkDetailPage() {
     queryFn: () => getParkCheckins(id!),
     enabled: !!id,
     refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   const { data: myDogs = [] } = useQuery({
@@ -99,7 +102,7 @@ export default function ParkDetailPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+        <Spinner />
       </div>
     );
   }
@@ -214,9 +217,7 @@ export default function ParkDetailPage() {
                   {ci.dog_photo_url ? (
                     <img src={ci.dog_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-xs text-brand-600 font-bold">
-                      {ci.dog_name?.[0] ?? '?'}
-                    </div>
+                    <Avatar name={ci.dog_name ?? '?'} size="md" />
                   )}
                   <div>
                     <p className="text-sm font-medium leading-none">{ci.dog_name ?? 'Unknown'}</p>

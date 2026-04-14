@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
 import type { Dog } from '../types';
-import { dogAge } from '../utils/time';
+import { dogAge, dogHeroPhoto } from '../utils/time';
 
 interface SwipeCardProps {
   dog: Dog;
@@ -17,7 +17,7 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
   const likeOpacity = useTransform(x, [0, 100], [0, 1]);
   const passOpacity = useTransform(x, [-100, 0], [1, 0]);
 
-  const photoUrl = dog.primary_photo_url || dog.photos[0]?.url;
+  const photoUrl = dogHeroPhoto(dog);
 
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (info.offset.x > SWIPE_THRESHOLD) {

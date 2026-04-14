@@ -149,6 +149,20 @@ async def update_park(
 
 # --- Reviews ---
 
+def _review_to_out(review: ParkReview, author_name: str | None) -> ParkReviewOut:
+    return ParkReviewOut(
+        id=review.id,
+        park_id=review.park_id,
+        author_id=review.author_id,
+        author_name=author_name,
+        rating=review.rating,
+        body=review.body,
+        visit_time_of_day=review.visit_time_of_day,
+        crowd_level=review.crowd_level,
+        created_at=review.created_at,
+    )
+
+
 @router.post("/{park_id}/reviews", response_model=ParkReviewOut, status_code=status.HTTP_201_CREATED)
 @limiter.limit("10/hour")
 async def create_review(
@@ -173,17 +187,7 @@ async def create_review(
     db.add(review)
     await db.commit()
     await db.refresh(review)
-    return ParkReviewOut(
-        id=review.id,
-        park_id=review.park_id,
-        author_id=review.author_id,
-        author_name=user.display_name,
-        rating=review.rating,
-        body=review.body,
-        visit_time_of_day=review.visit_time_of_day,
-        crowd_level=review.crowd_level,
-        created_at=review.created_at,
-    )
+    return _review_to_out(review, user.display_name)
 
 
 @router.get("/{park_id}/reviews", response_model=list[ParkReviewOut])
@@ -200,20 +204,7 @@ async def list_reviews(
         .limit(50)
     )
     reviews = result.scalars().all()
-    return [
-        ParkReviewOut(
-            id=r.id,
-            park_id=r.park_id,
-            author_id=r.author_id,
-            author_name=r.author.display_name if r.author else None,
-            rating=r.rating,
-            body=r.body,
-            visit_time_of_day=r.visit_time_of_day,
-            crowd_level=r.crowd_level,
-            created_at=r.created_at,
-        )
-        for r in reviews
-    ]
+    return [_review_to_out(r, r.author.display_name if r.author else None) for r in reviews]
 
 
 # --- Incidents ---
@@ -263,13 +254,15 @@ async def list_incidents(
 
 def _checkin_to_out(ci: ParkCheckin, storage) -> ParkCheckinOut:
     photo_url = None
-    if ci.dog and ci.dog.primary_photo_id:
-        for p in (ci.dog.photos or []):
-            if p.id == ci.dog.primary_photo_id:
-                photo_url = storage.url(p.storage_key)
-                break
-    if photo_url is None and ci.dog and ci.dog.photos:
-        photo_url = storage.url(ci.dog.photos[0].storage_key)
+    if ci.dog and ci.dog.photos:
+        photos_by_id = {p.id: p for p in ci.dog.photos}
+        photo = (
+            photos_by_id.get(ci.dog.primary_photo_id)
+            if ci.dog.primary_photo_id
+            else ci.dog.photos[0]
+        )
+        if photo:
+            photo_url = storage.url(photo.storage_key)
 
     return ParkCheckinOut(
         id=ci.id,

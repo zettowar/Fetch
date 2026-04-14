@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getDog, setPrimaryPhoto } from '../api/dogs';
 import { deletePhoto } from '../api/photos';
 import { getDogStats } from '../api/rankings';
-import { getNearbyParks, checkinPark, checkoutPark, getParkCheckins } from '../api/parks';
+import { getNearbyParks, checkinPark } from '../api/parks';
 import { useAuth } from '../store/AuthContext';
 import FollowButton from '../components/FollowButton';
 import ReactionBar from '../components/ReactionBar';
@@ -13,7 +13,7 @@ import CommentSection from '../components/CommentSection';
 import PhotoUploader from '../components/PhotoUploader';
 import BackButton from '../components/ui/BackButton';
 import Skeleton from '../components/ui/Skeleton';
-import { dogAge, relativeTime, photoUrl } from '../utils/time';
+import { dogAge, relativeTime, photoUrl, dogHeroPhoto } from '../utils/time';
 
 export default function DogDetailPage() {
   const { id } = useParams();
@@ -36,10 +36,22 @@ export default function DogDetailPage() {
 
   // Checkin state (owner only)
   const [showCheckinPicker, setShowCheckinPicker] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  const handleOpenCheckinPicker = useCallback(() => {
+    setShowCheckinPicker(true);
+    if (!userCoords && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => setUserCoords({ lat: 37.7749, lng: -122.4194 }), // SF fallback
+      );
+    }
+  }, [userCoords]);
+
   const { data: nearbyParks = [] } = useQuery({
-    queryKey: ['parks-nearby-checkin'],
-    queryFn: () => getNearbyParks(37.7749, -122.4194, 25),
-    enabled: isOwner && showCheckinPicker,
+    queryKey: ['parks-nearby-checkin', userCoords?.lat, userCoords?.lng],
+    queryFn: () => getNearbyParks(userCoords!.lat, userCoords!.lng, 25),
+    enabled: isOwner && showCheckinPicker && !!userCoords,
   });
 
   const checkinMutation = useMutation({
@@ -52,13 +64,16 @@ export default function DogDetailPage() {
     onError: () => toast.error('Failed to check in'),
   });
 
-  const checkoutMutation = useMutation({
-    mutationFn: (parkId: string) => checkoutPark(parkId, id!),
-    onSuccess: (_, parkId) => {
-      toast.success('Checked out');
-      queryClient.invalidateQueries({ queryKey: ['park-checkins', parkId] });
-    },
-    onError: () => toast.error('Failed to check out'),
+  const setPrimaryMutation = useMutation({
+    mutationFn: (photoId: string) => setPrimaryPhoto(dog!.id.toString(), photoId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dog', id] }),
+    onError: () => toast.error('Failed to set primary photo'),
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: (photoId: string) => deletePhoto(photoId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dog', id] }),
+    onError: () => toast.error('Failed to delete photo'),
   });
 
   const handleShare = async () => {
@@ -86,7 +101,7 @@ export default function DogDetailPage() {
     return <div className="p-4 text-center text-gray-500">Dog not found</div>;
   }
 
-  const heroPhotoUrl = dog.primary_photo_url || dog.photos[0]?.url;
+  const heroPhotoUrl = dogHeroPhoto(dog);
   const hasPhotos = dog.photos.length > 0;
   const age = dogAge(dog.birthday);
 
@@ -200,7 +215,7 @@ export default function DogDetailPage() {
         {isOwner && (
           <div className="mt-4">
             <button
-              onClick={() => setShowCheckinPicker(!showCheckinPicker)}
+              onClick={() => showCheckinPicker ? setShowCheckinPicker(false) : handleOpenCheckinPicker()}
               className="text-sm text-brand-500 font-medium hover:underline"
             >
               {showCheckinPicker ? 'Cancel' : '+ Check in to a park'}
@@ -255,12 +270,10 @@ export default function DogDetailPage() {
                               : 'bg-white/80 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-brand-500'
                           }`}
                           title={isPrimary ? 'Primary photo' : 'Set as primary'}
-                          onClick={async (e) => {
+                          aria-label={isPrimary ? 'Primary photo' : 'Set as primary'}
+                          onClick={(e) => {
                             e.stopPropagation();
-                            if (!isPrimary) {
-                              await setPrimaryPhoto(dog.id.toString(), photo.id.toString());
-                              queryClient.invalidateQueries({ queryKey: ['dog', id] });
-                            }
+                            if (!isPrimary) setPrimaryMutation.mutate(photo.id.toString());
                           }}
                         >
                           ★
@@ -268,12 +281,10 @@ export default function DogDetailPage() {
                         <button
                           className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity shadow"
                           title="Delete photo"
-                          onClick={async (e) => {
+                          aria-label="Delete photo"
+                          onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm('Delete this photo?')) {
-                              await deletePhoto(photo.id.toString());
-                              queryClient.invalidateQueries({ queryKey: ['dog', id] });
-                            }
+                            if (confirm('Delete this photo?')) deletePhotoMutation.mutate(photo.id.toString());
                           }}
                         >
                           ✕

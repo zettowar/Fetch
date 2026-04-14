@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getNearbyReports, getMySubscription, type NearbyReport } from '../api/lost';
 import Map from '../components/Map';
 import Button from '../components/ui/Button';
+import { Spinner } from '../components/ui/Skeleton';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // San Francisco
 const LAST_VISITED_KEY = 'lost-last-visited';
@@ -41,7 +42,9 @@ export default function LostDogsPage() {
       const count = reports.filter((r) => r.created_at > lastVisited).length;
       if (count > 0) setNewCount(count);
     }
-    localStorage.setItem(LAST_VISITED_KEY, new Date().toISOString());
+    const now = new Date().toISOString();
+    localStorage.setItem(LAST_VISITED_KEY, now);
+    lastVisitedRef.current = now;
   }, [subscription, reports]);
 
   const markers = reports.map((r) => ({
@@ -81,7 +84,7 @@ export default function LostDogsPage() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {f === 'all' ? 'All' : f === 'missing' ? 'Missing' : 'Found'}
+              {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
         </div>
@@ -164,7 +167,7 @@ export default function LostDogsPage() {
 
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/50">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+          <Spinner />
         </div>
       )}
     </div>

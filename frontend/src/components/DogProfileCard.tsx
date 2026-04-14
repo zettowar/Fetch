@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Dog, DogStats } from '../types';
+import { dogHeroPhoto } from '../utils/time';
 
 interface DogProfileCardProps {
   dog: Dog;
@@ -8,7 +9,7 @@ interface DogProfileCardProps {
 }
 
 export default function DogProfileCard({ dog, showEdit, stats }: DogProfileCardProps) {
-  const photoUrl = dog.primary_photo_url || dog.photos[0]?.url;
+  const photoUrl = dogHeroPhoto(dog);
   const hasPhotos = dog.photos.length > 0;
 
   return (

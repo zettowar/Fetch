@@ -16,9 +16,11 @@ function RescueCard({ rescue }: { rescue: Rescue }) {
             <p className="text-xs text-gray-400 mt-0.5">{rescue.location}</p>
           )}
         </div>
-        <span className="flex-shrink-0 text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-          Verified
-        </span>
+        {rescue.verified && (
+          <span className="flex-shrink-0 text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+            Verified
+          </span>
+        )}
       </div>
       <p className="text-sm text-gray-600 mt-2 line-clamp-3">{rescue.description}</p>
       <div className="flex gap-2 mt-3">

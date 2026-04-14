@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getMyFollows } from '../api/social';
 import { getDog } from '../api/dogs';
-import { dogAge, photoUrl } from '../utils/time';
+import { dogAge, dogHeroPhoto } from '../utils/time';
 import Skeleton from '../components/ui/Skeleton';
 import type { Dog } from '../types';
 
@@ -18,7 +18,7 @@ function FollowedDogCard({ dogId }: { dogId: string }) {
 
   if (!dog) return null;
 
-  const hero = dog.primary_photo_url || (dog.photos[0] ? photoUrl(dog.photos[0]) : null);
+  const hero = dogHeroPhoto(dog);
   const age = dogAge(dog.birthday);
 
   return (
