@@ -4,17 +4,21 @@ import pytest
 from httpx import AsyncClient
 
 
-async def _make_park_and_dog(client: AsyncClient, headers: dict) -> tuple[str, str]:
+async def _make_park_and_dog(
+    client: AsyncClient, user_headers: dict, admin_headers: dict,
+) -> tuple[str, str]:
+    """Parks now require admin to create, so we accept both header sets:
+    create the park as admin, the dog as the regular user."""
     park = await client.post(
         "/api/v1/parks",
         json={"name": "Meetup Park", "lat": 37.77, "lng": -122.42},
-        headers=headers,
+        headers=admin_headers,
     )
-    assert park.status_code == 201
+    assert park.status_code == 201, park.text
     dog = await client.post(
         "/api/v1/dogs",
         json={"name": "Rex"},
-        headers=headers,
+        headers=user_headers,
     )
     assert dog.status_code == 201
     return park.json()["id"], dog.json()["id"]
@@ -25,8 +29,8 @@ def _future_iso(minutes: int = 60) -> str:
 
 
 @pytest.mark.asyncio
-async def test_create_playdate(client: AsyncClient, auth_headers: dict):
-    park_id, dog_id = await _make_park_and_dog(client, auth_headers)
+async def test_create_playdate(client: AsyncClient, auth_headers: dict, admin_headers: dict):
+    park_id, dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     res = await client.post(
         "/api/v1/playdates",
         json={
@@ -46,8 +50,8 @@ async def test_create_playdate(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_playdate_past_date_rejected(client: AsyncClient, auth_headers: dict):
-    park_id, dog_id = await _make_park_and_dog(client, auth_headers)
+async def test_playdate_past_date_rejected(client: AsyncClient, auth_headers: dict, admin_headers: dict):
+    park_id, dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     res = await client.post(
         "/api/v1/playdates",
         json={
@@ -61,8 +65,8 @@ async def test_playdate_past_date_rejected(client: AsyncClient, auth_headers: di
 
 
 @pytest.mark.asyncio
-async def test_list_upcoming_by_park(client: AsyncClient, auth_headers: dict):
-    park_id, dog_id = await _make_park_and_dog(client, auth_headers)
+async def test_list_upcoming_by_park(client: AsyncClient, auth_headers: dict, admin_headers: dict):
+    park_id, dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     await client.post(
         "/api/v1/playdates",
         json={
@@ -83,7 +87,7 @@ async def test_list_upcoming_by_park(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.asyncio
 async def test_rsvp_flow(client: AsyncClient, auth_headers: dict, admin_headers: dict):
-    park_id, host_dog_id = await _make_park_and_dog(client, auth_headers)
+    park_id, host_dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     pd = await client.post(
         "/api/v1/playdates",
         json={
@@ -135,7 +139,7 @@ async def test_rsvp_flow(client: AsyncClient, auth_headers: dict, admin_headers:
 async def test_cancel_playdate_host_only(
     client: AsyncClient, auth_headers: dict, admin_headers: dict
 ):
-    park_id, dog_id = await _make_park_and_dog(client, auth_headers)
+    park_id, dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     pd = await client.post(
         "/api/v1/playdates",
         json={

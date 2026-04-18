@@ -13,6 +13,7 @@ from app.models.beta import Feedback, InviteCode
 from app.models.breed import Breed, dog_breeds
 from app.models.dog import Dog
 from app.models.lost_report import LostReport
+from app.models.park import Park
 from app.models.photo import Photo
 from app.models.report import Report, Strike
 from app.models.rescue import RescueProfile
@@ -33,8 +34,14 @@ from app.breed_data import slugify
 from app.schemas.breed import BreedAdminOut, BreedCreate, BreedUpdate
 from app.schemas.report import ReportOut, ReportReview, StrikeOut
 from app.services.breed_display import breed_display
+from app.schemas.park_import import (
+    ParkImportHistoryEntry,
+    ParkImportRequest,
+    ParkImportResponse,
+)
 from app.schemas.rescue import RescueProfileOut, RescueReviewRequest
 from app.schemas.support import FAQOut, TicketOut
+from app.services.park_import import import_osm_dog_parks
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
@@ -957,6 +964,88 @@ async def delete_breed(
     await db.delete(breed)
     await db.commit()
     return {"detail": "Breed deleted"}
+
+
+# --- Parks: external-dataset import ---
+
+@router.post("/parks/import-osm", response_model=ParkImportResponse)
+async def import_parks_from_osm(
+    body: ParkImportRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Pull dog parks from OpenStreetMap (via Overpass API) and upsert them.
+
+    - Touches only `source='osm'` rows; user-submitted parks are untouched.
+    - Optional `bbox` (south, west, north, east) scopes the import to a region.
+      Omit for a worldwide import (can take 60+ seconds).
+    """
+    result = await import_osm_dog_parks(db, bbox=body.bbox)
+    db.add(AuditLog(
+        actor_id=admin.id,
+        action="parks.import_osm",
+        target_type="parks",
+        metadata_={
+            "bbox": list(body.bbox) if body.bbox else None,
+            **result.to_dict(),
+        },
+    ))
+    await db.commit()
+    return ParkImportResponse(**result.to_dict())
+
+
+@router.get("/parks/import-history", response_model=list[ParkImportHistoryEntry])
+async def list_park_import_history(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Last 20 OSM imports from the audit log, with per-run stats."""
+    result = await db.execute(
+        select(AuditLog)
+        .where(AuditLog.action == "parks.import_osm")
+        .order_by(AuditLog.created_at.desc())
+        .limit(20)
+    )
+    rows = list(result.scalars().all())
+
+    actor_ids = [r.actor_id for r in rows if r.actor_id]
+    actors: dict[UUID, str] = {}
+    if actor_ids:
+        actor_res = await db.execute(
+            select(User.id, User.display_name).where(User.id.in_(actor_ids))
+        )
+        for uid, name in actor_res.all():
+            actors[uid] = name
+
+    out: list[ParkImportHistoryEntry] = []
+    for r in rows:
+        meta = r.metadata_ or {}
+        bbox_raw = meta.get("bbox")
+        out.append(ParkImportHistoryEntry(
+            id=r.id,
+            actor_id=r.actor_id,
+            actor_name=actors.get(r.actor_id) if r.actor_id else None,
+            created=int(meta.get("created", 0)),
+            updated=int(meta.get("updated", 0)),
+            total_fetched=int(meta.get("total_fetched", 0)),
+            bbox=tuple(bbox_raw) if bbox_raw and len(bbox_raw) == 4 else None,
+            created_at=r.created_at,
+        ))
+    return out
+
+
+@router.get("/parks/stats")
+async def park_source_stats(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Breakdown of parks by data source — handy for the admin dashboard."""
+    result = await db.execute(
+        select(Park.source, func.count()).group_by(Park.source)
+    )
+    by_source = {source or "unknown": count for source, count in result.all()}
+    total = sum(by_source.values())
+    return {"total": total, "by_source": by_source}
 
 
 # --- Helpers ---

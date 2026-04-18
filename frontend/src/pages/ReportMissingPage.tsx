@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { createLostReport } from '../api/lost';
 import { getMyDogs } from '../api/dogs';
 import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
+import LocationPicker from '../components/LocationPicker';
 
 export default function ReportMissingPage() {
   const navigate = useNavigate();
@@ -17,25 +17,17 @@ export default function ReportMissingPage() {
 
   const [dogId, setDogId] = useState('');
   const [description, setDescription] = useState('');
-  const [lat, setLat] = useState('');
-  const [lng, setLng] = useState('');
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [saving, setSaving] = useState(false);
-
-  const handleGetLocation = () => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude.toFixed(6));
-        setLng(pos.coords.longitude.toFixed(6));
-        toast.success('Location set');
-      },
-      () => toast.error('Could not get location'),
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim()) {
       toast.error('Please add a description');
+      return;
+    }
+    if (!location) {
+      toast.error('Pin the last-seen location on the map');
       return;
     }
     setSaving(true);
@@ -44,8 +36,8 @@ export default function ReportMissingPage() {
         dog_id: dogId || undefined,
         kind: 'missing',
         description,
-        last_seen_lat: lat ? parseFloat(lat) : undefined,
-        last_seen_lng: lng ? parseFloat(lng) : undefined,
+        last_seen_lat: location.lat,
+        last_seen_lng: location.lng,
         last_seen_at: new Date().toISOString(),
       });
       toast.success('Missing dog report created');
@@ -106,28 +98,8 @@ export default function ReportMissingPage() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Last Seen Location</label>
-          <Button type="button" variant="secondary" size="sm" onClick={handleGetLocation}>
-            Use My Location
-          </Button>
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              label="Latitude"
-              type="number"
-              step="any"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-              placeholder="37.7749"
-            />
-            <Input
-              label="Longitude"
-              type="number"
-              step="any"
-              value={lng}
-              onChange={(e) => setLng(e.target.value)}
-              placeholder="-122.4194"
-            />
-          </div>
+          <label className="text-sm font-medium text-gray-700">Last seen location</label>
+          <LocationPicker value={location} onChange={setLocation} />
         </div>
 
         <Button type="submit" loading={saving} className="w-full" variant="danger">

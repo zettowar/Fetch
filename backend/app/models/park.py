@@ -22,6 +22,15 @@ class Park(Base, UUIDPrimaryKey, TimestampMixin):
     attributes: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     # attributes: fenced, off_leash_legal, water, shade, small_dog_area, lights, restrooms, parking
 
+    # Data provenance. 'user' (submitted in-app), 'osm' (imported from
+    # OpenStreetMap via Overpass), 'seed' (initial demo data).
+    source: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="user", server_default="user",
+    )
+    # OSM element id like "way/12345" (or any other source-specific primary
+    # key). Used to dedupe on re-import.
+    external_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     reviews = relationship("ParkReview", back_populates="park", cascade="all, delete-orphan")
     incidents = relationship("ParkIncident", back_populates="park", cascade="all, delete-orphan")
 

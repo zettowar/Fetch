@@ -19,6 +19,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { shareLink } from '../utils/shareLink';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import Map from '../components/Map';
 
 export default function LostReportDetailPage() {
   const { id } = useParams();
@@ -170,9 +171,27 @@ export default function LostReportDetailPage() {
 
       {/* Location */}
       {report.last_seen_lat && report.last_seen_lng && (
-        <div className="mt-3 text-sm text-gray-500">
-          Last seen near: {report.last_seen_lat.toFixed(3)}, {report.last_seen_lng.toFixed(3)}
-          <span className="text-xs text-gray-400 ml-1">(approximate)</span>
+        <div className="mt-4">
+          <p className="text-sm font-medium text-gray-700 mb-1.5">
+            Last seen near
+            <span className="text-xs text-gray-400 font-normal ml-2">(approximate)</span>
+          </p>
+          <div className="h-48 overflow-hidden rounded-xl border border-gray-200">
+            <Map
+              center={[report.last_seen_lng, report.last_seen_lat]}
+              zoom={14}
+              markers={[
+                {
+                  id: report.id,
+                  lat: report.last_seen_lat,
+                  lng: report.last_seen_lng,
+                  color: report.kind === 'missing' ? '#ef4444' : '#3b82f6',
+                  label: report.kind === 'missing' ? 'Last seen' : 'Found here',
+                },
+              ]}
+              className="h-full w-full"
+            />
+          </div>
         </div>
       )}
 

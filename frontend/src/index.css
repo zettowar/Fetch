@@ -93,3 +93,50 @@
     text-wrap: balance;
   }
 }
+
+/* ───────────────────────── MapLibre overrides ───────────────────────── */
+
+/* The stock popup is a brittle rectangle with a white tip. Replace it with
+   a rounded, shadowed card that matches the rest of the app. Scoped to our
+   `fetch-popup` className on the react-map-gl <Popup>. */
+.fetch-popup .maplibregl-popup-content {
+  padding: 0;
+  border-radius: 14px;
+  box-shadow:
+    0 10px 30px -10px rgb(0 0 0 / 0.20),
+    0 4px 12px -4px rgb(0 0 0 / 0.10);
+  background: white;
+  border: 1px solid rgb(229 231 235); /* gray-200 */
+  overflow: hidden;
+}
+.fetch-popup .maplibregl-popup-close-button {
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 10px;
+  color: rgb(107 114 128); /* gray-500 */
+  background: transparent;
+  border: none;
+  transition: color 0.15s ease;
+}
+.fetch-popup .maplibregl-popup-close-button:hover {
+  color: rgb(17 24 39); /* gray-900 */
+  background: transparent;
+}
+/* Tip shares the popup border color so there's no visible seam. */
+.fetch-popup .maplibregl-popup-tip {
+  border-top-color: white;
+  border-bottom-color: white;
+}
+
+/* Tighten MapLibre's navigation-rail look — drop the blue focus ring on
+   the control buttons (browser default) in favor of our own focus-visible
+   styling elsewhere. */
+.maplibregl-ctrl button:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+.maplibregl-ctrl-group {
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.06) !important;
+}

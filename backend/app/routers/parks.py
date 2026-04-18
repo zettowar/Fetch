@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, require_admin
 from app.limiter import limiter
 from app.models.dog import Dog
 from app.models.park import Park, ParkCheckin, ParkIncident, ParkReview
@@ -150,17 +150,20 @@ async def nearby_parks(
 @router.post("", response_model=ParkOut, status_code=status.HTTP_201_CREATED)
 async def create_park(
     body: ParkCreate,
-    user: User = Depends(get_current_user),
+    admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    """Admin-only. The public park library comes from the OSM import.
+    This endpoint exists for one-off manual additions."""
     park = Park(
         name=body.name,
         address=body.address,
         lat=body.lat,
         lng=body.lng,
         attributes=body.attributes,
-        created_by=user.id,
-        verified=False,
+        created_by=admin.id,
+        verified=True,
+        source="user",
     )
     db.add(park)
     await db.commit()

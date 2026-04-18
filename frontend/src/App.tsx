@@ -45,6 +45,7 @@ import AdminFeedbackPage from './pages/admin/AdminFeedbackPage';
 import AdminInvitesPage from './pages/admin/AdminInvitesPage';
 import AdminFAQPage from './pages/admin/AdminFAQPage';
 import AdminBreedsPage from './pages/admin/AdminBreedsPage';
+import AdminParksPage from './pages/admin/AdminParksPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
 import NotificationsPage from './pages/NotificationsPage';
 import FollowingPage from './pages/FollowingPage';
@@ -154,6 +155,7 @@ function AppContent() {
             <Route path="invites" element={<AdminInvitesPage />} />
             <Route path="faq" element={<AdminFAQPage />} />
             <Route path="breeds" element={<AdminBreedsPage />} />
+            <Route path="parks" element={<AdminParksPage />} />
             <Route path="audit" element={<AdminAuditPage />} />
           </Route>
         </Routes>

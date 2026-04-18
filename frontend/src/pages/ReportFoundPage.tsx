@@ -4,26 +4,14 @@ import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
 import { createLostReport } from '../api/lost';
 import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
+import LocationPicker from '../components/LocationPicker';
+import { apiErrorMessage } from '../utils/apiError';
 
 export default function ReportFoundPage() {
   const navigate = useNavigate();
-
   const [description, setDescription] = useState('');
-  const [lat, setLat] = useState('');
-  const [lng, setLng] = useState('');
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [saving, setSaving] = useState(false);
-
-  const handleGetLocation = () => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude.toFixed(6));
-        setLng(pos.coords.longitude.toFixed(6));
-        toast.success('Location set');
-      },
-      () => toast.error('Could not get location'),
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,20 +19,23 @@ export default function ReportFoundPage() {
       toast.error('Please add a description');
       return;
     }
+    if (!location) {
+      toast.error('Pin where you found the dog on the map');
+      return;
+    }
     setSaving(true);
     try {
       const report = await createLostReport({
         kind: 'found',
         description,
-        last_seen_lat: lat ? parseFloat(lat) : undefined,
-        last_seen_lng: lng ? parseFloat(lng) : undefined,
+        last_seen_lat: location.lat,
+        last_seen_lng: location.lng,
         last_seen_at: new Date().toISOString(),
       });
       toast.success('Found dog report created');
       navigate(`/lost/${report.id}`);
-    } catch (err: unknown) {
-      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to create report';
-      toast.error(message);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to create report'));
     } finally {
       setSaving(false);
     }
@@ -72,26 +63,8 @@ export default function ReportFoundPage() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Where Found</label>
-          <Button type="button" variant="secondary" size="sm" onClick={handleGetLocation}>
-            Use My Location
-          </Button>
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              label="Latitude"
-              type="number"
-              step="any"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-            />
-            <Input
-              label="Longitude"
-              type="number"
-              step="any"
-              value={lng}
-              onChange={(e) => setLng(e.target.value)}
-            />
-          </div>
+          <label className="text-sm font-medium text-gray-700">Where you found them</label>
+          <LocationPicker value={location} onChange={setLocation} />
         </div>
 
         <Button type="submit" loading={saving} className="w-full">
