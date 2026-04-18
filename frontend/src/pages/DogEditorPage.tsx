@@ -3,12 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import BackButton from '../components/ui/BackButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { createDog, getDog, updateDog, deleteDog, DOG_TRAITS } from '../api/dogs';
+import { createDog, getDog, updateDog, deleteDog, DOG_TRAITS, MIX_TYPES, MAX_BREEDS_PER_DOG } from '../api/dogs';
 import { deletePhoto } from '../api/photos';
 import PhotoUploader from '../components/PhotoUploader';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import BreedMultiSelect from '../components/ui/BreedMultiSelect';
+import type { Breed, MixType } from '../types';
 import { photoUrl } from '../utils/time';
+import { apiErrorMessage } from '../utils/apiError';
 
 export default function DogEditorPage() {
   const { id } = useParams();
@@ -17,7 +20,8 @@ export default function DogEditorPage() {
   const queryClient = useQueryClient();
 
   const [name, setName] = useState('');
-  const [breed, setBreed] = useState('');
+  const [mixType, setMixType] = useState<MixType>('mystery_mutt');
+  const [breeds, setBreeds] = useState<Breed[]>([]);
   const [bio, setBio] = useState('');
   const [birthday, setBirthday] = useState('');
   const [traits, setTraits] = useState<string[]>([]);
@@ -32,32 +36,58 @@ export default function DogEditorPage() {
   useEffect(() => {
     if (dog) {
       setName(dog.name);
-      setBreed(dog.breed || '');
+      setMixType(dog.mix_type);
+      setBreeds(dog.breeds || []);
       setBio(dog.bio || '');
       setBirthday(dog.birthday || '');
       setTraits(dog.traits || []);
     }
   }, [dog]);
 
+  const allowedBreedCap =
+    mixType === 'purebred' ? 1 : mixType === 'cross' ? 2 : mixType === 'mystery_mutt' ? 0 : MAX_BREEDS_PER_DOG;
+
+  const handleMixChange = (next: MixType) => {
+    setMixType(next);
+    if (next === 'mystery_mutt') setBreeds([]);
+    else if (next === 'purebred') setBreeds((prev) => prev.slice(0, 1));
+    else if (next === 'cross') setBreeds((prev) => prev.slice(0, 2));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mixType === 'purebred' && breeds.length === 0) {
+      toast.error('Pick one breed, or switch to Mystery mutt');
+      return;
+    }
+    if (mixType === 'cross' && breeds.length < 2) {
+      toast.error('A cross needs two parent breeds');
+      return;
+    }
     setSaving(true);
     try {
+      const payload = {
+        name,
+        mix_type: mixType,
+        breed_ids: breeds.map((b) => b.id),
+        bio: bio || undefined,
+        birthday: birthday || undefined,
+        traits,
+      };
       if (isEditing) {
-        await updateDog(id!, { name, breed: breed || undefined, bio: bio || undefined, birthday: birthday || undefined, traits });
+        await updateDog(id!, payload);
         toast.success('Dog updated!');
         queryClient.invalidateQueries({ queryKey: ['dog', id] });
       } else {
-        const newDog = await createDog({ name, breed: breed || undefined, bio: bio || undefined, birthday: birthday || undefined, traits });
+        const newDog = await createDog(payload);
         toast.success('Dog created! Now add some photos.');
         queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
-        // Go to detail page where photo upload is front and center
         navigate(`/dogs/${newDog.id}`);
         return;
       }
       queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
-    } catch {
-      toast.error('Failed to save');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to save'));
     } finally {
       setSaving(false);
     }
@@ -70,8 +100,8 @@ export default function DogEditorPage() {
       toast.success('Dog removed');
       queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
       navigate('/dogs');
-    } catch {
-      toast.error('Failed to delete');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to delete'));
     }
   };
 
@@ -80,8 +110,8 @@ export default function DogEditorPage() {
       await deletePhoto(photoId);
       toast.success('Photo deleted');
       refetch();
-    } catch {
-      toast.error('Failed to delete photo');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to delete photo'));
     }
   };
 
@@ -90,14 +120,50 @@ export default function DogEditorPage() {
       <BackButton fallback="/dogs" />
       <h1 className="text-2xl font-bold mb-4">{isEditing ? 'Edit Dog' : 'Add a Dog'}</h1>
 
-      {/* Profile form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-        <Input label="Breed" value={breed} onChange={(e) => setBreed(e.target.value)} placeholder="e.g. Golden Retriever" />
+
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Breed type</label>
+          <div className="grid grid-cols-2 gap-2">
+            {MIX_TYPES.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleMixChange(opt.value)}
+                className={`flex flex-col items-start px-3 py-2 rounded-xl border text-left transition-colors ${
+                  mixType === opt.value
+                    ? 'border-brand-500 bg-brand-50 text-brand-700'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300'
+                }`}
+              >
+                <span className="text-sm font-medium">{opt.label}</span>
+                <span className="text-xs text-gray-400">{opt.hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {mixType !== 'mystery_mutt' && (
+          <BreedMultiSelect
+            value={breeds}
+            onChange={setBreeds}
+            max={allowedBreedCap}
+            label={
+              mixType === 'purebred'
+                ? 'Breed'
+                : mixType === 'cross'
+                ? 'Parent breeds (pick 2)'
+                : 'Breeds in the mix'
+            }
+          />
+        )}
+
         <Input
           label="Birthday"
           type="date"
           value={birthday}
+          max={new Date().toISOString().slice(0, 10)}
           onChange={(e) => setBirthday(e.target.value)}
         />
         <div className="flex flex-col gap-1">
@@ -143,7 +209,6 @@ export default function DogEditorPage() {
         </Button>
       </form>
 
-      {/* Photo management (edit mode only) */}
       {isEditing && dog && (
         <>
           <div className="mt-6">
@@ -161,6 +226,7 @@ export default function DogEditorPage() {
                     <button
                       onClick={() => handleDeletePhoto(photo.id)}
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      aria-label="Delete photo"
                     >
                       x
                     </button>

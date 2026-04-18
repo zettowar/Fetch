@@ -26,7 +26,13 @@ async def get_feed_next(
     if dogs:
         dog_ids = [d.id for d in dogs]
         result = await db.execute(
-            select(Dog).options(selectinload(Dog.photos)).where(Dog.id.in_(dog_ids))
+            select(Dog)
+            .options(
+                selectinload(Dog.photos),
+                selectinload(Dog.breeds),
+                selectinload(Dog.owner).selectinload(User.rescue_profile),
+            )
+            .where(Dog.id.in_(dog_ids))
         )
         dogs_with_photos = result.scalars().all()
         return [_dog_to_out(d) for d in dogs_with_photos]

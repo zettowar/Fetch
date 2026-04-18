@@ -6,6 +6,7 @@ import { useAuth } from '../store/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
+import { apiErrorMessage } from '../utils/apiError';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -25,8 +26,8 @@ export default function LoginPage() {
       const data = await login(email, password);
       authLogin(data.tokens.access_token, data.tokens.refresh_token, data.user);
       navigate(from, { replace: true });
-    } catch {
-      toast.error('Invalid email or password');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Invalid email or password'));
     } finally {
       setLoading(false);
     }

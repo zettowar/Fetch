@@ -1,7 +1,17 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from pydantic import BaseModel, field_validator
+
+
+def _not_future_datetime(v: datetime | None) -> datetime | None:
+    if v is None:
+        return v
+    # Compare in UTC. Naive datetimes are assumed UTC.
+    ref = v if v.tzinfo else v.replace(tzinfo=timezone.utc)
+    if ref > datetime.now(timezone.utc):
+        raise ValueError("Datetime cannot be in the future")
+    return v
 
 
 # --- Lost Report ---
@@ -37,6 +47,11 @@ class LostReportCreate(BaseModel):
         if not v.strip():
             raise ValueError("Description is required")
         return v.strip()
+
+    @field_validator("last_seen_at")
+    @classmethod
+    def last_seen_not_future(cls, v: datetime | None) -> datetime | None:
+        return _not_future_datetime(v)
 
 
 class LostReportUpdate(BaseModel):
@@ -125,6 +140,11 @@ class SightingCreate(BaseModel):
         if not -180 <= v <= 180:
             raise ValueError("lng must be between -180 and 180")
         return v
+
+    @field_validator("seen_at")
+    @classmethod
+    def seen_not_future(cls, v: datetime | None) -> datetime | None:
+        return _not_future_datetime(v)
 
 
 class SightingOut(BaseModel):

@@ -63,7 +63,7 @@ export default function DogProfileCard({ dog, showEdit, stats, rank }: DogProfil
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold">{dog.name}</h3>
-            {dog.breed && <p className="text-xs text-gray-500">{dog.breed}</p>}
+            {dog.breed_display && <p className="text-xs text-gray-500">{dog.breed_display}</p>}
           </div>
           <div className="flex items-center gap-2">
             {showEdit && !hasPhotos && (

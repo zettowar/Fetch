@@ -1,11 +1,12 @@
 import uuid as uuid_mod
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import get_current_user, require_admin
+from app.limiter import limiter
 from app.models.support import FAQEntry, SupportTicket
 from app.models.user import User
 from app.schemas.support import FAQOut, TicketCreate, TicketOut
@@ -31,7 +32,9 @@ async def list_faq(
 
 
 @router.post("/tickets", response_model=TicketOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/hour")
 async def create_ticket(
+    request: Request,
     body_data: TicketCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

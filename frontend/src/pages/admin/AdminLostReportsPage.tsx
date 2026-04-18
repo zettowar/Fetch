@@ -9,6 +9,7 @@ import {
 } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Skeleton';
+import PaginationFooter from '../../components/ui/PaginationFooter';
 import TimeAgo from '../../components/TimeAgo';
 
 const PAGE_SIZE = 50;
@@ -161,25 +162,13 @@ export default function AdminLostReportsPage() {
         </div>
       )}
 
-      {total > PAGE_SIZE && (
-        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={offset === 0}
-            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-          >← Prev</Button>
-          <span className="text-xs text-gray-500">
-            {offset + 1}–{Math.min(offset + reports.length, total)} of {total}
-          </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={offset + reports.length >= total}
-            onClick={() => setOffset(offset + PAGE_SIZE)}
-          >Next →</Button>
-        </div>
-      )}
+      <PaginationFooter
+        offset={offset}
+        pageSize={PAGE_SIZE}
+        rendered={reports.length}
+        total={total}
+        onChange={setOffset}
+      />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getTickets, updateTicket } from '../../api/admin';
 import Button from '../../components/ui/Button';
-import { relativeTime } from '../../utils/time';
+import TimeAgo from '../../components/TimeAgo';
 
 const TABS = ['open', 'in_progress', 'resolved', 'closed', 'all'] as const;
 
@@ -77,7 +77,7 @@ export default function AdminTicketsPage() {
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_STYLES[t.status] || 'bg-gray-100 text-gray-600'}`}>
                   {t.status.replace('_', ' ')}
                 </span>
-                <span className="text-xs text-gray-400 shrink-0">{relativeTime(t.created_at)}</span>
+                <span className="text-xs text-gray-400 shrink-0"><TimeAgo value={t.created_at} /></span>
               </button>
 
               {expanded === t.id && (

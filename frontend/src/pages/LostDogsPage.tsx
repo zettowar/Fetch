@@ -151,6 +151,17 @@ export default function LostDogsPage() {
           </span>
         </div>
 
+        {/* Empty state when the current filter yields no reports */}
+        {!isLoading && reports.length === 0 && !selectedReport && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur rounded-xl shadow-md px-4 py-2 text-sm text-gray-600 max-w-[90%] text-center">
+            {filter === 'found'
+              ? 'No found dogs reported in this area yet.'
+              : filter === 'missing'
+              ? 'No missing dogs reported in this area — good news!'
+              : 'No reports in this area yet.'}
+          </div>
+        )}
+
         {/* Selected report card */}
         {selectedReport && (() => {
           const ageMs = Date.now() - new Date(selectedReport.created_at).getTime();
@@ -195,6 +206,7 @@ export default function LostDogsPage() {
               <button
                 onClick={() => setSelectedReport(null)}
                 className="text-gray-400 hover:text-gray-600"
+                aria-label="Close report details"
               >
                 x
               </button>

@@ -31,6 +31,27 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
+// Memoize an in-flight refresh so concurrent 401s don't each burn the
+// one-use refresh token.
+let refreshInFlight: Promise<string> | null = null;
+
+async function ensureFreshAccessToken(): Promise<string> {
+  if (refreshInFlight) return refreshInFlight;
+  if (!refreshToken) throw new Error('No refresh token');
+  refreshInFlight = axios
+    .post(`${API_BASE}/auth/refresh`, { refresh_token: refreshToken })
+    .then((res) => {
+      const { access_token, refresh_token } = res.data.tokens;
+      setTokens(access_token, refresh_token);
+      localStorage.setItem('refresh_token', refresh_token);
+      return access_token as string;
+    })
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}
+
 client.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -38,13 +59,8 @@ client.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry && refreshToken) {
       original._retry = true;
       try {
-        const res = await axios.post(`${API_BASE}/auth/refresh`, {
-          refresh_token: refreshToken,
-        });
-        const { access_token, refresh_token } = res.data.tokens;
-        setTokens(access_token, refresh_token);
-        localStorage.setItem('refresh_token', refresh_token);
-        original.headers.Authorization = `Bearer ${access_token}`;
+        const access = await ensureFreshAccessToken();
+        original.headers.Authorization = `Bearer ${access}`;
         return client(original);
       } catch {
         clearTokens();

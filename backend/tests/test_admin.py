@@ -143,6 +143,58 @@ async def test_admin_user_reports_filed(client: AsyncClient, admin_headers: dict
 
 
 @pytest.mark.asyncio
+async def test_admin_user_reports_against(client: AsyncClient, admin_headers: dict):
+    """Reports-against endpoint resolves target via direct + dog-ownership paths."""
+    # Owner creates a dog. Reporter files a report against the dog.
+    owner = await client.post("/api/v1/auth/signup", json={
+        "email": f"owner-{uuid.uuid4().hex[:8]}@fetchapp.dev",
+        "password": "password123", "display_name": "Owner",
+    })
+    owner_id = owner.json()["user"]["id"]
+    owner_headers = {"Authorization": f"Bearer {owner.json()['tokens']['access_token']}"}
+
+    reporter = await client.post("/api/v1/auth/signup", json={
+        "email": f"reptr-{uuid.uuid4().hex[:8]}@fetchapp.dev",
+        "password": "password123", "display_name": "Reporter",
+    })
+    reporter_headers = {"Authorization": f"Bearer {reporter.json()['tokens']['access_token']}"}
+
+    dog = await client.post("/api/v1/dogs", json={"name": "TargetDog"}, headers=owner_headers)
+    dog_id = dog.json()["id"]
+    await client.post("/api/v1/reports", json={
+        "target_type": "dog", "target_id": dog_id, "reason": "bad"
+    }, headers=reporter_headers)
+
+    res = await client.get(f"/api/v1/admin/users/{owner_id}/reports-against", headers=admin_headers)
+    assert res.status_code == 200
+    body = res.json()
+    assert len(body) >= 1
+    assert any(r["target_type"] == "dog" and r["target_id"] == dog_id for r in body)
+
+
+@pytest.mark.asyncio
+async def test_admin_user_rescue_profile(client: AsyncClient, admin_headers: dict):
+    """Admin can read a rescue user's pending profile."""
+    email = f"rescue-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    signup = await client.post("/api/v1/auth/signup-rescue", json={
+        "email": email,
+        "password": "password123",
+        "org_name": "Paws & Claws",
+        "description": "Local rescue",
+    })
+    user_id = signup.json()["user"]["id"]
+
+    res = await client.get(
+        f"/api/v1/admin/users/{user_id}/rescue-profile", headers=admin_headers,
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body is not None
+    assert body["org_name"] == "Paws & Claws"
+    assert body["status"] == "pending"
+
+
+@pytest.mark.asyncio
 async def test_admin_stats_timeseries(client: AsyncClient, admin_headers: dict):
     """Stats timeseries returns aligned arrays of length `days`."""
     res = await client.get(

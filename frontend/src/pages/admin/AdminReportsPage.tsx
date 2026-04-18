@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getReports, reviewReport } from '../../api/admin';
 import Button from '../../components/ui/Button';
+import PaginationFooter from '../../components/ui/PaginationFooter';
 import TimeAgo from '../../components/TimeAgo';
 
 const TABS = ['pending', 'reviewed', 'dismissed', 'all'] as const;
@@ -174,25 +175,13 @@ export default function AdminReportsPage() {
         </div>
       )}
 
-      {total > PAGE_SIZE && (
-        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={offset === 0}
-            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-          >← Prev</Button>
-          <span className="text-xs text-gray-500">
-            {offset + 1}–{Math.min(offset + reports.length, total)} of {total}
-          </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={offset + reports.length >= total}
-            onClick={() => setOffset(offset + PAGE_SIZE)}
-          >Next →</Button>
-        </div>
-      )}
+      <PaginationFooter
+        offset={offset}
+        pageSize={PAGE_SIZE}
+        rendered={reports.length}
+        total={total}
+        onChange={setOffset}
+      />
     </div>
   );
 }

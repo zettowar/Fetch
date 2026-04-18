@@ -6,9 +6,12 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy.orm import selectinload
+
 from app.models.dog import Dog
 from app.models.vote import Vote
 from app.models.weekly_winner import WeeklyWinner
+from app.services.breed_display import breed_display
 from app.services.feed_service import current_week_bucket
 
 logger = logging.getLogger(__name__)
@@ -30,16 +33,23 @@ async def get_current_leaderboard(db: AsyncSession, limit: int = 20) -> list[dic
     result = await db.execute(query)
     rows = result.all()
 
+    dog_ids = [row.dog_id for row in rows]
+    dogs_by_id: dict = {}
+    if dog_ids:
+        dog_result = await db.execute(
+            select(Dog).options(selectinload(Dog.breeds)).where(Dog.id.in_(dog_ids))
+        )
+        dogs_by_id = {d.id: d for d in dog_result.scalars().all()}
+
     leaderboard = []
     for rank, row in enumerate(rows, 1):
-        dog_result = await db.execute(select(Dog).where(Dog.id == row.dog_id))
-        dog = dog_result.scalar_one_or_none()
+        dog = dogs_by_id.get(row.dog_id)
         if dog:
             leaderboard.append({
                 "rank": rank,
                 "dog_id": str(dog.id),
                 "dog_name": dog.name,
-                "breed": dog.breed,
+                "breed": breed_display(dog.mix_type, dog.breeds),
                 "score": row.score,
                 "total_votes": row.total_votes,
             })

@@ -2,6 +2,7 @@ import io
 from pathlib import Path
 from uuid import UUID
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from fastapi.responses import Response
 from PIL import Image
@@ -16,6 +17,8 @@ from app.models.user import User
 from app.schemas.photo import PhotoOut
 from app.services.moderation import check_image
 from app.storage import generate_storage_key, get_storage
+
+logger = structlog.stdlib.get_logger()
 
 router = APIRouter()
 
@@ -130,15 +133,21 @@ async def delete_photo(
     if not dog or dog.owner_id != user.id:
         raise HTTPException(status_code=403, detail="Not your photo")
 
-    storage = get_storage()
-    await storage.delete(photo.storage_key)
-
-    # Clear primary photo if this was it
+    # Clear primary reference first, commit DB change, then delete the file.
+    # Reversing this order means a failed commit leaves the file gone but the
+    # row intact — orphaned references on reload.
     if dog.primary_photo_id == photo.id:
         dog.primary_photo_id = None
 
+    key = photo.storage_key
     await db.delete(photo)
     await db.commit()
+
+    storage = get_storage()
+    try:
+        await storage.delete(key)
+    except Exception as exc:
+        logger.warning("storage_delete_failed", key=key, exc=str(exc))
     return {"detail": "Photo deleted"}
 
 

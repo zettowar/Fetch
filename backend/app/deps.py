@@ -30,6 +30,26 @@ async def require_admin(user: User = Depends(get_current_user)) -> User:
     return user
 
 
+async def require_approved_rescue(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Gatekeeper for rescue-only actions. Requires role='rescue' AND an
+    approved rescue profile. Pending rescues cannot post dogs yet."""
+    from app.models.rescue import RescueProfile
+
+    if user.role != "rescue":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Rescue account required")
+    result = await db.execute(select(RescueProfile).where(RescueProfile.user_id == user.id))
+    profile = result.scalar_one_or_none()
+    if not profile or profile.status != "approved":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your rescue account is pending review",
+        )
+    return user
+
+
 def require_entitlement(key: str):
     """FastAPI dependency factory that checks if the current user has a specific entitlement."""
 

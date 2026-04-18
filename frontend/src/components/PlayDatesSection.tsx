@@ -91,7 +91,7 @@ function PlayDateCard({
               className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-gray-50 rounded-full text-xs"
             >
               {r.dog_photo_url ? (
-                <img src={r.dog_photo_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                <img src={r.dog_photo_url} alt={r.dog_name ?? 'Attending dog'} className="w-5 h-5 rounded-full object-cover" />
               ) : (
                 <Avatar name={r.dog_name || '?'} size="sm" />
               )}
@@ -137,7 +137,7 @@ function PlayDateCard({
                   {dog.primary_photo_url && (
                     <img
                       src={dog.primary_photo_url}
-                      alt=""
+                      alt={dog.name}
                       className="w-4 h-4 rounded-full object-cover"
                     />
                   )}
@@ -291,7 +291,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
                   {dog.primary_photo_url && (
                     <img
                       src={dog.primary_photo_url}
-                      alt=""
+                      alt={dog.name}
                       className="w-4 h-4 rounded-full object-cover"
                     />
                   )}

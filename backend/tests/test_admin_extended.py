@@ -79,7 +79,7 @@ async def test_ticket_update(client: AsyncClient, admin_headers: dict, auth_head
 
 
 @pytest.mark.asyncio
-async def test_admin_rescues_list(client: AsyncClient, admin_headers: dict):
-    res = await client.get("/api/v1/admin/rescues", headers=admin_headers)
+async def test_admin_rescue_profiles_list(client: AsyncClient, admin_headers: dict):
+    res = await client.get("/api/v1/admin/rescue-profiles", headers=admin_headers)
     assert res.status_code == 200
     assert isinstance(res.json(), list)

@@ -18,6 +18,7 @@ import { useAuth } from '../store/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { shareLink } from '../utils/shareLink';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function LostReportDetailPage() {
   const { id } = useParams();
@@ -29,6 +30,12 @@ export default function LostReportDetailPage() {
     queryFn: () => getLostReport(id!),
     enabled: !!id,
   });
+
+  useDocumentTitle(
+    report
+      ? `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.dog_name || 'Dog'} · Fetch`
+      : null,
+  );
 
   const { data: sightings = [] } = useQuery({
     queryKey: ['sightings', id],
@@ -145,11 +152,11 @@ export default function LostReportDetailPage() {
       {/* Photos */}
       {report.photos.length > 0 && (
         <div className="grid grid-cols-2 gap-2 mt-3">
-          {report.photos.map((p) => (
+          {report.photos.map((p, idx) => (
             <img
               key={p.id}
               src={p.url || `/api/v1/photos/file/${p.storage_key}`}
-              alt=""
+              alt={`Photo ${idx + 1} of ${report.dog_name || 'the dog'}`}
               className="w-full h-32 object-cover rounded-lg"
             />
           ))}

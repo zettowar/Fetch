@@ -1,33 +1,62 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { followDog, unfollowDog, getFollowerCount } from '../api/social';
+import { apiErrorMessage } from '../utils/apiError';
 
 interface FollowButtonProps {
   dogId: string;
 }
 
+interface FollowerCount {
+  is_following: boolean;
+  count: number;
+}
+
 export default function FollowButton({ dogId }: FollowButtonProps) {
   const queryClient = useQueryClient();
+  const key = ['follower-count', dogId];
 
-  const { data } = useQuery({
-    queryKey: ['follower-count', dogId],
+  const { data } = useQuery<FollowerCount>({
+    queryKey: key,
     queryFn: () => getFollowerCount(dogId),
   });
 
+  const applyOptimistic = async (nextIsFollowing: boolean) => {
+    await queryClient.cancelQueries({ queryKey: key });
+    const previous = queryClient.getQueryData<FollowerCount>(key);
+    queryClient.setQueryData<FollowerCount>(key, (prev) => {
+      const base = prev ?? { is_following: !nextIsFollowing, count: 0 };
+      const delta = nextIsFollowing === base.is_following ? 0 : nextIsFollowing ? 1 : -1;
+      return {
+        is_following: nextIsFollowing,
+        count: Math.max(0, base.count + delta),
+      };
+    });
+    return { previous };
+  };
+
+  const rollback = (ctx: { previous?: FollowerCount } | undefined) => {
+    if (ctx?.previous) queryClient.setQueryData(key, ctx.previous);
+  };
+
   const followMutation = useMutation({
     mutationFn: () => followDog(dogId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['follower-count', dogId] });
+    onMutate: () => applyOptimistic(true),
+    onError: (err, _vars, ctx) => {
+      rollback(ctx);
+      toast.error(apiErrorMessage(err, 'Failed to follow'));
     },
-    onError: () => toast.error('Failed to follow'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
   });
 
   const unfollowMutation = useMutation({
     mutationFn: () => unfollowDog(dogId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['follower-count', dogId] });
+    onMutate: () => applyOptimistic(false),
+    onError: (err, _vars, ctx) => {
+      rollback(ctx);
+      toast.error(apiErrorMessage(err, 'Failed to unfollow'));
     },
-    onError: () => toast.error('Failed to unfollow'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
   });
 
   const isFollowing = data?.is_following ?? false;

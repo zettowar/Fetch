@@ -51,6 +51,7 @@ async def get_feed(
             Dog.owner_id != user_id,
             Dog.id.notin_(voted_subq),
             Dog.id.in_(has_photo_subq),
+            Dog.adopted_at.is_(None),
         )
         .order_by(
             func.coalesce(vote_count_subq.c.vote_count, 0).asc(),

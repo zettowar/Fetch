@@ -1,6 +1,7 @@
 from app.models.base import Base
-from app.models.user import User, RefreshToken, PasswordResetToken
+from app.models.user import User, RefreshToken, PasswordResetToken, EmailVerificationToken
 from app.models.dog import Dog
+from app.models.breed import Breed, dog_breeds
 from app.models.photo import Photo
 from app.models.vote import Vote
 from app.models.weekly_winner import WeeklyWinner
@@ -16,7 +17,8 @@ from app.models.social import Follow, Comment, Reaction
 from app.models.park import Park, ParkReview, ParkIncident, ParkCheckin
 from app.models.playdate import PlayDate, PlayDateRsvp
 from app.models.post import Post
-from app.models.rescue import Rescue
+from app.models.rescue import RescueProfile
+from app.models.dog_transfer import DogTransfer
 from app.models.support import FAQEntry, SupportTicket
 from app.models.entitlement import Entitlement
 from app.models.notification import PushSubscription, NotificationPreference
@@ -27,7 +29,10 @@ __all__ = [
     "User",
     "RefreshToken",
     "PasswordResetToken",
+    "EmailVerificationToken",
     "Dog",
+    "Breed",
+    "dog_breeds",
     "Photo",
     "Vote",
     "WeeklyWinner",
@@ -48,7 +53,8 @@ __all__ = [
     "PlayDate",
     "PlayDateRsvp",
     "Post",
-    "Rescue",
+    "RescueProfile",
+    "DogTransfer",
     "FAQEntry",
     "SupportTicket",
     "Entitlement",

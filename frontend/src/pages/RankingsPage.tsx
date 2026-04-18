@@ -1,29 +1,12 @@
-import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getCurrentRankings, getWinnerHistory } from '../api/rankings';
 import { getMyDogs } from '../api/dogs';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import { useAuth } from '../store/AuthContext';
+import { useWeeklyResetCountdown } from '../utils/weeklyReset';
 
 const RANK_EMOJI: Record<number, string> = { 1: '\ud83e\udd47', 2: '\ud83e\udd48', 3: '\ud83e\udd49' };
-
-// Rankings reset every Monday 00:00 UTC (backend Celery beat runs at 00:05).
-function timeUntilWeeklyReset(now: Date = new Date()): string {
-  const next = new Date(now);
-  next.setUTCHours(0, 0, 0, 0);
-  const daysUntilMon = (8 - next.getUTCDay()) % 7 || 7;
-  next.setUTCDate(next.getUTCDate() + daysUntilMon);
-  const diffMs = next.getTime() - now.getTime();
-  if (diffMs <= 0) return 'resetting…';
-  const totalMinutes = Math.floor(diffMs / 60_000);
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-}
 
 export default function RankingsPage() {
   const { user } = useAuth();
@@ -46,11 +29,7 @@ export default function RankingsPage() {
 
   const myDogIds = new Set((myDogs ?? []).map((d) => d.id.toString()));
 
-  const [resetsIn, setResetsIn] = useState(() => timeUntilWeeklyReset());
-  useEffect(() => {
-    const id = setInterval(() => setResetsIn(timeUntilWeeklyReset()), 60_000);
-    return () => clearInterval(id);
-  }, []);
+  const resetsIn = useWeeklyResetCountdown();
 
   return (
     <div className="p-4">

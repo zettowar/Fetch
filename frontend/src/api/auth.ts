@@ -38,3 +38,25 @@ export async function resetPassword(token: string, password: string): Promise<{ 
   const res = await client.post('/auth/reset-password', { token, password });
   return res.data;
 }
+
+export async function resendVerification(): Promise<{ detail: string; debug_token?: string }> {
+  const res = await client.post('/auth/resend-verification');
+  return res.data;
+}
+
+export async function verifyEmail(token: string): Promise<{ detail: string }> {
+  const res = await client.post('/auth/verify-email', { token });
+  return res.data;
+}
+
+export interface UpdateMePayload {
+  display_name?: string;
+  location_rough?: string | null;
+  date_of_birth?: string | null;
+  show_adoption_prompt?: boolean;
+}
+
+export async function updateMe(body: UpdateMePayload): Promise<User> {
+  const res = await client.patch('/users/me', body);
+  return res.data;
+}

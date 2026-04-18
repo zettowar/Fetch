@@ -9,6 +9,10 @@ import AdminLayout from './components/AdminLayout';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import RescueSignupPage from './pages/RescueSignupPage';
+import RescueDashboardPage from './pages/RescueDashboardPage';
+import RescueDetailPage from './pages/RescueDetailPage';
+import TransfersPage from './pages/TransfersPage';
 import HomePage from './pages/HomePage';
 import SwipePage from './pages/SwipePage';
 import MyDogsPage from './pages/MyDogsPage';
@@ -25,6 +29,8 @@ import ParkDetailPage from './pages/ParkDetailPage';
 import ParkEditorPage from './pages/ParkEditorPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import ProfileEditPage from './pages/ProfileEditPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import FeedbackWidget from './components/FeedbackWidget';
 import ScrollToTop from './components/ScrollToTop';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -38,6 +44,7 @@ import AdminRescuesPage from './pages/admin/AdminRescuesPage';
 import AdminFeedbackPage from './pages/admin/AdminFeedbackPage';
 import AdminInvitesPage from './pages/admin/AdminInvitesPage';
 import AdminFAQPage from './pages/admin/AdminFAQPage';
+import AdminBreedsPage from './pages/admin/AdminBreedsPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
 import NotificationsPage from './pages/NotificationsPage';
 import FollowingPage from './pages/FollowingPage';
@@ -84,20 +91,23 @@ function AppContent() {
       {!isAdmin && (
         <div className="mx-auto max-w-app min-h-screen bg-white pb-20 shadow-soft-lg">
           <NavBar />
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence initial={false}>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.12 }}
             >
               <Routes location={location}>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+                <Route path="/signup-rescue" element={<RescueSignupPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+                <Route path="/profile/edit" element={<AuthGuard><ProfileEditPage /></AuthGuard>} />
                 <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
                 <Route path="/swipe" element={<AuthGuard><SwipePage /></AuthGuard>} />
                 <Route path="/dogs" element={<AuthGuard><MyDogsPage /></AuthGuard>} />
@@ -117,11 +127,14 @@ function AppContent() {
                 <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
                 <Route path="/following" element={<AuthGuard><FollowingPage /></AuthGuard>} />
                 <Route path="/rescues" element={<AuthGuard><RescuesPage /></AuthGuard>} />
+                <Route path="/rescues/:id" element={<AuthGuard><RescueDetailPage /></AuthGuard>} />
+                <Route path="/rescue/dashboard" element={<AuthGuard><RescueDashboardPage /></AuthGuard>} />
+                <Route path="/transfers" element={<AuthGuard><TransfersPage /></AuthGuard>} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </motion.div>
           </AnimatePresence>
-          <FeedbackWidget />
+          {location.pathname === '/home' && <FeedbackWidget />}
         </div>
       )}
 
@@ -140,6 +153,7 @@ function AppContent() {
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="invites" element={<AdminInvitesPage />} />
             <Route path="faq" element={<AdminFAQPage />} />
+            <Route path="breeds" element={<AdminBreedsPage />} />
             <Route path="audit" element={<AdminAuditPage />} />
           </Route>
         </Routes>

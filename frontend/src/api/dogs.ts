@@ -1,11 +1,20 @@
 import client from './client';
-import type { Dog } from '../types';
+import type { Dog, MixType } from '../types';
 
 // Keep in sync with backend/app/schemas/dog.py VALID_TRAITS
 export const DOG_TRAITS = [
   'Playful', 'Calm', 'Energetic', 'Good with kids', 'Good with dogs',
   'Loves fetch', 'Couch potato', 'Swimmer', 'Cuddly', 'Independent', 'Senior',
 ] as const;
+
+export const MIX_TYPES: { value: MixType; label: string; hint: string }[] = [
+  { value: 'purebred', label: 'Purebred', hint: 'A single recognized breed' },
+  { value: 'cross', label: 'Cross', hint: 'Two known parent breeds' },
+  { value: 'mixed', label: 'Mixed breed', hint: 'Multiple suspected breeds' },
+  { value: 'mystery_mutt', label: 'Mystery mutt', hint: 'Pedigree unknown' },
+];
+
+export const MAX_BREEDS_PER_DOG = 3;
 
 export async function getMyDogs(): Promise<Dog[]> {
   const res = await client.get('/dogs/mine');
@@ -17,22 +26,22 @@ export async function getDog(id: string): Promise<Dog> {
   return res.data;
 }
 
-export async function createDog(data: {
+export interface DogPayload {
   name: string;
-  breed?: string;
+  mix_type?: MixType;
+  breed_ids?: string[];
   birthday?: string;
   bio?: string;
   location_rough?: string;
   traits?: string[];
-}): Promise<Dog> {
+}
+
+export async function createDog(data: DogPayload): Promise<Dog> {
   const res = await client.post('/dogs', data);
   return res.data;
 }
 
-export async function updateDog(
-  id: string,
-  data: Partial<{ name: string; breed: string; birthday: string; bio: string; location_rough: string; traits: string[] }>,
-): Promise<Dog> {
+export async function updateDog(id: string, data: Partial<DogPayload>): Promise<Dog> {
   const res = await client.patch(`/dogs/${id}`, data);
   return res.data;
 }

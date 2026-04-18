@@ -10,7 +10,6 @@ from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
 from app.models.dog import Dog
-from app.models.photo import Photo
 from app.models.social import Comment, Follow, Reaction
 from app.models.user import User
 from app.routers.dogs import _dog_to_out
@@ -30,7 +29,9 @@ router = APIRouter()
 # --- Follows ---
 
 @router.post("/follows", response_model=FollowOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("60/minute")
 async def follow_dog(
+    request: Request,
     body: FollowToggle,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -197,7 +198,9 @@ async def delete_comment(
 # --- Reactions ---
 
 @router.post("/reactions", response_model=ReactionCounts)
+@limiter.limit("60/minute")
 async def toggle_reaction(
+    request: Request,
     body: ReactionToggle,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -247,18 +250,16 @@ async def get_reactions(
 async def _get_reaction_counts(
     db: AsyncSession, target_type: str, target_id: UUID, user_id: UUID
 ) -> ReactionCounts:
-    counts = {}
-    for kind in ("like", "cute", "woof"):
-        result = await db.execute(
-            select(func.count()).where(
-                Reaction.target_type == target_type,
-                Reaction.target_id == target_id,
-                Reaction.kind == kind,
-            )
+    rows = (await db.execute(
+        select(Reaction.kind, func.count().label("c"))
+        .where(
+            Reaction.target_type == target_type,
+            Reaction.target_id == target_id,
         )
-        counts[kind] = result.scalar() or 0
+        .group_by(Reaction.kind)
+    )).all()
+    by_kind = {kind: count for kind, count in rows}
 
-    # Check user's reaction
     user_result = await db.execute(
         select(Reaction.kind).where(
             Reaction.user_id == user_id,
@@ -269,9 +270,9 @@ async def _get_reaction_counts(
     user_row = user_result.first()
 
     return ReactionCounts(
-        like=counts["like"],
-        cute=counts["cute"],
-        woof=counts["woof"],
+        like=by_kind.get("like", 0),
+        cute=by_kind.get("cute", 0),
+        woof=by_kind.get("woof", 0),
         user_reaction=user_row[0] if user_row else None,
     )
 

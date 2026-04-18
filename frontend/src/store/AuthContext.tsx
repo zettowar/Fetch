@@ -9,6 +9,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (accessToken: string, refreshToken: string, user: User) => void;
   logout: () => void;
+  setUser: (user: User) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -27,6 +29,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearTokens();
     localStorage.removeItem('refresh_token');
     setUser(null);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const u = await getMe();
+    setUser(u);
   }, []);
 
   useEffect(() => {
@@ -55,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, setUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

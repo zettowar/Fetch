@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getCurrentWinner } from '../api/rankings';
 import { useAuth } from '../store/AuthContext';
 import Button from '../components/ui/Button';
+import { useWeeklyResetCountdown, nextWeeklyReset } from '../utils/weeklyReset';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -10,6 +11,7 @@ export default function HomePage() {
     queryKey: ['weekly-winner'],
     queryFn: getCurrentWinner,
   });
+  const resetsIn = useWeeklyResetCountdown();
 
   return (
     <div className="flex flex-col">
@@ -34,6 +36,13 @@ export default function HomePage() {
             <>
               <h2 className="text-2xl font-bold mt-2">No winner yet</h2>
               <p className="text-sm opacity-70 mt-1">Start swiping to cast your vote!</p>
+              <div
+                className="inline-flex items-center gap-1.5 mt-4 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium"
+                title={`Winner announced ${nextWeeklyReset().toLocaleString()}`}
+              >
+                <span aria-hidden>⏳</span>
+                <span>Results in {resetsIn}</span>
+              </div>
             </>
           )}
         </div>
@@ -46,25 +55,25 @@ export default function HomePage() {
         </h1>
 
         <div className="grid grid-cols-2 gap-3">
-          <Link to="/swipe" className="flex flex-col items-center gap-2 p-4 bg-brand-50 rounded-2xl hover:bg-brand-100 transition-colors">
+          <Link to="/swipe" className="flex flex-col items-center gap-2 p-4 bg-brand-50 border border-brand-100 rounded-2xl hover:bg-brand-100 transition-colors">
             <span className="text-2xl">{'\u2764\ufe0f'}</span>
-            <span className="text-sm font-medium text-brand-700">Rate Dogs</span>
+            <span className="text-base font-medium text-brand-700">Rate Dogs</span>
           </Link>
-          <Link to="/dogs" className="flex flex-col items-center gap-2 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
+          <Link to="/dogs" className="flex flex-col items-center gap-2 p-4 bg-gray-50 border border-gray-200 rounded-2xl hover:bg-gray-100 transition-colors">
             <span className="text-2xl">{'\ud83d\udc36'}</span>
-            <span className="text-sm font-medium text-gray-700">My Dogs</span>
+            <span className="text-base font-medium text-gray-700">My Dogs</span>
           </Link>
-          <Link to="/lost" className="flex flex-col items-center gap-2 p-4 bg-red-50 rounded-2xl hover:bg-red-100 transition-colors">
+          <Link to="/lost" className="flex flex-col items-center gap-2 p-4 bg-red-50 border border-red-100 rounded-2xl hover:bg-red-100 transition-colors">
             <span className="text-2xl">{'\ud83d\udea8'}</span>
-            <span className="text-sm font-medium text-red-700">Lost & Found</span>
+            <span className="text-base font-medium text-red-700">Lost & Found</span>
           </Link>
-          <Link to="/parks" className="flex flex-col items-center gap-2 p-4 bg-green-50 rounded-2xl hover:bg-green-100 transition-colors">
+          <Link to="/parks" className="flex flex-col items-center gap-2 p-4 bg-green-50 border border-green-100 rounded-2xl hover:bg-green-100 transition-colors">
             <span className="text-2xl">{'\ud83c\udf33'}</span>
-            <span className="text-sm font-medium text-green-700">Dog Parks</span>
+            <span className="text-base font-medium text-green-700">Dog Parks</span>
           </Link>
-          <Link to="/rescues" className="flex flex-col items-center gap-2 p-4 bg-purple-50 rounded-2xl hover:bg-purple-100 transition-colors col-span-2">
+          <Link to="/rescues" className="flex flex-col items-center gap-2 p-4 bg-purple-50 border border-purple-100 rounded-2xl hover:bg-purple-100 transition-colors col-span-2">
             <span className="text-2xl">{'\ud83c\udfe0'}</span>
-            <span className="text-sm font-medium text-purple-700">Rescue Organizations</span>
+            <span className="text-base font-medium text-purple-700">Rescue Organizations</span>
           </Link>
         </div>
 

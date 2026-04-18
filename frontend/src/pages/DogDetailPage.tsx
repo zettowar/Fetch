@@ -19,6 +19,7 @@ import TimeAgo from '../components/TimeAgo';
 import { dogAge, photoUrl, dogHeroPhoto } from '../utils/time';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
+import { apiErrorMessage } from '../utils/apiError';
 
 export default function DogDetailPage() {
   const { id } = useParams();
@@ -68,19 +69,19 @@ export default function DogDetailPage() {
       setShowCheckinPicker(false);
       queryClient.invalidateQueries({ queryKey: ['park-checkins', parkId] });
     },
-    onError: () => toast.error('Failed to check in'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to check in')),
   });
 
   const setPrimaryMutation = useMutation({
     mutationFn: (photoId: string) => setPrimaryPhoto(dog!.id.toString(), photoId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dog', id] }),
-    onError: () => toast.error('Failed to set primary photo'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to set primary photo')),
   });
 
   const deletePhotoMutation = useMutation({
     mutationFn: (photoId: string) => deletePhoto(photoId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dog', id] }),
-    onError: () => toast.error('Failed to delete photo'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to delete photo')),
   });
 
   const handleShare = () => {
@@ -88,18 +89,8 @@ export default function DogDetailPage() {
     shareLink(url, dog?.name ? `${dog.name} on Fetch` : 'Fetch');
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-4">
-        <Skeleton className="w-full h-56 rounded-none -mx-4 -mt-4 mb-4" />
-        <Skeleton className="h-7 w-32 mb-2" />
-        <Skeleton className="h-4 w-24 mb-4" />
-        <Skeleton className="h-16 w-full" />
-      </div>
-    );
-  }
-
-  // Keyboard navigation for fullscreen lightbox.
+  // Keyboard navigation for fullscreen lightbox. Must be declared before any
+  // early return so hook order stays stable across loading/loaded renders.
   useEffect(() => {
     if (fullscreenIndex === null || !dog) return;
     const photoCount = dog.photos.length;
@@ -114,6 +105,17 @@ export default function DogDetailPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [fullscreenIndex, dog]);
+
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        <Skeleton className="w-full h-56 rounded-none -mx-4 -mt-4 mb-4" />
+        <Skeleton className="h-7 w-32 mb-2" />
+        <Skeleton className="h-4 w-24 mb-4" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    );
+  }
 
   if (!dog) {
     return <ErrorState message="Dog not found." />;
@@ -153,7 +155,7 @@ export default function DogDetailPage() {
           >
             <img
               src={photoUrl(current)}
-              alt=""
+              alt={`${dog.name} photo ${fullscreenIndex + 1} of ${total}`}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
             />
@@ -240,7 +242,28 @@ export default function DogDetailPage() {
             )}
           </div>
         </div>
-        {dog.breed && <p className="text-gray-500">{dog.breed}</p>}
+        {dog.breed_display && <p className="text-gray-500">{dog.breed_display}</p>}
+
+        {dog.adoptable && dog.rescue_name && (
+          <div className="mt-3 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm">
+            <span className="font-semibold text-brand-700">Adoptable</span>
+            <span className="text-brand-700"> · available at </span>
+            {dog.rescue_id ? (
+              <Link to={`/rescues/${dog.rescue_id}`} className="font-medium text-brand-700 hover:underline">
+                {dog.rescue_name}
+              </Link>
+            ) : (
+              <span className="font-medium text-brand-700">{dog.rescue_name}</span>
+            )}
+          </div>
+        )}
+
+        {dog.adopted_at && (
+          <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+            🎉 Adopted {new Date(dog.adopted_at).toLocaleDateString()}
+            {dog.rescue_name ? ` — from ${dog.rescue_name}` : ''}
+          </div>
+        )}
         {dog.bio && (
           <p className="text-gray-600 mt-2 whitespace-pre-wrap">
             <Linkify>{dog.bio}</Linkify>
@@ -326,7 +349,7 @@ export default function DogDetailPage() {
                   <div key={photo.id} className="relative group">
                     <img
                       src={url}
-                      alt=""
+                      alt={`${dog.name} photo ${idx + 1}`}
                       className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                       onClick={() => setFullscreenIndex(idx)}
                     />

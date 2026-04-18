@@ -1,13 +1,14 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, contains_eager
 
 from app.db import get_db
 from app.deps import get_current_user
+from app.limiter import limiter
 from app.models.dog import Dog
 from app.models.photo import Photo
 from app.models.lost_report import (
@@ -30,6 +31,7 @@ from app.schemas.lost_report import (
     SubscriptionOut,
     SubscriptionUpdate,
 )
+from app.services.breed_display import breed_display
 from app.services.lost_service import fuzz_coordinate, get_nearby_reports
 from app.storage import get_storage
 
@@ -56,7 +58,7 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
     dog_photo_url = None
     if report.dog:
         dog_name = report.dog.name
-        dog_breed = report.dog.breed
+        dog_breed = breed_display(report.dog.mix_type, report.dog.breeds)
         if report.dog.primary_photo_id and report.dog.photos:
             primary = next(
                 (p for p in report.dog.photos if p.id == report.dog.primary_photo_id),
@@ -97,7 +99,9 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
 # --- Reports CRUD ---
 
 @router.post("/reports", response_model=LostReportOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/hour")
 async def create_report(
+    request: Request,
     body: LostReportCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -142,6 +146,7 @@ async def create_report(
             selectinload(LostReport.photos),
             selectinload(LostReport.sightings),
             selectinload(LostReport.dog).selectinload(Dog.photos),
+            selectinload(LostReport.dog).selectinload(Dog.breeds),
         )
         .where(LostReport.id == report.id)
     )
@@ -170,7 +175,7 @@ async def nearby_reports(
     for r in reports:
         f_lat, f_lng = fuzz_coordinate(r.last_seen_lat, r.last_seen_lng, r.location_fuzz_m)
         dog_name = r.dog.name if r.dog else None
-        dog_breed = r.dog.breed if r.dog else None
+        dog_breed = breed_display(r.dog.mix_type, r.dog.breeds) if r.dog else None
         dog_photo_url = None
         if r.dog and r.dog.primary_photo_id and r.dog.photos:
             primary = next(
@@ -207,6 +212,7 @@ async def get_report(
             selectinload(LostReport.photos),
             selectinload(LostReport.sightings),
             selectinload(LostReport.dog).selectinload(Dog.photos),
+            selectinload(LostReport.dog).selectinload(Dog.breeds),
         )
         .where(LostReport.id == report_id)
     )
@@ -288,7 +294,9 @@ async def resolve_report(
     response_model=SightingOut,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("30/hour")
 async def add_sighting(
+    request: Request,
     report_id: UUID,
     body: SightingCreate,
     user: User = Depends(get_current_user),

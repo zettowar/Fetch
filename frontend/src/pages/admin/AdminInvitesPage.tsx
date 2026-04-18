@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getInvites, generateInvites } from '../../api/admin';
 import Button from '../../components/ui/Button';
-import { relativeTime } from '../../utils/time';
+import TimeAgo from '../../components/TimeAgo';
 
 export default function AdminInvitesPage() {
   const [count, setCount] = useState(10);
@@ -117,7 +117,7 @@ export default function AdminInvitesPage() {
               ) : (
                 <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full">Available</span>
               )}
-              <span className="text-xs text-gray-400">{relativeTime(inv.created_at)}</span>
+              <span className="text-xs text-gray-400"><TimeAgo value={inv.created_at} /></span>
             </div>
           ))}
         </div>

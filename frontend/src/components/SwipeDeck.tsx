@@ -5,13 +5,44 @@ import { Link } from 'react-router-dom';
 import { getFeed } from '../api/feed';
 import { castVote } from '../api/votes';
 import SwipeCard from './SwipeCard';
+import AdoptionPrompt from './AdoptionPrompt';
 import Button from './ui/Button';
 import { CardSkeleton } from './ui/Skeleton';
 import ErrorState from './ui/ErrorState';
+import { useAuth } from '../store/AuthContext';
+
+const SEEN_PROMPTS_KEY = 'fetch.adoption_prompts_seen';
+
+function loadSeenPrompts(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SEEN_PROMPTS_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function markPromptSeen(dogId: string) {
+  try {
+    const seen = loadSeenPrompts();
+    seen.add(dogId);
+    localStorage.setItem(SEEN_PROMPTS_KEY, JSON.stringify([...seen]));
+  } catch {
+    // localStorage unavailable — fail silent, prompt will just reappear.
+  }
+}
+
+interface PromptState {
+  dogId: string;
+  dogName: string;
+  rescueName: string | null;
+}
 
 export default function SwipeDeck() {
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lastVote, setLastVote] = useState<{ dogId: string; index: number } | null>(null);
+  const [prompt, setPrompt] = useState<PromptState | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: dogs = [], isLoading, isError, refetch } = useQuery({
@@ -28,6 +59,11 @@ export default function SwipeDeck() {
     },
   });
 
+  const dismissPrompt = useCallback(() => {
+    if (prompt) markPromptSeen(prompt.dogId);
+    setPrompt(null);
+  }, [prompt]);
+
   const handleSwipe = useCallback(
     (direction: 'left' | 'right') => {
       const dog = dogs[currentIndex];
@@ -43,11 +79,32 @@ export default function SwipeDeck() {
       if (undoTimer.current) clearTimeout(undoTimer.current);
       undoTimer.current = setTimeout(() => setLastVote(null), 5000);
 
+      // Surface an adoption prompt AFTER the vote if:
+      //   - user hasn't disabled the prompt globally
+      //   - dog is adoptable
+      //   - user hasn't already seen a prompt for this dog
+      //   - the swipe was a right-swipe (a thumbs-up). Left-swipes don't prompt.
+      if (
+        direction === 'right' &&
+        dog.adoptable &&
+        user?.show_adoption_prompt !== false &&
+        !loadSeenPrompts().has(dog.id)
+      ) {
+        setPrompt({
+          dogId: dog.id,
+          dogName: dog.name,
+          rescueName: dog.rescue_name,
+        });
+      } else if (prompt && prompt.dogId !== dog.id) {
+        // Any other swipe dismisses a stale prompt.
+        setPrompt(null);
+      }
+
       if (currentIndex >= dogs.length - 3) {
         refetch();
       }
     },
-    [dogs, currentIndex, voteMutation, refetch],
+    [dogs, currentIndex, voteMutation, refetch, user, prompt],
   );
 
   const handleUndo = () => {
@@ -55,6 +112,7 @@ export default function SwipeDeck() {
     navigator.vibrate?.([10, 40, 10]);
     setCurrentIndex(lastVote.index);
     setLastVote(null);
+    setPrompt(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
     toast('Swipe undone', { icon: '\u21a9\ufe0f' });
   };
@@ -93,6 +151,16 @@ export default function SwipeDeck() {
         <Link to="/dogs/new">
           <Button>Share Your Dog</Button>
         </Link>
+        {prompt && (
+          <div className="w-full max-w-sm mt-4">
+            <AdoptionPrompt
+              dogId={prompt.dogId}
+              dogName={prompt.dogName}
+              rescueName={prompt.rescueName}
+              onDismiss={dismissPrompt}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -122,6 +190,7 @@ export default function SwipeDeck() {
         <button
           onClick={() => handleSwipe('left')}
           className="w-14 h-14 rounded-full bg-red-100 text-red-500 text-2xl font-bold flex items-center justify-center hover:bg-red-200 transition-colors"
+          aria-label="Pass"
         >
           ✕
         </button>
@@ -129,8 +198,9 @@ export default function SwipeDeck() {
         {lastVote && (
           <button
             onClick={handleUndo}
-            className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 text-sm flex items-center justify-center hover:bg-gray-200 transition-colors"
+            className="w-11 h-11 rounded-full bg-gray-100 text-gray-500 text-sm flex items-center justify-center hover:bg-gray-200 transition-colors"
             title="Undo last swipe"
+            aria-label="Undo last swipe"
           >
             {'\u21a9\ufe0f'}
           </button>
@@ -139,10 +209,23 @@ export default function SwipeDeck() {
         <button
           onClick={() => handleSwipe('right')}
           className="w-14 h-14 rounded-full bg-green-100 text-green-500 text-2xl flex items-center justify-center hover:bg-green-200 transition-colors"
+          aria-label="Like"
         >
           &#x2764;
         </button>
       </div>
+
+      {/* Adoption prompt (after right-swipe on a rescue dog) */}
+      {prompt && (
+        <div className="w-full max-w-sm mt-3 px-4">
+          <AdoptionPrompt
+            dogId={prompt.dogId}
+            dogName={prompt.dogName}
+            rescueName={prompt.rescueName}
+            onDismiss={dismissPrompt}
+          />
+        </div>
+      )}
     </div>
   );
 }

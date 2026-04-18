@@ -24,7 +24,7 @@ function FollowedDogCard({ dog }: { dog: Dog }) {
           <h3 className="font-semibold text-gray-900 truncate">{dog.name}</h3>
           {age && <span className="text-xs text-gray-400 flex-shrink-0">{age}</span>}
         </div>
-        {dog.breed && <p className="text-sm text-gray-500 truncate">{dog.breed}</p>}
+        {dog.breed_display && <p className="text-sm text-gray-500 truncate">{dog.breed_display}</p>}
         {dog.bio && <p className="text-xs text-gray-400 truncate mt-0.5">{dog.bio}</p>}
       </div>
       <span className="text-gray-300 ml-auto flex-shrink-0">›</span>

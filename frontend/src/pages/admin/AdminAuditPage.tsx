@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAuditLog, type AuditLogEntry } from '../../api/admin';
 import { Spinner } from '../../components/ui/Skeleton';
-import { relativeTime } from '../../utils/time';
+import TimeAgo from '../../components/TimeAgo';
 
 const ACTION_COLORS: Record<string, string> = {
   'user.suspend': 'bg-red-100 text-red-700',
@@ -136,7 +136,7 @@ export default function AdminAuditPage() {
                       </span>
                     )}
                     <span className="text-xs text-gray-400 ml-auto shrink-0">
-                      {relativeTime(entry.created_at)}
+                      <TimeAgo value={entry.created_at} />
                     </span>
                   </div>
                   {entry.actor_id && (

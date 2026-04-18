@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { logout as apiLogout } from '../api/auth';
 import { getRefreshToken } from '../api/client';
@@ -18,6 +19,7 @@ export default function NavBar() {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const showVerifyBanner = isAuthenticated && user && !user.is_verified && !bannerDismissed;
 
@@ -30,8 +32,12 @@ export default function NavBar() {
         // ignore
       }
     }
+    // Navigate away from the protected page first so it unmounts cleanly before
+    // we null the user — avoids protected-page components briefly rendering
+    // with user=null and tripping the ErrorBoundary.
+    navigate('/', { replace: true });
     logout();
-    navigate('/');
+    queryClient.clear();
   };
 
   const activePath = NAV_ITEMS.find(({ path }) => {
@@ -63,6 +69,14 @@ export default function NavBar() {
                 className="text-xs font-medium text-gray-500 transition-colors hover:text-brand-500"
               >
                 Admin
+              </Link>
+            )}
+            {user?.role === 'rescue' && (
+              <Link
+                to="/rescue/dashboard"
+                className="text-xs font-medium text-gray-500 transition-colors hover:text-brand-500"
+              >
+                Rescue
               </Link>
             )}
             <Link

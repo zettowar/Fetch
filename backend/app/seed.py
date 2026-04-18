@@ -4,40 +4,42 @@ import uuid
 from datetime import date, datetime, timezone, timedelta
 
 from passlib.context import CryptContext
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import settings
 from app.models import Base, User, Dog
+from app.models.breed import Breed
 from app.models.park import Park, ParkReview
 from app.models.post import Post
-from app.models.rescue import Rescue
+from app.models.rescue import RescueProfile
 from app.models.vote import Vote
 from app.models.social import Follow
 
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-DOGS_DATA = [
-    ("Buddy", "Golden Retriever"),
-    ("Luna", "Labrador"),
-    ("Charlie", "Beagle"),
-    ("Bella", "Poodle"),
-    ("Max", "German Shepherd"),
-    ("Daisy", "Bulldog"),
-    ("Rocky", "Boxer"),
-    ("Molly", "Husky"),
-    ("Cooper", "Dachshund"),
-    ("Sadie", "Corgi"),
-    ("Duke", "Rottweiler"),
-    ("Bailey", "Shih Tzu"),
-    ("Tucker", "Border Collie"),
-    ("Maggie", "Australian Shepherd"),
-    ("Bear", "Bernese Mountain Dog"),
-    ("Chloe", "Chihuahua"),
-    ("Jack", "Pit Bull"),
-    ("Sophie", "Maltese"),
-    ("Toby", "Great Dane"),
-    ("Lola", "French Bulldog"),
+# (name, mix_type, [breed_names]) — breed names must match entries in BREED_SEED.
+DOGS_DATA: list[tuple[str, str, list[str]]] = [
+    ("Buddy", "purebred", ["Golden Retriever"]),
+    ("Luna", "purebred", ["Labrador Retriever"]),
+    ("Charlie", "purebred", ["Beagle"]),
+    ("Bella", "purebred", ["Poodle"]),
+    ("Max", "purebred", ["German Shepherd"]),
+    ("Daisy", "purebred", ["Bulldog"]),
+    ("Rocky", "purebred", ["Boxer"]),
+    ("Molly", "purebred", ["Siberian Husky"]),
+    ("Cooper", "purebred", ["Dachshund"]),
+    ("Sadie", "cross", ["Pembroke Welsh Corgi", "Australian Shepherd"]),
+    ("Duke", "purebred", ["Rottweiler"]),
+    ("Bailey", "purebred", ["Shih Tzu"]),
+    ("Tucker", "purebred", ["Border Collie"]),
+    ("Maggie", "mixed", ["Australian Shepherd", "Labrador Retriever"]),
+    ("Bear", "purebred", ["Bernese Mountain Dog"]),
+    ("Chloe", "purebred", ["Chihuahua"]),
+    ("Jack", "mystery_mutt", []),
+    ("Sophie", "purebred", ["Maltese"]),
+    ("Toby", "purebred", ["Great Dane"]),
+    ("Lola", "cross", ["French Bulldog", "Boston Terrier"]),
 ]
 
 PARKS_DATA = [
@@ -119,30 +121,26 @@ POSTS_DATA = [
     },
 ]
 
-RESCUES_DATA = [
+# One demo rescue account (approved) + one pending rescue for admin testing.
+RESCUE_ACCOUNTS = [
     {
-        "name": "NYC Bully Rescue",
-        "description": "Dedicated to rescuing and rehoming bully breed dogs in the New York City metro area. We also offer training resources and community support.",
+        "email": "bullyrescue@fetchapp.dev",
+        "org_name": "NYC Bully Rescue",
+        "description": "Rescuing and rehoming bully breed dogs in NYC.",
         "location": "New York, NY",
-        "verified": True,
+        "status": "approved",
+        "dogs": [
+            ("Titan", "purebred", ["American Pit Bull Terrier"]),
+            ("Nala", "mixed", ["American Staffordshire Terrier", "Boxer"]),
+        ],
     },
     {
-        "name": "Golden Retriever Rescue of the Rockies",
-        "description": "A volunteer-run rescue placing Golden Retrievers and Golden mixes in loving homes across Colorado and surrounding states.",
-        "location": "Denver, CO",
-        "verified": True,
-    },
-    {
-        "name": "Bay Area Dog Rescue Alliance",
-        "description": "A coalition of foster-based rescues in the San Francisco Bay Area, pulling dogs from high-kill shelters and placing them in vetted homes.",
-        "location": "San Francisco, CA",
-        "verified": True,
-    },
-    {
-        "name": "Second Chance Hounds",
-        "description": "Specializing in senior dogs and medical cases that other rescues can't take on. Every dog deserves a second chance.",
+        "email": "secondchance@fetchapp.dev",
+        "org_name": "Second Chance Hounds",
+        "description": "Senior dogs and medical cases — every dog deserves a second chance.",
         "location": "Austin, TX",
-        "verified": False,
+        "status": "pending",
+        "dogs": [],
     },
 ]
 
@@ -181,18 +179,29 @@ async def seed():
             users.append(user)
             session.add(user)
 
+        # Load breed lookup (migration seeded these)
+        breed_rows = (await session.execute(text("SELECT id, name FROM breeds"))).all()
+        breeds_by_name = {name: bid for bid, name in breed_rows}
+
         dogs = []
-        for idx, (name, breed) in enumerate(DOGS_DATA):
+        for idx, (name, mix_type, breed_names) in enumerate(DOGS_DATA):
             owner = users[idx % len(users)]
+            bio_desc = ", ".join(breed_names) if breed_names else "mystery mutt"
             dog = Dog(
                 id=uuid.uuid4(),
                 owner_id=owner.id,
                 name=name,
-                breed=breed,
-                bio=f"{name} is a wonderful {breed}!",
+                mix_type=mix_type,
+                bio=f"{name} is a wonderful {bio_desc}!",
                 location_rough=owner.location_rough,
                 is_active=True,
             )
+            # Attach breeds via M2M (use ORM relationship by looking them up)
+            if breed_names:
+                br_result = await session.execute(
+                    select(Breed).where(Breed.name.in_(breed_names))
+                )
+                dog.breeds = list(br_result.scalars().all())
             dogs.append(dog)
             session.add(dog)
 
@@ -273,16 +282,52 @@ async def seed():
                 pinned=p.get("pinned", False),
             ))
 
-        # --- Rescues ---
-        for r in RESCUES_DATA:
-            session.add(Rescue(
+        # --- Rescue accounts (role='rescue' + RescueProfile). ---
+        rescue_count = 0
+        for rdata in RESCUE_ACCOUNTS:
+            rescue_user = User(
                 id=uuid.uuid4(),
-                name=r["name"],
-                description=r["description"],
-                location=r["location"],
-                verified=r["verified"],
-                submitted_by=admin_user.id,
-            ))
+                email=rdata["email"],
+                password_hash=pwd_ctx.hash("password123"),
+                display_name=rdata["org_name"],
+                location_rough=rdata["location"],
+                role="rescue",
+                is_active=True,
+                is_verified=True,
+            )
+            session.add(rescue_user)
+            profile = RescueProfile(
+                id=uuid.uuid4(),
+                user_id=rescue_user.id,
+                org_name=rdata["org_name"],
+                description=rdata["description"],
+                location=rdata["location"],
+                status=rdata["status"],
+                reviewed_by=admin_user.id if rdata["status"] == "approved" else None,
+                reviewed_at=datetime.now(timezone.utc) if rdata["status"] == "approved" else None,
+            )
+            session.add(profile)
+            rescue_count += 1
+
+            # Attach demo adoptable dogs to approved rescues.
+            if rdata["status"] == "approved" and rdata["dogs"]:
+                await session.flush()
+                for name, mix_type, breed_names in rdata["dogs"]:
+                    rd = Dog(
+                        id=uuid.uuid4(),
+                        owner_id=rescue_user.id,
+                        name=name,
+                        mix_type=mix_type,
+                        bio=f"{name} is looking for a forever home!",
+                        location_rough=rdata["location"],
+                        is_active=True,
+                    )
+                    if breed_names:
+                        br_result = await session.execute(
+                            select(Breed).where(Breed.name.in_(breed_names))
+                        )
+                        rd.breeds = list(br_result.scalars().all())
+                    session.add(rd)
 
         # --- Follows ---
         for i, user in enumerate(users):
@@ -304,7 +349,7 @@ async def seed():
         print(
             f"Seeded {len(users)} users, {len(dogs)} dogs, "
             f"{len(parks)} parks, {len(POSTS_DATA)} posts, "
-            f"{len(RESCUES_DATA)} rescues, votes, follows, and park reviews."
+            f"{rescue_count} rescue accounts, votes, follows, and park reviews."
         )
 
     await engine.dispose()

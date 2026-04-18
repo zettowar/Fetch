@@ -68,6 +68,7 @@ async def get_nearby_reports(
         .options(
             selectinload(LostReport.photos),
             selectinload(LostReport.dog).selectinload(Dog.photos),
+            selectinload(LostReport.dog).selectinload(Dog.breeds),
         )
         .where(
             LostReport.status == "open",

@@ -29,6 +29,8 @@ async def update_me(
         user.location_rough = body.location_rough
     if body.date_of_birth is not None:
         user.date_of_birth = body.date_of_birth
+    if body.show_adoption_prompt is not None:
+        user.show_adoption_prompt = body.show_adoption_prompt
     await db.commit()
     await db.refresh(user)
     return user

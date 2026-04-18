@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import client from '../../api/client';
 import {
   getAdminUser,
   suspendUser,
@@ -12,9 +13,9 @@ import {
   getUserStrikes,
   getUserReportsFiled,
   getUserReportsAgainst,
-  getUserRescues,
   getAuditLog,
 } from '../../api/admin';
+import type { RescueProfile } from '../../api/rescues';
 import BackButton from '../../components/ui/BackButton';
 import Button from '../../components/ui/Button';
 import Avatar from '../../components/ui/Avatar';
@@ -22,13 +23,13 @@ import ErrorState from '../../components/ui/ErrorState';
 import { Spinner } from '../../components/ui/Skeleton';
 import TimeAgo from '../../components/TimeAgo';
 
-type Tab = 'strikes' | 'filed' | 'against' | 'rescues' | 'audit';
+type Tab = 'strikes' | 'filed' | 'against' | 'rescue' | 'audit';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'strikes', label: 'Strikes' },
   { key: 'filed', label: 'Reports filed' },
   { key: 'against', label: 'Reports against' },
-  { key: 'rescues', label: 'Rescues' },
+  { key: 'rescue', label: 'Rescue profile' },
   { key: 'audit', label: 'Audit trail' },
 ];
 
@@ -171,7 +172,7 @@ export default function AdminUserDetailPage() {
       {tab === 'strikes' && <StrikesTab userId={user.id} />}
       {tab === 'filed' && <ReportsFiledTab userId={user.id} />}
       {tab === 'against' && <ReportsAgainstTab userId={user.id} />}
-      {tab === 'rescues' && <RescuesTab userId={user.id} />}
+      {tab === 'rescue' && <RescueProfileTab userId={user.id} />}
       {tab === 'audit' && <AuditTab userId={user.id} />}
     </div>
   );
@@ -238,30 +239,44 @@ function ReportList({ items }: { items: Array<{ id: string; target_type: string;
   );
 }
 
-function RescuesTab({ userId }: { userId: string }) {
-  const { data = [], isLoading } = useQuery({
-    queryKey: ['admin-user-rescues', userId],
-    queryFn: () => getUserRescues(userId),
+function RescueProfileTab({ userId }: { userId: string }) {
+  const { data, isLoading } = useQuery<RescueProfile | null>({
+    queryKey: ['admin-user-rescue-profile', userId],
+    queryFn: async () =>
+      (await client.get(`/admin/users/${userId}/rescue-profile`)).data,
   });
   if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
-  if (!data.length) return <p className="text-sm text-gray-400 py-4">No rescue submissions.</p>;
+  if (!data) {
+    return <p className="text-sm text-gray-400 py-4">This user isn't a rescue account.</p>;
+  }
   return (
-    <ul className="bg-white rounded-xl border border-gray-100 divide-y">
-      {data.map((r) => (
-        <li key={r.id} className="p-3 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{r.name}</span>
-            {r.verified ? (
-              <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-medium">verified</span>
-            ) : (
-              <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">pending</span>
-            )}
-            <span className="text-xs text-gray-400 ml-auto"><TimeAgo value={r.created_at} /></span>
-          </div>
-          {r.location && <p className="text-xs text-gray-500">{r.location}</p>}
-        </li>
-      ))}
-    </ul>
+    <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="font-semibold">{data.org_name}</span>
+        <span
+          className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase ${
+            data.status === 'approved'
+              ? 'bg-green-100 text-green-700'
+              : data.status === 'pending'
+              ? 'bg-amber-100 text-amber-700'
+              : 'bg-red-100 text-red-700'
+          }`}
+        >
+          {data.status}
+        </span>
+        <span className="text-xs text-gray-400 ml-auto">
+          <TimeAgo value={data.created_at} />
+        </span>
+      </div>
+      {data.location && <p className="text-xs text-gray-500 mb-1">{data.location}</p>}
+      <p className="text-sm text-gray-700 whitespace-pre-wrap">{data.description}</p>
+      {data.review_note && (
+        <p className="mt-2 text-xs text-gray-500">
+          <span className="font-medium">Review note: </span>
+          {data.review_note}
+        </p>
+      )}
+    </div>
   );
 }
 

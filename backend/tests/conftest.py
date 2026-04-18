@@ -24,8 +24,19 @@ async def get_test_db():
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def setup_db():
+    from sqlalchemy import func, select
+    from app.breed_data import BREED_SEED, slugify
+    from app.models.breed import Breed
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # Seed a handful of breeds so tests can reference them (idempotent)
+    async with test_session_factory() as db:
+        existing = (await db.execute(select(func.count()).select_from(Breed))).scalar() or 0
+        if existing == 0:
+            for name, group in BREED_SEED[:10]:
+                db.add(Breed(name=name, slug=slugify(name), group=group))
+            await db.commit()
     yield
     await test_engine.dispose()
 

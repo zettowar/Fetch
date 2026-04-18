@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getFeedback } from '../../api/admin';
-import { relativeTime } from '../../utils/time';
+import TimeAgo from '../../components/TimeAgo';
 
 export default function AdminFeedbackPage() {
   const [search, setSearch] = useState('');
@@ -52,7 +52,7 @@ export default function AdminFeedbackPage() {
                 <Link to={`/users/${f.user_id}`} className="text-brand-500 hover:underline" target="_blank">
                   User
                 </Link>
-                <span>{relativeTime(f.created_at)}</span>
+                <TimeAgo value={f.created_at} />
               </div>
             </div>
           ))}

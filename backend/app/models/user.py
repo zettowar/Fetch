@@ -21,9 +21,24 @@ class User(Base, UUIDPrimaryKey, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     role: Mapped[str] = mapped_column(String(20), default="user", nullable=False)
+    show_adoption_prompt: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="true",
+    )
 
-    dogs = relationship("Dog", back_populates="owner", cascade="all, delete-orphan")
+    dogs = relationship(
+        "Dog",
+        back_populates="owner",
+        cascade="all, delete-orphan",
+        foreign_keys="Dog.owner_id",
+    )
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    rescue_profile = relationship(
+        "RescueProfile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        foreign_keys="RescueProfile.user_id",
+    )
 
 
 class RefreshToken(Base, UUIDPrimaryKey, TimestampMixin):
@@ -41,6 +56,17 @@ class RefreshToken(Base, UUIDPrimaryKey, TimestampMixin):
 
 class PasswordResetToken(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "password_reset_tokens"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class EmailVerificationToken(Base, UUIDPrimaryKey, TimestampMixin):
+    __tablename__ = "email_verification_tokens"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True

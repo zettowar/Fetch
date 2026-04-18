@@ -66,17 +66,6 @@ export interface SupportTicket {
   created_at: string;
 }
 
-export interface RescueAdmin {
-  id: string;
-  name: string;
-  description: string;
-  location: string | null;
-  website: string | null;
-  donation_url: string | null;
-  verified: boolean;
-  created_at: string;
-}
-
 export interface FAQEntry {
   id: string;
   question: string;
@@ -166,12 +155,6 @@ export const getTickets = async (status = 'open'): Promise<SupportTicket[]> =>
 export const updateTicket = async (id: string, data: { status: string; admin_notes?: string }) =>
   (await client.post(`/admin/tickets/${id}/update`, data)).data;
 
-export const getAdminRescues = async (): Promise<RescueAdmin[]> =>
-  (await client.get('/admin/rescues')).data;
-
-export const verifyRescue = async (id: string) =>
-  (await client.post(`/rescues/${id}/verify`)).data;
-
 export const getFeedback = async (): Promise<FeedbackEntry[]> =>
   (await client.get('/feedback')).data;
 
@@ -227,9 +210,6 @@ export const getUserReportsFiled = async (userId: string): Promise<Report[]> =>
 
 export const getUserReportsAgainst = async (userId: string): Promise<Report[]> =>
   (await client.get(`/admin/users/${userId}/reports-against`)).data;
-
-export const getUserRescues = async (userId: string): Promise<RescueAdmin[]> =>
-  (await client.get(`/admin/users/${userId}/rescues`)).data;
 
 // --- Content moderation: dogs ---
 

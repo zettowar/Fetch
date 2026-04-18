@@ -15,6 +15,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Avatar from '../../components/ui/Avatar';
 import { Spinner } from '../../components/ui/Skeleton';
+import PaginationFooter from '../../components/ui/PaginationFooter';
 import TimeAgo from '../../components/TimeAgo';
 import { exportCsv } from '../../utils/exportCsv';
 
@@ -54,6 +55,7 @@ export default function AdminUsersPage() {
       toast.success('User suspended');
       invalidateUsers();
     },
+    onError: () => toast.error('Failed to suspend'),
   });
 
   const reinstateMutation = useMutation({
@@ -62,6 +64,7 @@ export default function AdminUsersPage() {
       toast.success('User reinstated');
       invalidateUsers();
     },
+    onError: () => toast.error('Failed to reinstate'),
   });
 
   const grantMutation = useMutation({
@@ -372,30 +375,13 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Pagination */}
-      {total > PAGE_SIZE && (
-        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={offset === 0}
-            onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-          >
-            ← Prev
-          </Button>
-          <span className="text-xs text-gray-500">
-            {rangeStart}–{rangeEnd} of {total}
-          </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={rangeEnd >= total}
-            onClick={() => setOffset(offset + PAGE_SIZE)}
-          >
-            Next →
-          </Button>
-        </div>
-      )}
+      <PaginationFooter
+        offset={offset}
+        pageSize={PAGE_SIZE}
+        rendered={users.length}
+        total={total}
+        onChange={setOffset}
+      />
     </div>
   );
 }

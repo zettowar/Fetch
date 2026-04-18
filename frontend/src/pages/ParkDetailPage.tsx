@@ -213,7 +213,7 @@ export default function ParkDetailPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm hover:border-brand-400 transition-colors"
                 >
                   {dog.primary_photo_url && (
-                    <img src={dog.primary_photo_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                    <img src={dog.primary_photo_url} alt={dog.name} className="w-5 h-5 rounded-full object-cover" />
                   )}
                   {dog.name}
                 </button>
@@ -238,7 +238,7 @@ export default function ParkDetailPage() {
                   className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-100 rounded-xl"
                 >
                   {ci.dog_photo_url ? (
-                    <img src={ci.dog_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    <img src={ci.dog_photo_url} alt={ci.dog_name ?? 'Checked-in dog'} className="w-8 h-8 rounded-full object-cover" />
                   ) : (
                     <Avatar name={ci.dog_name ?? '?'} size="md" />
                   )}
@@ -251,6 +251,7 @@ export default function ParkDetailPage() {
                       onClick={() => checkoutMutation.mutate(ci.dog_id!)}
                       className="ml-1 text-[11px] text-gray-400 hover:text-red-500"
                       title="Check out"
+                      aria-label="Check out of this park"
                     >
                       ✕
                     </button>
@@ -271,6 +272,7 @@ export default function ParkDetailPage() {
                 key={n}
                 onClick={() => setRating(n)}
                 className={`text-2xl transition-colors hover:scale-110 active:scale-95 ${n <= rating ? 'text-yellow-400' : 'text-gray-200'}`}
+                aria-label={`Rate ${n} star${n === 1 ? '' : 's'}`}
               >
                 ★
               </button>

@@ -10,11 +10,12 @@ from app.db import get_db
 from app.deps import require_admin
 from app.models.audit_log import AuditLog
 from app.models.beta import Feedback, InviteCode
+from app.models.breed import Breed, dog_breeds
 from app.models.dog import Dog
 from app.models.lost_report import LostReport
 from app.models.photo import Photo
 from app.models.report import Report, Strike
-from app.models.rescue import Rescue
+from app.models.rescue import RescueProfile
 from app.models.support import FAQEntry, SupportTicket
 from app.models.user import User
 from app.schemas.admin import (
@@ -28,8 +29,11 @@ from app.schemas.admin import (
     FAQUpdate,
     TicketStatusUpdate,
 )
+from app.breed_data import slugify
+from app.schemas.breed import BreedAdminOut, BreedCreate, BreedUpdate
 from app.schemas.report import ReportOut, ReportReview, StrikeOut
-from app.schemas.rescue import RescueOut
+from app.services.breed_display import breed_display
+from app.schemas.rescue import RescueProfileOut, RescueReviewRequest
 from app.schemas.support import FAQOut, TicketOut
 
 DEFAULT_PAGE_LIMIT = 50
@@ -77,7 +81,9 @@ async def dashboard_stats(
     total_dogs = (await db.execute(select(func.count()).select_from(Dog))).scalar() or 0
     pending_reports = (await db.execute(select(func.count()).where(Report.status == "pending"))).scalar() or 0
     open_tickets = (await db.execute(select(func.count()).where(SupportTicket.status == "open"))).scalar() or 0
-    unverified_rescues = (await db.execute(select(func.count()).where(Rescue.verified == False))).scalar() or 0
+    unverified_rescues = (await db.execute(
+        select(func.count()).where(RescueProfile.status == "pending")
+    )).scalar() or 0
     unused_invites = (await db.execute(select(func.count()).where(InviteCode.is_used == False))).scalar() or 0
     total_feedback = (await db.execute(select(func.count()).select_from(Feedback))).scalar() or 0
     reports_7d = (await db.execute(select(func.count()).where(Report.created_at >= week_ago))).scalar() or 0
@@ -196,36 +202,53 @@ async def search_users(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    base = select(User)
+    # Correlated subqueries avoid the N+1 per-user count lookups.
+    dog_count_sq = (
+        select(func.count())
+        .where(Dog.owner_id == User.id)
+        .correlate(User)
+        .scalar_subquery()
+    )
+    strike_count_sq = (
+        select(func.count())
+        .where(Strike.user_id == User.id)
+        .correlate(User)
+        .scalar_subquery()
+    )
+
+    filter_clause = None
     if q:
-        base = base.where(
-            or_(
-                User.email.ilike(f"%{q}%"),
-                User.display_name.ilike(f"%{q}%"),
-            )
+        filter_clause = or_(
+            User.email.ilike(f"%{q}%"),
+            User.display_name.ilike(f"%{q}%"),
         )
 
-    count_result = await db.execute(select(func.count()).select_from(base.subquery()))
-    total = count_result.scalar() or 0
+    count_stmt = select(func.count()).select_from(User)
+    if filter_clause is not None:
+        count_stmt = count_stmt.where(filter_clause)
+    total = (await db.execute(count_stmt)).scalar() or 0
     response.headers["X-Total-Count"] = str(total)
     response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
 
-    result = await db.execute(
-        base.order_by(User.created_at.desc()).offset(offset).limit(limit)
+    stmt = (
+        select(User, dog_count_sq.label("dog_count"), strike_count_sq.label("strike_count"))
+        .order_by(User.created_at.desc())
+        .offset(offset)
+        .limit(limit)
     )
-    users = result.scalars().all()
+    if filter_clause is not None:
+        stmt = stmt.where(filter_clause)
 
-    out = []
-    for u in users:
-        dog_count = (await db.execute(select(func.count()).where(Dog.owner_id == u.id))).scalar() or 0
-        strike_count = (await db.execute(select(func.count()).where(Strike.user_id == u.id))).scalar() or 0
-        out.append(AdminUserOut(
+    result = await db.execute(stmt)
+    return [
+        AdminUserOut(
             id=u.id, email=u.email, display_name=u.display_name,
             location_rough=u.location_rough, is_active=u.is_active,
             is_verified=u.is_verified, role=u.role, created_at=u.created_at,
             dog_count=dog_count, strike_count=strike_count,
-        ))
-    return out
+        )
+        for u, dog_count, strike_count in result.all()
+    ]
 
 
 @router.get("/users/{user_id}", response_model=AdminUserOut)
@@ -398,11 +421,15 @@ async def review_report(
 @router.get("/strikes/{user_id}", response_model=list[StrikeOut])
 async def get_user_strikes(
     user_id: UUID,
+    limit: int = Query(100, ge=1, le=500),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Strike).where(Strike.user_id == user_id).order_by(Strike.created_at.desc())
+        select(Strike)
+        .where(Strike.user_id == user_id)
+        .order_by(Strike.created_at.desc())
+        .limit(limit)
     )
     return list(result.scalars().all())
 
@@ -455,20 +482,17 @@ async def get_user_reports_against(
     return list(result.scalars().all())
 
 
-@router.get("/users/{user_id}/rescues", response_model=list[RescueOut])
-async def get_user_rescues(
+@router.get("/users/{user_id}/rescue-profile", response_model=RescueProfileOut | None)
+async def get_user_rescue_profile(
     user_id: UUID,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Rescues submitted by this user."""
+    """Single rescue profile this user owns, if any."""
     result = await db.execute(
-        select(Rescue)
-        .where(Rescue.submitted_by == user_id)
-        .order_by(Rescue.created_at.desc())
-        .limit(100)
+        select(RescueProfile).where(RescueProfile.user_id == user_id)
     )
-    return list(result.scalars().all())
+    return result.scalar_one_or_none()
 
 
 # --- Tickets ---
@@ -553,18 +577,69 @@ async def delete_faq(
     return {"detail": "FAQ entry deleted"}
 
 
-# --- Rescues (admin view) ---
+# --- Rescue profiles (admin view) ---
 
-@router.get("/rescues")
-async def list_all_rescues(
+@router.get("/rescue-profiles", response_model=list[RescueProfileOut])
+async def list_rescue_profiles(
+    response: Response,
+    status_filter: str = Query("pending"),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.schemas.rescue import RescueOut
+    filter_base = select(RescueProfile.id)
+    if status_filter != "all":
+        filter_base = filter_base.where(RescueProfile.status == status_filter)
+    total = (await db.execute(
+        select(func.count()).select_from(filter_base.subquery())
+    )).scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
 
-    result = await db.execute(select(Rescue).order_by(Rescue.created_at.desc()).limit(100))
-    rescues = result.scalars().all()
-    return [RescueOut.model_validate(r) for r in rescues]
+    query = (
+        select(RescueProfile)
+        .order_by(RescueProfile.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    if status_filter != "all":
+        query = query.where(RescueProfile.status == status_filter)
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+@router.post("/rescue-profiles/{profile_id}/review", response_model=RescueProfileOut)
+async def review_rescue_profile(
+    profile_id: UUID,
+    body: RescueReviewRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(RescueProfile).where(RescueProfile.id == profile_id)
+    )
+    profile = result.scalar_one_or_none()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Rescue profile not found")
+    if profile.status != "pending":
+        raise HTTPException(status_code=400, detail="Profile has already been reviewed")
+
+    profile.status = "approved" if body.approve else "rejected"
+    profile.review_note = body.note
+    profile.reviewed_by = admin.id
+    profile.reviewed_at = datetime.now(timezone.utc)
+
+    db.add(AuditLog(
+        actor_id=admin.id,
+        action="rescue.approve" if body.approve else "rescue.reject",
+        target_type="rescue_profile",
+        target_id=profile_id,
+        metadata_={"org_name": profile.org_name, "note": body.note},
+    ))
+    await db.commit()
+    await db.refresh(profile)
+    return profile
 
 
 # --- Content moderation: dogs ---
@@ -586,13 +661,17 @@ async def list_dogs_admin(
         .scalar_subquery()
     )
 
+    # Search matches dog name OR any joined breed name
+    breed_match_sq = (
+        select(dog_breeds.c.dog_id)
+        .join(Breed, Breed.id == dog_breeds.c.breed_id)
+        .where(Breed.name.ilike(f"%{q}%"))
+    ) if q else None
+
     filter_base = select(Dog.id)
     if q:
         filter_base = filter_base.where(
-            or_(
-                Dog.name.ilike(f"%{q}%"),
-                Dog.breed.ilike(f"%{q}%"),
-            )
+            or_(Dog.name.ilike(f"%{q}%"), Dog.id.in_(breed_match_sq))
         )
     if active_only:
         filter_base = filter_base.where(Dog.is_active == True)  # noqa: E712
@@ -604,17 +683,14 @@ async def list_dogs_admin(
 
     query = (
         select(Dog, photo_count_sq.label("photo_count"))
-        .options(selectinload(Dog.owner))
+        .options(selectinload(Dog.owner), selectinload(Dog.breeds))
         .order_by(Dog.created_at.desc())
         .offset(offset)
         .limit(limit)
     )
     if q:
         query = query.where(
-            or_(
-                Dog.name.ilike(f"%{q}%"),
-                Dog.breed.ilike(f"%{q}%"),
-            )
+            or_(Dog.name.ilike(f"%{q}%"), Dog.id.in_(breed_match_sq))
         )
     if active_only:
         query = query.where(Dog.is_active == True)  # noqa: E712
@@ -624,7 +700,7 @@ async def list_dogs_admin(
         AdminDogOut(
             id=d.id,
             name=d.name,
-            breed=d.breed,
+            breed=breed_display(d.mix_type, d.breeds),
             is_active=d.is_active,
             owner_id=d.owner_id,
             owner_name=d.owner.display_name if d.owner else None,
@@ -733,6 +809,154 @@ async def close_lost_report(
     await _log(db, actor_id=admin.id, action="lost_report.close", target_type="lost_report", target_id=report_id)
     await db.commit()
     return {"detail": "Lost report closed"}
+
+
+# --- Breeds management ---
+
+@router.get("/breeds", response_model=list[BreedAdminOut])
+async def list_breeds_admin(
+    response: Response,
+    q: str = Query(default=""),
+    include_inactive: bool = Query(True),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    filter_base = select(Breed.id)
+    if not include_inactive:
+        filter_base = filter_base.where(Breed.is_active == True)  # noqa: E712
+    if q:
+        filter_base = filter_base.where(Breed.name.ilike(f"%{q.strip()}%"))
+    total = (await db.execute(select(func.count()).select_from(filter_base.subquery()))).scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+    dog_count_sq = (
+        select(func.count())
+        .select_from(dog_breeds)
+        .where(dog_breeds.c.breed_id == Breed.id)
+        .correlate(Breed)
+        .scalar_subquery()
+    )
+
+    query = (
+        select(Breed, dog_count_sq.label("dog_count"))
+        .order_by(Breed.name.asc())
+        .offset(offset)
+        .limit(limit)
+    )
+    if not include_inactive:
+        query = query.where(Breed.is_active == True)  # noqa: E712
+    if q:
+        query = query.where(Breed.name.ilike(f"%{q.strip()}%"))
+
+    result = await db.execute(query)
+    return [
+        BreedAdminOut(
+            id=b.id,
+            name=b.name,
+            slug=b.slug,
+            group=b.group,
+            is_active=b.is_active,
+            dog_count=count,
+            created_at=b.created_at,
+        )
+        for b, count in result.all()
+    ]
+
+
+@router.post("/breeds", response_model=BreedAdminOut, status_code=201)
+async def create_breed(
+    body: BreedCreate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    slug = slugify(body.name)
+    existing = await db.execute(
+        select(Breed).where((Breed.name == body.name) | (Breed.slug == slug))
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Breed already exists")
+    breed = Breed(name=body.name, slug=slug, group=body.group, is_active=body.is_active)
+    db.add(breed)
+    await db.flush()
+    await _log(db, actor_id=admin.id, action="breed.create", target_type="breed",
+               target_id=breed.id, metadata={"name": breed.name})
+    await db.commit()
+    await db.refresh(breed)
+    return BreedAdminOut(
+        id=breed.id, name=breed.name, slug=breed.slug, group=breed.group,
+        is_active=breed.is_active, dog_count=0, created_at=breed.created_at,
+    )
+
+
+@router.patch("/breeds/{breed_id}", response_model=BreedAdminOut)
+async def update_breed(
+    breed_id: UUID,
+    body: BreedUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Breed).where(Breed.id == breed_id))
+    breed = result.scalar_one_or_none()
+    if not breed:
+        raise HTTPException(status_code=404, detail="Breed not found")
+
+    changes = body.model_dump(exclude_unset=True)
+    if "name" in changes and changes["name"] != breed.name:
+        new_slug = slugify(changes["name"])
+        conflict = await db.execute(
+            select(Breed).where(
+                ((Breed.name == changes["name"]) | (Breed.slug == new_slug))
+                & (Breed.id != breed_id)
+            )
+        )
+        if conflict.scalar_one_or_none():
+            raise HTTPException(status_code=409, detail="Another breed with that name exists")
+        breed.slug = new_slug
+    for field, value in changes.items():
+        setattr(breed, field, value)
+
+    await _log(db, actor_id=admin.id, action="breed.update", target_type="breed",
+               target_id=breed_id, metadata=changes)
+    await db.commit()
+    await db.refresh(breed)
+
+    dog_count = (await db.execute(
+        select(func.count()).select_from(dog_breeds).where(dog_breeds.c.breed_id == breed_id)
+    )).scalar() or 0
+    return BreedAdminOut(
+        id=breed.id, name=breed.name, slug=breed.slug, group=breed.group,
+        is_active=breed.is_active, dog_count=dog_count, created_at=breed.created_at,
+    )
+
+
+@router.delete("/breeds/{breed_id}")
+async def delete_breed(
+    breed_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Breed).where(Breed.id == breed_id))
+    breed = result.scalar_one_or_none()
+    if not breed:
+        raise HTTPException(status_code=404, detail="Breed not found")
+
+    dog_count = (await db.execute(
+        select(func.count()).select_from(dog_breeds).where(dog_breeds.c.breed_id == breed_id)
+    )).scalar() or 0
+    if dog_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot delete: {dog_count} dog(s) still reference this breed. Deactivate instead.",
+        )
+
+    await _log(db, actor_id=admin.id, action="breed.delete", target_type="breed",
+               target_id=breed_id, metadata={"name": breed.name})
+    await db.delete(breed)
+    await db.commit()
+    return {"detail": "Breed deleted"}
 
 
 # --- Helpers ---

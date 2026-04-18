@@ -8,13 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user
 from app.limiter import limiter
+from app.models.dog import Dog
 from app.models.park import Park, ParkCheckin, ParkIncident, ParkReview
 from app.models.user import User
+from app.services.breed_display import breed_display
 from app.storage import get_storage
-from app.models.dog import Dog
-from app.models.photo import Photo
 from app.schemas.park import (
     CheckinCreate,
     ParkCheckinOut,
@@ -332,7 +332,7 @@ def _checkin_to_out(ci: ParkCheckin, storage) -> ParkCheckinOut:
         park_id=ci.park_id,
         dog_id=ci.dog_id,
         dog_name=ci.dog.name if ci.dog else None,
-        dog_breed=ci.dog.breed if ci.dog else None,
+        dog_breed=breed_display(ci.dog.mix_type, ci.dog.breeds) if ci.dog else None,
         dog_photo_url=photo_url,
         checked_in_at=ci.created_at,
         checked_out_at=ci.checked_out_at,
@@ -352,7 +352,8 @@ async def checkin(
 
     # Verify user owns the dog
     dog_result = await db.execute(
-        select(Dog).options(selectinload(Dog.photos))
+        select(Dog)
+        .options(selectinload(Dog.photos), selectinload(Dog.breeds))
         .where(Dog.id == body.dog_id, Dog.owner_id == user.id, Dog.is_active == True)
     )
     dog = dog_result.scalar_one_or_none()
@@ -408,7 +409,10 @@ async def list_checkins(
 ):
     result = await db.execute(
         select(ParkCheckin)
-        .options(selectinload(ParkCheckin.dog).selectinload(Dog.photos))
+        .options(
+            selectinload(ParkCheckin.dog).selectinload(Dog.photos),
+            selectinload(ParkCheckin.dog).selectinload(Dog.breeds),
+        )
         .where(
             ParkCheckin.park_id == park_id,
             ParkCheckin.checked_out_at == None,  # noqa: E711

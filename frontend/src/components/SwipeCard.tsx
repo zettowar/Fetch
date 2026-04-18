@@ -69,7 +69,7 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
             <span className="text-sm text-gray-400">{dogAge(dog.birthday)}</span>
           )}
         </div>
-        {dog.breed && <p className="text-gray-500">{dog.breed}</p>}
+        {dog.breed_display && <p className="text-gray-500">{dog.breed_display}</p>}
         {dog.traits && dog.traits.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
             {dog.traits.slice(0, 3).map((t) => (

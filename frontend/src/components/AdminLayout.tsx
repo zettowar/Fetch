@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { path: '/admin/feedback', label: 'Feedback' },
   { path: '/admin/invites', label: 'Invites' },
   { path: '/admin/faq', label: 'FAQ' },
+  { path: '/admin/breeds', label: 'Breeds' },
   { path: '/admin/audit', label: 'Audit Log' },
 ];
 

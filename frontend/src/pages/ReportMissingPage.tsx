@@ -10,7 +10,10 @@ import Input from '../components/ui/Input';
 
 export default function ReportMissingPage() {
   const navigate = useNavigate();
-  const { data: myDogs = [] } = useQuery({ queryKey: ['my-dogs'], queryFn: getMyDogs });
+  const { data: myDogs = [], isLoading: myDogsLoading } = useQuery({
+    queryKey: ['my-dogs'],
+    queryFn: getMyDogs,
+  });
 
   const [dogId, setDogId] = useState('');
   const [description, setDescription] = useState('');
@@ -64,9 +67,13 @@ export default function ReportMissingPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {myDogs.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Which dog?</label>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700">Which dog?</label>
+          {myDogsLoading ? (
+            <div className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-400 bg-gray-50">
+              Loading your dogs…
+            </div>
+          ) : myDogs.length > 0 ? (
             <select
               className="rounded-xl border border-gray-300 px-4 py-2.5 text-base"
               value={dogId}
@@ -75,12 +82,16 @@ export default function ReportMissingPage() {
               <option value="">Select a dog (optional)</option>
               {myDogs.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.name} {d.breed ? `(${d.breed})` : ''}
+                  {d.name} {d.breed_display ? `(${d.breed_display})` : ''}
                 </option>
               ))}
             </select>
-          </div>
-        )}
+          ) : (
+            <p className="text-sm text-gray-500">
+              You haven't added a dog yet — you can still file this report without linking one.
+            </p>
+          )}
+        </div>
 
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Description</label>
