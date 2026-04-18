@@ -19,6 +19,7 @@ export interface LostReport {
   last_seen_at: string | null;
   last_seen_lat: number | null;
   last_seen_lng: number | null;
+  location_fuzz_m: number;
   description: string;
   contact_method: string;
   resolved_at: string | null;
@@ -36,6 +37,7 @@ export interface NearbyReport {
   status: string;
   fuzzed_lat: number;
   fuzzed_lng: number;
+  location_fuzz_m: number;
   dog_name: string | null;
   dog_breed: string | null;
   dog_photo_url: string | null;
@@ -71,6 +73,7 @@ export async function createLostReport(data: {
   last_seen_at?: string;
   last_seen_lat?: number;
   last_seen_lng?: number;
+  location_fuzz_m?: number;
   description: string;
   contact_method?: string;
   contact_value?: string;

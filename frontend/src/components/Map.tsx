@@ -1,14 +1,53 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import MapLibre, {
   GeolocateControl,
+  Layer,
   Marker,
   NavigationControl,
   Popup,
+  Source,
   type MapRef,
   type ViewStateChangeEvent,
   type MapLayerMouseEvent,
 } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+
+export interface MapCircle {
+  id: string;
+  lat: number;
+  lng: number;
+  /** Radius in meters. */
+  radiusMeters: number;
+  /** CSS color. */
+  color: string;
+  fillOpacity?: number;
+}
+
+/** Approximate a geodesic circle as a 64-point polygon. Good enough visually
+ * for radii up to tens of kilometers at typical zoom levels. */
+function circlePolygon(
+  centerLng: number,
+  centerLat: number,
+  radiusMeters: number,
+  points = 64,
+): GeoJSON.Feature<GeoJSON.Polygon, { id: string; color: string; fillOpacity: number }> {
+  const coords: [number, number][] = [];
+  const earthR = 6378137;
+  const latR = (radiusMeters / earthR) * (180 / Math.PI);
+  const lngR = latR / Math.cos((centerLat * Math.PI) / 180);
+  for (let i = 0; i <= points; i++) {
+    const theta = (i / points) * 2 * Math.PI;
+    coords.push([
+      centerLng + lngR * Math.cos(theta),
+      centerLat + latR * Math.sin(theta),
+    ]);
+  }
+  return {
+    type: 'Feature',
+    properties: { id: '', color: '#000', fillOpacity: 0.15 },
+    geometry: { type: 'Polygon', coordinates: [coords] },
+  };
+}
 
 export interface MapMarker {
   id: string;
@@ -26,6 +65,8 @@ interface MapProps {
   center: [number, number];
   zoom?: number;
   markers?: MapMarker[];
+  /** Semi-transparent circles drawn on the map (e.g. search-area radii). */
+  circles?: MapCircle[];
   onMapClick?: (lat: number, lng: number) => void;
   className?: string;
   /** Auto-fit the viewport to contain all markers on mount + whenever markers change. */
@@ -91,6 +132,7 @@ export default function Map({
   center,
   zoom = 12,
   markers = [],
+  circles = [],
   onMapClick,
   className = '',
   fitMarkers = false,
@@ -191,6 +233,33 @@ export default function Map({
             positionOptions={{ enableHighAccuracy: true, timeout: 8000 }}
           />
         )}
+
+        {/* Circles render beneath markers; one GeoJSON source per circle so
+            each can have its own fill + stroke color. */}
+        {circles.map((c) => {
+          const feature = circlePolygon(c.lng, c.lat, c.radiusMeters);
+          return (
+            <Source key={c.id} id={`circle-${c.id}`} type="geojson" data={feature}>
+              <Layer
+                id={`circle-fill-${c.id}`}
+                type="fill"
+                paint={{
+                  'fill-color': c.color,
+                  'fill-opacity': c.fillOpacity ?? 0.15,
+                }}
+              />
+              <Layer
+                id={`circle-line-${c.id}`}
+                type="line"
+                paint={{
+                  'line-color': c.color,
+                  'line-width': 2,
+                  'line-opacity': 0.7,
+                }}
+              />
+            </Source>
+          );
+        })}
 
         {markers.map((m) => (
           <Marker

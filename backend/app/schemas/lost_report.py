@@ -22,10 +22,19 @@ class LostReportCreate(BaseModel):
     last_seen_at: datetime | None = None
     last_seen_lat: float | None = None
     last_seen_lng: float | None = None
+    # Doubles as both the reporter's stated search-area radius (shown on the
+    # map) and the privacy fuzz applied when non-owners view the coordinates.
     location_fuzz_m: int = 500
     description: str
     contact_method: str = "in_app"
     contact_value: str | None = None
+
+    @field_validator("location_fuzz_m")
+    @classmethod
+    def valid_fuzz(cls, v: int) -> int:
+        if not 50 <= v <= 10_000:
+            raise ValueError("location_fuzz_m must be between 50 and 10000 meters")
+        return v
 
     @field_validator("kind")
     @classmethod
@@ -59,8 +68,18 @@ class LostReportUpdate(BaseModel):
     description: str | None = None
     last_seen_lat: float | None = None
     last_seen_lng: float | None = None
+    location_fuzz_m: int | None = None
     contact_method: str | None = None
     contact_value: str | None = None
+
+    @field_validator("location_fuzz_m")
+    @classmethod
+    def valid_fuzz(cls, v: int | None) -> int | None:
+        if v is None:
+            return v
+        if not 50 <= v <= 10_000:
+            raise ValueError("location_fuzz_m must be between 50 and 10000 meters")
+        return v
 
     @field_validator("status")
     @classmethod
@@ -91,6 +110,9 @@ class LostReportOut(BaseModel):
     last_seen_at: datetime | None = None
     last_seen_lat: float | None = None
     last_seen_lng: float | None = None
+    # Reporter's stated search-area radius. Also the privacy-fuzz amount
+    # applied to the coordinates for non-owners.
+    location_fuzz_m: int = 500
     description: str
     contact_method: str
     resolved_at: datetime | None = None
@@ -112,6 +134,7 @@ class NearbyReportOut(BaseModel):
     status: str
     fuzzed_lat: float
     fuzzed_lng: float
+    location_fuzz_m: int = 500
     dog_name: str | None = None
     dog_breed: str | None = None
     dog_photo_url: str | None = None

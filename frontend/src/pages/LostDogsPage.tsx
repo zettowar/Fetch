@@ -148,6 +148,20 @@ export default function LostDogsPage() {
           center={center}
           zoom={12}
           markers={markers}
+          circles={
+            selectedReport
+              ? [
+                  {
+                    id: `${selectedReport.id}-area`,
+                    lat: selectedReport.fuzzed_lat,
+                    lng: selectedReport.fuzzed_lng,
+                    radiusMeters: selectedReport.location_fuzz_m ?? 500,
+                    color: selectedReport.kind === 'missing' ? '#ef4444' : '#3b82f6',
+                    fillOpacity: 0.15,
+                  },
+                ]
+              : []
+          }
           fitMarkers
           showLocateMe
           selectedMarkerId={selectedReport?.id ?? null}

@@ -18,6 +18,7 @@ export default function ReportMissingPage() {
   const [dogId, setDogId] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [radius, setRadius] = useState(500); // meters
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +40,7 @@ export default function ReportMissingPage() {
         last_seen_lat: location.lat,
         last_seen_lng: location.lng,
         last_seen_at: new Date().toISOString(),
+        location_fuzz_m: radius,
       });
       toast.success('Missing dog report created');
       navigate(`/lost/${report.id}`);
@@ -99,7 +101,13 @@ export default function ReportMissingPage() {
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-gray-700">Last seen location</label>
-          <LocationPicker value={location} onChange={setLocation} />
+          <LocationPicker
+            value={location}
+            onChange={setLocation}
+            radiusMeters={radius}
+            onRadiusChange={setRadius}
+            accentColor="#ef4444"
+          />
         </div>
 
         <Button type="submit" loading={saving} className="w-full" variant="danger">
