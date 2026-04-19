@@ -42,14 +42,14 @@ export default function RescueDetailPage() {
       <BackButton fallback="/rescues" />
       <div className="flex items-center gap-2 flex-wrap mt-2 mb-1">
         <h1 className="text-2xl font-bold">{rescue.org_name}</h1>
-        <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+        <span className="text-[10px] bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
           Verified
         </span>
       </div>
       {rescue.location && (
-        <p className="text-sm text-gray-500 mb-3">{rescue.location}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{rescue.location}</p>
       )}
-      <p className="text-gray-700 whitespace-pre-wrap">{rescue.description}</p>
+      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{rescue.description}</p>
 
       {(rescue.website || rescue.donation_url) && (
         <div className="flex items-center gap-2 mt-4">
@@ -80,7 +80,7 @@ export default function RescueDetailPage() {
         Adoptable dogs ({dogs.length})
       </h2>
       {dogs.length === 0 ? (
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-400 dark:text-gray-500">
           No dogs available right now — check back soon.
         </p>
       ) : (
@@ -89,7 +89,7 @@ export default function RescueDetailPage() {
             <Link
               key={d.id}
               to={`/dogs/${d.id}`}
-              className="block rounded-xl overflow-hidden bg-white border border-gray-100 hover:border-brand-200 transition-colors"
+              className="block rounded-xl overflow-hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
             >
               {d.primary_photo_url ? (
                 <img
@@ -109,9 +109,9 @@ export default function RescueDetailPage() {
                 </div>
               )}
               <div className="p-2.5">
-                <p className="font-semibold text-gray-900 truncate">{d.name}</p>
+                <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{d.name}</p>
                 {d.breed_display && (
-                  <p className="text-xs text-gray-500 truncate">{d.breed_display}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{d.breed_display}</p>
                 )}
               </div>
             </Link>

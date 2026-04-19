@@ -10,11 +10,11 @@ const variants = {
   primary:
     'bg-brand-500 text-white shadow-soft-sm hover:bg-brand-600 hover:shadow-brand-glow active:bg-brand-700',
   secondary:
-    'bg-white text-gray-800 border border-gray-200 shadow-soft-sm hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100',
+    'bg-white text-gray-800 border border-gray-200 shadow-soft-sm hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:active:bg-gray-900',
   danger:
     'bg-red-500 text-white shadow-soft-sm hover:bg-red-600 active:bg-red-700',
   ghost:
-    'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200',
+    'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white dark:active:bg-gray-900',
 };
 
 const sizes = {

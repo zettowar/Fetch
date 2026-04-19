@@ -57,16 +57,16 @@ export default function AdminInvitesPage() {
       <h1 className="text-2xl font-bold mb-4">Invite Codes</h1>
 
       {/* Generate section */}
-      <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 mb-4">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700 shrink-0">Generate</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 shrink-0">Generate</label>
           <input
             type="number"
             min={1}
             max={100}
             value={count}
             onChange={(e) => setCount(Number(e.target.value))}
-            className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-sm"
+            className="w-20 rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1 text-sm"
           />
           <Button size="sm" onClick={() => genMutation.mutate()} loading={genMutation.isPending}>
             Generate
@@ -77,7 +77,7 @@ export default function AdminInvitesPage() {
             </Button>
           )}
         </div>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
           {unusedCount} unused / {usedCount} used / {allInvites.length} total
         </p>
       </div>
@@ -89,7 +89,7 @@ export default function AdminInvitesPage() {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-              filter === f ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              filter === f ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {f}
@@ -100,25 +100,25 @@ export default function AdminInvitesPage() {
       {isLoading ? (
         <div className="flex justify-center py-8"><Spinner size="sm" /></div>
       ) : invites.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">No {filter} invite codes.</div>
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500">No {filter} invite codes.</div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
           {invites.map((inv) => (
             <div key={inv.id} className="flex items-center gap-3 p-3">
               <button
                 onClick={() => copyCode(inv.code)}
-                className="font-mono text-sm text-gray-700 hover:text-brand-600 transition-colors cursor-pointer"
+                className="font-mono text-sm text-gray-700 dark:text-gray-300 hover:text-brand-600 transition-colors cursor-pointer"
                 title="Click to copy"
               >
                 {inv.code}
               </button>
               <span className="flex-1" />
               {inv.is_used ? (
-                <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">Used</span>
+                <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full">Used</span>
               ) : (
-                <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full">Available</span>
+                <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 rounded-full">Available</span>
               )}
-              <span className="text-xs text-gray-400"><TimeAgo value={inv.created_at} /></span>
+              <span className="text-xs text-gray-400 dark:text-gray-500"><TimeAgo value={inv.created_at} /></span>
             </div>
           ))}
         </div>

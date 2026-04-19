@@ -23,7 +23,7 @@ export default function PaginationFooter({
   const rangeStart = total === 0 ? 0 : offset + 1;
   const rangeEnd = Math.min(offset + rendered, total);
   return (
-    <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+    <div className="flex items-center justify-between mt-4 text-sm text-gray-600 dark:text-gray-300">
       <Button
         size="sm"
         variant="ghost"
@@ -32,7 +32,7 @@ export default function PaginationFooter({
       >
         ← Prev
       </Button>
-      <span className="text-xs text-gray-500">
+      <span className="text-xs text-gray-500 dark:text-gray-400">
         {rangeStart}–{rangeEnd} of {total}
       </span>
       <Button

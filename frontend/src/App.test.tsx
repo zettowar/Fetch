@@ -26,14 +26,14 @@ describe('App', () => {
 
   it('renders login page at /login', () => {
     renderApp('/login');
-    expect(screen.getByRole('heading', { name: 'Log In' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeDefined();
     expect(screen.getByLabelText('Email')).toBeDefined();
     expect(screen.getByLabelText('Password')).toBeDefined();
   });
 
   it('renders signup page at /signup', () => {
     renderApp('/signup');
-    expect(screen.getByRole('heading', { name: 'Sign Up' })).toBeDefined();
-    expect(screen.getByLabelText('Display Name')).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Join the pack' })).toBeDefined();
+    expect(screen.getByLabelText('Display name')).toBeDefined();
   });
 });

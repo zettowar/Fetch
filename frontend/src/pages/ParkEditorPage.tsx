@@ -89,7 +89,7 @@ export default function ParkEditorPage() {
   };
 
   if (loading) {
-    return <div className="p-4 text-center text-gray-400">Loading…</div>;
+    return <div className="p-4 text-center text-gray-400 dark:text-gray-500">Loading…</div>;
   }
 
   return (
@@ -99,7 +99,7 @@ export default function ParkEditorPage() {
         {isEditing ? 'Edit Park' : 'Add a Dog Park'}
       </h1>
       {!isEditing && (
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           New parks will be reviewed before appearing publicly.
         </p>
       )}
@@ -109,7 +109,7 @@ export default function ParkEditorPage() {
         <Input label="Address" value={address} onChange={(e) => setAddress(e.target.value)} />
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Location</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
           <Button type="button" variant="secondary" size="sm" onClick={handleGetLocation}>
             Use My Location
           </Button>
@@ -120,7 +120,7 @@ export default function ParkEditorPage() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Amenities</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Amenities</label>
           <div className="flex flex-wrap gap-2">
             {PARK_ATTRIBUTES.map((attr) => (
               <button
@@ -130,7 +130,7 @@ export default function ParkEditorPage() {
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   attrs[attr]
                     ? 'bg-brand-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 {attr.replace(/_/g, ' ')}

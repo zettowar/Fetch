@@ -9,7 +9,7 @@ export default function Skeleton({ className = '' }: SkeletonProps) {
 export function CardSkeleton() {
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-100 shadow-soft-sm overflow-hidden animate-fade-in"
+      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-soft-sm overflow-hidden animate-fade-in"
       aria-busy="true"
       aria-label="Loading"
     >
@@ -42,7 +42,7 @@ export function Spinner({
 export function ListSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div
-      className="bg-white rounded-xl border border-gray-100 shadow-soft-sm divide-y divide-gray-100 animate-fade-in"
+      className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-soft-sm divide-y divide-gray-100 dark:divide-gray-800 animate-fade-in"
       aria-busy="true"
       aria-label="Loading"
     >

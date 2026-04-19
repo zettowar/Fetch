@@ -58,13 +58,13 @@ export default function AdminReportsPage() {
     <div>
       <h1 className="text-2xl font-bold mb-4">Reports</h1>
 
-      <div className="flex gap-1 mb-4">
+      <div className="flex gap-1 mb-4 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => { setTab(t); setExpanded(null); setOffset(0); }}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-              tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize whitespace-nowrap transition-colors ${
+              tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {t}
@@ -77,31 +77,31 @@ export default function AdminReportsPage() {
           <Spinner size="sm" />
         </div>
       ) : reports.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
           <p className="text-lg mb-1">{tab === 'pending' ? 'Queue is clear' : `No ${tab} reports`}</p>
           {tab === 'pending' && <p className="text-sm">All reports have been reviewed.</p>}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
           {reports.map((r) => (
             <div key={r.id}>
               <button
                 onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 text-left"
+                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 text-left"
               >
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                  r.target_type === 'user' ? 'bg-red-100 text-red-700' :
-                  r.target_type === 'photo' ? 'bg-blue-100 text-blue-700' :
-                  r.target_type === 'dog' ? 'bg-amber-100 text-amber-700' :
-                  'bg-gray-100 text-gray-700'
+                  r.target_type === 'user' ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' :
+                  r.target_type === 'photo' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300' :
+                  r.target_type === 'dog' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' :
+                  'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                 }`}>{r.target_type}</span>
                 <span className="flex-1 text-sm truncate">{r.reason}</span>
-                <span className="text-xs text-gray-400 shrink-0"><TimeAgo value={r.created_at} /></span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={r.created_at} /></span>
               </button>
 
               {expanded === r.id && (
-                <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-gray-600">
+                <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-gray-600 dark:text-gray-300">
                     <p><span className="font-medium">Reason:</span> {r.reason}</p>
                     <p><span className="font-medium">Reported:</span> <TimeAgo value={r.created_at} /></p>
                     <p>
@@ -119,7 +119,7 @@ export default function AdminReportsPage() {
                   </div>
 
                   {r.admin_notes && (
-                    <div className="mt-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-800">
+                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-500/10 rounded-lg text-xs text-blue-800 dark:text-blue-200">
                       <span className="font-medium">Admin notes:</span> {r.admin_notes}
                     </div>
                   )}
@@ -127,7 +127,7 @@ export default function AdminReportsPage() {
                   {r.status === 'pending' && (
                     <div className="flex flex-col gap-2 mt-3">
                       <textarea
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none"
+                        className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none"
                         rows={2}
                         placeholder="Admin notes (optional)..."
                         value={adminNotes}
@@ -144,7 +144,7 @@ export default function AdminReportsPage() {
                       </label>
                       {applyStrike && (
                         <input
-                          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                          className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm"
                           placeholder="Strike reason..."
                           value={strikeReason}
                           onChange={(e) => setStrikeReason(e.target.value)}

@@ -49,14 +49,14 @@ export default function AdjustPanel({ state, dispatch }: Props) {
               }
               className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
                 isActive
-                  ? 'bg-white text-gray-900'
+                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'
                   : 'bg-white/10 text-white/80 hover:bg-white/20'
               }`}
             >
               {c.label}
               {dirty && !isActive && (
                 <span
-                  className="h-1.5 w-1.5 rounded-full bg-white"
+                  className="h-1.5 w-1.5 rounded-full bg-white dark:bg-gray-900"
                   aria-hidden
                 />
               )}

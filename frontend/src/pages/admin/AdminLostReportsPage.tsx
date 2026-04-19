@@ -27,9 +27,9 @@ const KIND_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  open: 'bg-red-100 text-red-700',
-  resolved: 'bg-green-100 text-green-700',
-  closed: 'bg-gray-100 text-gray-600',
+  open: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+  resolved: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300',
+  closed: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300',
 };
 
 export default function AdminLostReportsPage() {
@@ -63,15 +63,15 @@ export default function AdminLostReportsPage() {
     <div>
       <h1 className="text-2xl font-bold mb-4">Lost &amp; Found Reports</h1>
 
-      <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-lg w-fit">
+      <div className="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => { setStatusFilter(tab.value); setOffset(0); }}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               statusFilter === tab.value
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'
             }`}
           >
             {tab.label}
@@ -80,7 +80,7 @@ export default function AdminLostReportsPage() {
       </div>
 
       {reports.length > 0 && (
-        <div className="flex gap-3 mb-3 text-xs text-gray-500">
+        <div className="flex gap-3 mb-3 text-xs text-gray-500 dark:text-gray-400">
           <span>{total} total</span>
           {missingCount > 0 && <span>🔴 {missingCount} missing (page)</span>}
           {foundCount > 0 && <span>🟢 {foundCount} found (page)</span>}
@@ -92,9 +92,9 @@ export default function AdminLostReportsPage() {
           <Spinner className="h-6 w-6" />
         </div>
       ) : reports.length === 0 ? (
-        <p className="text-gray-400 text-center py-12">No reports with status "{statusFilter}".</p>
+        <p className="text-gray-400 dark:text-gray-500 text-center py-12">No reports with status "{statusFilter}".</p>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
           {reports.map((report: AdminLostReport) => (
             <div key={report.id} className="px-4 py-3">
               <div className="flex items-start gap-3">
@@ -103,19 +103,19 @@ export default function AdminLostReportsPage() {
                     <span className="text-sm font-medium">
                       {KIND_LABELS[report.kind] ?? report.kind}
                       {report.dog_name && (
-                        <span className="ml-1 text-gray-700">— {report.dog_name}</span>
+                        <span className="ml-1 text-gray-700 dark:text-gray-300">— {report.dog_name}</span>
                       )}
                     </span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${STATUS_COLORS[report.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${STATUS_COLORS[report.status] ?? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
                       {report.status}
                     </span>
                   </div>
 
-                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
                     {report.description}
                   </p>
 
-                  <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400 flex-wrap">
+                  <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400 dark:text-gray-500 flex-wrap">
                     <span>
                       Reporter:{' '}
                       <Link

@@ -8,18 +8,18 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
   return (
     <Link
       to={`/rescues/${rescue.id}`}
-      className="block bg-white rounded-2xl border border-gray-100 p-4 hover:border-brand-200 transition-colors"
+      className="block bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 hover:border-brand-200 transition-colors"
     >
       <div className="flex items-center gap-2 flex-wrap mb-1">
-        <h3 className="font-semibold text-gray-900">{rescue.org_name}</h3>
-        <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{rescue.org_name}</h3>
+        <span className="text-[10px] bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
           Verified
         </span>
       </div>
       {rescue.location && (
-        <p className="text-xs text-gray-400 mb-1.5">{rescue.location}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{rescue.location}</p>
       )}
-      <p className="text-sm text-gray-600 line-clamp-3">{rescue.description}</p>
+      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{rescue.description}</p>
       {(rescue.website || rescue.donation_url) && (
         <div className="flex items-center gap-2 mt-3">
           {rescue.donation_url && (
@@ -70,7 +70,9 @@ export default function RescuesPage() {
   return (
     <div className="p-4 pb-8">
       <div className="flex items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-bold">Rescue Organizations</h1>
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <span aria-hidden>🏠</span> Rescue Organizations
+        </h1>
         <Link
           to="/signup-rescue"
           className="text-xs font-medium text-brand-500 hover:text-brand-600 whitespace-nowrap pt-1.5"
@@ -78,7 +80,7 @@ export default function RescuesPage() {
           Are you a rescue?
         </Link>
       </div>
-      <p className="text-sm text-gray-400 mb-4">
+      <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
         Verified rescues and shelters helping dogs find forever homes.
       </p>
 
@@ -87,7 +89,7 @@ export default function RescuesPage() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name or location…"
-        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 bg-white mb-4"
+        className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 bg-white dark:bg-gray-900 mb-4"
       />
 
       {isLoading ? (
@@ -95,7 +97,7 @@ export default function RescuesPage() {
           <Spinner className="h-6 w-6" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-400 dark:text-gray-500">
           {search ? (
             <>
               <p className="text-4xl mb-3">🔍</p>

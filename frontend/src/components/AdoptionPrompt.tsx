@@ -13,10 +13,10 @@ export default function AdoptionPrompt({ dogId, dogName, rescueName, onDismiss }
       <div className="flex items-start gap-3">
         <span className="text-2xl leading-none" aria-hidden>🐾</span>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900">
+          <p className="font-semibold text-gray-900 dark:text-gray-100">
             {dogName} is looking for a home
           </p>
-          <p className="text-sm text-gray-600 mt-0.5">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
             {rescueName
               ? `${rescueName} has ${dogName} available for adoption.`
               : `${dogName} is available for adoption.`}
@@ -32,7 +32,7 @@ export default function AdoptionPrompt({ dogId, dogName, rescueName, onDismiss }
             <button
               type="button"
               onClick={onDismiss}
-              className="text-sm font-medium text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               Dismiss
             </button>

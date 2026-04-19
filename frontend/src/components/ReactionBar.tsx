@@ -71,7 +71,7 @@ export default function ReactionBar({ targetType, targetId }: ReactionBarProps) 
             className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-medium transition-colors ${
               isActive
                 ? 'bg-brand-100 text-brand-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
             aria-label={label}
             aria-pressed={isActive}

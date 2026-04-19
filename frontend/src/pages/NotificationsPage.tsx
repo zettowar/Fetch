@@ -13,21 +13,21 @@ interface ToggleRowProps {
 
 function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
       <div className="mr-4">
-        <p className="text-sm font-medium text-gray-800">{label}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{description}</p>
       </div>
       <button
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${
-          checked ? 'bg-brand-500' : 'bg-gray-200'
+          checked ? 'bg-brand-500' : 'bg-gray-200 dark:bg-gray-700'
         }`}
       >
         <span
-          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+          className={`absolute top-1 left-1 w-4 h-4 bg-white dark:bg-gray-900 rounded-full shadow transition-transform ${
             checked ? 'translate-x-5' : 'translate-x-0'
           }`}
         />
@@ -73,10 +73,12 @@ export default function NotificationsPage() {
   return (
     <div className="p-4 pb-8">
       <BackButton fallback="/home" />
-      <h1 className="text-xl font-bold mb-1">Notifications</h1>
-      <p className="text-sm text-gray-400 mb-5">Choose what you want to hear about.</p>
+      <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
+        <span aria-hidden>🔔</span> Notifications
+      </h1>
+      <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">Choose what you want to hear about.</p>
 
-      <div className="bg-white rounded-2xl border border-gray-100 px-4 mb-5">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 mb-5">
         <ToggleRow
           label="Lost dog alerts"
           description="Notifications when dogs go missing near you"
@@ -103,9 +105,11 @@ export default function NotificationsPage() {
         />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3">
-        <p className="text-sm font-medium text-gray-800 mb-1">Digest emails</p>
-        <p className="text-xs text-gray-400 mb-3">Get a summary instead of individual emails</p>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 py-3">
+        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-1.5">
+          <span aria-hidden>📧</span> Digest emails
+        </p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Get a summary instead of individual emails</p>
         <div className="flex gap-2">
           {(['off', 'daily', 'weekly'] as const).map((mode) => (
             <button
@@ -114,7 +118,7 @@ export default function NotificationsPage() {
               className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
                 prefs.digest_mode === mode
                   ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {mode.charAt(0).toUpperCase() + mode.slice(1)}

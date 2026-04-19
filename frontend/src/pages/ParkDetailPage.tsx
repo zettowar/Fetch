@@ -126,13 +126,13 @@ export default function ParkDetailPage() {
         <h1 className="text-2xl font-bold">{park.name}</h1>
         <button
           onClick={() => shareLink(`${window.location.origin}/parks/${id}`, `${park.name} · Fetch`)}
-          className="text-xs text-gray-400 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0"
+          className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors flex-shrink-0"
           title="Share park"
         >
           Share
         </button>
       </div>
-      {park.address && <p className="text-gray-500">{park.address}</p>}
+      {park.address && <p className="text-gray-500 dark:text-gray-400">{park.address}</p>}
       <a
         href={`https://www.google.com/maps/search/?api=1&query=${park.lat},${park.lng}`}
         target="_blank"
@@ -142,7 +142,7 @@ export default function ParkDetailPage() {
         <span>📍</span> Open in Maps
       </a>
       {park.verified && (
-        <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+        <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 text-xs rounded-full font-medium">
           Verified
         </span>
       )}
@@ -152,7 +152,7 @@ export default function ParkDetailPage() {
         <div className="flex flex-wrap gap-2 mt-3">
           {Object.entries(attrs).map(([key, val]) =>
             val ? (
-              <span key={key} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+              <span key={key} className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs rounded-full">
                 {key.replace(/_/g, ' ')}
               </span>
             ) : null
@@ -161,16 +161,16 @@ export default function ParkDetailPage() {
       )}
 
       {/* Stats */}
-      <div className="flex gap-4 mt-4 p-3 bg-gray-50 rounded-xl">
+      <div className="flex gap-4 mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
         <div className="text-center">
           <p className="text-xl font-bold text-brand-600">
             {park.avg_rating ? park.avg_rating.toFixed(1) : '--'}
           </p>
-          <p className="text-xs text-gray-500">Rating</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Rating</p>
         </div>
         <div className="text-center">
           <p className="text-xl font-bold">{park.review_count}</p>
-          <p className="text-xs text-gray-500">Reviews</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Reviews</p>
         </div>
       </div>
 
@@ -197,10 +197,10 @@ export default function ParkDetailPage() {
 
       {/* Dog picker for check-in */}
       {showCheckinPicker && (
-        <div className="mt-3 p-3 bg-gray-50 rounded-xl">
-          <p className="text-sm font-medium text-gray-700 mb-2">Which dog is with you?</p>
+        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Which dog is with you?</p>
           {myDogs.length === 0 ? (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
               <Link to="/dogs/new" className="text-brand-500 hover:underline">Add a dog</Link> first
             </p>
           ) : (
@@ -210,7 +210,7 @@ export default function ParkDetailPage() {
                   key={dog.id}
                   onClick={() => checkinMutation.mutate(dog.id)}
                   disabled={checkinMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm hover:border-brand-400 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full text-sm hover:border-brand-400 transition-colors"
                 >
                   {dog.primary_photo_url && (
                     <img src={dog.primary_photo_url} alt={dog.name} className="w-5 h-5 rounded-full object-cover" />
@@ -226,7 +226,7 @@ export default function ParkDetailPage() {
       {/* Who's here */}
       {checkins.length > 0 && (
         <div className="mt-5">
-          <h2 className="font-semibold mb-2 text-sm text-gray-700">
+          <h2 className="font-semibold mb-2 text-sm text-gray-700 dark:text-gray-300">
             Dogs here now <span className="text-brand-500">({checkins.length})</span>
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -235,7 +235,7 @@ export default function ParkDetailPage() {
               return (
                 <div
                   key={ci.id}
-                  className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-100 rounded-xl"
+                  className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl"
                 >
                   {ci.dog_photo_url ? (
                     <img src={ci.dog_photo_url} alt={ci.dog_name ?? 'Checked-in dog'} className="w-8 h-8 rounded-full object-cover" />
@@ -244,12 +244,12 @@ export default function ParkDetailPage() {
                   )}
                   <div>
                     <p className="text-sm font-medium leading-none">{ci.dog_name ?? 'Unknown'}</p>
-                    {ci.dog_breed && <p className="text-[11px] text-gray-400">{ci.dog_breed}</p>}
+                    {ci.dog_breed && <p className="text-[11px] text-gray-400 dark:text-gray-500">{ci.dog_breed}</p>}
                   </div>
                   {isMyDog && ci.dog_id && (
                     <button
                       onClick={() => checkoutMutation.mutate(ci.dog_id!)}
-                      className="ml-1 text-[11px] text-gray-400 hover:text-red-500"
+                      className="ml-1 text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-500 dark:text-red-400"
                       title="Check out"
                       aria-label="Check out of this park"
                     >
@@ -265,11 +265,15 @@ export default function ParkDetailPage() {
 
       {/* Review form */}
       {showReviewForm && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-xl flex flex-col gap-3">
+        <fieldset
+          disabled={reviewMutation.isPending}
+          className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl flex flex-col gap-3 disabled:opacity-70 disabled:cursor-wait"
+        >
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
+                type="button"
                 onClick={() => setRating(n)}
                 className={`text-2xl transition-colors hover:scale-110 active:scale-95 ${n <= rating ? 'text-yellow-400' : 'text-gray-200'}`}
                 aria-label={`Rate ${n} star${n === 1 ? '' : 's'}`}
@@ -279,7 +283,7 @@ export default function ParkDetailPage() {
             ))}
           </div>
           <select
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm"
             value={crowdLevel}
             onChange={(e) => setCrowdLevel(e.target.value)}
           >
@@ -291,7 +295,7 @@ export default function ParkDetailPage() {
             <option value="packed">Packed</option>
           </select>
           <textarea
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
             rows={3}
             placeholder="Your review..."
             value={reviewBody}
@@ -300,7 +304,7 @@ export default function ParkDetailPage() {
           <Button onClick={() => reviewMutation.mutate()} loading={reviewMutation.isPending}>
             Submit Review
           </Button>
-        </div>
+        </fieldset>
       )}
 
       {/* Play dates */}
@@ -309,12 +313,12 @@ export default function ParkDetailPage() {
       {/* Incidents */}
       {incidents.length > 0 && (
         <div className="mt-6">
-          <h2 className="font-semibold mb-2 text-red-600">Active Warnings</h2>
+          <h2 className="font-semibold mb-2 text-red-600 dark:text-red-400">Active Warnings</h2>
           {incidents.map((inc) => (
-            <div key={inc.id} className="p-3 bg-red-50 border border-red-100 rounded-xl mb-2">
-              <p className="text-sm font-medium text-red-700">{inc.kind.replace(/_/g, ' ')}</p>
-              <p className="text-sm text-gray-600">{inc.description}</p>
-              <p className="text-xs text-gray-400 mt-1">
+            <div key={inc.id} className="p-3 bg-red-50 border border-red-100 dark:bg-red-500/10 dark:border-red-500/30 rounded-xl mb-2">
+              <p className="text-sm font-medium text-red-700 dark:text-red-300">{inc.kind.replace(/_/g, ' ')}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{inc.description}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 Expires {relativeTime(inc.expires_at)}
               </p>
             </div>
@@ -327,23 +331,23 @@ export default function ParkDetailPage() {
         <h2 className="font-semibold mb-2">Reviews</h2>
         {reviews.length > 0 ? (
           reviews.map((r) => (
-            <div key={r.id} className="p-3 bg-white border border-gray-100 rounded-xl mb-2">
+            <div key={r.id} className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl mb-2">
               <div className="flex justify-between">
                 <p className="font-medium text-sm">{r.author_name || 'Anonymous'}</p>
                 <p className="text-sm text-yellow-400 tracking-tight">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</p>
               </div>
               {r.body && (
-                <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap">
                   <Linkify>{r.body}</Linkify>
                 </p>
               )}
               {r.crowd_level && (
-                <p className="text-xs text-gray-400 mt-1">Crowd: {r.crowd_level}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Crowd: {r.crowd_level}</p>
               )}
             </div>
           ))
         ) : (
-          <p className="text-sm text-gray-400">No reviews yet.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">No reviews yet.</p>
         )}
       </div>
     </div>

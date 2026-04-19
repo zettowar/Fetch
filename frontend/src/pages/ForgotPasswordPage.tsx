@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center">
         <h1 className="text-2xl font-bold mb-3">Check your email</h1>
-        <p className="text-gray-500 mb-6 max-w-sm">
+        <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm">
           If an account exists for <strong>{email}</strong>, you'll receive a password reset link shortly.
         </p>
         <Link to="/login" className="text-brand-500 hover:underline text-sm">
@@ -43,8 +43,10 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
-      <h1 className="text-3xl font-bold mb-2">Forgot password?</h1>
-      <p className="text-gray-500 text-sm mb-6 text-center max-w-sm">
+      <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+        <span aria-hidden>🔑</span> Forgot password?
+      </h1>
+      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 text-center max-w-sm">
         Enter your email and we'll send a reset link.
       </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full max-w-sm">
@@ -60,7 +62,7 @@ export default function ForgotPasswordPage() {
           Send reset link
         </Button>
       </form>
-      <p className="mt-4 text-sm text-gray-500">
+      <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
         <Link to="/login" className="text-brand-500 hover:underline">
           Back to log in
         </Link>

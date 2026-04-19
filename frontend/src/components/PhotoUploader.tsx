@@ -90,14 +90,14 @@ export default function PhotoUploader({ dogId, onUploaded, onSelect, compact }: 
 
   if (uploading) {
     return (
-      <div className="rounded-xl bg-gray-50 p-4">
-        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+      <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-4">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
           <div
             className="bg-brand-500 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="text-xs text-gray-500 text-center">Uploading... {progress}%</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Uploading... {progress}%</p>
       </div>
     );
   }
@@ -108,8 +108,8 @@ export default function PhotoUploader({ dogId, onUploaded, onSelect, compact }: 
         dragOver
           ? 'border-2 border-brand-500 bg-brand-50'
           : compact
-          ? 'border border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50'
-          : 'border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50'
+          ? 'border border-dashed border-gray-300 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50'
+          : 'border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50'
       } ${compact ? 'p-3' : 'p-5'}`}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
@@ -134,7 +134,7 @@ export default function PhotoUploader({ dogId, onUploaded, onSelect, compact }: 
             {compact ? 'Add another photo' : 'Add a photo'}
           </p>
           {!compact && (
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
               Tap to choose or drag & drop. JPEG, PNG, WebP up to 10MB.
             </p>
           )}

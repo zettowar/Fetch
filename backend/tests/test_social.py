@@ -40,6 +40,36 @@ async def test_unfollow_dog(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
+async def test_my_follows_returns_hydrated_dogs(client: AsyncClient, auth_headers: dict):
+    """Regression: my_follows must eager-load dog.breeds and dog.owner.rescue_profile
+    so _dog_to_out serialization doesn't lazy-trigger in async context."""
+    # Create a purebred dog (with breeds) as another user
+    email = f"followowner-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    signup = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "FollowOwner"
+    })
+    owner_headers = {"Authorization": f"Bearer {signup.json()['tokens']['access_token']}"}
+    breeds = (await client.get("/api/v1/breeds", headers=owner_headers)).json()
+    dog_res = await client.post("/api/v1/dogs", json={
+        "name": "HydratedPup",
+        "mix_type": "purebred",
+        "breed_ids": [breeds[0]["id"]],
+    }, headers=owner_headers)
+    dog_id = dog_res.json()["id"]
+
+    # Follow and then list
+    await client.post("/api/v1/social/follows", json={"dog_id": dog_id}, headers=auth_headers)
+    res = await client.get("/api/v1/social/follows/mine", headers=auth_headers)
+    assert res.status_code == 200, res.text
+    follows = res.json()
+    assert any(f["dog_id"] == dog_id for f in follows)
+    # The dog payload should be fully hydrated (breed_display requires breeds).
+    hydrated = next(f for f in follows if f["dog_id"] == dog_id)
+    assert hydrated["dog"] is not None
+    assert hydrated["dog"]["breed_display"]
+
+
+@pytest.mark.asyncio
 async def test_follower_count(client: AsyncClient, auth_headers: dict):
     email = f"countowner-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     signup = await client.post("/api/v1/auth/signup", json={

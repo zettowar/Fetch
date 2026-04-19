@@ -8,8 +8,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <script>
+      // Apply the user's theme before React paints to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var stored = localStorage.getItem('fetch.theme');
+          var mode = stored === 'light' || stored === 'dark' ? stored : 'system';
+          var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolved = mode === 'system' ? (systemDark ? 'dark' : 'light') : mode;
+          if (resolved === 'dark') document.documentElement.classList.add('dark');
+          else document.documentElement.classList.remove('dark');
+        } catch (_) {}
+      })();
+    </script>
   </head>
-  <body class="bg-gray-50 min-h-screen antialiased">
+  <body class="min-h-screen antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

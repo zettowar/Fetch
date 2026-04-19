@@ -35,7 +35,7 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
 
   return (
     <motion.div
-      className="absolute inset-0 bg-white rounded-2xl shadow-lg overflow-hidden cursor-grab active:cursor-grabbing"
+      className="absolute inset-0 bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden cursor-grab active:cursor-grabbing"
       style={{ x, rotate, zIndex: isTop ? 10 : 1 }}
       drag={isTop ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
@@ -70,10 +70,10 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
         <div className="flex items-baseline gap-2">
           <h2 className="text-xl font-bold">{dog.name}</h2>
           {dog.birthday && (
-            <span className="text-sm text-gray-400">{dogAge(dog.birthday)}</span>
+            <span className="text-sm text-gray-400 dark:text-gray-500">{dogAge(dog.birthday)}</span>
           )}
         </div>
-        {dog.breed_display && <p className="text-gray-500">{dog.breed_display}</p>}
+        {dog.breed_display && <p className="text-gray-500 dark:text-gray-400">{dog.breed_display}</p>}
         {dog.traits && dog.traits.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
             {dog.traits.slice(0, 3).map((t) => (
@@ -82,13 +82,13 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
               </span>
             ))}
             {dog.traits.length > 3 && (
-              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[11px] rounded-full font-medium">
+              <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-[11px] rounded-full font-medium">
                 +{dog.traits.length - 3}
               </span>
             )}
           </div>
         )}
-        {dog.bio && <p className="text-sm text-gray-600 mt-1 line-clamp-2">{dog.bio}</p>}
+        {dog.bio && <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{dog.bio}</p>}
       </div>
     </motion.div>
   );

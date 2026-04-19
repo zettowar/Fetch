@@ -28,7 +28,7 @@ export default function AdminFeedbackPage() {
 
       {allFeedback.length > 5 && (
         <input
-          className="w-full rounded-xl border border-gray-300 px-4 py-2 text-sm outline-none focus:border-brand-500 mb-4"
+          className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm outline-none focus:border-brand-500 mb-4"
           placeholder="Search feedback..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -38,17 +38,17 @@ export default function AdminFeedbackPage() {
       {isLoading ? (
         <div className="flex justify-center py-8"><Spinner size="sm" /></div>
       ) : feedback.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
           {search ? 'No feedback matching your search.' : 'No feedback yet.'}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
           {feedback.map((f) => (
             <div key={f.id} className="p-3">
-              <p className="text-sm text-gray-700">{f.body}</p>
-              <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+              <p className="text-sm text-gray-700 dark:text-gray-300">{f.body}</p>
+              <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400 dark:text-gray-500">
                 {f.screen_name && (
-                  <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">{f.screen_name}</span>
+                  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded text-[10px]">{f.screen_name}</span>
                 )}
                 <Link to={`/users/${f.user_id}`} className="text-brand-500 hover:underline" target="_blank">
                   User

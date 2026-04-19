@@ -18,7 +18,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center">
         <h1 className="text-2xl font-bold mb-3">Invalid link</h1>
-        <p className="text-gray-500 mb-6">This reset link is missing a token.</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">This reset link is missing a token.</p>
         <Link to="/forgot-password" className="text-brand-500 hover:underline text-sm">
           Request a new link
         </Link>

@@ -44,16 +44,18 @@ export default function ReportFoundPage() {
   return (
     <div className="p-4">
       <BackButton fallback="/lost" />
-      <h1 className="text-2xl font-bold mb-2">Report Found Dog</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
+        <span aria-hidden>🐾</span> Report Found Dog
+      </h1>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Help reunite a lost dog with their owner. Your account must be at least 7 days old.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Description</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
           <textarea
-            className="rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
             rows={4}
             placeholder="Describe the dog, breed, color, size, any collar or tags, where you found them..."
             value={description}
@@ -63,7 +65,7 @@ export default function ReportFoundPage() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Where you found them</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Where you found them</label>
           <LocationPicker value={location} onChange={setLocation} />
         </div>
 

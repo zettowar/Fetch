@@ -61,21 +61,21 @@ function PlayDateCard({
   const myRsvp = playdate.rsvps.find((r) => myDogIds.has(r.dog_id));
 
   return (
-    <div className="p-3 bg-white border border-gray-100 rounded-xl">
+    <div className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="font-medium text-sm">
             {playdate.title || `${playdate.host_name || 'Someone'}'s meetup`}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">{formatWhen(playdate.scheduled_for)}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatWhen(playdate.scheduled_for)}</p>
           {playdate.notes && (
-            <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap">{playdate.notes}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-300 mt-1.5 whitespace-pre-wrap">{playdate.notes}</p>
           )}
         </div>
         {isHost && (
           <button
             onClick={() => onCancel(playdate.id)}
-            className="text-[11px] text-gray-400 hover:text-red-500 flex-shrink-0"
+            className="text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-500 dark:text-red-400 flex-shrink-0"
             title="Cancel meetup"
           >
             Cancel
@@ -88,7 +88,7 @@ function PlayDateCard({
           {goingRsvps.map((r) => (
             <div
               key={r.id}
-              className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-gray-50 rounded-full text-xs"
+              className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-gray-50 dark:bg-gray-800/50 rounded-full text-xs"
             >
               {r.dog_photo_url ? (
                 <img src={r.dog_photo_url} alt={r.dog_name ?? 'Attending dog'} className="w-5 h-5 rounded-full object-cover" />
@@ -102,13 +102,13 @@ function PlayDateCard({
       )}
 
       <div className="flex items-center gap-2 mt-3">
-        <span className="text-[11px] text-gray-400">
+        <span className="text-[11px] text-gray-400 dark:text-gray-500">
           {playdate.going_count} going
         </span>
         {myRsvp ? (
           <button
             onClick={() => onRemoveRsvp(playdate.id, myRsvp.dog_id)}
-            className="ml-auto text-xs px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200"
+            className="ml-auto text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             Leave
           </button>
@@ -123,16 +123,16 @@ function PlayDateCard({
       </div>
 
       {dogPickerOpen && !myRsvp && (
-        <div className="mt-2 pt-2 border-t border-gray-100">
+        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
           {myDogsForPicker.length === 0 ? (
-            <p className="text-xs text-gray-400">Add a dog first to RSVP.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Add a dog first to RSVP.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {myDogsForPicker.map((dog) => (
                 <button
                   key={dog.id}
                   onClick={() => onRsvp(playdate.id, dog.id)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs hover:border-brand-400"
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full text-xs hover:border-brand-400"
                 >
                   {dog.primary_photo_url && (
                     <img
@@ -228,7 +228,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="font-semibold text-sm text-gray-700">
+        <h2 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
           Upcoming meetups
           {playdates.length > 0 && (
             <span className="text-brand-500 ml-1">({playdates.length})</span>
@@ -251,24 +251,24 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       </div>
 
       {showCreate && canCreate && (
-        <div className="p-3 bg-gray-50 rounded-xl flex flex-col gap-2 mb-3">
+        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl flex flex-col gap-2 mb-3">
           <input
             type="datetime-local"
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm"
             value={when}
             min={minLocalIsoForInput()}
             onChange={(e) => setWhen(e.target.value)}
           />
           <input
             type="text"
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm"
             placeholder="Title (optional, e.g. Puppy social)"
             value={title}
             maxLength={200}
             onChange={(e) => setTitle(e.target.value)}
           />
           <textarea
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
             rows={2}
             placeholder="Notes (optional)"
             value={notes}
@@ -276,7 +276,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
             onChange={(e) => setNotes(e.target.value)}
           />
           <div>
-            <p className="text-xs text-gray-500 mb-1">Hosting dog:</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Hosting dog:</p>
             <div className="flex flex-wrap gap-1.5">
               {myDogs.map((dog) => (
                 <button
@@ -285,7 +285,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors ${
                     hostDogId === dog.id
                       ? 'bg-brand-500 text-white border-brand-500'
-                      : 'bg-white border-gray-200 hover:border-brand-400'
+                      : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-brand-400'
                   }`}
                 >
                   {dog.primary_photo_url && (
@@ -311,9 +311,9 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       )}
 
       {isLoading ? (
-        <p className="text-sm text-gray-400">Loading...</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">Loading...</p>
       ) : playdates.length === 0 ? (
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-400 dark:text-gray-500">
           No upcoming meetups yet. {canCreate ? 'Be the first to host!' : 'Add a dog to host one.'}
         </p>
       ) : (

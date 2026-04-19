@@ -39,33 +39,33 @@ export default function AdminDashboardPage() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-400 dark:text-gray-500">
           Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
         </span>
       </div>
 
       {/* Urgent action bar */}
       {hasUrgent && (
-        <div className={`rounded-xl p-3 mb-4 flex items-center justify-between ${reportSlaBreached || ticketSlaBreached ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'}`}>
+        <div className={`rounded-xl p-3 mb-4 flex items-center justify-between ${reportSlaBreached || ticketSlaBreached ? 'bg-red-50 border border-red-200 dark:bg-red-500/10 dark:border-red-500/30' : 'bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30'}`}>
           <div className="flex items-center gap-3 text-sm">
             {stats.pending_reports > 0 && (
-              <Link to="/admin/reports" className="font-medium text-red-700 hover:underline">
+              <Link to="/admin/reports" className="font-medium text-red-700 dark:text-red-300 hover:underline">
                 {stats.pending_reports} pending report{stats.pending_reports > 1 ? 's' : ''}
                 {stats.oldest_pending_report_hours !== null && (
-                  <span className="text-xs text-red-500 ml-1">(oldest: {formatHours(stats.oldest_pending_report_hours)})</span>
+                  <span className="text-xs text-red-500 dark:text-red-400 ml-1">(oldest: {formatHours(stats.oldest_pending_report_hours)})</span>
                 )}
               </Link>
             )}
             {stats.open_tickets > 0 && (
-              <Link to="/admin/tickets" className="font-medium text-amber-700 hover:underline">
+              <Link to="/admin/tickets" className="font-medium text-amber-700 dark:text-amber-300 hover:underline">
                 {stats.open_tickets} open ticket{stats.open_tickets > 1 ? 's' : ''}
                 {stats.oldest_open_ticket_hours !== null && (
-                  <span className="text-xs text-amber-500 ml-1">(oldest: {formatHours(stats.oldest_open_ticket_hours)})</span>
+                  <span className="text-xs text-amber-500 dark:text-amber-400 ml-1">(oldest: {formatHours(stats.oldest_open_ticket_hours)})</span>
                 )}
               </Link>
             )}
           </div>
-          <Link to="/admin/reports" className="text-xs font-medium text-gray-600 hover:text-gray-800">
+          <Link to="/admin/reports" className="text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200">
             Review &rarr;
           </Link>
         </div>
@@ -83,24 +83,24 @@ export default function AdminDashboardPage() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <StatCard label="Total Users" value={stats.total_users} />
-        <StatCard label="Active" value={stats.active_users} color="text-green-600" />
-        <StatCard label="Suspended" value={stats.suspended_users} color={stats.suspended_users > 0 ? 'text-red-600' : 'text-gray-400'} />
-        <StatCard label="New (7d)" value={stats.users_last_7d} color="text-blue-600" />
+        <StatCard label="Active" value={stats.active_users} color="text-green-600 dark:text-green-400" />
+        <StatCard label="Suspended" value={stats.suspended_users} color={stats.suspended_users > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'} />
+        <StatCard label="New (7d)" value={stats.users_last_7d} color="text-blue-600 dark:text-blue-400" />
         <StatCard label="Total Dogs" value={stats.total_dogs} />
         <StatCard label="Reports (7d)" value={stats.reports_last_7d} />
       </div>
 
       {/* Quick actions */}
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Quick Actions</h2>
+      <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Quick Actions</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-        <QuickAction to="/admin/reports" label="Review Reports" count={stats.pending_reports} urgent={stats.pending_reports > 0} />
-        <QuickAction to="/admin/tickets" label="Handle Tickets" count={stats.open_tickets} urgent={stats.open_tickets > 0} />
-        <QuickAction to="/admin/rescues" label="Verify Rescues" count={stats.unverified_rescues} />
-        <QuickAction to="/admin/invites" label="Manage Invites" count={stats.unused_invites} />
+        <QuickAction to="/admin/reports" icon="🚩" label="Review Reports" count={stats.pending_reports} urgent={stats.pending_reports > 0} />
+        <QuickAction to="/admin/tickets" icon="🎟️" label="Handle Tickets" count={stats.open_tickets} urgent={stats.open_tickets > 0} />
+        <QuickAction to="/admin/rescues" icon="🏠" label="Verify Rescues" count={stats.unverified_rescues} />
+        <QuickAction to="/admin/invites" icon="✉️" label="Manage Invites" count={stats.unused_invites} />
       </div>
 
       {/* Beta health */}
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Beta Program</h2>
+      <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Beta Program</h2>
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Feedback" value={stats.total_feedback} link="/admin/feedback" />
         <StatCard label="Unused Invites" value={stats.unused_invites} link="/admin/invites" />
@@ -110,11 +110,11 @@ export default function AdminDashboardPage() {
   );
 }
 
-function StatCard({ label, value, color = 'text-gray-800', link }: { label: string; value: number; color?: string; link?: string }) {
+function StatCard({ label, value, color = 'text-gray-800 dark:text-gray-200', link }: { label: string; value: number; color?: string; link?: string }) {
   const content = (
-    <div className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 hover:shadow-sm transition-shadow">
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-gray-500 mt-1">{label}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{label}</p>
     </div>
   );
   return link ? <Link to={link}>{content}</Link> : content;
@@ -127,13 +127,13 @@ function TrendCard({ label, color, values }: { label: string; color: string; val
   const priorTotal = values.slice(0, half).reduce((a, b) => a + b, 0);
   const delta = currentTotal - priorTotal;
   const deltaColor =
-    delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-gray-400';
+    delta > 0 ? 'text-green-600 dark:text-green-400' : delta < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500';
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
-      <p className="text-xs text-gray-500">{label} · 14d</p>
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+      <p className="text-xs text-gray-500 dark:text-gray-400">{label} · 14d</p>
       <div className="flex items-baseline gap-2 mt-1">
-        <span className="text-2xl font-bold text-gray-800">{latest}</span>
+        <span className="text-2xl font-bold text-gray-800 dark:text-gray-200">{latest}</span>
         <span className={`text-xs font-medium ${deltaColor}`}>
           {delta > 0 ? '+' : ''}{delta} vs. prior 7d
         </span>
@@ -179,16 +179,23 @@ function Sparkline({
   );
 }
 
-function QuickAction({ to, label, count, urgent }: { to: string; label: string; count: number; urgent?: boolean }) {
+function QuickAction({
+  to,
+  label,
+  count,
+  urgent,
+  icon,
+}: { to: string; label: string; count: number; urgent?: boolean; icon?: string }) {
   return (
     <Link
       to={to}
       className={`rounded-xl border p-3 text-center hover:shadow-sm transition-shadow ${
-        urgent ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-white'
+        urgent ? 'border-red-200 bg-red-50' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'
       }`}
     >
-      <p className={`text-lg font-bold ${urgent ? 'text-red-600' : 'text-gray-700'}`}>{count}</p>
-      <p className="text-xs text-gray-500">{label}</p>
+      {icon && <p className="text-lg leading-none mb-1" aria-hidden>{icon}</p>}
+      <p className={`text-lg font-bold ${urgent ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>{count}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
     </Link>
   );
 }

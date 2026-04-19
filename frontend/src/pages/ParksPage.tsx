@@ -51,11 +51,11 @@ export default function ParksPage() {
     onClick: () => setSelectedParkId(p.id),
     popup: (
       <div className="flex flex-col gap-1">
-        <p className="font-semibold text-gray-900 leading-tight">{p.name}</p>
-        {p.address && <p className="text-xs text-gray-500">{p.address}</p>}
+        <p className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">{p.name}</p>
+        {p.address && <p className="text-xs text-gray-500 dark:text-gray-400">{p.address}</p>}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
           {p.active_dogs_count > 0 && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-600 text-[11px] font-medium rounded-full">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300 text-[11px] font-medium rounded-full">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500" />
@@ -64,12 +64,12 @@ export default function ParksPage() {
             </span>
           )}
           {p.verified && p.active_dogs_count === 0 && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-[11px] font-medium rounded-full">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 text-[11px] font-medium rounded-full">
               Verified
             </span>
           )}
           {p.avg_rating != null && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               {p.avg_rating.toFixed(1)} ★ · {p.review_count} {p.review_count === 1 ? 'review' : 'reviews'}
             </span>
           )}
@@ -102,12 +102,14 @@ export default function ParksPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-56px)]">
       {/* ── Compact header ──────────────────────────────────────────── */}
-      <div className="px-4 pt-3 pb-2 border-b border-gray-100 bg-white">
-        <h1 className="text-xl font-bold tracking-tight">Dog Parks</h1>
+      <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+          <span aria-hidden>🌳</span> Dog Parks
+        </h1>
 
         <div className="relative mt-2.5">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -121,7 +123,7 @@ export default function ParksPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search parks by name or address..."
-            className="w-full bg-gray-100 rounded-full pl-9 pr-3 py-2 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-300"
+            className="w-full bg-gray-100 dark:bg-gray-800 rounded-full pl-9 pr-3 py-2 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-brand-300"
           />
         </div>
 
@@ -133,7 +135,7 @@ export default function ParksPage() {
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 filter === opt.key
                   ? 'bg-brand-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {opt.label}
@@ -173,8 +175,8 @@ export default function ParksPage() {
         </div>
 
         {/* ── List pane ───────────────────────────────────────────── */}
-        <div className="overflow-y-auto flex-1 bg-gray-50">
-          <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-500 bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div className="overflow-y-auto flex-1 bg-gray-50 dark:bg-gray-800/50">
+          <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
             <span>
               {filteredParks.length} {filteredParks.length === 1 ? 'park' : 'parks'}
               {search && parks.length !== filteredParks.length && ` · ${parks.length - filteredParks.length} filtered`}
@@ -195,19 +197,19 @@ export default function ParksPage() {
                 <Spinner className="h-6 w-6" />
               </div>
             ) : isError ? (
-              <p className="text-red-500 text-sm text-center py-6">
+              <p className="text-red-500 dark:text-red-400 text-sm text-center py-6">
                 Failed to load parks. Check your connection.
               </p>
             ) : filteredParks.length === 0 ? (
-              <div className="text-center py-10 text-gray-400">
+              <div className="text-center py-10 text-gray-400 dark:text-gray-500">
                 <p className="text-3xl mb-2">🌳</p>
-                <p className="text-sm font-medium text-gray-500">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   {parks.length > 0
                     ? 'No parks match your search or filter.'
                     : "No parks in your area yet — we're expanding the library."}
                 </p>
                 {parks.length === 0 && (
-                  <p className="text-xs text-gray-400 mt-2 max-w-xs mx-auto">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-xs mx-auto">
                     Parks come from{' '}
                     <a
                       href="https://wiki.openstreetmap.org/wiki/Tag:leisure%3Ddog_park"
@@ -239,26 +241,26 @@ export default function ParksPage() {
                       }}
                       className={`block p-3 rounded-xl border transition-all ${
                         isSelected
-                          ? 'bg-white border-brand-300 ring-2 ring-brand-200 shadow-sm'
-                          : 'bg-white border-gray-100 hover:border-brand-200'
+                          ? 'bg-white dark:bg-gray-900 border-brand-300 ring-2 ring-brand-200 shadow-sm'
+                          : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-brand-200'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-gray-900 leading-tight truncate">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
                               {park.name}
                             </h3>
                             {park.verified && (
                               <span
-                                className="inline-flex items-center text-[10px] font-medium text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full"
+                                className="inline-flex items-center text-[10px] font-medium text-green-700 dark:text-green-300 bg-green-100 px-1.5 py-0.5 rounded-full"
                                 title="Verified"
                               >
                                 ✓
                               </span>
                             )}
                             {park.active_dogs_count > 0 && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-600 text-[10px] font-medium rounded-full">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300 text-[10px] font-medium rounded-full">
                                 <span className="relative flex h-1.5 w-1.5">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
                                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500" />
@@ -268,7 +270,7 @@ export default function ParksPage() {
                             )}
                           </div>
                           {park.address && (
-                            <p className="text-xs text-gray-500 mt-0.5 truncate">{park.address}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{park.address}</p>
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
@@ -280,12 +282,12 @@ export default function ParksPage() {
                                   {'★'.repeat(5 - Math.round(park.avg_rating))}
                                 </span>
                               </p>
-                              <p className="text-[10px] text-gray-400 mt-0.5">
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                                 {park.avg_rating.toFixed(1)} · {park.review_count}
                               </p>
                             </>
                           ) : (
-                            <p className="text-[10px] text-gray-400">No reviews</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500">No reviews</p>
                           )}
                         </div>
                       </div>

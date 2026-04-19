@@ -141,13 +141,13 @@ export default function SwipeDeck() {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-6">
         <span className="text-4xl mb-3">{'\ud83c\udf89'}</span>
-        <p className="text-xl font-semibold text-gray-700 mb-2">
+        <p className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
           You've rated everyone this week!
         </p>
-        <p className="text-gray-500 mb-1">
+        <p className="text-gray-500 dark:text-gray-400 mb-1">
           {ratedCount > 0 ? `You rated ${ratedCount} dog${ratedCount > 1 ? 's' : ''} this session.` : ''}
         </p>
-        <p className="text-gray-400 text-sm mb-6">Come back Monday for a fresh batch of pups.</p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm mb-6">Come back Monday for a fresh batch of pups.</p>
         <Link to="/dogs/new">
           <Button>Share Your Dog</Button>
         </Link>
@@ -171,7 +171,7 @@ export default function SwipeDeck() {
     <div className="flex flex-col items-center">
       {/* Vote counter */}
       {ratedCount > 0 && (
-        <p className="text-xs text-gray-400 mb-2">{ratedCount} rated this session</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">{ratedCount} rated this session</p>
       )}
 
       <div className="relative w-full h-[480px]">
@@ -189,7 +189,7 @@ export default function SwipeDeck() {
       <div className="flex items-center gap-4 mt-4">
         <button
           onClick={() => handleSwipe('left')}
-          className="w-14 h-14 rounded-full bg-red-100 text-red-500 text-2xl font-bold flex items-center justify-center hover:bg-red-200 transition-colors"
+          className="w-14 h-14 rounded-full bg-red-100 text-red-500 dark:text-red-400 text-2xl font-bold flex items-center justify-center hover:bg-red-200 transition-colors"
           aria-label="Pass"
         >
           ✕
@@ -198,7 +198,7 @@ export default function SwipeDeck() {
         {lastVote && (
           <button
             onClick={handleUndo}
-            className="w-11 h-11 rounded-full bg-gray-100 text-gray-500 text-sm flex items-center justify-center hover:bg-gray-200 transition-colors"
+            className="w-11 h-11 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-sm flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             title="Undo last swipe"
             aria-label="Undo last swipe"
           >
@@ -208,7 +208,7 @@ export default function SwipeDeck() {
 
         <button
           onClick={() => handleSwipe('right')}
-          className="w-14 h-14 rounded-full bg-green-100 text-green-500 text-2xl flex items-center justify-center hover:bg-green-200 transition-colors"
+          className="w-14 h-14 rounded-full bg-green-100 text-green-500 dark:text-green-400 text-2xl flex items-center justify-center hover:bg-green-200 transition-colors"
           aria-label="Like"
         >
           &#x2764;

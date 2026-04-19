@@ -78,12 +78,12 @@ export default function AdminFAQPage() {
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex flex-col gap-3">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 mb-4 flex flex-col gap-3">
           <Input label="Question" value={question} onChange={(e) => setQuestion(e.target.value)} />
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Answer</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Answer</label>
             <textarea
-              className="rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-brand-500 resize-none"
+              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 resize-none"
               rows={3}
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
@@ -103,16 +103,16 @@ export default function AdminFAQPage() {
       {isLoading ? (
         <div className="flex justify-center py-8"><Spinner size="sm" /></div>
       ) : faqs.length === 0 ? (
-        <p className="text-gray-400 text-center py-8">No FAQ entries.</p>
+        <p className="text-gray-400 dark:text-gray-500 text-center py-8">No FAQ entries.</p>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
           {faqs.map((faq) => (
             <div key={faq.id} className="p-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-medium text-sm">{faq.question}</p>
-                  <p className="text-sm text-gray-600 mt-1">{faq.answer}</p>
-                  <span className="text-xs text-gray-400">{faq.category}</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{faq.answer}</p>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{faq.category}</span>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <Button size="sm" variant="ghost" onClick={() => startEdit(faq)}>Edit</Button>

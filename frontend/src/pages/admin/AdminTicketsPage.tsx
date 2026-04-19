@@ -10,10 +10,10 @@ import { Spinner } from '../../components/ui/Skeleton';
 const TABS = ['open', 'in_progress', 'resolved', 'closed', 'all'] as const;
 
 const STATUS_STYLES: Record<string, string> = {
-  open: 'bg-amber-100 text-amber-700',
-  in_progress: 'bg-blue-100 text-blue-700',
-  resolved: 'bg-green-100 text-green-700',
-  closed: 'bg-gray-100 text-gray-500',
+  open: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
+  resolved: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300',
+  closed: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
 };
 
 export default function AdminTicketsPage() {
@@ -43,13 +43,13 @@ export default function AdminTicketsPage() {
     <div>
       <h1 className="text-2xl font-bold mb-4">Support Tickets</h1>
 
-      <div className="flex gap-1 mb-4 overflow-x-auto">
+      <div className="flex gap-1 mb-4 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => { setTab(t); setExpanded(null); }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors whitespace-nowrap ${
-              tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {t.replace('_', ' ')}
@@ -62,31 +62,31 @@ export default function AdminTicketsPage() {
           <Spinner size="sm" />
         </div>
       ) : tickets.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
           {tab === 'open' ? 'No open tickets. Great job!' : `No ${tab.replace('_', ' ')} tickets.`}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
           {tickets.map((t) => (
             <div key={t.id}>
               <button
                 onClick={() => setExpanded(expanded === t.id ? null : t.id)}
-                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 text-left"
+                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 text-left"
               >
-                <span className="text-xs font-mono text-gray-400 shrink-0">{t.ticket_number}</span>
+                <span className="text-xs font-mono text-gray-400 dark:text-gray-500 shrink-0">{t.ticket_number}</span>
                 <span className="flex-1 text-sm truncate">{t.subject}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_STYLES[t.status] || 'bg-gray-100 text-gray-600'}`}>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_STYLES[t.status] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
                   {t.status.replace('_', ' ')}
                 </span>
-                <span className="text-xs text-gray-400 shrink-0"><TimeAgo value={t.created_at} /></span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={t.created_at} /></span>
               </button>
 
               {expanded === t.id && (
-                <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
-                  <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded-lg border border-gray-100">
+                <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
+                  <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-100 dark:border-gray-800">
                     {t.body}
                   </div>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-gray-500">
                     {t.source_screen && <span>Screen: {t.source_screen}</span>}
                     <Link to={`/users/${t.user_id}`} className="text-brand-500 hover:underline" target="_blank">
                       View user
@@ -97,7 +97,7 @@ export default function AdminTicketsPage() {
                   {t.status !== 'closed' && (
                     <div className="mt-3 space-y-2">
                       <textarea
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none"
                         rows={2}
                         placeholder="Admin notes (optional)..."
                         value={adminNotes}

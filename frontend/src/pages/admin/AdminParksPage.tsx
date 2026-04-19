@@ -76,7 +76,7 @@ export default function AdminParksPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-1">Dog parks library</h1>
-      <p className="text-sm text-gray-500 mb-5">
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
         Refresh the public parks catalog from OpenStreetMap. Re-runs are safe —
         existing OSM rows are updated in place and user-submitted parks are
         never touched.
@@ -91,8 +91,8 @@ export default function AdminParksPage() {
       </section>
 
       {/* Region picker + run button */}
-      <section className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Import region</h2>
+      <section className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Import region</h2>
         <div className="flex flex-wrap gap-1.5 mb-4">
           {PRESETS.map((p) => (
             <button
@@ -101,12 +101,12 @@ export default function AdminParksPage() {
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 selected === p.key
                   ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {p.label}
               {p.note && (
-                <span className={`ml-1.5 text-[10px] ${selected === p.key ? 'text-white/80' : 'text-gray-400'}`}>
+                <span className={`ml-1.5 text-[10px] ${selected === p.key ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
                   ({p.note})
                 </span>
               )}
@@ -115,7 +115,7 @@ export default function AdminParksPage() {
         </div>
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Source:{' '}
             <a
               href="https://wiki.openstreetmap.org/wiki/Tag:leisure%3Ddog_park"
@@ -136,7 +136,7 @@ export default function AdminParksPage() {
         </div>
 
         {runImport.isPending && (
-          <p className="mt-3 text-xs text-gray-500 flex items-center gap-2">
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
             <Spinner className="h-3 w-3" />
             Querying Overpass… this can take up to {activePreset.note ?? '30s'}.
           </p>
@@ -145,29 +145,29 @@ export default function AdminParksPage() {
 
       {/* History */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Recent imports</h2>
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recent imports</h2>
         {historyLoading ? (
           <div className="flex justify-center py-4">
             <Spinner className="h-5 w-5" />
           </div>
         ) : history.length === 0 ? (
-          <p className="text-sm text-gray-400 py-4">No imports yet.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 py-4">No imports yet.</p>
         ) : (
-          <div className="rounded-xl border border-gray-200 bg-white divide-y">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 divide-y">
             {history.map((h) => (
               <div key={h.id} className="px-3 py-2.5 flex items-center gap-3 text-sm">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800">
+                  <p className="font-medium text-gray-800 dark:text-gray-200">
                     {h.bbox ? bboxLabel(h.bbox) : 'Worldwide'}
                   </p>
-                  <p className="text-[11px] text-gray-400">
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">
                     {h.actor_name ?? 'admin'} · <TimeAgo value={h.created_at} />
                   </p>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-gray-500 shrink-0">
-                  <span className="text-green-600">+{h.created}</span>
-                  <span className="text-gray-500">~{h.updated}</span>
-                  <span className="text-gray-400">of {h.total_fetched}</span>
+                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                  <span className="text-green-600 dark:text-green-400">+{h.created}</span>
+                  <span className="text-gray-500 dark:text-gray-400">~{h.updated}</span>
+                  <span className="text-gray-400 dark:text-gray-500">of {h.total_fetched}</span>
                 </div>
               </div>
             ))}
@@ -192,11 +192,11 @@ function StatCard({
       className={`rounded-xl border p-3 ${
         accent === 'brand'
           ? 'border-brand-200 bg-brand-50'
-          : 'border-gray-200 bg-white'
+          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
       }`}
     >
-      <p className="text-xs text-gray-500 font-medium">{label}</p>
-      <p className={`text-2xl font-bold ${accent === 'brand' ? 'text-brand-700' : 'text-gray-900'}`}>
+      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
+      <p className={`text-2xl font-bold ${accent === 'brand' ? 'text-brand-700' : 'text-gray-900 dark:text-gray-100'}`}>
         {value}
       </p>
     </div>

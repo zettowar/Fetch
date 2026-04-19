@@ -93,17 +93,17 @@ export default function AdminUserDetailPage() {
           <div className="flex items-baseline gap-2 flex-wrap">
             <h1 className="text-2xl font-bold">{user.display_name}</h1>
             {user.role === 'admin' && (
-              <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium uppercase">Admin</span>
+              <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 rounded font-medium uppercase">Admin</span>
             )}
             {!user.is_active && (
-              <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-medium uppercase">Suspended</span>
+              <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 rounded font-medium uppercase">Suspended</span>
             )}
             {user.strike_count > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded font-medium">{user.strike_count} strike{user.strike_count > 1 ? 's' : ''}</span>
+              <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 rounded font-medium">{user.strike_count} strike{user.strike_count > 1 ? 's' : ''}</span>
             )}
           </div>
-          <p className="text-sm text-gray-500">{user.email}</p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             Joined <TimeAgo value={user.created_at} /> · {user.dog_count} dog{user.dog_count !== 1 ? 's' : ''}
             {user.location_rough ? ` · ${user.location_rough}` : ''}
           </p>
@@ -139,7 +139,7 @@ export default function AdminUserDetailPage() {
       {showGrant && (
         <div className="mb-4 flex items-center gap-2">
           <select
-            className="rounded-lg border border-gray-300 px-2 py-1 text-sm"
+            className="rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1 text-sm"
             value={grantKey}
             onChange={(e) => setGrantKey(e.target.value)}
           >
@@ -153,7 +153,7 @@ export default function AdminUserDetailPage() {
       )}
 
       {/* Tab bar */}
-      <div className="border-b border-gray-200 flex gap-4 mb-3">
+      <div className="border-b border-gray-200 dark:border-gray-700 flex gap-4 mb-3">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -161,7 +161,7 @@ export default function AdminUserDetailPage() {
             className={`pb-2 text-sm font-medium transition-colors ${
               tab === t.key
                 ? 'border-b-2 border-brand-500 text-brand-600'
-                : 'text-gray-500 hover:text-gray-700'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'
             }`}
           >
             {t.label}
@@ -184,14 +184,14 @@ function StrikesTab({ userId }: { userId: string }) {
     queryFn: () => getUserStrikes(userId),
   });
   if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
-  if (!data.length) return <p className="text-sm text-gray-400 py-4">No strikes on record.</p>;
+  if (!data.length) return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">No strikes on record.</p>;
   return (
-    <ul className="bg-white rounded-xl border border-gray-100 divide-y">
+    <ul className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
       {data.map((s) => (
         <li key={s.id} className="p-3 text-sm flex items-center gap-3">
           <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
           <span className="flex-1">{s.reason}</span>
-          <span className="text-xs text-gray-400 shrink-0"><TimeAgo value={s.created_at} /></span>
+          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={s.created_at} /></span>
         </li>
       ))}
     </ul>
@@ -204,7 +204,7 @@ function ReportsFiledTab({ userId }: { userId: string }) {
     queryFn: () => getUserReportsFiled(userId),
   });
   if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
-  if (!data.length) return <p className="text-sm text-gray-400 py-4">This user hasn't filed any reports.</p>;
+  if (!data.length) return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">This user hasn't filed any reports.</p>;
   return <ReportList items={data} />;
 }
 
@@ -214,25 +214,25 @@ function ReportsAgainstTab({ userId }: { userId: string }) {
     queryFn: () => getUserReportsAgainst(userId),
   });
   if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
-  if (!data.length) return <p className="text-sm text-gray-400 py-4">No reports filed against this user.</p>;
+  if (!data.length) return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">No reports filed against this user.</p>;
   return <ReportList items={data} />;
 }
 
 function ReportList({ items }: { items: Array<{ id: string; target_type: string; target_id: string; reason: string; status: string; created_at: string }> }) {
   return (
-    <ul className="bg-white rounded-xl border border-gray-100 divide-y">
+    <ul className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
       {items.map((r) => (
         <li key={r.id} className="p-3 text-sm">
           <div className="flex items-center gap-2">
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase ${
-              r.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-              r.status === 'reviewed' ? 'bg-green-100 text-green-700' :
-              'bg-gray-100 text-gray-600'
+              r.status === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' :
+              r.status === 'reviewed' ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300' :
+              'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
             }`}>{r.status}</span>
-            <span className="text-xs text-gray-500">{r.target_type}</span>
-            <span className="text-xs text-gray-400 ml-auto"><TimeAgo value={r.created_at} /></span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{r.target_type}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto"><TimeAgo value={r.created_at} /></span>
           </div>
-          <p className="text-gray-700 mt-1 break-words">{r.reason}</p>
+          <p className="text-gray-700 dark:text-gray-300 mt-1 break-words">{r.reason}</p>
         </li>
       ))}
     </ul>
@@ -247,31 +247,31 @@ function RescueProfileTab({ userId }: { userId: string }) {
   });
   if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
   if (!data) {
-    return <p className="text-sm text-gray-400 py-4">This user isn't a rescue account.</p>;
+    return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">This user isn't a rescue account.</p>;
   }
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 text-sm">
       <div className="flex items-center gap-2 mb-2">
         <span className="font-semibold">{data.org_name}</span>
         <span
           className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase ${
             data.status === 'approved'
-              ? 'bg-green-100 text-green-700'
+              ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
               : data.status === 'pending'
-              ? 'bg-amber-100 text-amber-700'
-              : 'bg-red-100 text-red-700'
+              ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+              : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
           }`}
         >
           {data.status}
         </span>
-        <span className="text-xs text-gray-400 ml-auto">
+        <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
           <TimeAgo value={data.created_at} />
         </span>
       </div>
-      {data.location && <p className="text-xs text-gray-500 mb-1">{data.location}</p>}
-      <p className="text-sm text-gray-700 whitespace-pre-wrap">{data.description}</p>
+      {data.location && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{data.location}</p>}
+      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{data.description}</p>
       {data.review_note && (
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           <span className="font-medium">Review note: </span>
           {data.review_note}
         </p>
@@ -295,16 +295,16 @@ function AuditTab({ userId }: { userId: string }) {
     .filter((e, i, arr) => arr.findIndex((x) => x.id === e.id) === i)
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   if (!merged.length) {
-    return <p className="text-sm text-gray-400 py-4">No audit entries for this user.</p>;
+    return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">No audit entries for this user.</p>;
   }
 
   return (
-    <ul className="bg-white rounded-xl border border-gray-100 divide-y">
+    <ul className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
       {merged.map((e) => (
         <li key={e.id} className="p-3 text-xs flex items-center gap-2">
-          <span className="font-mono text-gray-700">{e.action}</span>
-          {e.target_type && <span className="text-gray-500">on {e.target_type}</span>}
-          <span className="text-gray-400 ml-auto"><TimeAgo value={e.created_at} /></span>
+          <span className="font-mono text-gray-700 dark:text-gray-300">{e.action}</span>
+          {e.target_type && <span className="text-gray-500 dark:text-gray-400">on {e.target_type}</span>}
+          <span className="text-gray-400 dark:text-gray-500 ml-auto"><TimeAgo value={e.created_at} /></span>
         </li>
       ))}
     </ul>

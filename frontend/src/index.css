@@ -12,11 +12,21 @@
     text-rendering: optimizeLegibility;
   }
 
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
-    @apply font-sans text-gray-900;
+    @apply font-sans text-gray-900 bg-gray-50;
     font-feature-settings: 'cv11', 'ss01', 'ss03';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  html.dark body {
+    @apply text-gray-100 bg-gray-950;
   }
 
   h1 {
@@ -76,6 +86,18 @@
     background-size: 200% 100%;
     animation: shimmer 1.6s linear infinite;
   }
+  .dark .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgb(31 41 55) 0%,
+      rgb(55 65 81) 50%,
+      rgb(31 41 55) 100%
+    );
+    background-size: 200% 100%;
+  }
+  .dark .glass {
+    @apply bg-gray-900/70;
+  }
 
   .glass {
     @apply bg-white/80 backdrop-blur-md backdrop-saturate-150;
@@ -91,6 +113,14 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 

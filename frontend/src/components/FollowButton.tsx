@@ -75,8 +75,8 @@ export default function FollowButton({ dogId }: FollowButtonProps) {
       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ease-soft-out active:scale-[0.97] ${
         isFollowing
           ? hovered
-            ? 'bg-red-50 text-red-600 border border-red-200'
-            : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+            ? 'bg-red-50 text-red-600 dark:text-red-400 border border-red-200'
+            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700'
           : 'bg-brand-500 text-white shadow-soft-sm hover:bg-brand-600 hover:shadow-brand-glow'
       } ${pending ? 'opacity-75 cursor-wait' : ''}`}
       disabled={pending}

@@ -3,20 +3,22 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
+import { useTheme } from '../store/ThemeContext';
 import { logout as apiLogout } from '../api/auth';
 import { getRefreshToken } from '../api/client';
+import PawMark from './ui/PawMark';
 
 const NAV_ITEMS = [
-  { path: '/home', label: 'Home', icon: '\u2302' },
-  { path: '/swipe', label: 'Swipe', icon: '\u2764' },
-  { path: '/dogs', label: 'Dogs', icon: '\ud83d\udc36' },
-  { path: '/lost', label: 'Lost', icon: '\ud83d\udea8' },
-  { path: '/parks', label: 'Parks', icon: '\ud83c\udf33' },
-  { path: '/rankings', label: 'Top', icon: '\ud83c\udfc6' },
+  { path: '/home', label: 'Home', icon: '🏠' },
+  { path: '/swipe', label: 'Swipe', icon: '❤️' },
+  { path: '/dogs', label: 'Dogs', icon: '🐶' },
+  { path: '/lost', label: 'Lost', icon: '🚨' },
+  { path: '/parks', label: 'Parks', icon: '🌳' },
 ];
 
 export default function NavBar() {
   const { isAuthenticated, user, logout } = useAuth();
+  const { resolved: theme, toggle: toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -51,13 +53,13 @@ export default function NavBar() {
   return (
     <>
       {/* Top bar */}
-      <nav className="sticky top-0 z-40 flex items-center justify-between px-4 py-2.5 glass border-b border-gray-200/60">
+      <nav className="sticky top-0 z-40 flex items-center justify-between px-4 py-2.5 glass border-b border-gray-200/60 dark:border-gray-800">
         <Link
           to={isAuthenticated ? '/home' : '/'}
           className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-brand-600 transition-colors duration-200 ease-soft-out hover:text-brand-700 active:scale-[0.98]"
         >
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-[12px] text-white shadow-brand-glow">
-            🐾
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
+            <PawMark className="h-[22px] w-[22px]" />
           </span>
           <span>Fetch</span>
         </Link>
@@ -66,7 +68,7 @@ export default function NavBar() {
             {user?.role === 'admin' && (
               <Link
                 to="/admin"
-                className="text-xs font-medium text-gray-500 transition-colors hover:text-brand-500"
+                className="text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
               >
                 Admin
               </Link>
@@ -74,27 +76,45 @@ export default function NavBar() {
             {user?.role === 'rescue' && (
               <Link
                 to="/rescue/dashboard"
-                className="text-xs font-medium text-gray-500 transition-colors hover:text-brand-500"
+                className="text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
               >
                 Rescue
               </Link>
             )}
             <Link
               to={`/users/${user?.id}`}
-              className="text-xs text-gray-500 transition-colors hover:text-brand-500"
+              className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
             >
               Profile
             </Link>
             <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="text-sm leading-none w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95"
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <button
               onClick={handleLogout}
-              className="text-xs text-gray-500 transition-colors hover:text-red-500"
+              className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-red-500 dark:text-red-400"
             >
               Log out
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-3 text-sm">
-            <Link to="/login" className="text-gray-600 transition-colors hover:text-brand-500">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="text-sm leading-none w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95"
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <Link to="/login" className="text-gray-600 dark:text-gray-300 transition-colors hover:text-brand-500">
               Log in
             </Link>
             <Link
@@ -109,11 +129,11 @@ export default function NavBar() {
 
       {/* Email verification banner */}
       {showVerifyBanner && (
-        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-sm text-amber-800 animate-fade-in-up">
+        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/30 text-sm text-amber-800 dark:text-amber-200 animate-fade-in-up">
           <span>Please verify your email address to unlock all features.</span>
           <button
             onClick={() => setBannerDismissed(true)}
-            className="text-amber-600 hover:text-amber-800 font-bold leading-none flex-shrink-0"
+            className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:text-amber-200 font-bold leading-none flex-shrink-0"
             aria-label="Dismiss"
           >
             ×
@@ -123,8 +143,8 @@ export default function NavBar() {
 
       {/* Bottom tab bar (authenticated only) */}
       {isAuthenticated && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gray-200/60 safe-bottom">
-          <div className="mx-auto max-w-app flex justify-around py-1.5">
+        <div className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gray-200/60 dark:border-gray-800 safe-bottom">
+          <div className="mx-auto max-w-app flex py-2">
             {NAV_ITEMS.map(({ path, label, icon }) => {
               const isActive = activePath === path;
               return (
@@ -133,8 +153,8 @@ export default function NavBar() {
                   to={path}
                   aria-label={label}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`relative flex flex-col items-center gap-0.5 px-2 pt-2 pb-1.5 min-w-[3rem] min-h-[44px] transition-colors duration-200 ease-soft-out ${
-                    isActive ? 'text-brand-600' : 'text-gray-400 hover:text-gray-700'
+                  className={`relative flex flex-1 flex-col items-center gap-1 px-2 pt-2.5 pb-2 min-h-[53px] transition-colors duration-200 ease-soft-out ${
+                    isActive ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 >
                   {isActive && (
@@ -145,13 +165,13 @@ export default function NavBar() {
                     />
                   )}
                   <span
-                    className={`text-[20px] leading-none transition-transform duration-200 ease-soft-out ${
+                    className={`text-[24px] leading-none transition-transform duration-200 ease-soft-out ${
                       isActive ? 'scale-110' : ''
                     }`}
                   >
                     {icon}
                   </span>
-                  <span className="text-[10px] font-semibold leading-none tracking-tight">
+                  <span className="text-[12px] font-semibold leading-none tracking-tight">
                     {label}
                   </span>
                 </Link>

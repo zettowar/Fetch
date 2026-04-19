@@ -82,7 +82,11 @@ async def my_follows(
 ):
     result = await db.execute(
         select(Follow)
-        .options(selectinload(Follow.dog).selectinload(Dog.photos))
+        .options(
+            selectinload(Follow.dog).selectinload(Dog.photos),
+            selectinload(Follow.dog).selectinload(Dog.breeds),
+            selectinload(Follow.dog).selectinload(Dog.owner).selectinload(User.rescue_profile),
+        )
         .where(Follow.follower_id == user.id)
         .order_by(Follow.created_at.desc())
     )

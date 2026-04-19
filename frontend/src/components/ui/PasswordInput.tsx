@@ -34,7 +34,7 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
     return (
       <div className="flex flex-col gap-1">
         {label && (
-          <label htmlFor={id} className="text-sm font-medium text-gray-700">
+          <label htmlFor={id} className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {label}
           </label>
         )}
@@ -44,15 +44,15 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             id={id}
             type={visible ? 'text' : 'password'}
             value={value}
-            className={`w-full rounded-xl border border-gray-300 px-4 py-2.5 pr-10 text-base outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-200 ${
-              error ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''
+            className={`w-full rounded-xl border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-700 px-4 py-2.5 pr-14 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:border-brand-400 dark:focus:ring-brand-500/30 ${
+              error ? 'border-red-400 focus:border-red-500 focus:ring-red-200 dark:border-red-500/60' : ''
             } ${className}`}
             {...props}
           />
           <button
             type="button"
             onClick={() => setVisible(!visible)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-sm"
             tabIndex={-1}
           >
             {visible ? 'Hide' : 'Show'}
@@ -60,16 +60,16 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         </div>
         {strength && (
           <div className="flex items-center gap-2 mt-0.5">
-            <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+            <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${strength.color}`}
                 style={{ width: `${(strength.level / 5) * 100}%` }}
               />
             </div>
-            <span className="text-xs text-gray-500">{strength.label}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{strength.label}</span>
           </div>
         )}
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
       </div>
     );
   },

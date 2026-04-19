@@ -44,7 +44,7 @@ export default function CropPanel({ state, dispatch }: Props) {
             onClick={() => dispatch({ type: 'SET_ASPECT', aspect: a.key })}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               state.aspect === a.key
-                ? 'bg-white text-gray-900'
+                ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'
                 : 'bg-white/10 text-white hover:bg-white/20'
             }`}
             aria-pressed={state.aspect === a.key}
@@ -189,7 +189,7 @@ function IconButton({
       title={label}
       className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
         active
-          ? 'bg-white text-gray-900'
+          ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'
           : 'text-white hover:bg-white/10'
       }`}
     >

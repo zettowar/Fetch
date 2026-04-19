@@ -217,14 +217,14 @@ export default function AdminUsersPage() {
       ) : (
         users.length > 0 && (
           <div className="flex gap-2 mb-3 text-xs">
-            <span className="text-gray-400">
+            <span className="text-gray-400 dark:text-gray-500">
               {total > 0 ? `${rangeStart}–${rangeEnd} of ${total}` : `${users.length} results`}
             </span>
             {suspended.length > 0 && (
-              <span className="text-red-500">{suspended.length} suspended</span>
+              <span className="text-red-500 dark:text-red-400">{suspended.length} suspended</span>
             )}
             {withStrikes.length > 0 && (
-              <span className="text-amber-500">{withStrikes.length} with strikes</span>
+              <span className="text-amber-500 dark:text-amber-400">{withStrikes.length} with strikes</span>
             )}
             {admins.length > 0 && (
               <span className="text-purple-500">{admins.length} admin{admins.length > 1 ? 's' : ''}</span>
@@ -238,12 +238,12 @@ export default function AdminUsersPage() {
           <Spinner className="h-6 w-6" />
         </div>
       ) : users.length === 0 ? (
-        <p className="text-gray-400 text-center py-8">
+        <p className="text-gray-400 dark:text-gray-500 text-center py-8">
           {searchTerm ? `No users found for "${searchTerm}".` : 'No users found.'}
         </p>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y">
-          <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+          <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             <input
               type="checkbox"
               checked={allOnPageSelected}
@@ -255,7 +255,7 @@ export default function AdminUsersPage() {
           </div>
           {users.map((u) => (
             <div key={u.id}>
-              <div className="flex items-center gap-3 p-3 hover:bg-gray-50">
+              <div className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60">
                 <input
                   type="checkbox"
                   checked={selectedIds.has(u.id)}
@@ -271,20 +271,20 @@ export default function AdminUsersPage() {
                   <Avatar name={u.display_name} size="md" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{u.display_name}</p>
-                    <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    {u.role === 'admin' && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium">admin</span>}
-                    {!u.is_active && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-medium">suspended</span>}
-                    {u.strike_count > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded font-medium">{u.strike_count} strike{u.strike_count > 1 ? 's' : ''}</span>}
-                    <span className="text-[10px] text-gray-400">{u.dog_count} dog{u.dog_count !== 1 ? 's' : ''}</span>
+                    {u.role === 'admin' && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 rounded font-medium">admin</span>}
+                    {!u.is_active && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 rounded font-medium">suspended</span>}
+                    {u.strike_count > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 rounded font-medium">{u.strike_count} strike{u.strike_count > 1 ? 's' : ''}</span>}
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{u.dog_count} dog{u.dog_count !== 1 ? 's' : ''}</span>
                   </div>
                 </button>
               </div>
 
               {selectedUser === u.id && (
-                <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
-                  <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-gray-600">
+                <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
+                  <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-gray-600 dark:text-gray-300">
                     <p><span className="font-medium">Joined:</span> <TimeAgo value={u.created_at} /></p>
                     <p><span className="font-medium">Location:</span> {u.location_rough || 'Not set'}</p>
                     <p><span className="font-medium">Verified:</span> {u.is_verified ? 'Yes' : 'No'}</p>
@@ -340,7 +340,7 @@ export default function AdminUsersPage() {
                   {showGrant && (
                     <div className="mt-2 flex items-center gap-2">
                       <select
-                        className="rounded-lg border border-gray-300 px-2 py-1 text-sm"
+                        className="rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1 text-sm"
                         value={grantKey}
                         onChange={(e) => setGrantKey(e.target.value)}
                       >
@@ -356,13 +356,13 @@ export default function AdminUsersPage() {
 
                   {strikes.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-xs font-semibold text-gray-700 mb-1">Strike History ({strikes.length})</p>
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Strike History ({strikes.length})</p>
                       <div className="space-y-1">
                         {strikes.map((s) => (
-                          <div key={s.id} className="text-xs text-gray-500 flex items-center gap-2 py-1 border-b border-gray-100 last:border-0">
+                          <div key={s.id} className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">
                             <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
                             <span className="flex-1">{s.reason}</span>
-                            <span className="text-gray-400 shrink-0"><TimeAgo value={s.created_at} /></span>
+                            <span className="text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={s.created_at} /></span>
                           </div>
                         ))}
                       </div>

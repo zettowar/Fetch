@@ -52,28 +52,28 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
       {comments.length > 0 ? (
         <div className="flex flex-col gap-2 mb-3">
           {visibleComments.map((c) => (
-            <div key={c.id} className="flex gap-2.5 p-2.5 bg-gray-50 rounded-xl">
+            <div key={c.id} className="flex gap-2.5 p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
               <Avatar name={c.author_name || 'U'} size="sm" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {c.author_name || 'Unknown'}
                     </span>
-                    <TimeAgo value={c.created_at} className="text-xs text-gray-400" />
+                    <TimeAgo value={c.created_at} className="text-xs text-gray-400 dark:text-gray-500" />
                   </div>
                   {user?.id === c.author_id && (
                     <button
                       onClick={() => {
                         if (confirm('Delete this comment?')) deleteMutation.mutate(c.id);
                       }}
-                      className="text-xs text-gray-400 hover:text-red-500 transition-colors px-1"
+                      className="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:text-red-400 transition-colors px-1"
                     >
                       Delete
                     </button>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-wrap break-words">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5 whitespace-pre-wrap break-words">
                   <Linkify>{c.body}</Linkify>
                 </p>
               </div>
@@ -89,13 +89,13 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
           )}
         </div>
       ) : (
-        <p className="text-sm text-gray-400 mb-3">No comments yet.</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">No comments yet.</p>
       )}
 
       {/* Post comment */}
       <div className="flex gap-2">
         <input
-          className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+          className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
           placeholder="Add a comment..."
           value={body}
           onChange={(e) => setBody(e.target.value)}

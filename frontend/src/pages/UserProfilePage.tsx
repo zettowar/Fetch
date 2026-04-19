@@ -55,7 +55,7 @@ export default function UserProfilePage() {
     );
   }
 
-  if (!profile) return <div className="p-4 text-gray-500">User not found</div>;
+  if (!profile) return <div className="p-4 text-gray-500 dark:text-gray-400">User not found</div>;
 
   const isMe = currentUser?.id === profile.id;
 
@@ -72,7 +72,7 @@ export default function UserProfilePage() {
         <button
           type="button"
           onClick={handleShare}
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-brand-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
           aria-label="Share profile"
         >
           <span aria-hidden>↗</span>
@@ -83,30 +83,30 @@ export default function UserProfilePage() {
       {/* Header */}
       <section className="flex flex-col items-center text-center px-6 pt-2 pb-6">
         <div className="rounded-full p-1 bg-gradient-to-br from-brand-300 via-brand-400 to-brand-600 shadow-soft">
-          <div className="rounded-full bg-white p-1">
+          <div className="rounded-full bg-white dark:bg-gray-900 p-1">
             <Avatar name={profile.display_name} size="2xl" />
           </div>
         </div>
         <h1 className="mt-4 text-2xl font-bold tracking-tight">{profile.display_name}</h1>
         {profile.location_rough && (
-          <p className="mt-0.5 text-sm text-gray-500">{profile.location_rough}</p>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{profile.location_rough}</p>
         )}
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
           Joined <TimeAgo value={profile.created_at} />
         </p>
       </section>
 
       {/* Stats strip */}
-      <section className="mx-4 mb-5 grid grid-cols-2 rounded-2xl bg-gray-50 border border-gray-100 divide-x divide-gray-100 overflow-hidden">
+      <section className="mx-4 mb-5 grid grid-cols-2 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 divide-x divide-gray-100 dark:divide-gray-800 overflow-hidden">
         <div className="py-3 text-center">
-          <p className="text-xl font-bold text-gray-900 tabular-nums">{profile.dog_count}</p>
-          <p className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{profile.dog_count}</p>
+          <p className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">
             {profile.dog_count === 1 ? 'Dog' : 'Dogs'}
           </p>
         </div>
         <div className="py-3 text-center">
-          <p className="text-xl font-bold text-gray-900 tabular-nums">{profile.follower_count}</p>
-          <p className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{profile.follower_count}</p>
+          <p className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">
             {profile.follower_count === 1 ? 'Follower' : 'Followers'}
           </p>
         </div>
@@ -114,11 +114,11 @@ export default function UserProfilePage() {
 
       {/* Verify banner (self only) */}
       {isMe && currentUser && !currentUser.is_verified && (
-        <section className="mx-4 mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+        <section className="mx-4 mb-4 p-3 bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30 rounded-xl text-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-medium text-amber-800">Email not verified</p>
-              <p className="text-xs text-amber-700 mt-0.5 break-words">
+              <p className="font-medium text-amber-800 dark:text-amber-200">Email not verified</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 break-words">
                 Verify <span className="font-mono">{currentUser.email}</span> so we can reach you about account and safety updates.
               </p>
             </div>
@@ -132,8 +132,8 @@ export default function UserProfilePage() {
             </Button>
           </div>
           {debugToken && (
-            <div className="mt-2 p-2 bg-white border border-amber-200 rounded-lg">
-              <p className="text-[11px] text-amber-700 mb-1">
+            <div className="mt-2 p-2 bg-white dark:bg-gray-900 border border-amber-200 rounded-lg">
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 mb-1">
                 Dev mode: no SMTP configured. Use this link to verify:
               </p>
               <Link
@@ -177,9 +177,9 @@ export default function UserProfilePage() {
             <Spinner size="sm" />
           </div>
         ) : dogs.length === 0 ? (
-          <div className="rounded-2xl bg-gray-50 border border-gray-100 py-10 px-6 text-center">
+          <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 py-10 px-6 text-center">
             <p className="text-3xl mb-2" aria-hidden>🐶</p>
-            <p className="text-sm text-gray-600 font-medium">
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
               {isMe ? 'No dogs yet' : "Hasn't added any dogs yet"}
             </p>
             {isMe && (
@@ -207,11 +207,11 @@ function MenuLink({ to, label, icon }: { to: string; label: string; icon: string
   return (
     <Link
       to={to}
-      className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl text-sm shadow-soft-sm hover:border-gray-200 hover:shadow-soft transition-all duration-150"
+      className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl text-sm shadow-soft-sm hover:border-gray-200 dark:border-gray-700 hover:shadow-soft transition-all duration-150"
     >
       <span className="text-lg leading-none" aria-hidden>{icon}</span>
-      <span className="flex-1 font-medium text-gray-700">{label}</span>
-      <span className="text-gray-300">›</span>
+      <span className="flex-1 font-medium text-gray-700 dark:text-gray-300">{label}</span>
+      <span className="text-gray-300 dark:text-gray-600">›</span>
     </Link>
   );
 }

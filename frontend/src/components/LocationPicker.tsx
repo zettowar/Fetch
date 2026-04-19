@@ -77,7 +77,7 @@ export default function LocationPicker({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className={`w-full ${heightClass} overflow-hidden rounded-xl border border-gray-200`}>
+      <div className={`w-full ${heightClass} overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700`}>
         <Map
           center={center}
           zoom={zoom}
@@ -89,10 +89,10 @@ export default function LocationPicker({
         />
       </div>
 
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-gray-500 dark:text-gray-400">
         {value ? (
           <>
-            <span className="font-medium text-gray-700">Pinned: </span>
+            <span className="font-medium text-gray-700 dark:text-gray-300">Pinned: </span>
             {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
             <button
               type="button"
@@ -110,8 +110,8 @@ export default function LocationPicker({
       {onRadiusChange && (
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between">
-            <label className="text-sm font-medium text-gray-700">Search radius</label>
-            <span className="text-xs text-gray-500">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search radius</label>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               {radiusMeters != null ? formatRadius(radiusMeters) : '—'}
             </span>
           </div>
@@ -124,14 +124,14 @@ export default function LocationPicker({
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   radiusMeters === p.meters
                     ? 'bg-brand-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 {p.label}
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">
             The orange circle on the map shows the area you're asking others to search.
             Also controls how much coordinates are fuzzed on the public map for your privacy.
           </p>

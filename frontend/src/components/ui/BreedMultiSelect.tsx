@@ -63,10 +63,10 @@ export default function BreedMultiSelect({
 
   return (
     <div className="flex flex-col gap-1" ref={wrapRef}>
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
       <div
-        className={`flex flex-wrap items-center gap-1.5 rounded-xl border border-gray-300 px-2 py-2 min-h-[44px] ${
-          disabled ? 'bg-gray-50' : 'bg-white'
+        className={`flex flex-wrap items-center gap-1.5 rounded-xl border border-gray-300 dark:border-gray-700 px-2 py-2 min-h-[44px] ${
+          disabled ? 'bg-gray-50 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-900'
         } focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200`}
       >
         {value.map((b) => (
@@ -103,7 +103,7 @@ export default function BreedMultiSelect({
       </div>
       {open && !disabled && !atCap && suggestions.length > 0 && (
         <div className="relative">
-          <ul className="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+          <ul className="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
             {suggestions.map((b) => (
               <li key={b.id}>
                 <button
@@ -112,14 +112,14 @@ export default function BreedMultiSelect({
                   className="w-full text-left px-3 py-2 hover:bg-brand-50 text-sm flex items-center justify-between"
                 >
                   <span>{b.name}</span>
-                  {b.group && <span className="text-xs text-gray-400">{b.group}</span>}
+                  {b.group && <span className="text-xs text-gray-400 dark:text-gray-500">{b.group}</span>}
                 </button>
               </li>
             ))}
           </ul>
         </div>
       )}
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-400 dark:text-gray-500">
         {atCap
           ? `Maximum ${max} breeds selected`
           : `${value.length}/${max} breeds selected`}

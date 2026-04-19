@@ -19,9 +19,9 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
   return (
     <Link
       to={`/dogs/${dog.id}`}
-      className="block bg-white rounded-2xl shadow-soft-sm border border-gray-100 overflow-hidden transition-all duration-200 ease-soft-out hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99]"
+      className="block bg-white dark:bg-gray-900 rounded-2xl shadow-soft-sm border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-200 ease-soft-out hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99]"
     >
-      <div className="relative aspect-[4/3] bg-gray-100">
+      <div className="relative aspect-[4/3] bg-gray-100 dark:bg-gray-800">
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -50,7 +50,7 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
         )}
         {photoCount > 1 && (
           <span
-            className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-gray-600 text-xs font-semibold rounded-full shadow-sm"
+            className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-gray-600 dark:text-gray-300 text-xs font-semibold rounded-full shadow-sm"
             title={`${photoCount} photos`}
             aria-label={`${photoCount} photos`}
           >
@@ -63,7 +63,7 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold">{dog.name}</h3>
-            {dog.breed_display && <p className="text-xs text-gray-500">{dog.breed_display}</p>}
+            {dog.breed_display && <p className="text-xs text-gray-500 dark:text-gray-400">{dog.breed_display}</p>}
           </div>
           <div className="flex items-center gap-2">
             {showEdit && !hasPhotos && (
@@ -75,14 +75,14 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
               <Link
                 to={`/dogs/${dog.id}/edit`}
                 onClick={(e) => e.stopPropagation()}
-                className="text-xs text-gray-400 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50"
+                className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
                 Edit
               </Link>
             )}
           </div>
         </div>
-        {dog.bio && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{dog.bio}</p>}
+        {dog.bio && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{dog.bio}</p>}
       </div>
     </Link>
   );

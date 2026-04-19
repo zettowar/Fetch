@@ -41,14 +41,14 @@ export default function VerifyEmailPage() {
       {status === 'verifying' && (
         <>
           <Spinner className="h-8 w-8 mb-4" />
-          <p className="text-gray-500">Verifying your email…</p>
+          <p className="text-gray-500 dark:text-gray-400">Verifying your email…</p>
         </>
       )}
       {status === 'success' && (
         <>
           <span className="text-4xl mb-2">✅</span>
           <h1 className="text-2xl font-bold mb-2">{message}</h1>
-          <p className="text-gray-500 mb-6">Thanks for confirming your address.</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">Thanks for confirming your address.</p>
           <Button onClick={() => navigate(user ? `/users/${user.id}` : '/')}>
             Continue
           </Button>
@@ -58,7 +58,7 @@ export default function VerifyEmailPage() {
         <>
           <span className="text-4xl mb-2">⚠️</span>
           <h1 className="text-2xl font-bold mb-2">Verification failed</h1>
-          <p className="text-gray-500 mb-6 max-w-sm">{message}</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm">{message}</p>
           {user ? (
             <Link to={`/users/${user.id}`}>
               <Button variant="secondary">Back to profile</Button>

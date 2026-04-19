@@ -37,13 +37,13 @@ export default function RankingsPage() {
 
       <div className="flex items-baseline justify-between mb-2">
         <h2 className="text-lg font-semibold">This Week</h2>
-        <span className="text-xs text-gray-400">Resets in {resetsIn}</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500">Resets in {resetsIn}</span>
       </div>
 
       {isLoading ? (
         <ListSkeleton rows={5} />
       ) : leaderboard && leaderboard.length > 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
           {leaderboard.map((entry) => {
             const isMine = myDogIds.has(entry.dog_id.toString());
             return (
@@ -52,15 +52,15 @@ export default function RankingsPage() {
               to={`/dogs/${entry.dog_id}`}
               className={`flex items-center gap-3 p-3 transition-colors ${
                 isMine
-                  ? 'bg-brand-50 ring-1 ring-inset ring-brand-200 hover:bg-brand-100'
-                  : 'hover:bg-gray-50'
+                  ? 'bg-brand-50 dark:bg-brand-500/10 ring-1 ring-inset ring-brand-200 dark:ring-brand-500/40 hover:bg-brand-100 dark:hover:bg-brand-500/20'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-800/60'
               }`}
             >
               <span
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                   entry.rank <= 3
                     ? 'bg-brand-100 text-brand-600'
-                    : 'bg-gray-100 text-gray-500'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                 }`}
               >
                 {RANK_EMOJI[entry.rank] || entry.rank}
@@ -75,12 +75,12 @@ export default function RankingsPage() {
                   )}
                 </div>
                 {entry.breed && (
-                  <p className="text-xs text-gray-500 truncate">{entry.breed}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{entry.breed}</p>
                 )}
               </div>
               <div className="text-right">
                 <p className="font-semibold text-brand-600">{entry.score}</p>
-                <p className="text-xs text-gray-400">{entry.total_votes} votes</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{entry.total_votes} votes</p>
               </div>
             </Link>
             );
@@ -89,24 +89,24 @@ export default function RankingsPage() {
       ) : (
         <div className="text-center py-8">
           <span className="text-3xl">{'\ud83d\udcca'}</span>
-          <p className="text-gray-500 mt-2">No votes yet this week. Be the first to swipe!</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">No votes yet this week. Be the first to swipe!</p>
         </div>
       )}
 
       {history && history.length > 0 && (
         <div className="mt-8">
           <h2 className="text-lg font-semibold mb-2">Past Winners</h2>
-          <div className="bg-white rounded-xl border border-gray-100 divide-y">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
             {history.map((winner) => (
               <Link
                 key={winner.id}
                 to={`/dogs/${winner.dog_id}`}
-                className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
               >
                 <span className="text-lg">{'\ud83c\udfc6'}</span>
                 <div className="flex-1">
                   <p className="font-medium">{winner.dog_name || 'Unknown'}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Week of {winner.week_bucket}
                   </p>
                 </div>

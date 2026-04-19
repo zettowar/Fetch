@@ -214,12 +214,12 @@ export default function DogDetailPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <h1 className="text-2xl font-bold">{dog.name}</h1>
-            {age && <span className="text-sm text-gray-400">{age}</span>}
+            {age && <span className="text-sm text-gray-400 dark:text-gray-500">{age}</span>}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleShare}
-              className="text-xs text-gray-400 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors"
+              className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
               title="Share profile"
             >
               Share
@@ -228,14 +228,14 @@ export default function DogDetailPage() {
             {isOwner && (
               <Link
                 to={`/dogs/${dog.id}/edit`}
-                className="text-xs text-gray-400 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors"
+                className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
               >
                 Edit
               </Link>
             )}
           </div>
         </div>
-        {dog.breed_display && <p className="text-gray-500">{dog.breed_display}</p>}
+        {dog.breed_display && <p className="text-gray-500 dark:text-gray-400">{dog.breed_display}</p>}
 
         {dog.adoptable && dog.rescue_name && (
           <div className="mt-3 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm">
@@ -252,13 +252,13 @@ export default function DogDetailPage() {
         )}
 
         {dog.adopted_at && (
-          <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+          <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
             🎉 Adopted {new Date(dog.adopted_at).toLocaleDateString()}
             {dog.rescue_name ? ` — from ${dog.rescue_name}` : ''}
           </div>
         )}
         {dog.bio && (
-          <p className="text-gray-600 mt-2 whitespace-pre-wrap">
+          <p className="text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap leading-relaxed">
             <Linkify>{dog.bio}</Linkify>
           </p>
         )}
@@ -279,7 +279,7 @@ export default function DogDetailPage() {
           >
             Owner profile
           </Link>
-          <span className="text-xs text-gray-400">Added <TimeAgo value={dog.created_at} /></span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">Added <TimeAgo value={dog.created_at} /></span>
         </div>
 
         {/* Check-in widget (owner only) */}
@@ -294,17 +294,17 @@ export default function DogDetailPage() {
             {showCheckinPicker && (
               <div className="mt-2 flex flex-col gap-2">
                 {nearbyParks.length === 0 ? (
-                  <p className="text-sm text-gray-400">No parks found nearby</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">No parks found nearby</p>
                 ) : (
                   nearbyParks.map((park) => (
                     <button
                       key={park.id}
                       onClick={() => checkinMutation.mutate(park.id)}
                       disabled={checkinMutation.isPending}
-                      className="flex items-center justify-between px-3 py-2 bg-white border border-gray-100 rounded-xl text-sm hover:border-brand-300 transition-colors text-left"
+                      className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl text-sm hover:border-brand-300 transition-colors text-left"
                     >
                       <span className="font-medium">{park.name}</span>
-                      {park.address && <span className="text-xs text-gray-400 truncate ml-2">{park.address}</span>}
+                      {park.address && <span className="text-xs text-gray-400 dark:text-gray-500 truncate ml-2">{park.address}</span>}
                     </button>
                   ))
                 )}
@@ -316,29 +316,35 @@ export default function DogDetailPage() {
         {/* Photo gallery */}
         {hasPhotos && (
           <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold">Photos</h2>
-              <span className="text-xs text-gray-400">{dog.photos.length} photo{dog.photos.length !== 1 ? 's' : ''}</span>
-            </div>
+            <h2 className="text-lg font-semibold mb-2">
+              Photos <span className="text-gray-400 dark:text-gray-500 font-normal">({dog.photos.length})</span>
+            </h2>
             <div className="grid grid-cols-3 gap-2">
               {dog.photos.map((photo, idx) => {
                 const url = photoUrl(photo);
                 const isPrimary = photo.id === dog.primary_photo_id;
                 return (
                   <div key={photo.id} className="relative group">
-                    <img
-                      src={url}
-                      alt={`${dog.name} photo ${idx + 1}`}
-                      className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    <button
+                      type="button"
                       onClick={() => setFullscreenIndex(idx)}
-                    />
+                      className="block w-full aspect-square rounded-lg overflow-hidden ring-1 ring-gray-100 hover:ring-2 hover:ring-brand-400 focus-visible:ring-2 focus-visible:ring-brand-500 transition-all active:scale-[0.98]"
+                      aria-label={`View photo ${idx + 1} fullscreen`}
+                    >
+                      <img
+                        src={url}
+                        alt={`${dog.name} photo ${idx + 1}`}
+                        loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                      />
+                    </button>
                     {isOwner && (
                       <>
                         <button
                           className={`absolute top-1 right-1 rounded-full w-6 h-6 flex items-center justify-center text-xs transition-opacity shadow ${
                             isPrimary
                               ? 'bg-brand-500 text-white opacity-100'
-                              : 'bg-white/80 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-brand-500'
+                              : 'bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-brand-500'
                           }`}
                           title={isPrimary ? 'Primary photo' : 'Set as primary'}
                           aria-label={isPrimary ? 'Primary photo' : 'Set as primary'}
@@ -350,7 +356,7 @@ export default function DogDetailPage() {
                           ★
                         </button>
                         <button
-                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity shadow"
+                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:text-red-400 transition-opacity shadow"
                           title="Delete photo"
                           aria-label="Delete photo"
                           onClick={(e) => {

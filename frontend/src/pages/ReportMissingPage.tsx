@@ -55,21 +55,23 @@ export default function ReportMissingPage() {
   return (
     <div className="p-4">
       <BackButton fallback="/lost" />
-      <h1 className="text-2xl font-bold mb-2">Report Missing Dog</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
+        <span aria-hidden>🚨</span> Report Missing Dog
+      </h1>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Please also contact your local animal control and vet clinics.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Which dog?</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Which dog?</label>
           {myDogsLoading ? (
-            <div className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-400 bg-gray-50">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50">
               Loading your dogs…
             </div>
           ) : myDogs.length > 0 ? (
             <select
-              className="rounded-xl border border-gray-300 px-4 py-2.5 text-base"
+              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base"
               value={dogId}
               onChange={(e) => setDogId(e.target.value)}
             >
@@ -81,16 +83,16 @@ export default function ReportMissingPage() {
               ))}
             </select>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               You haven't added a dog yet — you can still file this report without linking one.
             </p>
           )}
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Description</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
           <textarea
-            className="rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
             rows={4}
             placeholder="Describe the dog, when and where last seen, any distinguishing features..."
             value={description}
@@ -100,7 +102,7 @@ export default function ReportMissingPage() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Last seen location</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Last seen location</label>
           <LocationPicker
             value={location}
             onChange={setLocation}

@@ -28,7 +28,7 @@ export default function ProfileEditPage() {
   }, [user]);
 
   if (!user) {
-    return <div className="p-4 text-gray-500">Not signed in.</div>;
+    return <div className="p-4 text-gray-500 dark:text-gray-400">Not signed in.</div>;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,7 +59,9 @@ export default function ProfileEditPage() {
   return (
     <div className="p-4">
       <BackButton fallback={`/users/${user.id}`} />
-      <h1 className="text-2xl font-bold mt-2 mb-4">Edit profile</h1>
+      <h1 className="text-2xl font-bold mt-2 mb-4 flex items-center gap-2">
+        <span aria-hidden>✏️</span> Edit profile
+      </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
         <Input
@@ -70,15 +72,15 @@ export default function ProfileEditPage() {
           required
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-700 tracking-tight">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 tracking-tight">
             Email
           </label>
           <input
             value={user.email}
             disabled
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-base text-gray-500 shadow-soft-sm cursor-not-allowed"
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5 text-base text-gray-500 dark:text-gray-400 shadow-soft-sm cursor-not-allowed"
           />
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-gray-500">
             Email changes aren't supported yet. Contact support if you need to change yours.
           </p>
         </div>
@@ -97,19 +99,19 @@ export default function ProfileEditPage() {
           max={new Date().toISOString().slice(0, 10)}
         />
 
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100 mt-2">
+        <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
           <label className="flex items-start gap-2.5 cursor-pointer">
             <input
               type="checkbox"
               checked={showAdoptionPrompt}
               onChange={(e) => setShowAdoptionPrompt(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-400"
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-brand-500 focus:ring-brand-400"
             />
             <span className="flex flex-col">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Show adoption prompts
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 dark:text-gray-500">
                 When you like a dog from a rescue, we'll let you know they're up
                 for adoption. Turn this off if you'd rather not see it.
               </span>

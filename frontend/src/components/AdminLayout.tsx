@@ -18,17 +18,17 @@ const NAV_ITEMS = [
 
 export default function AdminLayout() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800/50">
       {/* Admin top bar */}
       <div className="bg-gray-900 text-white px-4 py-2.5 flex items-center justify-between">
         <span className="font-bold text-sm">Fetch Admin</span>
-        <Link to="/home" className="text-xs text-gray-400 hover:text-white transition-colors">
+        <Link to="/home" className="text-xs text-gray-400 dark:text-gray-500 hover:text-white transition-colors">
           Back to app
         </Link>
       </div>
 
       {/* Horizontal nav tabs (scrollable on mobile) */}
-      <div className="bg-white border-b border-gray-200 overflow-x-auto">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
         <div className="flex min-w-max px-2">
           {NAV_ITEMS.map(({ path, label, ...rest }) => (
             <NavLink
@@ -39,7 +39,7 @@ export default function AdminLayout() {
                 `px-3 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   isActive
                     ? 'border-brand-500 text-brand-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-700'
                 }`
               }
             >

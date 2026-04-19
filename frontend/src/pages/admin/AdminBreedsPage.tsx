@@ -92,7 +92,7 @@ export default function AdminBreedsPage() {
       />
 
       {showForm && (
-        <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex flex-col gap-3">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 mb-4 flex flex-col gap-3">
           <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />
           <Input label="Group (optional)" value={group} onChange={(e) => setGroup(e.target.value)} placeholder="e.g. Sporting, Hound" />
           <label className="flex items-center gap-2 text-sm">
@@ -117,17 +117,17 @@ export default function AdminBreedsPage() {
           <Spinner size="sm" />
         </div>
       ) : breeds.length === 0 ? (
-        <p className="text-gray-400 text-center py-8">No breeds match.</p>
+        <p className="text-gray-400 dark:text-gray-500 text-center py-8">No breeds match.</p>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 divide-y">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
           {breeds.map((b) => (
             <div key={b.id} className="p-3 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">
                   {b.name}
-                  {!b.is_active && <span className="ml-2 text-xs text-red-500">(inactive)</span>}
+                  {!b.is_active && <span className="ml-2 text-xs text-red-500 dark:text-red-400">(inactive)</span>}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
                   {b.group ? `${b.group} · ` : ''}
                   {b.dog_count} dog{b.dog_count === 1 ? '' : 's'}
                 </p>

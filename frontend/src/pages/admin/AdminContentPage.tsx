@@ -61,7 +61,7 @@ export default function AdminContentPage() {
       <div className="mb-6">
         <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
           Dog Profiles
-          <span className="text-xs font-normal text-gray-400">
+          <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
             ({total} total)
           </span>
         </h2>
@@ -80,7 +80,7 @@ export default function AdminContentPage() {
           <Button type="submit" size="sm">Search</Button>
         </form>
 
-        <label className="flex items-center gap-2 text-sm text-gray-600 mb-3 cursor-pointer select-none">
+        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mb-3 cursor-pointer select-none">
           <input
             type="checkbox"
             className="rounded"
@@ -95,11 +95,11 @@ export default function AdminContentPage() {
             <Spinner className="h-6 w-6" />
           </div>
         ) : dogs.length === 0 ? (
-          <p className="text-gray-400 text-center py-6">
+          <p className="text-gray-400 dark:text-gray-500 text-center py-6">
             {dogSearch ? `No dogs found for "${dogSearch}".` : 'No dogs found.'}
           </p>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-100 divide-y">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
             {dogs.map((dog: AdminDog) => (
               <div key={dog.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
@@ -112,22 +112,22 @@ export default function AdminContentPage() {
                       {dog.name}
                     </Link>
                     {dog.breed && (
-                      <span className="text-xs text-gray-400">{dog.breed}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{dog.breed}</span>
                     )}
                     {!dog.is_active && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-medium">
+                      <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 rounded font-medium">
                         inactive
                       </span>
                     )}
-                    <span className="text-[10px] text-gray-400">{dog.photo_count} photo{dog.photo_count !== 1 ? 's' : ''}</span>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{dog.photo_count} photo{dog.photo_count !== 1 ? 's' : ''}</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Owner:{' '}
                     <Link to={`/users/${dog.owner_id}`} target="_blank" className="hover:underline">
                       {dog.owner_name ?? 'Unknown'}
                     </Link>
                     {dog.owner_email && (
-                      <span className="text-gray-400 ml-1">({dog.owner_email})</span>
+                      <span className="text-gray-400 dark:text-gray-500 ml-1">({dog.owner_email})</span>
                     )}
                     {' · '}
                     <TimeAgo value={dog.created_at} />

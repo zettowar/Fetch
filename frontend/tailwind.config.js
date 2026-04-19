@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
@@ -60,6 +61,12 @@ export default {
           from: { opacity: '0', transform: 'scale(0.96)' },
           to: { opacity: '1', transform: 'scale(1)' },
         },
+        heartbeat: {
+          '0%, 45%, 100%': { transform: 'scale(1)' },
+          '15%': { transform: 'scale(1.2)' },
+          '25%': { transform: 'scale(1)' },
+          '35%': { transform: 'scale(1.15)' },
+        },
       },
       animation: {
         'slide-up': 'slide-up 0.25s ease-out',
@@ -67,6 +74,7 @@ export default {
         'fade-in': 'fade-in 0.2s ease-out',
         'fade-in-up': 'fade-in-up 0.25s ease-out',
         'scale-in': 'scale-in 0.18s ease-out',
+        heartbeat: 'heartbeat 1.6s ease-in-out infinite',
       },
       transitionTimingFunction: {
         'soft-out': 'cubic-bezier(0.22, 1, 0.36, 1)',

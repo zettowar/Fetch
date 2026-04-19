@@ -47,8 +47,10 @@ export default function TransfersPage() {
   return (
     <div className="p-4 pb-8 max-w-xl mx-auto">
       <BackButton fallback="/home" />
-      <h1 className="text-2xl font-bold mt-2 mb-1">Dog transfers</h1>
-      <p className="text-sm text-gray-500 mb-5">
+      <h1 className="text-2xl font-bold mt-2 mb-1 flex items-center gap-2">
+        <span aria-hidden>🔄</span> Dog transfers
+      </h1>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
         When a rescue adopts one of their dogs to you, you'll see an invitation
         here. Accept to take ownership, or decline if this isn't you.
       </p>
@@ -58,7 +60,7 @@ export default function TransfersPage() {
           <Spinner className="h-6 w-6" />
         </div>
       ) : pending.length === 0 && history.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-400 dark:text-gray-500">
           <p className="text-4xl mb-3">📨</p>
           <p className="font-medium">No transfers</p>
           <p className="text-sm mt-1">You're all caught up.</p>
@@ -67,7 +69,7 @@ export default function TransfersPage() {
         <>
           {pending.length > 0 && (
             <section className="mb-6">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
                 Pending ({pending.length})
               </h2>
               <div className="flex flex-col gap-3">
@@ -85,14 +87,14 @@ export default function TransfersPage() {
           )}
           {history.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
                 History
               </h2>
               <div className="flex flex-col gap-2">
                 {history.map((t) => (
                   <div
                     key={t.id}
-                    className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl"
+                    className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-xl"
                   >
                     {t.dog_photo_url && (
                       <img
@@ -103,7 +105,7 @@ export default function TransfersPage() {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{t.dog_name}</p>
-                      <p className="text-xs text-gray-400 capitalize">
+                      <p className="text-xs text-gray-400 dark:text-gray-500 capitalize">
                         {t.status}{t.from_rescue_name ? ` · ${t.from_rescue_name}` : ''}
                       </p>
                     </div>
@@ -130,7 +132,7 @@ function TransferCard({
   busy: boolean;
 }) {
   return (
-    <div className="p-4 bg-white border border-brand-200 rounded-2xl">
+    <div className="p-4 bg-white dark:bg-gray-900 border border-brand-200 rounded-2xl">
       <div className="flex items-center gap-3 mb-3">
         {transfer.dog_photo_url && (
           <img
@@ -141,10 +143,10 @@ function TransferCard({
         )}
         <div className="flex-1 min-w-0">
           <p className="font-semibold">{transfer.dog_name}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             From {transfer.from_rescue_name ?? 'a rescue'}
           </p>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">
             Expires {new Date(transfer.expires_at).toLocaleDateString()}
           </p>
         </div>
@@ -155,7 +157,7 @@ function TransferCard({
           View dog
         </Link>
       </div>
-      <p className="text-sm text-gray-600 mb-3">
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
         Accepting takes ownership of <span className="font-medium">{transfer.dog_name}</span> on your account.
       </p>
       <div className="flex gap-2">

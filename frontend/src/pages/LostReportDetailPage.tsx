@@ -121,10 +121,10 @@ export default function LostReportDetailPage() {
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-medium ${
             report.status === 'open'
-              ? 'bg-yellow-100 text-yellow-700'
+              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-200'
               : report.status === 'resolved'
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-600'
+              ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
           }`}
         >
           {report.status === 'open' ? 'Open' : report.status === 'resolved' ? 'Resolved' : 'Closed'}
@@ -137,7 +137,7 @@ export default function LostReportDetailPage() {
           {report.dog_name && (
             <h1 className="text-2xl font-bold">{report.dog_name}</h1>
           )}
-          {report.dog_breed && <p className="text-gray-500">{report.dog_breed}</p>}
+          {report.dog_breed && <p className="text-gray-500 dark:text-gray-400">{report.dog_breed}</p>}
         </div>
         <button
           onClick={() =>
@@ -146,7 +146,7 @@ export default function LostReportDetailPage() {
               `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.dog_name || 'Dog'}`,
             )
           }
-          className="text-xs text-gray-400 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0"
+          className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors flex-shrink-0"
           title="Share report"
         >
           Share
@@ -155,20 +155,21 @@ export default function LostReportDetailPage() {
 
       {/* Photos */}
       {report.photos.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 mt-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
           {report.photos.map((p, idx) => (
             <img
               key={p.id}
               src={p.url || `/api/v1/photos/file/${p.storage_key}`}
               alt={`Photo ${idx + 1} of ${report.dog_name || 'the dog'}`}
-              className="w-full h-32 object-cover rounded-lg"
+              loading="lazy"
+              className="w-full h-48 sm:h-32 object-cover rounded-lg"
             />
           ))}
         </div>
       )}
 
       {/* Description */}
-      <p className="mt-4 text-gray-700 whitespace-pre-wrap break-words">
+      <p className="mt-4 text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
         <Linkify>{report.description}</Linkify>
       </p>
 
@@ -180,13 +181,13 @@ export default function LostReportDetailPage() {
         const zoom = Math.max(11, Math.round(15 - Math.log2(radius / 250)));
         return (
           <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700 mb-1.5">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               {report.kind === 'missing' ? 'Last seen near' : 'Found near'}
-              <span className="text-xs text-gray-400 font-normal ml-2">
+              <span className="text-xs text-gray-400 dark:text-gray-500 font-normal ml-2">
                 (within ~{formatRadius(radius)})
               </span>
             </p>
-            <div className="h-56 overflow-hidden rounded-xl border border-gray-200">
+            <div className="h-56 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
               <Map
                 center={[report.last_seen_lng, report.last_seen_lat]}
                 zoom={zoom}
@@ -216,21 +217,21 @@ export default function LostReportDetailPage() {
         );
       })()}
 
-      <p className="text-xs text-gray-400 mt-1">
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
         Reported <TimeAgo value={report.created_at} />
       </p>
 
       {/* Microchip registry links */}
-      <div className="mt-4 p-3 bg-blue-50 rounded-xl text-sm">
-        <p className="font-medium text-blue-800 mb-1">Check microchip registries:</p>
+      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl text-sm">
+        <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">Check microchip registries:</p>
         <div className="flex flex-col gap-1">
-          <a href="https://www.aaha.org/pet-microchip-lookup/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+          <a href="https://www.aaha.org/pet-microchip-lookup/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
             AAHA Universal Pet Microchip Lookup
           </a>
-          <a href="https://www.akcreunite.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+          <a href="https://www.akcreunite.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
             AKC Reunite
           </a>
-          <a href="https://lost.petcolove.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+          <a href="https://lost.petcolove.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
             Petco Love Lost
           </a>
         </div>
@@ -263,7 +264,7 @@ export default function LostReportDetailPage() {
 
       {/* Sighting form */}
       {showSightingForm && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
           <h3 className="font-semibold mb-2">Add Sighting</h3>
           <div className="flex flex-col gap-2">
             <Button
@@ -288,15 +289,15 @@ export default function LostReportDetailPage() {
             </div>
             <Input label="Note" value={sightNote} onChange={(e) => setSightNote(e.target.value)} placeholder="Any details..." />
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Photo (optional)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Photo (optional)</label>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={(e) => setSightPhoto(e.target.files?.[0] ?? null)}
-                className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
+                className="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
               />
               {sightPhoto && (
-                <p className="mt-1 text-xs text-gray-500 truncate">{sightPhoto.name}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">{sightPhoto.name}</p>
               )}
             </div>
             <Button onClick={() => sightingMutation.mutate()} loading={sightingMutation.isPending} disabled={sightLat === '' || sightLng === ''}>
@@ -308,10 +309,10 @@ export default function LostReportDetailPage() {
 
       {/* Contact form */}
       {showContactForm && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
           <h3 className="font-semibold mb-2">Contact Reporter</h3>
           <textarea
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
             rows={3}
             placeholder="Your message..."
             value={contactMessage}
@@ -324,33 +325,44 @@ export default function LostReportDetailPage() {
       )}
 
       {/* Sightings list */}
-      {sightings.length > 0 && (
-        <div className="mt-6">
-          <h3 className="font-semibold mb-2">Sightings ({sightings.length})</h3>
+      <div className="mt-6">
+        <h3 className="font-semibold mb-2">
+          Sightings <span className="text-gray-400 dark:text-gray-500 font-normal">({sightings.length})</span>
+        </h3>
+        {sightings.length === 0 ? (
+          <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 px-4 py-6 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">No sightings yet</p>
+            {report.status === 'open' && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Seen this dog? Use the sighting form above to help.
+              </p>
+            )}
+          </div>
+        ) : (
           <div className="flex flex-col gap-2">
             {sightings.map((s) => (
-              <div key={s.id} className="p-3 bg-white border border-gray-100 rounded-xl">
+              <div key={s.id} className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl">
                 {s.photo_url && (
                   <a href={s.photo_url} target="_blank" rel="noopener noreferrer">
                     <img
                       src={s.photo_url}
                       alt="Sighting"
-                      className="w-full max-h-60 object-cover rounded-lg mb-2"
+                      loading="lazy"
+                      className="w-full max-h-60 object-cover rounded-lg mb-2 hover:opacity-95 transition-opacity"
                     />
                   </a>
                 )}
-                <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words leading-relaxed">
                   {s.note ? <Linkify>{s.note}</Linkify> : 'No details'}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {s.lat.toFixed(3)}, {s.lng.toFixed(3)} —{' '}
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   <TimeAgo value={s.created_at} />
                 </p>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

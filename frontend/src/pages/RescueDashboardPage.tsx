@@ -67,12 +67,12 @@ export default function RescueDashboardPage() {
     return (
       <div className="p-6 max-w-md mx-auto">
         <h1 className="text-2xl font-bold mb-2">Application pending</h1>
-        <p className="text-gray-600 mb-4">
+        <p className="text-gray-600 dark:text-gray-300 mb-4">
           Thanks for applying, <span className="font-semibold">{profile.org_name}</span>.
           Our team is reviewing your application. Once approved, you'll be able to
           post adoptable dogs here.
         </p>
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800 mb-4">
+        <div className="rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30 p-4 text-sm text-amber-800 dark:text-amber-200 mb-4">
           Reviews typically take 1–3 business days. We'll email you at your signup address.
         </div>
       </div>
@@ -83,7 +83,7 @@ export default function RescueDashboardPage() {
     return (
       <div className="p-6 max-w-md mx-auto">
         <h1 className="text-2xl font-bold mb-2">Application declined</h1>
-        <p className="text-gray-600 mb-4">
+        <p className="text-gray-600 dark:text-gray-300 mb-4">
           {profile.review_note || "We couldn't verify your application."} Please
           reach out to us with additional information if you think this is a mistake.
         </p>
@@ -105,16 +105,16 @@ export default function RescueDashboardPage() {
           + Post a dog
         </Link>
       </div>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Dogs you post here appear in the swipe feed and the adoption directory.
       </p>
 
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Adoptable ({unadopted.length})
         </h2>
         {unadopted.length === 0 ? (
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-400 dark:text-gray-500">
             No adoptable dogs yet —{' '}
             <Link to="/dogs/new" className="text-brand-500 hover:underline">
               post your first
@@ -139,14 +139,14 @@ export default function RescueDashboardPage() {
 
       {adopted.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
             Adopted ({adopted.length})
           </h2>
           <div className="flex flex-col gap-2">
             {adopted.map((d) => (
               <div
                 key={d.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl"
+                className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-xl"
               >
                 {d.primary_photo_url && (
                   <img
@@ -157,7 +157,7 @@ export default function RescueDashboardPage() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{d.name}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     Adopted {d.adopted_at ? new Date(d.adopted_at).toLocaleDateString() : ''}
                   </p>
                 </div>
@@ -201,7 +201,7 @@ function AdoptableDogRow({
   });
 
   return (
-    <div className="p-3 bg-white border border-gray-100 rounded-xl">
+    <div className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl">
       <div className="flex items-center gap-3">
         {dog.primary_photo_url && (
           <img
@@ -214,7 +214,7 @@ function AdoptableDogRow({
         <div className="flex-1 min-w-0">
           <p className="font-semibold truncate">{dog.name}</p>
           {dog.breed_display && (
-            <p className="text-xs text-gray-400 truncate">{dog.breed_display}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{dog.breed_display}</p>
           )}
         </div>
         <Button size="sm" variant="ghost" onClick={onView}>
@@ -254,7 +254,7 @@ function AdoptableDogRow({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="adopter@example.com"
           />
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-gray-500">
             They'll see a pending transfer next time they log in. If they don't
             have Fetch yet, they'll see it when they sign up with this email.
           </p>

@@ -2,6 +2,7 @@ import { Component, type ReactNode } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthProvider } from './store/AuthContext';
+import { ThemeProvider } from './store/ThemeContext';
 import AuthGuard from './components/AuthGuard';
 import AdminGuard from './components/AdminGuard';
 import NavBar from './components/NavBar';
@@ -65,9 +66,9 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
+        <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
           <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
-          <p className="text-gray-500 mb-4">Try refreshing the page.</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">Try refreshing the page.</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-brand-500 text-white rounded-lg"
@@ -90,7 +91,7 @@ function AppContent() {
       <ScrollToTop />
       {/* Consumer app shell (hidden on admin routes) */}
       {!isAdmin && (
-        <div className="mx-auto max-w-app min-h-screen bg-white pb-20 shadow-soft-lg">
+        <div className="mx-auto max-w-app min-h-screen bg-white dark:bg-gray-900 pb-20 shadow-soft-lg">
           <NavBar />
           <motion.div
               key={location.pathname}
@@ -164,9 +165,11 @@ function AppContent() {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

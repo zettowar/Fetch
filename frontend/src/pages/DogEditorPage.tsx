@@ -170,13 +170,16 @@ export default function DogEditorPage() {
   return (
     <div className="p-4">
       <BackButton fallback="/dogs" />
-      <h1 className="text-2xl font-bold mb-4">{isEditing ? 'Edit Dog' : 'Add a Dog'}</h1>
+      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <span aria-hidden>{isEditing ? '✏️' : '🐶'}</span>
+        {isEditing ? 'Edit Dog' : 'Add a Dog'}
+      </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Breed type</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Breed type</label>
           <div className="grid grid-cols-2 gap-2">
             {MIX_TYPES.map((opt) => (
               <button
@@ -186,11 +189,11 @@ export default function DogEditorPage() {
                 className={`flex flex-col items-start px-3 py-2 rounded-xl border text-left transition-colors ${
                   mixType === opt.value
                     ? 'border-brand-500 bg-brand-50 text-brand-700'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-brand-300'
+                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:border-brand-300'
                 }`}
               >
                 <span className="text-sm font-medium">{opt.label}</span>
-                <span className="text-xs text-gray-400">{opt.hint}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{opt.hint}</span>
               </button>
             ))}
           </div>
@@ -219,19 +222,19 @@ export default function DogEditorPage() {
           onChange={(e) => setBirthday(e.target.value)}
         />
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Bio</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
           <textarea
-            className="rounded-xl border border-gray-300 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
             rows={3}
             maxLength={500}
             placeholder="Tell us about your dog..."
             value={bio}
             onChange={(e) => setBio(e.target.value)}
           />
-          <p className="text-xs text-gray-400 text-right">{bio.length}/500</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-right">{bio.length}/500</p>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Personality traits</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Personality traits</label>
           <div className="flex flex-wrap gap-2">
             {DOG_TRAITS.map((trait) => {
               const selected = traits.includes(trait);
@@ -247,7 +250,7 @@ export default function DogEditorPage() {
                   className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
                     selected
                       ? 'bg-brand-500 text-white border-brand-500'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'
+                      : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-brand-300'
                   }`}
                 >
                   {trait}
@@ -262,8 +265,8 @@ export default function DogEditorPage() {
             section below handles photos against an existing dog id. */}
         {!isEditing && (
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700">
-              Photos <span className="text-xs text-gray-400 font-normal ml-1">(optional)</span>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Photos <span className="text-xs text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
             </label>
 
             {pendingPhotos.length > 0 && (
@@ -315,7 +318,7 @@ export default function DogEditorPage() {
               />
             )}
             {pendingPhotos.length === 0 && (
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">
                 Your first photo becomes the primary. You can add more any time from the profile.
               </p>
             )}

@@ -4,6 +4,7 @@ import { getMyFollows } from '../api/social';
 import { dogAge, dogHeroPhoto } from '../utils/time';
 import Skeleton from '../components/ui/Skeleton';
 import Button from '../components/ui/Button';
+import EmptyState from '../components/ui/EmptyState';
 import type { Dog } from '../types';
 
 function FollowedDogCard({ dog }: { dog: Dog }) {
@@ -11,7 +12,7 @@ function FollowedDogCard({ dog }: { dog: Dog }) {
   const age = dogAge(dog.birthday);
 
   return (
-    <Link to={`/dogs/${dog.id}`} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-gray-100 hover:border-brand-200 hover:bg-brand-50/30 transition-colors">
+    <Link to={`/dogs/${dog.id}`} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-brand-200 hover:bg-brand-50/30 transition-colors">
       {hero ? (
         <img src={hero} alt={dog.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
       ) : (
@@ -21,13 +22,13 @@ function FollowedDogCard({ dog }: { dog: Dog }) {
       )}
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
-          <h3 className="font-semibold text-gray-900 truncate">{dog.name}</h3>
-          {age && <span className="text-xs text-gray-400 flex-shrink-0">{age}</span>}
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{dog.name}</h3>
+          {age && <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{age}</span>}
         </div>
-        {dog.breed_display && <p className="text-sm text-gray-500 truncate">{dog.breed_display}</p>}
-        {dog.bio && <p className="text-xs text-gray-400 truncate mt-0.5">{dog.bio}</p>}
+        {dog.breed_display && <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{dog.breed_display}</p>}
+        {dog.bio && <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{dog.bio}</p>}
       </div>
-      <span className="text-gray-300 ml-auto flex-shrink-0">›</span>
+      <span className="text-gray-300 dark:text-gray-600 ml-auto flex-shrink-0">›</span>
     </Link>
   );
 }
@@ -42,8 +43,10 @@ export default function FollowingPage() {
 
   return (
     <div className="p-4 pb-8">
-      <h1 className="text-xl font-bold mb-1">Following</h1>
-      <p className="text-sm text-gray-400 mb-5">
+      <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
+        <span aria-hidden>🐾</span> Following
+      </h1>
+      <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">
         {followedDogs.length > 0
           ? `${followedDogs.length} dog${followedDogs.length !== 1 ? 's' : ''} you follow`
           : 'Dogs you follow will appear here'}
@@ -56,19 +59,21 @@ export default function FollowingPage() {
       )}
 
       {!isLoading && followedDogs.length === 0 && (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">🐾</p>
-          <p className="font-medium">No dogs followed yet</p>
-          <p className="text-sm mt-1 mb-5">Follow dogs from their profile page to see them here</p>
-          <div className="flex items-center justify-center gap-2">
-            <Link to="/">
-              <Button size="sm">Start swiping</Button>
-            </Link>
-            <Link to="/rankings">
-              <Button size="sm" variant="secondary">Browse top dogs</Button>
-            </Link>
-          </div>
-        </div>
+        <EmptyState
+          icon="🐾"
+          title="No dogs followed yet"
+          body="Follow dogs from their profile to keep up with their photos and posts."
+          action={
+            <>
+              <Link to="/swipe">
+                <Button size="sm">Start swiping</Button>
+              </Link>
+              <Link to="/rankings">
+                <Button size="sm" variant="secondary">Browse top dogs</Button>
+              </Link>
+            </>
+          }
+        />
       )}
 
       {!isLoading && followedDogs.length > 0 && (

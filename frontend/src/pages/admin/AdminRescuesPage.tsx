@@ -45,7 +45,7 @@ export default function AdminRescuesPage() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
               tab === t
                 ? 'bg-brand-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {t}
@@ -56,7 +56,7 @@ export default function AdminRescuesPage() {
       {isLoading ? (
         <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
       ) : profiles.length === 0 ? (
-        <p className="text-gray-400 text-center py-8">No {tab} applications.</p>
+        <p className="text-gray-400 dark:text-gray-500 text-center py-8">No {tab} applications.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {profiles.map((p) => (
@@ -89,19 +89,19 @@ function ReviewCard({
   const [mode, setMode] = useState<'idle' | 'reject'>('idle');
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold">{profile.org_name}</h3>
           {profile.location && (
-            <p className="text-xs text-gray-400">{profile.location}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{profile.location}</p>
           )}
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">
             Submitted <TimeAgo value={profile.created_at} />
           </p>
         </div>
       </div>
-      <p className="text-sm text-gray-700 whitespace-pre-wrap">{profile.description}</p>
+      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{profile.description}</p>
       {(profile.website || profile.donation_url) && (
         <div className="flex flex-wrap gap-2 mt-2 text-xs">
           {profile.website && (
@@ -127,13 +127,13 @@ function ReviewCard({
         </div>
       )}
       {profile.proof_details && (
-        <div className="mt-2 rounded-lg bg-gray-50 p-2 text-xs text-gray-600">
+        <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-2 text-xs text-gray-600 dark:text-gray-300">
           <span className="font-medium">Proof: </span>
           <span className="whitespace-pre-wrap">{profile.proof_details}</span>
         </div>
       )}
       {profile.review_note && (
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           <span className="font-medium">Note: </span>
           {profile.review_note}
         </p>
@@ -157,7 +157,7 @@ function ReviewCard({
         ) : (
           <div className="mt-3 flex flex-col gap-2">
             <textarea
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm"
               rows={2}
               placeholder="Reason (shown to the applicant)"
               value={note}

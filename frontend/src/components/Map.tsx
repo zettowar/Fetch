@@ -297,7 +297,7 @@ export default function Map({
           >
             <div className="p-3 min-w-[240px]">
               {selectedMarker.popup ?? (
-                <div className="text-sm font-medium text-gray-800">
+                <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
                   {selectedMarker.label ?? ''}
                 </div>
               )}
