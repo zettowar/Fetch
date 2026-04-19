@@ -15,6 +15,23 @@ interface Props {
   dispatch: (a: Action) => void;
 }
 
+/**
+ * Return the flip action to dispatch for a given visual axis, accounting
+ * for the image's current 90° rotation quadrant. Flips and rotation are
+ * stored in pre-rotation image space; this indirection is what makes
+ * "Flip horizontal" behave intuitively (mirror along the user's visual X
+ * axis) even when the image has been rotated 90° or 270° first.
+ */
+function flipActionForVisualAxis(
+  rotation: number,
+  visual: 'h' | 'v',
+): Action {
+  const q = Math.floor((((rotation % 360) + 360) % 360) / 90); // 0..3
+  const swap = q % 2 === 1;
+  const axis = visual === 'h' ? (swap ? 'v' : 'h') : swap ? 'h' : 'v';
+  return axis === 'h' ? { type: 'FLIP_H' } : { type: 'FLIP_V' };
+}
+
 export default function CropPanel({ state, dispatch }: Props) {
   return (
     <div className="flex flex-col gap-3 px-4 py-3">
@@ -58,7 +75,9 @@ export default function CropPanel({ state, dispatch }: Props) {
           </svg>
         </IconButton>
         <IconButton
-          onClick={() => dispatch({ type: 'FLIP_H' })}
+          onClick={() =>
+            dispatch(flipActionForVisualAxis(state.rotation, 'h'))
+          }
           label="Flip horizontal"
           active={state.flipH}
         >
@@ -69,7 +88,9 @@ export default function CropPanel({ state, dispatch }: Props) {
           </svg>
         </IconButton>
         <IconButton
-          onClick={() => dispatch({ type: 'FLIP_V' })}
+          onClick={() =>
+            dispatch(flipActionForVisualAxis(state.rotation, 'v'))
+          }
           label="Flip vertical"
           active={state.flipV}
         >

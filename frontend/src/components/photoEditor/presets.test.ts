@@ -37,4 +37,24 @@ describe('toFilterString', () => {
     expect(s).toContain('brightness(');
     expect(s).toContain('saturate(');
   });
+
+  it('warmthInCss: false drops hue-rotate and sepia so the pixel pass owns warmth', () => {
+    const withWarmth = { ...DEFAULT_ADJUSTMENTS, warmth: 80 };
+    const preview = toFilterString('none', withWarmth, { warmthInCss: true });
+    const forExport = toFilterString('none', withWarmth, { warmthInCss: false });
+    expect(preview).toContain('hue-rotate');
+    expect(preview).toContain('sepia(');
+    expect(forExport).not.toContain('hue-rotate');
+    expect(forExport).not.toContain('sepia(');
+  });
+
+  it('approxToneInCss: false drops the tone-curve approximation for highlights/shadows', () => {
+    const withTone = { ...DEFAULT_ADJUSTMENTS, highlights: -40, shadows: 60 };
+    const preview = toFilterString('none', withTone, { approxToneInCss: true });
+    const forExport = toFilterString('none', withTone, { approxToneInCss: false });
+    // Preview gets an extra brightness(...) for the tone approximation.
+    expect(preview.match(/brightness\(/g)?.length ?? 0).toBeGreaterThan(
+      forExport.match(/brightness\(/g)?.length ?? 0,
+    );
+  });
 });

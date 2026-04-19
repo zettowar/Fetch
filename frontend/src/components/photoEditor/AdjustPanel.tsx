@@ -1,11 +1,24 @@
 import type { Action, AdjustmentKey, EditorState } from './editorState';
+import { PIXEL_PASS_CHANNELS } from './editorState';
 
-const CHANNELS: { key: AdjustmentKey; label: string }[] = [
-  { key: 'brightness', label: 'Brightness' },
-  { key: 'contrast', label: 'Contrast' },
-  { key: 'saturation', label: 'Saturation' },
-  { key: 'warmth', label: 'Warmth' },
+interface ChannelMeta {
+  key: AdjustmentKey;
+  label: string;
+  min: number;
+  max: number;
+}
+
+const CHANNELS: ChannelMeta[] = [
+  { key: 'brightness', label: 'Brightness', min: -100, max: 100 },
+  { key: 'contrast', label: 'Contrast', min: -100, max: 100 },
+  { key: 'saturation', label: 'Saturation', min: -100, max: 100 },
+  { key: 'warmth', label: 'Warmth', min: -100, max: 100 },
+  { key: 'highlights', label: 'Highlights', min: -100, max: 100 },
+  { key: 'shadows', label: 'Shadows', min: -100, max: 100 },
+  { key: 'vignette', label: 'Vignette', min: 0, max: 100 },
 ];
+
+const PIXEL_PASS_SET = new Set<AdjustmentKey>(PIXEL_PASS_CHANNELS);
 
 interface Props {
   state: EditorState;
@@ -14,12 +27,15 @@ interface Props {
 
 export default function AdjustPanel({ state, dispatch }: Props) {
   const active = state.activeChannel;
+  const activeMeta = CHANNELS.find((c) => c.key === active) ?? CHANNELS[0];
   const value = state.adjustments[active];
+  const isPixelPass = PIXEL_PASS_SET.has(active);
 
   return (
     <div className="flex flex-col gap-3 px-4 py-3">
-      {/* Segmented control */}
-      <div className="flex gap-1 rounded-full bg-white/10 p-1">
+      {/* Horizontally-scrollable channel picker — seven channels would be
+          cramped in a fixed segmented control at 420px. */}
+      <div className="flex gap-1 overflow-x-auto -mx-1 px-1 pb-0.5">
         {CHANNELS.map((c) => {
           const isActive = active === c.key;
           const v = state.adjustments[c.key];
@@ -31,10 +47,10 @@ export default function AdjustPanel({ state, dispatch }: Props) {
               onClick={() =>
                 dispatch({ type: 'SET_ACTIVE_CHANNEL', channel: c.key })
               }
-              className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
+              className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
                 isActive
                   ? 'bg-white text-gray-900'
-                  : 'text-white/80 hover:text-white'
+                  : 'bg-white/10 text-white/80 hover:bg-white/20'
               }`}
             >
               {c.label}
@@ -53,7 +69,7 @@ export default function AdjustPanel({ state, dispatch }: Props) {
       <div className="flex flex-col gap-1.5 rounded-xl bg-white/5 px-3 py-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] uppercase tracking-widest text-white/60">
-            {CHANNELS.find((c) => c.key === active)?.label}
+            {activeMeta.label}
           </span>
           <span className="text-xs font-mono text-white/80">
             {value > 0 ? '+' : ''}
@@ -62,8 +78,8 @@ export default function AdjustPanel({ state, dispatch }: Props) {
         </div>
         <input
           type="range"
-          min={-100}
-          max={100}
+          min={activeMeta.min}
+          max={activeMeta.max}
           step={1}
           value={value}
           onChange={(e) =>
@@ -77,7 +93,9 @@ export default function AdjustPanel({ state, dispatch }: Props) {
           className="w-full accent-white"
         />
         <p className="text-[10px] text-white/40 text-center">
-          Double-tap the slider to reset just this channel
+          {isPixelPass
+            ? 'Preview is approximate — final result applied on Done.'
+            : 'Double-tap the slider to reset just this channel'}
         </p>
       </div>
     </div>

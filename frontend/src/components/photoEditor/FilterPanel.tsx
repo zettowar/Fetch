@@ -71,9 +71,9 @@ export default function FilterPanel({ state, dispatch, imageSrc }: Props) {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="h-full w-full bg-white/10 flex items-center justify-center text-[10px] text-white/60">
-                    {it.label}
-                  </div>
+                  // Skeleton while the base thumbnail is being generated
+                  // (runs once per editor session).
+                  <div className="h-full w-full bg-white/5 animate-pulse" />
                 )}
               </div>
               <span

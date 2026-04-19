@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
+import toast from 'react-hot-toast';
 import {
   ASPECT_RATIOS,
   DEFAULT_STATE,
@@ -45,14 +46,46 @@ export default function PhotoEditor({
     };
   }, [imageSrc]);
 
+  // Esc closes (matches native dialog behavior). Doesn't fire during confirm
+  // so we don't drop a half-finished export.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !confirming) {
+        e.preventDefault();
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirming, onCancel]);
+
   const onCropComplete = useCallback((_: Area, areaPixels: Area) => {
     dispatch({ type: 'SET_CROPPED_AREA', area: areaPixels });
   }, []);
 
+  // CSS filter for the live preview: warmth + tone use approximations so
+  // the sliders visibly move, but the export pipeline turns these off to
+  // avoid doubling up with the real pixel pass.
   const cssFilter = useMemo(
-    () => toFilterString(state.filter, state.adjustments),
+    () =>
+      toFilterString(state.filter, state.adjustments, {
+        warmthInCss: true,
+        approxToneInCss: true,
+      }),
     [state.filter, state.adjustments],
   );
+
+  // Vignette preview: a radial inset shadow over the cropped area. Strength
+  // matches the exporter's falloff envelope closely enough for a visual
+  // sanity check while editing.
+  const vignetteBoxShadow = useMemo(() => {
+    const v = state.adjustments.vignette;
+    if (v <= 0) return undefined;
+    // Up to ~rgba(0,0,0,0.8) at 100, nothing at 0.
+    const alpha = (v / 100) * 0.8;
+    const spread = Math.round(30 + (v / 100) * 90); // px
+    return `inset 0 0 ${spread}px rgba(0, 0, 0, ${alpha.toFixed(2)})`;
+  }, [state.adjustments.vignette]);
 
   const handleConfirm = async () => {
     if (!state.croppedAreaPixels) return;
@@ -62,7 +95,10 @@ export default function PhotoEditor({
       // so we don't ship lossier pixels than necessary to the server.
       const blob = await renderEditedBlob(imageSrc, state);
       onConfirm(blob);
-    } catch {
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Could not export the photo';
+      toast.error(message);
       setConfirming(false);
     }
   };
@@ -74,7 +110,8 @@ export default function PhotoEditor({
         <button
           type="button"
           onClick={onCancel}
-          className="text-sm text-white/80 hover:text-white transition-colors"
+          disabled={confirming}
+          className="text-sm text-white/80 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Cancel
         </button>
@@ -82,7 +119,7 @@ export default function PhotoEditor({
           <button
             type="button"
             onClick={() => dispatch({ type: 'RESET' })}
-            disabled={!isDirty(state)}
+            disabled={!isDirty(state) || confirming}
             className="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             Reset
@@ -91,8 +128,14 @@ export default function PhotoEditor({
             type="button"
             onClick={handleConfirm}
             disabled={confirming || !state.croppedAreaPixels}
-            className="rounded-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 transition-colors"
+            className="rounded-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 transition-colors inline-flex items-center gap-2"
           >
+            {confirming && (
+              <span
+                className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin"
+                aria-hidden
+              />
+            )}
             {confirming ? 'Saving…' : 'Done'}
           </button>
         </div>
@@ -113,13 +156,13 @@ export default function PhotoEditor({
           objectFit="contain"
           style={{
             containerStyle: { background: '#000' },
-            cropAreaStyle: { borderColor: '#fff', borderWidth: 2 },
-            // Cropper already composes translate + rotate + scale(zoom) on the
-            // media. Layer our preview-only extras on top: horizontal/vertical
-            // flip + CSS filter for live look-preview. The exporter re-applies
-            // these against the full-res source, so the crop rectangle that
-            // Cropper reports stays in its non-flipped coordinate space (as
-            // renderEditedBlob expects).
+            cropAreaStyle: {
+              borderColor: '#fff',
+              borderWidth: 2,
+              // Vignette approximation overlays the crop area so the darkening
+              // follows whatever region the user is actually capturing.
+              boxShadow: vignetteBoxShadow,
+            },
             mediaStyle: {
               filter: cssFilter,
               transform: `scale(${state.flipH ? -1 : 1}, ${
@@ -141,14 +184,16 @@ export default function PhotoEditor({
           <AdjustPanel state={state} dispatch={dispatch} />
         )}
         {state.tab === 'filter' && (
-          <FilterPanel state={state} dispatch={dispatch} imageSrc={previewSrc} />
+          <FilterPanel
+            state={state}
+            dispatch={dispatch}
+            imageSrc={previewSrc}
+          />
         )}
       </div>
 
       {/* Tab bar */}
-      <div
-        className="flex-shrink-0 grid grid-cols-3 border-t border-white/10 bg-black safe-bottom"
-      >
+      <div className="flex-shrink-0 grid grid-cols-3 border-t border-white/10 bg-black safe-bottom">
         <TabButton
           label="Crop"
           active={state.tab === 'crop'}

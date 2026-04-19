@@ -13,14 +13,33 @@ export type FilterKey =
   | 'soft'
   | 'dusk';
 
-export type AdjustmentKey = 'brightness' | 'contrast' | 'saturation' | 'warmth';
+export type AdjustmentKey =
+  | 'brightness'
+  | 'contrast'
+  | 'saturation'
+  | 'warmth'
+  | 'highlights'
+  | 'shadows'
+  | 'vignette';
 
 export interface Adjustments {
-  brightness: number; // -100..100, 0 = neutral
-  contrast: number;
-  saturation: number;
-  warmth: number; // -100..100, cool → warm
+  brightness: number; // -100..100, 0 = neutral (CSS filter)
+  contrast: number; // CSS filter
+  saturation: number; // CSS filter
+  warmth: number; // -100..100, cool → warm (pixel pass; preview = CSS approx)
+  highlights: number; // -100..100, + pulls bright areas down (pixel pass)
+  shadows: number; // -100..100, + lifts dark areas (pixel pass)
+  vignette: number; // 0..100, darkens corners (pixel pass; negative is no-op)
 }
+
+/** Adjustments that require a per-pixel canvas pass at export time. The rest
+ *  are pure CSS filters and stay on the GPU during live preview. */
+export const PIXEL_PASS_CHANNELS: ReadonlyArray<AdjustmentKey> = [
+  'warmth',
+  'highlights',
+  'shadows',
+  'vignette',
+];
 
 export interface EditorState {
   // react-easy-crop inputs
@@ -56,6 +75,9 @@ export const DEFAULT_ADJUSTMENTS: Adjustments = {
   contrast: 0,
   saturation: 0,
   warmth: 0,
+  highlights: 0,
+  shadows: 0,
+  vignette: 0,
 };
 
 export const DEFAULT_STATE: EditorState = {
@@ -120,14 +142,17 @@ export function editorReducer(state: EditorState, action: Action): EditorState {
       return { ...state, flipV: !state.flipV };
     case 'SET_FILTER':
       return { ...state, filter: action.filter };
-    case 'SET_ADJ':
+    case 'SET_ADJ': {
+      // Most channels are bipolar; vignette is 0..100 (negative is meaningless).
+      const min = action.key === 'vignette' ? 0 : -100;
       return {
         ...state,
         adjustments: {
           ...state.adjustments,
-          [action.key]: clamp(action.value, -100, 100),
+          [action.key]: clamp(action.value, min, 100),
         },
       };
+    }
     case 'RESET_ADJ':
       return {
         ...state,
@@ -148,17 +173,19 @@ export function editorReducer(state: EditorState, action: Action): EditorState {
 
 /** True if the user has changed anything from the defaults (i.e. Reset should be active). */
 export function isDirty(state: EditorState): boolean {
-  return (
+  if (
     state.zoom !== 1 ||
     state.aspect !== DEFAULT_STATE.aspect ||
     state.rotation !== 0 ||
     state.straighten !== 0 ||
     state.flipH ||
     state.flipV ||
-    state.filter !== 'none' ||
-    state.adjustments.brightness !== 0 ||
-    state.adjustments.contrast !== 0 ||
-    state.adjustments.saturation !== 0 ||
-    state.adjustments.warmth !== 0
-  );
+    state.filter !== 'none'
+  ) {
+    return true;
+  }
+  for (const k of Object.keys(state.adjustments) as AdjustmentKey[]) {
+    if (state.adjustments[k] !== 0) return true;
+  }
+  return false;
 }
