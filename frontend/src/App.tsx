@@ -92,7 +92,7 @@ function AppContent() {
       {!isAdmin && (
         <div className="mx-auto max-w-app min-h-screen bg-white pb-20 shadow-soft-lg">
           <NavBar />
-          <AnimatePresence initial={false}>
+          <AnimatePresence initial={false} mode="wait">
             <motion.div
               key={location.pathname}
               initial={{ opacity: 0 }}
