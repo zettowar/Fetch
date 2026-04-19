@@ -10,6 +10,8 @@ import {
 } from '../../api/breeds';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { apiErrorMessage } from '../../utils/apiError';
+import { Spinner } from '../../components/ui/Skeleton';
 
 export default function AdminBreedsPage() {
   const queryClient = useQueryClient();
@@ -34,7 +36,7 @@ export default function AdminBreedsPage() {
       queryClient.invalidateQueries({ queryKey: ['breeds'] });
       resetForm();
     },
-    onError: (err: any) => toast.error(err?.response?.data?.detail || 'Failed'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed')),
   });
 
   const updateMutation = useMutation({
@@ -46,7 +48,7 @@ export default function AdminBreedsPage() {
       queryClient.invalidateQueries({ queryKey: ['breeds'] });
       resetForm();
     },
-    onError: (err: any) => toast.error(err?.response?.data?.detail || 'Failed'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed')),
   });
 
   const deleteMutation = useMutation({
@@ -56,7 +58,7 @@ export default function AdminBreedsPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-breeds'] });
       queryClient.invalidateQueries({ queryKey: ['breeds'] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.detail || 'Failed'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed')),
   });
 
   const resetForm = () => {
@@ -112,7 +114,7 @@ export default function AdminBreedsPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+          <Spinner size="sm" />
         </div>
       ) : breeds.length === 0 ? (
         <p className="text-gray-400 text-center py-8">No breeds match.</p>

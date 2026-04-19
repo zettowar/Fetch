@@ -5,6 +5,7 @@ import { useAuth } from '../store/AuthContext';
 import Button from '../components/ui/Button';
 import { Spinner } from '../components/ui/Skeleton';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { apiErrorMessage } from '../utils/apiError';
 
 type Status = 'verifying' | 'success' | 'error';
 
@@ -31,7 +32,7 @@ export default function VerifyEmailPage() {
       })
       .catch((err) => {
         setStatus('error');
-        setMessage(err?.response?.data?.detail ?? 'This verification link is invalid or has expired.');
+        setMessage(apiErrorMessage(err, 'This verification link is invalid or has expired.'));
       });
   }, [token, user, refreshUser]);
 

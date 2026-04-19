@@ -28,6 +28,8 @@ class ParkImportResponse(BaseModel):
     total_fetched: int
     errors: list[str]
 
+    model_config = {"from_attributes": True}
+
 
 class ParkImportHistoryEntry(BaseModel):
     id: UUID
@@ -38,3 +40,5 @@ class ParkImportHistoryEntry(BaseModel):
     total_fetched: int
     bbox: tuple[float, float, float, float] | None = None
     created_at: datetime
+
+    model_config = {"from_attributes": True}

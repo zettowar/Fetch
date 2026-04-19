@@ -7,6 +7,7 @@ import { createLostReport } from '../api/lost';
 import { getMyDogs } from '../api/dogs';
 import Button from '../components/ui/Button';
 import LocationPicker from '../components/LocationPicker';
+import { apiErrorMessage } from '../utils/apiError';
 
 export default function ReportMissingPage() {
   const navigate = useNavigate();
@@ -44,9 +45,8 @@ export default function ReportMissingPage() {
       });
       toast.success('Missing dog report created');
       navigate(`/lost/${report.id}`);
-    } catch (err: unknown) {
-      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to create report';
-      toast.error(message);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to create report'));
     } finally {
       setSaving(false);
     }

@@ -16,6 +16,20 @@ router = APIRouter()
 MAX_REPORTS_PER_USER_PER_DAY = 10
 
 
+@router.get("/mine", response_model=list[ReportOut])
+async def my_reports(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Report)
+        .where(Report.reporter_id == user.id)
+        .order_by(Report.created_at.desc())
+        .limit(50)
+    )
+    return list(result.scalars().all())
+
+
 @router.post("", response_model=ReportOut, status_code=status.HTTP_201_CREATED)
 @limiter.limit("20/hour")
 async def create_report(
@@ -50,17 +64,3 @@ async def create_report(
     await db.commit()
     await db.refresh(report)
     return report
-
-
-@router.get("/mine", response_model=list[ReportOut])
-async def my_reports(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(Report)
-        .where(Report.reporter_id == user.id)
-        .order_by(Report.created_at.desc())
-        .limit(50)
-    )
-    return list(result.scalars().all())

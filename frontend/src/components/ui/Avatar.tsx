@@ -18,13 +18,15 @@ function hashColor(name: string): string {
 
 interface AvatarProps {
   name: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
 const sizes = {
   sm: 'w-6 h-6 text-[11px]',
   md: 'w-8 h-8 text-sm',
   lg: 'w-10 h-10 text-base',
+  xl: 'w-16 h-16 text-2xl',
+  '2xl': 'w-24 h-24 text-4xl',
 };
 
 export default function Avatar({ name, size = 'sm' }: AvatarProps) {

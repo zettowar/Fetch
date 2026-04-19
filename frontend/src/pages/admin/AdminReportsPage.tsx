@@ -6,6 +6,7 @@ import { getReports, reviewReport } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import PaginationFooter from '../../components/ui/PaginationFooter';
 import TimeAgo from '../../components/TimeAgo';
+import { Spinner } from '../../components/ui/Skeleton';
 
 const TABS = ['pending', 'reviewed', 'dismissed', 'all'] as const;
 const PAGE_SIZE = 50;
@@ -73,7 +74,7 @@ export default function AdminReportsPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+          <Spinner size="sm" />
         </div>
       ) : reports.length === 0 ? (
         <div className="text-center py-12 text-gray-400">

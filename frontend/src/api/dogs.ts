@@ -21,6 +21,11 @@ export async function getMyDogs(): Promise<Dog[]> {
   return res.data;
 }
 
+export async function getDogsByUser(userId: string): Promise<Dog[]> {
+  const res = await client.get(`/dogs/by-user/${userId}`);
+  return res.data;
+}
+
 export async function getDog(id: string): Promise<Dog> {
   const res = await client.get(`/dogs/${id}`);
   return res.data;

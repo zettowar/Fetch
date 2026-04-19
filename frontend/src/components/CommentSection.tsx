@@ -95,7 +95,7 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
       {/* Post comment */}
       <div className="flex gap-2">
         <input
-          className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-200"
+          className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
           placeholder="Add a comment..."
           value={body}
           onChange={(e) => setBody(e.target.value)}

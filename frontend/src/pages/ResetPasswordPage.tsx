@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { resetPassword } from '../api/auth';
 import Button from '../components/ui/Button';
 import PasswordInput from '../components/ui/PasswordInput';
+import { apiErrorMessage } from '../utils/apiError';
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -40,9 +41,8 @@ export default function ResetPasswordPage() {
       await resetPassword(token, password);
       toast.success('Password updated! Please log in.');
       navigate('/login');
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? 'Invalid or expired reset link.';
-      toast.error(msg);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Invalid or expired reset link.'));
     } finally {
       setLoading(false);
     }

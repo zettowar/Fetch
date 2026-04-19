@@ -11,7 +11,21 @@ from app.limiter import limiter
 from app.models.rescue import RescueProfile
 from app.models.user import EmailVerificationToken, PasswordResetToken, RefreshToken, User
 from app.config import settings
-from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse
+from app.schemas.auth import (
+    AuthResponse,
+    DetailResponse,
+    ForgotPasswordRequest,
+    LoginRequest,
+    LogoutRequest,
+    RefreshRequest,
+    RefreshResponse,
+    RescueProfileBrief,
+    RescueSignupResponse,
+    ResetPasswordRequest,
+    SignupRequest,
+    TokenResponse,
+    VerifyEmailRequest,
+)
 from app.schemas.rescue import RescueSignupRequest
 from app.schemas.user import UserOut
 from app.security import (
@@ -42,7 +56,7 @@ async def _create_tokens(user: User, db: AsyncSession) -> TokenResponse:
     return TokenResponse(access_token=access_token, refresh_token=raw_refresh)
 
 
-@router.post("/signup", response_model=dict, status_code=status.HTTP_201_CREATED)
+@router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def signup(request: Request, body: SignupRequest, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(User).where(User.email == body.email.lower()))
@@ -58,10 +72,14 @@ async def signup(request: Request, body: SignupRequest, db: AsyncSession = Depen
     await db.flush()
 
     tokens = await _create_tokens(user, db)
-    return {"tokens": tokens.model_dump(), "user": UserOut.model_validate(user).model_dump()}
+    return AuthResponse(tokens=tokens, user=UserOut.model_validate(user))
 
 
-@router.post("/signup-rescue", response_model=dict, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/signup-rescue",
+    response_model=RescueSignupResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 @limiter.limit("3/minute")
 async def signup_rescue(
     request: Request, body: RescueSignupRequest, db: AsyncSession = Depends(get_db),
@@ -95,18 +113,18 @@ async def signup_rescue(
     await db.flush()
 
     tokens = await _create_tokens(user, db)
-    return {
-        "tokens": tokens.model_dump(),
-        "user": UserOut.model_validate(user).model_dump(),
-        "rescue_profile": {
-            "id": str(profile.id),
-            "status": profile.status,
-            "org_name": profile.org_name,
-        },
-    }
+    return RescueSignupResponse(
+        tokens=tokens,
+        user=UserOut.model_validate(user),
+        rescue_profile=RescueProfileBrief(
+            id=str(profile.id),
+            status=profile.status,
+            org_name=profile.org_name,
+        ),
+    )
 
 
-@router.post("/login", response_model=dict)
+@router.post("/login", response_model=AuthResponse)
 @limiter.limit("5/minute")
 async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -117,17 +135,12 @@ async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     tokens = await _create_tokens(user, db)
-    return {"tokens": tokens.model_dump(), "user": UserOut.model_validate(user).model_dump()}
+    return AuthResponse(tokens=tokens, user=UserOut.model_validate(user))
 
 
-@router.post("/refresh", response_model=dict)
-async def refresh(request: Request, db: AsyncSession = Depends(get_db)):
-    body = await request.json()
-    raw_token = body.get("refresh_token")
-    if not raw_token:
-        raise HTTPException(status_code=400, detail="refresh_token required")
-
-    token_hash = hash_refresh_token(raw_token)
+@router.post("/refresh", response_model=RefreshResponse)
+async def refresh(request: Request, body: RefreshRequest, db: AsyncSession = Depends(get_db)):
+    token_hash = hash_refresh_token(body.refresh_token)
     result = await db.execute(
         select(RefreshToken).where(
             RefreshToken.token_hash == token_hash,
@@ -149,15 +162,13 @@ async def refresh(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail="User not found")
 
     tokens = await _create_tokens(user, db)
-    return {"tokens": tokens.model_dump()}
+    return RefreshResponse(tokens=tokens)
 
 
-@router.post("/logout")
-async def logout(request: Request, db: AsyncSession = Depends(get_db)):
-    body = await request.json()
-    raw_token = body.get("refresh_token")
-    if raw_token:
-        token_hash = hash_refresh_token(raw_token)
+@router.post("/logout", response_model=DetailResponse)
+async def logout(body: LogoutRequest, db: AsyncSession = Depends(get_db)):
+    if body.refresh_token:
+        token_hash = hash_refresh_token(body.refresh_token)
         result = await db.execute(
             select(RefreshToken).where(RefreshToken.token_hash == token_hash)
         )
@@ -165,7 +176,7 @@ async def logout(request: Request, db: AsyncSession = Depends(get_db)):
         if rt:
             rt.revoked = True
             await db.commit()
-    return {"detail": "Logged out"}
+    return DetailResponse(detail="Logged out")
 
 
 @router.get("/me", response_model=UserOut)
@@ -175,12 +186,12 @@ async def me(user: User = Depends(get_current_user)):
 
 @router.post("/forgot-password")
 @limiter.limit("3/minute")
-async def forgot_password(request: Request, db: AsyncSession = Depends(get_db)):
-    body = await request.json()
-    email = body.get("email", "").lower().strip()
-    if not email:
-        raise HTTPException(status_code=400, detail="email required")
-
+async def forgot_password(
+    request: Request,
+    body: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    email = body.email.lower().strip()
     result = await db.execute(select(User).where(User.email == email, User.is_active == True))
     user = result.scalar_one_or_none()
 
@@ -215,18 +226,15 @@ async def forgot_password(request: Request, db: AsyncSession = Depends(get_db)):
     return response
 
 
-@router.post("/reset-password")
+@router.post("/reset-password", response_model=DetailResponse)
 @limiter.limit("5/minute")
-async def reset_password(request: Request, db: AsyncSession = Depends(get_db)):
-    body = await request.json()
-    raw_token = body.get("token", "").strip()
-    new_password = body.get("password", "")
-
-    if not raw_token or not new_password:
-        raise HTTPException(status_code=400, detail="token and password required")
-    if len(new_password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-
+async def reset_password(
+    request: Request,
+    body: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    raw_token = body.token.strip()
+    new_password = body.password
     token_hash = hash_reset_token(raw_token)
     result = await db.execute(
         select(PasswordResetToken).where(
@@ -293,12 +301,15 @@ async def resend_verification(
     return response
 
 
-@router.post("/verify-email")
+@router.post("/verify-email", response_model=DetailResponse)
 @limiter.limit("10/minute")
-async def verify_email(request: Request, db: AsyncSession = Depends(get_db)):
+async def verify_email(
+    request: Request,
+    body: VerifyEmailRequest,
+    db: AsyncSession = Depends(get_db),
+):
     """Consume a verification token and mark the user's email verified."""
-    body = await request.json()
-    raw_token = body.get("token", "").strip()
+    raw_token = body.token.strip()
     if not raw_token:
         raise HTTPException(status_code=400, detail="token required")
 

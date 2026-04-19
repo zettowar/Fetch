@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import type { Dog, DogStats } from '../types';
+import type { Dog } from '../types';
 import { dogHeroPhoto } from '../utils/time';
 
 const RANK_EMOJI: Record<number, string> = { 1: '\ud83e\udd47', 2: '\ud83e\udd48', 3: '\ud83e\udd49' };
@@ -7,11 +7,10 @@ const RANK_EMOJI: Record<number, string> = { 1: '\ud83e\udd47', 2: '\ud83e\udd48
 interface DogProfileCardProps {
   dog: Dog;
   showEdit?: boolean;
-  stats?: DogStats;
   rank?: number;
 }
 
-export default function DogProfileCard({ dog, showEdit, stats, rank }: DogProfileCardProps) {
+export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardProps) {
   const photoUrl = dogHeroPhoto(dog);
   const photoCount = dog.photos.length;
   const hasPhotos = photoCount > 0;
@@ -20,17 +19,18 @@ export default function DogProfileCard({ dog, showEdit, stats, rank }: DogProfil
   return (
     <Link
       to={`/dogs/${dog.id}`}
-      className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+      className="block bg-white rounded-2xl shadow-soft-sm border border-gray-100 overflow-hidden transition-all duration-200 ease-soft-out hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99]"
     >
-      <div className="relative">
+      <div className="relative aspect-[4/3] bg-gray-100">
         {photoUrl ? (
           <img
             src={photoUrl}
             alt={dog.name}
-            className="w-full h-44 object-cover"
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-44 bg-gradient-to-br from-brand-50 to-brand-100 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-50 to-brand-100 flex flex-col items-center justify-center">
             <span className="text-4xl">{'\ud83d\udcf8'}</span>
             {showEdit ? (
               <span className="text-xs text-brand-500 font-medium mt-2">Tap to add a photo</span>
@@ -83,12 +83,6 @@ export default function DogProfileCard({ dog, showEdit, stats, rank }: DogProfil
           </div>
         </div>
         {dog.bio && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{dog.bio}</p>}
-        {stats && (
-          <div className="flex gap-4 mt-2 pt-2 border-t border-gray-50">
-            <span className="text-xs font-semibold text-green-500">{stats.likes} likes</span>
-            <span className="text-xs font-semibold text-gray-300">{stats.passes} passes</span>
-          </div>
-        )}
       </div>
     </Link>
   );

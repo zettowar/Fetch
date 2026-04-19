@@ -1,13 +1,13 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class ReportCreate(BaseModel):
     target_type: str
     target_id: UUID
-    reason: str
+    reason: str = Field(..., max_length=500)
 
     @field_validator("target_type")
     @classmethod
@@ -19,9 +19,10 @@ class ReportCreate(BaseModel):
     @field_validator("reason")
     @classmethod
     def reason_not_empty(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("Reason is required")
-        return v.strip()
+        v = v.strip()
+        if len(v) < 3:
+            raise ValueError("Reason must be at least 3 characters")
+        return v
 
 
 class ReportOut(BaseModel):
@@ -39,9 +40,9 @@ class ReportOut(BaseModel):
 
 class ReportReview(BaseModel):
     status: str  # reviewed | dismissed
-    admin_notes: str | None = None
+    admin_notes: str | None = Field(default=None, max_length=1000)
     apply_strike: bool = False
-    strike_reason: str | None = None
+    strike_reason: str | None = Field(default=None, max_length=500)
 
     @field_validator("status")
     @classmethod

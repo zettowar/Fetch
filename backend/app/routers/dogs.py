@@ -163,6 +163,26 @@ async def list_my_dogs(
     return [_dog_to_out(d) for d in dogs]
 
 
+@router.get("/by-user/{user_id}", response_model=list[DogOut])
+async def list_dogs_by_user(
+    user_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List a user's public, active dogs. Used by the user profile page."""
+    result = await db.execute(
+        select(Dog)
+        .options(
+            selectinload(Dog.photos),
+            selectinload(Dog.breeds),
+            selectinload(Dog.owner).selectinload(User.rescue_profile),
+        )
+        .where(Dog.owner_id == user_id, Dog.is_active == True)
+        .order_by(Dog.created_at.desc())
+    )
+    return [_dog_to_out(d) for d in result.scalars().all()]
+
+
 @router.get("/{dog_id}", response_model=DogOut)
 async def get_dog(
     dog_id: UUID,

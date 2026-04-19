@@ -54,7 +54,7 @@ export default function NavBar() {
       <nav className="sticky top-0 z-40 flex items-center justify-between px-4 py-2.5 glass border-b border-gray-200/60">
         <Link
           to={isAuthenticated ? '/home' : '/'}
-          className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-brand-600 transition-transform duration-200 ease-soft-out hover:scale-[1.02] active:scale-95"
+          className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-brand-600 transition-colors duration-200 ease-soft-out hover:text-brand-700 active:scale-[0.98]"
         >
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-[12px] text-white shadow-brand-glow">
             🐾
@@ -131,19 +131,21 @@ export default function NavBar() {
                 <Link
                   key={path}
                   to={path}
-                  className={`relative flex flex-col items-center gap-0.5 px-2 py-1.5 min-w-[3rem] transition-colors duration-200 ease-soft-out ${
+                  aria-label={label}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`relative flex flex-col items-center gap-0.5 px-2 pt-2 pb-1.5 min-w-[3rem] min-h-[44px] transition-colors duration-200 ease-soft-out ${
                     isActive ? 'text-brand-600' : 'text-gray-400 hover:text-gray-700'
                   }`}
                 >
                   {isActive && (
                     <motion.span
-                      layoutId="tab-pill"
-                      className="absolute inset-x-2 inset-y-0.5 -z-10 rounded-xl bg-brand-50"
+                      layoutId="tab-indicator"
+                      className="absolute -top-px inset-x-3 h-0.5 rounded-full bg-brand-500"
                       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                     />
                   )}
                   <span
-                    className={`text-lg leading-none transition-transform duration-200 ease-soft-out ${
+                    className={`text-[20px] leading-none transition-transform duration-200 ease-soft-out ${
                       isActive ? 'scale-110' : ''
                     }`}
                   >

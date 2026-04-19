@@ -23,8 +23,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Toaster
           position="top-center"
           gutter={8}
+          containerStyle={{ top: 'calc(env(safe-area-inset-top) + 12px)' }}
           toastOptions={{
-            duration: 3200,
+            duration: 2400,
             style: {
               background: 'rgba(17, 24, 39, 0.92)',
               color: '#fff',
@@ -40,16 +41,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               maxWidth: '380px',
             },
             success: {
-              iconTheme: {
-                primary: '#ee7a10',
-                secondary: '#fff',
-              },
+              duration: 2000,
+              iconTheme: { primary: '#ee7a10', secondary: '#fff' },
             },
             error: {
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
-              },
+              duration: 4000,
+              iconTheme: { primary: '#ef4444', secondary: '#fff' },
             },
           }}
         />

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class FAQOut(BaseModel):
@@ -15,9 +15,9 @@ class FAQOut(BaseModel):
 
 
 class TicketCreate(BaseModel):
-    subject: str
-    body: str
-    source_screen: str | None = None
+    subject: str = Field(..., max_length=200)
+    body: str = Field(..., max_length=4000)
+    source_screen: str | None = Field(default=None, max_length=100)
 
     @field_validator("subject")
     @classmethod

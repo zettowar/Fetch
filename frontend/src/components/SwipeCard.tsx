@@ -20,12 +20,16 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
   const photoUrl = dogHeroPhoto(dog);
 
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const velocityBoost = Math.min(Math.abs(info.velocity.x) / 4, 300);
     if (info.offset.x > SWIPE_THRESHOLD) {
-      animate(x, EXIT_X, { duration: 0.3 });
+      animate(x, EXIT_X + velocityBoost, { duration: 0.4, ease: [0.22, 1, 0.36, 1] });
       onSwipe('right');
     } else if (info.offset.x < -SWIPE_THRESHOLD) {
-      animate(x, -EXIT_X, { duration: 0.3 });
+      animate(x, -(EXIT_X + velocityBoost), { duration: 0.4, ease: [0.22, 1, 0.36, 1] });
       onSwipe('left');
+    } else {
+      // Snap back with a soft spring
+      animate(x, 0, { type: 'spring', stiffness: 320, damping: 28 });
     }
   };
 

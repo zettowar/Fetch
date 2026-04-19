@@ -268,7 +268,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
             onChange={(e) => setTitle(e.target.value)}
           />
           <textarea
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-200"
+            className="rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
             rows={2}
             placeholder="Notes (optional)"
             value={notes}

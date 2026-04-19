@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getStats, getStatsTimeseries } from '../../api/admin';
+import { Spinner } from '../../components/ui/Skeleton';
 
 function formatHours(h: number | null): string {
   if (h === null) return '--';
@@ -25,7 +26,7 @@ export default function AdminDashboardPage() {
   if (isLoading || !stats) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+        <Spinner />
       </div>
     );
   }

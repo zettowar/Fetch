@@ -1,6 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AuthProvider } from './store/AuthContext';
 import AuthGuard from './components/AuthGuard';
 import AdminGuard from './components/AdminGuard';
@@ -92,12 +92,10 @@ function AppContent() {
       {!isAdmin && (
         <div className="mx-auto max-w-app min-h-screen bg-white pb-20 shadow-soft-lg">
           <NavBar />
-          <AnimatePresence initial={false} mode="wait">
-            <motion.div
+          <motion.div
               key={location.pathname}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
             >
               <Routes location={location}>
@@ -134,7 +132,6 @@ function AppContent() {
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </motion.div>
-          </AnimatePresence>
           {location.pathname === '/home' && <FeedbackWidget />}
         </div>
       )}

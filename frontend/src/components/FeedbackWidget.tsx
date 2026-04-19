@@ -49,7 +49,7 @@ export default function FeedbackWidget() {
         <div className="fixed bottom-[7rem] right-3 w-72 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-50">
           <h3 className="font-semibold text-sm mb-2">Send Feedback</h3>
           <textarea
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-200"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
             rows={3}
             placeholder="Bug report, feature idea, or just say hi..."
             value={body}

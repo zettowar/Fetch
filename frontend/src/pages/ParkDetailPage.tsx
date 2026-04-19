@@ -291,7 +291,7 @@ export default function ParkDetailPage() {
             <option value="packed">Packed</option>
           </select>
           <textarea
-            className="rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-200"
+            className="rounded-xl border border-gray-300 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
             rows={3}
             placeholder="Your review..."
             value={reviewBody}

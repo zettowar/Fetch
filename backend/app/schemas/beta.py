@@ -1,12 +1,12 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class FeedbackCreate(BaseModel):
-    body: str
-    screen_name: str | None = None
+    body: str = Field(..., max_length=4000)
+    screen_name: str | None = Field(default=None, max_length=80)
 
     @field_validator("body")
     @classmethod
@@ -37,4 +37,4 @@ class InviteCodeOut(BaseModel):
 
 
 class InviteCodeBatchCreate(BaseModel):
-    count: int = 10
+    count: int = Field(default=10, ge=1, le=100)

@@ -47,7 +47,11 @@ async def list_feedback(
     return list(result.scalars().all())
 
 
-@router.post("/invites/generate", response_model=list[InviteCodeOut])
+@router.post(
+    "/invites/generate",
+    response_model=list[InviteCodeOut],
+    status_code=status.HTTP_201_CREATED,
+)
 async def generate_invite_codes(
     body: InviteCodeBatchCreate,
     admin: User = Depends(require_admin),

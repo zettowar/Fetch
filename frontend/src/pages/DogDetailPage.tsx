@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getDog, setPrimaryPhoto } from '../api/dogs';
 import { deletePhoto } from '../api/photos';
-import { getDogStats } from '../api/rankings';
 import { getNearbyParks, checkinPark } from '../api/parks';
 import { useAuth } from '../store/AuthContext';
 import FollowButton from '../components/FollowButton';
@@ -30,12 +29,6 @@ export default function DogDetailPage() {
   const { data: dog, isLoading } = useQuery({
     queryKey: ['dog', id],
     queryFn: () => getDog(id!),
-  });
-
-  const { data: stats } = useQuery({
-    queryKey: ['dog-stats', id],
-    queryFn: () => getDogStats(id!),
-    enabled: !!id,
   });
 
   useDocumentTitle(dog ? `${dog.name} · Fetch` : null);
@@ -288,20 +281,6 @@ export default function DogDetailPage() {
           </Link>
           <span className="text-xs text-gray-400">Added <TimeAgo value={dog.created_at} /></span>
         </div>
-
-        {/* Stats */}
-        {stats && (
-          <div className="flex gap-6 mt-4 p-4 bg-gray-50 rounded-xl">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-500">{stats.likes}</p>
-              <p className="text-xs text-gray-500">Likes</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-400">{stats.passes}</p>
-              <p className="text-xs text-gray-500">Passes</p>
-            </div>
-          </div>
-        )}
 
         {/* Check-in widget (owner only) */}
         {isOwner && (

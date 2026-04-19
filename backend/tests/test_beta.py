@@ -29,7 +29,7 @@ async def test_generate_invite_codes(client: AsyncClient, admin_headers: dict):
     res = await client.post("/api/v1/invites/generate", json={
         "count": 5,
     }, headers=admin_headers)
-    assert res.status_code == 200
+    assert res.status_code == 201
     assert len(res.json()) == 5
     assert all(c["code"].startswith("FETCH-") for c in res.json())
 

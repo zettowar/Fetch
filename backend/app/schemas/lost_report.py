@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 def _not_future_datetime(v: datetime | None) -> datetime | None:
@@ -25,9 +25,9 @@ class LostReportCreate(BaseModel):
     # Doubles as both the reporter's stated search-area radius (shown on the
     # map) and the privacy fuzz applied when non-owners view the coordinates.
     location_fuzz_m: int = 500
-    description: str
+    description: str = Field(..., max_length=2000)
     contact_method: str = "in_app"
-    contact_value: str | None = None
+    contact_value: str | None = Field(default=None, max_length=200)
 
     @field_validator("location_fuzz_m")
     @classmethod
@@ -65,12 +65,12 @@ class LostReportCreate(BaseModel):
 
 class LostReportUpdate(BaseModel):
     status: str | None = None
-    description: str | None = None
+    description: str | None = Field(default=None, max_length=2000)
     last_seen_lat: float | None = None
     last_seen_lng: float | None = None
     location_fuzz_m: int | None = None
     contact_method: str | None = None
-    contact_value: str | None = None
+    contact_value: str | None = Field(default=None, max_length=200)
 
     @field_validator("location_fuzz_m")
     @classmethod
@@ -148,7 +148,7 @@ class SightingCreate(BaseModel):
     lat: float
     lng: float
     seen_at: datetime | None = None
-    note: str | None = None
+    note: str | None = Field(default=None, max_length=1000)
 
     @field_validator("lat")
     @classmethod
@@ -220,7 +220,7 @@ class SubscriptionUpdate(BaseModel):
 # --- Contact Relay ---
 
 class ContactRequest(BaseModel):
-    message: str
+    message: str = Field(..., max_length=2000)
 
     @field_validator("message")
     @classmethod

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { getTickets, updateTicket } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import TimeAgo from '../../components/TimeAgo';
+import { Spinner } from '../../components/ui/Skeleton';
 
 const TABS = ['open', 'in_progress', 'resolved', 'closed', 'all'] as const;
 
@@ -58,7 +59,7 @@ export default function AdminTicketsPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" />
+          <Spinner size="sm" />
         </div>
       ) : tickets.length === 0 ? (
         <div className="text-center py-12 text-gray-400">

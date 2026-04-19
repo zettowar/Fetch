@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { createFAQ, updateFAQ, deleteFAQ, type FAQEntry } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { Spinner } from '../../components/ui/Skeleton';
 
 // Fetch FAQ via support endpoint (public, but admin can manage)
 import client from '../../api/client';
@@ -100,7 +101,7 @@ export default function AdminFAQPage() {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500" /></div>
+        <div className="flex justify-center py-8"><Spinner size="sm" /></div>
       ) : faqs.length === 0 ? (
         <p className="text-gray-400 text-center py-8">No FAQ entries.</p>
       ) : (
