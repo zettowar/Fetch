@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { uploadPhoto } from '../api/photos';
-import CropModal from './CropModal';
+import PhotoEditor from './photoEditor';
 import toast from 'react-hot-toast';
 
 interface PhotoUploaderProps {
@@ -80,7 +80,7 @@ export default function PhotoUploader({ dogId, onUploaded, onSelect, compact }: 
 
   if (cropSrc) {
     return (
-      <CropModal
+      <PhotoEditor
         imageSrc={cropSrc}
         onConfirm={handleCropConfirm}
         onCancel={handleCropCancel}
