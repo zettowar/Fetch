@@ -81,13 +81,18 @@ async def test_add_sighting(client: AsyncClient, auth_headers: dict):
     })
     sighter_headers = {"Authorization": f"Bearer {signup_res.json()['tokens']['access_token']}"}
 
-    res = await client.post(f"/api/v1/lost/reports/{report_id}/sightings", json={
-        "lat": 37.78,
-        "lng": -122.41,
-        "note": "Saw this dog near the coffee shop",
-    }, headers=sighter_headers)
+    res = await client.post(
+        f"/api/v1/lost/reports/{report_id}/sightings",
+        data={
+            "lat": "37.78",
+            "lng": "-122.41",
+            "note": "Saw this dog near the coffee shop",
+        },
+        headers=sighter_headers,
+    )
     assert res.status_code == 201
     assert res.json()["note"] == "Saw this dog near the coffee shop"
+    assert res.json()["photo_url"] is None
 
 
 @pytest.mark.asyncio

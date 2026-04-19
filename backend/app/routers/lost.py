@@ -1,7 +1,9 @@
+import io
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from PIL import Image
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, contains_eager
@@ -33,9 +35,27 @@ from app.schemas.lost_report import (
 )
 from app.services.breed_display import breed_display
 from app.services.lost_service import fuzz_coordinate, get_nearby_reports
-from app.storage import get_storage
+from app.storage import generate_storage_key, get_storage
 
 router = APIRouter()
+
+SIGHTING_PHOTO_MAX_SIZE = 10 * 1024 * 1024  # 10 MB
+SIGHTING_PHOTO_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+def _sighting_to_out(sighting: LostReportSighting) -> SightingOut:
+    storage = get_storage()
+    return SightingOut(
+        id=sighting.id,
+        report_id=sighting.report_id,
+        reporter_id=sighting.reporter_id,
+        lat=sighting.lat,
+        lng=sighting.lng,
+        seen_at=sighting.seen_at,
+        note=sighting.note,
+        photo_url=storage.url(sighting.photo_key) if sighting.photo_key else None,
+        created_at=sighting.created_at,
+    )
 
 
 def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
@@ -300,16 +320,41 @@ async def resolve_report(
 async def add_sighting(
     request: Request,
     report_id: UUID,
-    body: SightingCreate,
+    lat: float = Form(...),
+    lng: float = Form(...),
+    seen_at: datetime | None = Form(None),
+    note: str | None = Form(None),
+    photo: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    body = SightingCreate(lat=lat, lng=lng, seen_at=seen_at, note=note)
+
     result = await db.execute(select(LostReport).where(LostReport.id == report_id))
     report = result.scalar_one_or_none()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     if report.status != "open":
         raise HTTPException(status_code=400, detail="Report is not open")
+
+    photo_key: str | None = None
+    photo_content_type: str | None = None
+    if photo is not None and photo.filename:
+        data = await photo.read()
+        if len(data) > SIGHTING_PHOTO_MAX_SIZE:
+            raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+        try:
+            img = Image.open(io.BytesIO(data))
+            img.verify()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid image file")
+        detected = f"image/{img.format.lower()}" if img.format else photo.content_type
+        if detected not in SIGHTING_PHOTO_ALLOWED_TYPES:
+            raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP are allowed")
+        photo_content_type = detected
+        photo_key = generate_storage_key(detected)
+        storage = get_storage()
+        await storage.put(photo_key, data, detected)
 
     sighting = LostReportSighting(
         report_id=report_id,
@@ -318,11 +363,13 @@ async def add_sighting(
         lng=body.lng,
         seen_at=body.seen_at,
         note=body.note,
+        photo_key=photo_key,
+        photo_content_type=photo_content_type,
     )
     db.add(sighting)
     await db.commit()
     await db.refresh(sighting)
-    return sighting
+    return _sighting_to_out(sighting)
 
 
 @router.get("/reports/{report_id}/sightings", response_model=list[SightingOut])
@@ -336,7 +383,7 @@ async def list_sightings(
         .where(LostReportSighting.report_id == report_id)
         .order_by(LostReportSighting.created_at.desc())
     )
-    return list(result.scalars().all())
+    return [_sighting_to_out(s) for s in result.scalars().all()]
 
 
 # --- Subscriptions ---

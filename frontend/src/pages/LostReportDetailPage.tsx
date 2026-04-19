@@ -48,6 +48,7 @@ export default function LostReportDetailPage() {
   const [sightLat, setSightLat] = useState('');
   const [sightLng, setSightLng] = useState('');
   const [sightNote, setSightNote] = useState('');
+  const [sightPhoto, setSightPhoto] = useState<File | null>(null);
 
   const [showContactForm, setShowContactForm] = useState(false);
   const [contactMessage, setContactMessage] = useState('');
@@ -68,6 +69,7 @@ export default function LostReportDetailPage() {
         lng: parseFloat(sightLng),
         note: sightNote || undefined,
         seen_at: new Date().toISOString(),
+        photo: sightPhoto || undefined,
       }),
     onSuccess: () => {
       toast.success('Sighting added!');
@@ -75,6 +77,7 @@ export default function LostReportDetailPage() {
       setSightLat('');
       setSightLng('');
       setSightNote('');
+      setSightPhoto(null);
       queryClient.invalidateQueries({ queryKey: ['sightings', id] });
     },
     onError: () => toast.error('Failed to add sighting'),
@@ -284,6 +287,18 @@ export default function LostReportDetailPage() {
               <Input label="Lng" type="number" step="any" value={sightLng} onChange={(e) => setSightLng(e.target.value)} />
             </div>
             <Input label="Note" value={sightNote} onChange={(e) => setSightNote(e.target.value)} placeholder="Any details..." />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Photo (optional)</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => setSightPhoto(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
+              />
+              {sightPhoto && (
+                <p className="mt-1 text-xs text-gray-500 truncate">{sightPhoto.name}</p>
+              )}
+            </div>
             <Button onClick={() => sightingMutation.mutate()} loading={sightingMutation.isPending} disabled={sightLat === '' || sightLng === ''}>
               Submit Sighting
             </Button>
@@ -315,6 +330,15 @@ export default function LostReportDetailPage() {
           <div className="flex flex-col gap-2">
             {sightings.map((s) => (
               <div key={s.id} className="p-3 bg-white border border-gray-100 rounded-xl">
+                {s.photo_url && (
+                  <a href={s.photo_url} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={s.photo_url}
+                      alt="Sighting"
+                      className="w-full max-h-60 object-cover rounded-lg mb-2"
+                    />
+                  </a>
+                )}
                 <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
                   {s.note ? <Linkify>{s.note}</Linkify> : 'No details'}
                 </p>

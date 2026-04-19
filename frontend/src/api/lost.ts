@@ -53,6 +53,7 @@ export interface Sighting {
   lng: number;
   seen_at: string | null;
   note: string | null;
+  photo_url: string | null;
   created_at: string;
 }
 
@@ -116,9 +117,15 @@ export async function getNearbyReports(
 
 export async function addSighting(
   reportId: string,
-  data: { lat: number; lng: number; seen_at?: string; note?: string },
+  data: { lat: number; lng: number; seen_at?: string; note?: string; photo?: File },
 ): Promise<Sighting> {
-  const res = await client.post(`/lost/reports/${reportId}/sightings`, data);
+  const form = new FormData();
+  form.append('lat', String(data.lat));
+  form.append('lng', String(data.lng));
+  if (data.seen_at) form.append('seen_at', data.seen_at);
+  if (data.note) form.append('note', data.note);
+  if (data.photo) form.append('photo', data.photo);
+  const res = await client.post(`/lost/reports/${reportId}/sightings`, form);
   return res.data;
 }
 

@@ -178,6 +178,7 @@ class SightingOut(BaseModel):
     lng: float
     seen_at: datetime | None = None
     note: str | None = None
+    photo_url: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

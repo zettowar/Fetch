@@ -79,7 +79,8 @@ class LostReportSighting(Base, UUIDPrimaryKey, TimestampMixin):
     lng: Mapped[float] = mapped_column(Float, nullable=False)
     seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
-    photo_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    photo_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    photo_content_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     report = relationship("LostReport", back_populates="sightings")
     reporter = relationship("User", foreign_keys=[reporter_id])
