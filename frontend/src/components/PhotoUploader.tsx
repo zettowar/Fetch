@@ -4,17 +4,23 @@ import CropModal from './CropModal';
 import toast from 'react-hot-toast';
 
 interface PhotoUploaderProps {
-  dogId: string;
-  onUploaded: () => void;
+  /** Upload-mode: POST each cropped photo to /dogs/:dogId/photos. */
+  dogId?: string;
+  onUploaded?: () => void;
+  /** Queue-mode: hand the cropped blob to the parent (no server call).
+   * Used on the "add a dog" page where the dog doesn't exist yet. */
+  onSelect?: (blob: Blob) => void;
   compact?: boolean;
 }
 
-export default function PhotoUploader({ dogId, onUploaded, compact }: PhotoUploaderProps) {
+export default function PhotoUploader({ dogId, onUploaded, onSelect, compact }: PhotoUploaderProps) {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isQueueMode = !!onSelect;
 
   const validateFile = (file: File): boolean => {
     if (file.size > 10 * 1024 * 1024) {
@@ -36,13 +42,21 @@ export default function PhotoUploader({ dogId, onUploaded, compact }: PhotoUploa
 
   const handleCropConfirm = async (blob: Blob) => {
     setCropSrc(null);
+
+    if (isQueueMode) {
+      // Parent will hold onto the blob until the dog exists; we just hand it over.
+      onSelect!(blob);
+      return;
+    }
+
+    if (!dogId) return;
     setUploading(true);
     setProgress(0);
     try {
       const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
       await uploadPhoto(dogId, file, setProgress);
       toast.success('Photo uploaded!');
-      onUploaded();
+      onUploaded?.();
     } catch {
       toast.error('Upload failed');
     } finally {
