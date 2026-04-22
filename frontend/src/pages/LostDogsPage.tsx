@@ -5,14 +5,15 @@ import { getNearbyReports, getMySubscription, type NearbyReport } from '../api/l
 import Map from '../components/Map';
 import { Spinner } from '../components/ui/Skeleton';
 import TimeAgo from '../components/TimeAgo';
+import { useUserLocation } from '../utils/useUserLocation';
 
-const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // San Francisco
+const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // fallback: San Francisco
 const LAST_VISITED_KEY = 'lost-last-visited';
 
 type Kind = 'all' | 'missing' | 'found';
 
 export default function LostDogsPage() {
-  const [center] = useState(DEFAULT_CENTER);
+  const center = useUserLocation(DEFAULT_CENTER);
   const [selectedReport, setSelectedReport] = useState<NearbyReport | null>(null);
   const [filter, setFilter] = useState<Kind>('all');
   const [newCount, setNewCount] = useState(0);

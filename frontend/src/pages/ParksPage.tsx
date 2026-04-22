@@ -4,13 +4,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getNearbyParks } from '../api/parks';
 import Map from '../components/Map';
 import { Spinner } from '../components/ui/Skeleton';
+import { useUserLocation } from '../utils/useUserLocation';
 
-const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749];
+const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // fallback
 
 type Filter = 'all' | 'active' | 'verified';
 
 export default function ParksPage() {
-  const [center] = useState(DEFAULT_CENTER);
+  const center = useUserLocation(DEFAULT_CENTER);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [selectedParkId, setSelectedParkId] = useState<string | null>(null);
