@@ -140,10 +140,20 @@ export default function HomePage() {
 
         {/* Secondary grid — unified glassy tiles with tinted icon badges */}
         <section className="grid grid-cols-2 gap-3">
-          <GlassTile to="/dogs" icon="🐶" label="My Dogs" tint="bg-gray-200/70 dark:bg-gray-700/60" />
-          <GlassTile to="/lost" icon="🚨" label="Lost & Found" tint="bg-red-100/80 dark:bg-red-500/20" />
-          <GlassTile to="/parks" icon="🌳" label="Dog Parks" tint="bg-green-100/80 dark:bg-green-500/20" />
-          <GlassTile to="/rescues" icon="🏠" label="Rescues" tint="bg-purple-100/80 dark:bg-purple-500/20" />
+          {[
+            { to: '/dogs', icon: '🐶', label: 'My Dogs', tint: 'bg-gray-200/70 dark:bg-gray-700/60' },
+            { to: '/lost', icon: '🚨', label: 'Lost & Found', tint: 'bg-red-100/80 dark:bg-red-500/20' },
+            { to: '/parks', icon: '🌳', label: 'Dog Parks', tint: 'bg-green-100/80 dark:bg-green-500/20' },
+            { to: '/rescues', icon: '🏠', label: 'Rescues', tint: 'bg-purple-100/80 dark:bg-purple-500/20' },
+          ].map((tile, i) => (
+            <div
+              key={tile.to}
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${60 + i * 60}ms`, animationFillMode: 'backwards' }}
+            >
+              <GlassTile {...tile} />
+            </div>
+          ))}
         </section>
 
         {/* Show Following tile in the grid only if the user isn't following anyone

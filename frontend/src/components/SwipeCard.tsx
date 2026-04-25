@@ -42,6 +42,9 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
       dragElastic={0.7}
       onDragEnd={handleDragEnd}
       whileDrag={{ scale: 1.02 }}
+      initial={{ scale: isTop ? 0.96 : 0.92, y: isTop ? 0 : 10, opacity: 0 }}
+      animate={{ scale: isTop ? 1 : 0.95, y: isTop ? 0 : 8, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 28 }}
     >
       {photoUrl ? (
         <img src={photoUrl} alt={dog.name} className="w-full h-[70%] object-cover" />
