@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -161,6 +161,58 @@ async def list_my_dogs(
     )
     dogs = result.scalars().all()
     return [_dog_to_out(d) for d in dogs]
+
+
+@router.get("/explore", response_model=list[DogOut])
+async def explore_dogs(
+    limit: int = 24,
+    exclude: str | None = None,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Random sample of active dogs (excluding the current user's own).
+
+    `exclude` is a comma-separated list of dog UUIDs the client has
+    already seen — used by the "Explore the Pack" page to power infinite
+    scroll without serving duplicates. Random order for now; will be
+    replaced with a preference-based algorithm once user signals are
+    richer.
+    """
+    limit = max(1, min(limit, 100))
+
+    excluded_ids: list[UUID] = []
+    if exclude:
+        for raw in exclude.split(","):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                excluded_ids.append(UUID(raw))
+            except ValueError:
+                # Silently ignore malformed UUIDs — clients shouldn't be able
+                # to break the feed with a bad cursor.
+                continue
+
+    where_clauses = [
+        Dog.is_active == True,  # noqa: E712
+        Dog.owner_id != user.id,
+        Dog.adopted_at.is_(None),
+    ]
+    if excluded_ids:
+        where_clauses.append(Dog.id.notin_(excluded_ids))
+
+    result = await db.execute(
+        select(Dog)
+        .options(
+            selectinload(Dog.photos),
+            selectinload(Dog.breeds),
+            selectinload(Dog.owner).selectinload(User.rescue_profile),
+        )
+        .where(*where_clauses)
+        .order_by(func.random())
+        .limit(limit)
+    )
+    return [_dog_to_out(d) for d in result.scalars().all()]
 
 
 @router.get("/by-user/{user_id}", response_model=list[DogOut])

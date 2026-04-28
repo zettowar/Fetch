@@ -31,6 +31,16 @@ export async function getDog(id: string): Promise<Dog> {
   return res.data;
 }
 
+export async function getExploreDogs(
+  limit = 24,
+  excludeIds: string[] = [],
+): Promise<Dog[]> {
+  const params: Record<string, string | number> = { limit };
+  if (excludeIds.length > 0) params.exclude = excludeIds.join(',');
+  const res = await client.get('/dogs/explore', { params });
+  return res.data;
+}
+
 export interface DogPayload {
   name: string;
   mix_type?: MixType;

@@ -11,6 +11,7 @@ import PawMark from './ui/PawMark';
 const NAV_ITEMS = [
   { path: '/home', label: 'Home', icon: '🏠' },
   { path: '/swipe', label: 'Swipe', icon: '❤️' },
+  { path: '/explore', label: 'Explore', icon: '🔍' },
   { path: '/dogs', label: 'Dogs', icon: '🐶' },
   { path: '/lost', label: 'Lost', icon: '🚨' },
   { path: '/parks', label: 'Parks', icon: '🌳' },
@@ -47,6 +48,7 @@ export default function NavBar() {
     if (path === '/dogs' && location.pathname.startsWith('/dogs')) return true;
     if (path === '/lost' && location.pathname.startsWith('/lost')) return true;
     if (path === '/parks' && location.pathname.startsWith('/parks')) return true;
+    if (path === '/explore' && location.pathname.startsWith('/explore')) return true;
     return false;
   })?.path;
 

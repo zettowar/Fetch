@@ -71,9 +71,12 @@ async def get_dog_stats(dog_id: UUID, db: AsyncSession) -> dict:
 
 
 async def compute_weekly_winner(db: AsyncSession) -> WeeklyWinner | None:
+    """Compute the prior week's winner (production weekly job).
+
+    Skips if a winner row already exists for that week.
+    """
     last_week = current_week_bucket() - timedelta(days=7)
 
-    # Check if already computed
     existing = await db.execute(
         select(WeeklyWinner).where(WeeklyWinner.week_bucket == last_week)
     )
@@ -81,9 +84,24 @@ async def compute_weekly_winner(db: AsyncSession) -> WeeklyWinner | None:
         logger.info("Weekly winner for %s already computed", last_week)
         return None
 
+    return await _pick_winner_for_week(db, last_week, upsert=False)
+
+
+async def pick_current_winner(db: AsyncSession) -> WeeklyWinner | None:
+    """Compute (or update) the *current* week's winner.
+
+    Used by the troubleshooting 10-minute beat job so a winner appears as
+    soon as anyone votes, and updates as the leaderboard shifts.
+    """
+    return await _pick_winner_for_week(db, current_week_bucket(), upsert=True)
+
+
+async def _pick_winner_for_week(
+    db: AsyncSession, week: date, *, upsert: bool
+) -> WeeklyWinner | None:
     query = (
         select(Vote.dog_id, func.sum(Vote.value).label("score"))
-        .where(Vote.week_bucket == last_week)
+        .where(Vote.week_bucket == week)
         .group_by(Vote.dog_id)
         .order_by(func.sum(Vote.value).desc())
         .limit(1)
@@ -92,11 +110,31 @@ async def compute_weekly_winner(db: AsyncSession) -> WeeklyWinner | None:
     row = result.first()
 
     if not row:
-        logger.info("No votes found for week %s", last_week)
+        logger.info("No votes found for week %s", week)
         return None
 
+    if upsert:
+        existing_q = await db.execute(
+            select(WeeklyWinner).where(WeeklyWinner.week_bucket == week)
+        )
+        existing = existing_q.scalar_one_or_none()
+        if existing:
+            if existing.dog_id != row.dog_id or existing.score != row.score:
+                existing.dog_id = row.dog_id
+                existing.score = row.score
+                await db.commit()
+                logger.info(
+                    "Updated winner for week %s: dog %s with score %s",
+                    week,
+                    row.dog_id,
+                    row.score,
+                )
+            else:
+                logger.info("Winner for week %s unchanged", week)
+            return existing
+
     winner = WeeklyWinner(
-        week_bucket=last_week,
+        week_bucket=week,
         dog_id=row.dog_id,
         score=row.score,
     )
@@ -105,7 +143,7 @@ async def compute_weekly_winner(db: AsyncSession) -> WeeklyWinner | None:
         await db.commit()
     except IntegrityError:
         await db.rollback()
-        logger.info("Weekly winner for %s already exists (race condition handled)", last_week)
+        logger.info("Winner for week %s already exists (race condition handled)", week)
         return None
-    logger.info("Weekly winner for %s: dog %s with score %s", last_week, row.dog_id, row.score)
+    logger.info("Winner for week %s: dog %s with score %s", week, row.dog_id, row.score)
     return winner

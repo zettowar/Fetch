@@ -50,6 +50,7 @@ import AdminParksPage from './pages/admin/AdminParksPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
 import NotificationsPage from './pages/NotificationsPage';
 import FollowingPage from './pages/FollowingPage';
+import ExplorePage from './pages/ExplorePage';
 import RescuesPage from './pages/RescuesPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -128,6 +129,7 @@ function AppContent() {
                 <Route path="/parks/:id" element={<AuthGuard><ParkDetailPage /></AuthGuard>} />
                 <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
                 <Route path="/following" element={<AuthGuard><FollowingPage /></AuthGuard>} />
+                <Route path="/explore" element={<AuthGuard><ExplorePage /></AuthGuard>} />
                 <Route path="/rescues" element={<AuthGuard><RescuesPage /></AuthGuard>} />
                 <Route path="/rescues/:id" element={<AuthGuard><RescueDetailPage /></AuthGuard>} />
                 <Route path="/rescue/dashboard" element={<AuthGuard><RescueDashboardPage /></AuthGuard>} />
