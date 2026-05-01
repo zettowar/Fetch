@@ -209,3 +209,66 @@ async def test_admin_stats_timeseries(client: AsyncClient, admin_headers: dict):
     # All counts must be non-negative integers.
     for key in ("new_users", "new_reports", "new_dogs"):
         assert all(isinstance(n, int) and n >= 0 for n in body[key])
+
+
+@pytest.mark.asyncio
+async def test_admin_audit_log_filters(client: AsyncClient, admin_headers: dict):
+    """Audit log respects action/target_type filters and lists in DESC order."""
+    # Trigger an audited action: suspend a fresh user.
+    email = f"audit-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    s = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "Audit",
+    })
+    user_id = s.json()["user"]["id"]
+    sus = await client.post(f"/api/v1/admin/users/{user_id}/suspend", headers=admin_headers)
+    assert sus.status_code == 200
+
+    res = await client.get(
+        "/api/v1/admin/audit",
+        params={"action": "user.suspend", "target_type": "user"},
+        headers=admin_headers,
+    )
+    assert res.status_code == 200
+    rows = res.json()
+    assert len(rows) >= 1
+    assert all(r["action"] == "user.suspend" for r in rows)
+    assert all(r["target_type"] == "user" for r in rows)
+
+
+@pytest.mark.asyncio
+async def test_admin_audit_requires_admin(client: AsyncClient, auth_headers: dict):
+    res = await client.get("/api/v1/admin/audit", headers=auth_headers)
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_demote_user(client: AsyncClient, admin_headers: dict):
+    # Create + promote a user, then demote.
+    email = f"demote-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    s = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "ToDemote",
+    })
+    user_id = s.json()["user"]["id"]
+
+    promote = await client.post(
+        f"/api/v1/admin/users/{user_id}/promote", headers=admin_headers
+    )
+    assert promote.status_code == 200
+
+    demote = await client.post(
+        f"/api/v1/admin/users/{user_id}/demote", headers=admin_headers
+    )
+    assert demote.status_code == 200
+
+    detail = await client.get(f"/api/v1/admin/users/{user_id}", headers=admin_headers)
+    assert detail.json()["role"] == "user"
+
+
+@pytest.mark.asyncio
+async def test_admin_cannot_demote_self(client: AsyncClient, admin_headers: dict):
+    me = await client.get("/api/v1/auth/me", headers=admin_headers)
+    self_id = me.json()["id"]
+    res = await client.post(
+        f"/api/v1/admin/users/{self_id}/demote", headers=admin_headers
+    )
+    assert res.status_code == 400

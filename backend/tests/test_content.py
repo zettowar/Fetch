@@ -44,11 +44,13 @@ async def test_search_posts(client: AsyncClient, auth_headers: dict):
 async def test_rescue_signup_creates_pending_profile(client: AsyncClient):
     """The rescue signup flow creates a user with role=rescue + a pending RescueProfile."""
     import uuid
-    email = f"resc-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    suffix = uuid.uuid4().hex[:8]
+    email = f"resc-{suffix}@fetchapp.dev"
+    org_name = f"Happy Paws Rescue {suffix}"
     res = await client.post("/api/v1/auth/signup-rescue", json={
         "email": email,
         "password": "password123",
-        "org_name": "Happy Paws Rescue",
+        "org_name": org_name,
         "description": "We rescue dogs in need",
         "website": "happypaws.org",
     })
@@ -56,12 +58,12 @@ async def test_rescue_signup_creates_pending_profile(client: AsyncClient):
     body = res.json()
     assert body["user"]["role"] == "rescue"
     assert body["rescue_profile"]["status"] == "pending"
-    # Until approved, the rescue endpoints listing approved orgs don't include them.
+    profile_id = body["rescue_profile"]["id"]
+    # Until approved, the new rescue's profile must not appear in the approved listing.
     headers = {"Authorization": f"Bearer {body['tokens']['access_token']}"}
     listing = await client.get("/api/v1/rescues", headers=headers)
     assert listing.status_code == 200
-    for r in listing.json():
-        assert r["org_name"] != "Happy Paws Rescue"
+    assert all(r["id"] != profile_id for r in listing.json())
 
 
 @pytest.mark.asyncio

@@ -186,6 +186,102 @@ async def test_show_adoption_prompt_toggle(client: AsyncClient, auth_headers: di
 
 
 @pytest.mark.asyncio
+async def test_get_my_rescue_profile_for_non_rescue_returns_404(
+    client: AsyncClient, auth_headers: dict
+):
+    res = await client.get("/api/v1/rescues/me", headers=auth_headers)
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_my_rescue_profile_for_rescue(client: AsyncClient, admin_headers: dict):
+    headers, profile_id, _email = await _signup_rescue(
+        client, approved=True, admin_headers=admin_headers,
+    )
+    res = await client.get("/api/v1/rescues/me", headers=headers)
+    assert res.status_code == 200
+    assert res.json()["id"] == profile_id
+
+
+@pytest.mark.asyncio
+async def test_patch_my_rescue_profile_blocked_when_pending(
+    client: AsyncClient, admin_headers: dict
+):
+    headers, _profile_id, _email = await _signup_rescue(
+        client, approved=False, admin_headers=admin_headers,
+    )
+    res = await client.patch(
+        "/api/v1/rescues/me",
+        json={"description": "Updated bio"},
+        headers=headers,
+    )
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_patch_my_rescue_profile_when_approved(
+    client: AsyncClient, admin_headers: dict
+):
+    headers, _profile_id, _email = await _signup_rescue(
+        client, approved=True, admin_headers=admin_headers,
+    )
+    res = await client.patch(
+        "/api/v1/rescues/me",
+        json={"description": "We rescue all the dogs."},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["description"] == "We rescue all the dogs."
+
+
+@pytest.mark.asyncio
+async def test_get_rescue_by_id_404_for_pending(
+    client: AsyncClient, auth_headers: dict, admin_headers: dict
+):
+    _headers, profile_id, _email = await _signup_rescue(
+        client, approved=False, admin_headers=admin_headers,
+    )
+    res = await client.get(f"/api/v1/rescues/{profile_id}", headers=auth_headers)
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_transfer_to_email_with_no_existing_user_creates_pending(
+    client: AsyncClient, admin_headers: dict
+):
+    """Transfer initiated to an unknown email is held with `invited_email` set."""
+    rescue_headers, _, _ = await _signup_rescue(
+        client, approved=True, admin_headers=admin_headers,
+    )
+    dog_res = await client.post(
+        "/api/v1/dogs", json={"name": "Pending Email Pup"}, headers=rescue_headers,
+    )
+    dog_id = dog_res.json()["id"]
+
+    invited = f"future-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    initiate = await client.post(
+        f"/api/v1/rescues/dogs/{dog_id}/transfer",
+        json={"invited_email": invited},
+        headers=rescue_headers,
+    )
+    assert initiate.status_code == 201, initiate.text
+    body = initiate.json()
+    assert body["status"] == "pending"
+    assert body["invited_email"] == invited
+    assert body["to_user_id"] is None
+    assert body["expires_at"]
+
+    # Re-issuing cancels the prior pending row → only one pending exists.
+    again = await client.post(
+        f"/api/v1/rescues/dogs/{dog_id}/transfer",
+        json={"invited_email": invited},
+        headers=rescue_headers,
+    )
+    assert again.status_code == 201
+    assert again.json()["id"] != body["id"]
+
+
+@pytest.mark.asyncio
 async def test_admin_reject_with_note(client: AsyncClient, admin_headers: dict):
     email = f"rej-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     signup = await client.post("/api/v1/auth/signup-rescue", json={

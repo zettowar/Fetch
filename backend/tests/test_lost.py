@@ -172,6 +172,76 @@ async def test_cannot_contact_self(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
+async def test_list_sightings_returns_added_sightings(
+    client: AsyncClient, auth_headers: dict
+):
+    create_res = await client.post("/api/v1/lost/reports", json={
+        "kind": "missing", "description": "Sightings list test",
+    }, headers=auth_headers)
+    report_id = create_res.json()["id"]
+
+    # A different user adds two sightings.
+    email = f"witness-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    s = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "Witness",
+    })
+    witness_headers = {"Authorization": f"Bearer {s.json()['tokens']['access_token']}"}
+    for note in ("First", "Second"):
+        await client.post(
+            f"/api/v1/lost/reports/{report_id}/sightings",
+            data={"lat": "37.78", "lng": "-122.41", "note": note},
+            headers=witness_headers,
+        )
+
+    res = await client.get(
+        f"/api/v1/lost/reports/{report_id}/sightings", headers=auth_headers,
+    )
+    assert res.status_code == 200
+    notes = [s["note"] for s in res.json()]
+    assert "First" in notes
+    assert "Second" in notes
+
+
+@pytest.mark.asyncio
+async def test_patch_subscription_updates_radius(
+    client: AsyncClient, auth_headers: dict
+):
+    # New user so we don't collide with subscription state from earlier tests.
+    email = f"subpatch-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    s = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "SubPatcher",
+    })
+    headers = {"Authorization": f"Bearer {s.json()['tokens']['access_token']}"}
+
+    await client.post("/api/v1/lost/subscriptions", json={
+        "home_lat": 37.77, "home_lng": -122.42, "radius_km": 10,
+    }, headers=headers)
+
+    res = await client.patch(
+        "/api/v1/lost/subscriptions/mine",
+        json={"radius_km": 25},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["radius_km"] == 25
+
+
+@pytest.mark.asyncio
+async def test_patch_subscription_404_when_none(client: AsyncClient):
+    email = f"nosub-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    s = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "NoSub",
+    })
+    headers = {"Authorization": f"Bearer {s.json()['tokens']['access_token']}"}
+    res = await client.patch(
+        "/api/v1/lost/subscriptions/mine",
+        json={"radius_km": 5},
+        headers=headers,
+    )
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_lost_requires_auth(client: AsyncClient):
     res = await client.get("/api/v1/lost/reports/nearby", params={"lat": 37, "lng": -122, "radius_km": 5})
     assert res.status_code in (401, 403)

@@ -52,3 +52,23 @@ async def test_feedback_requires_auth(client: AsyncClient):
 async def test_invites_require_admin(client: AsyncClient, auth_headers: dict):
     res = await client.post("/api/v1/invites/generate", json={"count": 1}, headers=auth_headers)
     assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_generate_invite_codes_max_batch(client: AsyncClient, admin_headers: dict):
+    """Schema upper bound is 100; honored by the endpoint."""
+    res = await client.post("/api/v1/invites/generate", json={
+        "count": 100,
+    }, headers=admin_headers)
+    assert res.status_code == 201
+    assert len(res.json()) == 100
+
+
+@pytest.mark.asyncio
+async def test_generate_invite_codes_rejects_oversized_batch(
+    client: AsyncClient, admin_headers: dict
+):
+    res = await client.post("/api/v1/invites/generate", json={
+        "count": 250,
+    }, headers=admin_headers)
+    assert res.status_code == 422
