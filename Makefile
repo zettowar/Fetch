@@ -1,4 +1,4 @@
-.PHONY: up down migrate revision seed test lint
+.PHONY: up down migrate revision seed test lint generate-dogs generate-dogs-smoke generate-dogs-reset
 
 up:
 	docker compose up --build -d
@@ -22,3 +22,12 @@ test:
 lint:
 	docker compose exec backend ruff check app/
 	docker compose exec frontend npm run lint
+
+generate-dogs:
+	docker compose exec backend python -m app.scripts.generate_dogs
+
+generate-dogs-smoke:
+	docker compose exec backend python -m app.scripts.generate_dogs --owners 20 --dogs 50
+
+generate-dogs-reset:
+	docker compose exec backend python -m app.scripts.generate_dogs --reset
