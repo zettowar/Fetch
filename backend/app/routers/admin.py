@@ -12,6 +12,7 @@ from app.models.audit_log import AuditLog
 from app.models.beta import Feedback, InviteCode
 from app.models.breed import Breed, dog_breeds
 from app.models.dog import Dog
+from app.models.entitlement import Entitlement
 from app.models.lost_report import LostReport
 from app.models.park import Park
 from app.models.photo import Photo
@@ -439,6 +440,30 @@ async def get_user_strikes(
         .limit(limit)
     )
     return list(result.scalars().all())
+
+
+@router.get("/users/{user_id}/entitlements")
+async def get_user_entitlements(
+    user_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """All entitlements granted to a user (admin view)."""
+    result = await db.execute(
+        select(Entitlement)
+        .where(Entitlement.user_id == user_id)
+        .order_by(Entitlement.created_at.desc())
+    )
+    return [
+        {
+            "id": str(e.id),
+            "entitlement_key": e.entitlement_key,
+            "source": e.source,
+            "expires_at": e.expires_at.isoformat() if e.expires_at else None,
+            "created_at": e.created_at.isoformat(),
+        }
+        for e in result.scalars().all()
+    ]
 
 
 @router.get("/users/{user_id}/reports-filed", response_model=list[ReportOut])

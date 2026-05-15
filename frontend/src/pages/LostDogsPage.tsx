@@ -94,14 +94,9 @@ export default function LostDogsPage() {
     <div className="flex flex-col h-[calc(100vh-56px)]">
       {/* ── Compact header ──────────────────────────────────────────── */}
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <span aria-hidden>🚨</span> Lost &amp; Found
-          </h1>
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            {reports.length} report{reports.length === 1 ? '' : 's'} nearby
-          </span>
-        </div>
+        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+          <span aria-hidden>🚨</span> Lost &amp; Found
+        </h1>
 
         <div className="flex gap-1.5 mt-2.5 overflow-x-auto -mx-4 px-4 pb-0.5">
           {(['all', 'missing', 'found'] as const).map((f) => {
@@ -117,13 +112,6 @@ export default function LostDogsPage() {
                 }`}
               >
                 {filterMeta[f].label}
-                <span
-                  className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[11px] font-semibold ${
-                    active ? 'bg-white/25 text-white' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400'
-                  }`}
-                >
-                  {counts[f]}
-                </span>
               </button>
             );
           })}
@@ -146,7 +134,8 @@ export default function LostDogsPage() {
       </div>
 
       {/* ── Map ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 relative">
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="h-[62%] min-h-[280px] relative">
         <Map
           center={center}
           zoom={12}
@@ -173,7 +162,7 @@ export default function LostDogsPage() {
         />
 
         {/* Legend */}
-        <div className="absolute bottom-24 left-4 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-200 shadow-md ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
+        <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-200 shadow-md ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500" />
             Missing
@@ -186,7 +175,7 @@ export default function LostDogsPage() {
 
         {/* Report FAB cluster (bottom-right). Lives on top of the map so
             primary actions are one tap away while you're browsing pins. */}
-        <div className="absolute bottom-24 right-4 flex flex-col gap-2 z-10">
+        <div className="absolute bottom-3 right-3 flex flex-col gap-2 z-10">
           <Link
             to="/lost/report-missing"
             className="flex items-center gap-2 rounded-full bg-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all"
@@ -214,11 +203,60 @@ export default function LostDogsPage() {
             <Spinner />
           </div>
         )}
+        </div>
+
+        {/* Recent reports strip — keeps the area below the (smaller) map useful */}
+        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800">
+          {reports.length === 0 ? (
+            <p className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 text-center">
+              {filterMeta[filter].emptyMsg}
+            </p>
+          ) : (
+            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+              {reports.slice(0, 6).map((r) => {
+                const isMissing = r.kind === 'missing';
+                return (
+                  <li key={r.id}>
+                    <Link
+                      to={`/lost/${r.id}`}
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                      onMouseEnter={() => setSelectedReport(r)}
+                    >
+                      <span
+                        className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${
+                          isMissing ? 'bg-red-500' : 'bg-blue-500'
+                        }`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
+                          {r.dog_name || (isMissing ? 'Missing dog' : 'Found dog')}
+                        </p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                          {isMissing ? 'Missing' : 'Found'} · <TimeAgo value={r.created_at} />
+                        </p>
+                      </div>
+                      <span className="text-xs text-brand-500">View</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
 
-      <p className="px-4 py-2 text-[11px] text-center text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-        A community tool — please also contact your local animal control.
-      </p>
+      <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="px-4 py-2 flex items-center justify-around text-xs text-gray-600 dark:text-gray-300">
+          <span><span className="font-semibold text-gray-800 dark:text-gray-100">{counts.all}</span> total</span>
+          <span aria-hidden className="text-gray-300 dark:text-gray-700">·</span>
+          <span><span className="font-semibold text-red-500 dark:text-red-400">{counts.missing}</span> missing</span>
+          <span aria-hidden className="text-gray-300 dark:text-gray-700">·</span>
+          <span><span className="font-semibold text-blue-500 dark:text-blue-400">{counts.found}</span> found</span>
+        </div>
+        <p className="px-4 pb-2 text-[11px] text-center text-gray-400 dark:text-gray-500">
+          A community tool — please also contact your local animal control.
+        </p>
+      </div>
     </div>
   );
 }

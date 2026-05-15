@@ -1,4 +1,5 @@
 import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import type { Dog } from '../types';
 import { dogAge, dogHeroPhoto } from '../utils/time';
 
@@ -53,6 +54,22 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
           <span className="text-5xl opacity-25">🐾</span>
           <p className="text-sm text-brand-300 font-medium">No photo yet</p>
         </div>
+      )}
+
+      {/* Rescue badge — links to the rescue's profile, on top of the photo */}
+      {dog.rescue_id && (
+        <Link
+          to={`/rescues/${dog.rescue_id}`}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-[11px] font-semibold px-2.5 py-1 shadow-md hover:bg-brand-600 transition-colors"
+          aria-label={`Rescue · ${dog.rescue_name ?? 'View rescue profile'}`}
+        >
+          <span aria-hidden>🏠</span>
+          <span className="max-w-[140px] truncate">
+            {dog.rescue_name ?? 'Rescue'}
+          </span>
+        </Link>
       )}
 
       {/* Like/Pass overlays */}

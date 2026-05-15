@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
@@ -7,10 +7,14 @@ import { getFeed } from '../api/feed';
 import { castVote } from '../api/votes';
 import SwipeCard from './SwipeCard';
 import AdoptionPrompt from './AdoptionPrompt';
+import RewardedAdModal from './RewardedAdModal';
 import Button from './ui/Button';
+import PawMark from './ui/PawMark';
 import { CardSkeleton } from './ui/Skeleton';
 import ErrorState from './ui/ErrorState';
 import { useAuth } from '../store/AuthContext';
+import { useSubscription } from '../utils/useSubscription';
+import { swipeQuota } from '../utils/swipeQuota';
 
 const SEEN_PROMPTS_KEY = 'fetch.adoption_prompts_seen';
 
@@ -41,14 +45,28 @@ interface PromptState {
 
 export default function SwipeDeck() {
   const { user } = useAuth();
+  const { isSubscriber } = useSubscription();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lastVote, setLastVote] = useState<{ dogId: string; index: number } | null>(null);
   const [prompt, setPrompt] = useState<PromptState | null>(null);
+  const [quota, setQuota] = useState(() =>
+    user ? swipeQuota.get(user.id) : { used: 0, cap: swipeQuota.FREE_DAILY },
+  );
+  const [adOpen, setAdOpen] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Re-read quota when the user resolves (initial load) or changes (logout/login).
+  useEffect(() => {
+    if (!user) return;
+    setQuota(swipeQuota.get(user.id));
+  }, [user?.id]);
+
+  const quotaBlocked = !isSubscriber && quota.used >= quota.cap;
+  const remaining = Math.max(0, quota.cap - quota.used);
 
   const { data: dogs = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['feed'],
-    queryFn: () => getFeed(20),
+    queryFn: () => getFeed(30),
   });
 
   const voteMutation = useMutation({
@@ -69,12 +87,21 @@ export default function SwipeDeck() {
     (direction: 'left' | 'right') => {
       const dog = dogs[currentIndex];
       if (!dog) return;
+      if (!isSubscriber && user && quota.used >= quota.cap) {
+        // Quota exhausted — block the swipe; the overlay handles unlock paths.
+        return;
+      }
 
       const value: 1 | -1 = direction === 'right' ? 1 : -1;
       navigator.vibrate?.(direction === 'right' ? 20 : 10);
       setLastVote({ dogId: dog.id, index: currentIndex });
       setCurrentIndex((i) => i + 1);
       voteMutation.mutate({ dogId: dog.id, value });
+
+      if (!isSubscriber && user) {
+        const next = swipeQuota.consume(user.id);
+        setQuota(next);
+      }
 
       // Clear undo after 5 seconds
       if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -105,17 +132,28 @@ export default function SwipeDeck() {
         refetch();
       }
     },
-    [dogs, currentIndex, voteMutation, refetch, user, prompt],
+    [dogs, currentIndex, voteMutation, refetch, user, prompt, isSubscriber, quota.used, quota.cap],
   );
 
   const handleUndo = () => {
     if (!lastVote) return;
+    if (!isSubscriber) {
+      toast('Rewind is a Pack+ perk', { icon: '\ud83d\udd12' });
+      return;
+    }
     navigator.vibrate?.([10, 40, 10]);
     setCurrentIndex(lastVote.index);
     setLastVote(null);
     setPrompt(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
     toast('Swipe undone', { icon: '\u21a9\ufe0f' });
+  };
+
+  const handleReward = () => {
+    if (!user) return;
+    const next = swipeQuota.grantReward(user.id);
+    setQuota(next);
+    toast.success(`+${swipeQuota.REWARD_INCREMENT} swipes unlocked`);
   };
 
   if (isLoading) {
@@ -199,10 +237,15 @@ export default function SwipeDeck() {
 
   return (
     <div className="flex flex-col items-center">
-      {/* Vote counter */}
-      {ratedCount > 0 && (
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">{ratedCount} rated this session</p>
-      )}
+      {/* Vote counter / quota indicator */}
+      <div className="text-xs text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-2">
+        {ratedCount > 0 && <span>{ratedCount} rated this session</span>}
+        {!isSubscriber && user && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+            🐾 {remaining}/{quota.cap} swipes left today
+          </span>
+        )}
+      </div>
 
       <div className="relative w-full h-[480px]">
         {visibleDogs.map((dog, i) => (
@@ -213,6 +256,32 @@ export default function SwipeDeck() {
             onSwipe={handleSwipe}
           />
         ))}
+
+        {quotaBlocked && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center px-4">
+            <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-soft-lg ring-1 ring-gray-200 dark:ring-gray-800 p-5 text-center">
+              <p className="text-2xl mb-1">🐾</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                You've used today's free swipes
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                Watch a quick video to unlock {swipeQuota.REWARD_INCREMENT} more, or go ad-free with Pack+.
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                {swipeQuota.canEarnMore(user?.id ?? '') ? (
+                  <Button onClick={() => setAdOpen(true)}>
+                    Watch ad · +{swipeQuota.REWARD_INCREMENT} swipes
+                  </Button>
+                ) : (
+                  <p className="text-xs text-gray-500">Daily cap reached. Come back tomorrow.</p>
+                )}
+                <Link to="/billing" className="text-sm text-brand-500 hover:underline">
+                  Subscribe to Pack+ →
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Button controls */}
@@ -222,10 +291,10 @@ export default function SwipeDeck() {
           whileTap={{ scale: 0.88 }}
           whileHover={{ scale: 1.06 }}
           transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-          className="w-14 h-14 rounded-full bg-red-100 text-red-500 dark:bg-red-500/15 dark:text-red-400 text-2xl font-bold flex items-center justify-center shadow-soft-sm hover:bg-red-200 dark:hover:bg-red-500/25 transition-colors"
+          className="w-14 h-14 rounded-full bg-red-100 text-red-500 dark:bg-red-500/15 dark:text-red-400 flex items-center justify-center shadow-soft-sm hover:bg-red-200 dark:hover:bg-red-500/25 transition-colors"
           aria-label="Pass"
         >
-          ✕
+          <PawMark className="h-7 w-7 rotate-180" decorative />
         </motion.button>
 
         <AnimatePresence initial={false}>
@@ -239,11 +308,15 @@ export default function SwipeDeck() {
               whileTap={{ scale: 0.9 }}
               whileHover={{ scale: 1.06 }}
               transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-              className="h-11 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-sm flex items-center justify-center shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors overflow-hidden"
-              title="Undo last swipe"
-              aria-label="Undo last swipe"
+              className={`h-11 rounded-full text-sm flex items-center justify-center shadow-soft-sm transition-colors overflow-hidden ${
+                isSubscriber
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  : 'bg-gray-50 dark:bg-gray-800/50 text-gray-300 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+              }`}
+              title={isSubscriber ? 'Undo last swipe' : 'Rewind is a Pack+ perk'}
+              aria-label={isSubscriber ? 'Undo last swipe' : 'Rewind (Pack+ only)'}
             >
-              {'\u21a9\ufe0f'}
+              {isSubscriber ? '\u21a9\ufe0f' : '\ud83d\udd12'}
             </motion.button>
           )}
         </AnimatePresence>
@@ -271,6 +344,36 @@ export default function SwipeDeck() {
           />
         </div>
       )}
+
+      {/* Banner ad slot — non-subscribers only. Placeholder until a real ad
+          network is wired up. */}
+      {!isSubscriber && (
+        <div className="w-full max-w-sm mt-4 px-4">
+          <Link
+            to="/billing"
+            className="block rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 leading-none">
+                  Ad
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 truncate">
+                  Go ad-free with Pack+
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-brand-500 flex-shrink-0">Upgrade →</span>
+            </div>
+          </Link>
+        </div>
+      )}
+
+      <RewardedAdModal
+        open={adOpen}
+        onReward={handleReward}
+        onClose={() => setAdOpen(false)}
+        rewardAmount={swipeQuota.REWARD_INCREMENT}
+      />
     </div>
   );
 }

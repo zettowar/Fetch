@@ -18,6 +18,7 @@ from app.models.park import Park, ParkReview, ParkIncident, ParkCheckin
 from app.models.playdate import PlayDate, PlayDateRsvp
 from app.models.post import Post
 from app.models.rescue import RescueProfile
+from app.models.adoption import AdoptionInquiry
 from app.models.dog_transfer import DogTransfer
 from app.models.support import FAQEntry, SupportTicket
 from app.models.entitlement import Entitlement
@@ -54,6 +55,7 @@ __all__ = [
     "PlayDateRsvp",
     "Post",
     "RescueProfile",
+    "AdoptionInquiry",
     "DogTransfer",
     "FAQEntry",
     "SupportTicket",

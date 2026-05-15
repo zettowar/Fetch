@@ -6,19 +6,23 @@
 export default function PawMark({
   className = '',
   title = 'Fetch',
+  decorative = false,
 }: {
   className?: string;
   title?: string;
+  decorative?: boolean;
 }) {
+  const a11y = decorative
+    ? ({ 'aria-hidden': true, focusable: false } as const)
+    : ({ role: 'img', 'aria-label': title } as const);
   return (
     <svg
       viewBox="0 0 100 100"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      role="img"
-      aria-label={title}
+      {...a11y}
     >
-      <title>{title}</title>
+      {!decorative && <title>{title}</title>}
       {/* Outer toes — pushed to the edges */}
       <ellipse cx="12" cy="42" rx="10" ry="14" transform="rotate(-22 12 42)" fill="currentColor" />
       <ellipse cx="88" cy="42" rx="10" ry="14" transform="rotate(22 88 42)" fill="currentColor" />

@@ -10,6 +10,8 @@ import {
   promoteUser,
   demoteUser,
   grantEntitlement,
+  revokeEntitlement,
+  getUserEntitlements,
   getUserStrikes,
   getUserReportsFiled,
   getUserReportsAgainst,
@@ -49,7 +51,37 @@ export default function AdminUserDetailPage() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-user', id] });
     queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-user-entitlements', id] });
   };
+
+  const { data: entitlements = [] } = useQuery({
+    queryKey: ['admin-user-entitlements', id],
+    queryFn: () => getUserEntitlements(id!),
+    enabled: !!id,
+  });
+
+  const hasPackPlus = entitlements.some((e) => e.entitlement_key === 'ads_removed');
+
+  const packPlusToggle = useMutation({
+    mutationFn: async () => {
+      if (hasPackPlus) {
+        await revokeEntitlement(id!, 'ads_removed');
+      } else {
+        await grantEntitlement({ user_id: id!, entitlement_key: 'ads_removed', source: 'admin_grant' });
+      }
+    },
+    onSuccess: () => {
+      toast.success(hasPackPlus ? 'Pack+ revoked' : 'Pack+ granted');
+      invalidate();
+    },
+    onError: () => toast.error('Failed to update Pack+'),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (key: string) => revokeEntitlement(id!, key),
+    onSuccess: () => { toast.success('Entitlement revoked'); invalidate(); },
+    onError: () => toast.error('Failed to revoke'),
+  });
 
   const suspendMutation = useMutation({
     mutationFn: () => suspendUser(id!),
@@ -134,7 +166,42 @@ export default function AdminUserDetailPage() {
           }}>Demote</Button>
         )}
         <Button size="sm" variant="secondary" onClick={() => setShowGrant(!showGrant)}>Grant Entitlement</Button>
+        <Button
+          size="sm"
+          variant={hasPackPlus ? 'danger' : 'primary'}
+          loading={packPlusToggle.isPending}
+          onClick={() => packPlusToggle.mutate()}
+        >
+          {hasPackPlus ? 'Revoke Pack+' : 'Grant Pack+'}
+        </Button>
       </div>
+
+      {/* Entitlement chips */}
+      {entitlements.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-1.5 items-center">
+          <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Entitlements:</span>
+          {entitlements.map((e) => (
+            <span
+              key={e.id}
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 text-xs"
+            >
+              <span className="font-mono">{e.entitlement_key}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`Revoke "${e.entitlement_key}" from ${user.display_name}?`)) {
+                    revokeMutation.mutate(e.entitlement_key);
+                  }
+                }}
+                aria-label={`Revoke ${e.entitlement_key}`}
+                className="text-purple-500 hover:text-purple-700 dark:hover:text-purple-200"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {showGrant && (
         <div className="mb-4 flex items-center gap-2">

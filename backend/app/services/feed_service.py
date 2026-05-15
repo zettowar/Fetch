@@ -43,6 +43,10 @@ async def get_feed(
         .scalar_subquery()
     )
 
+    # Weighted shuffle: random() * (1 + vote_count). Less-voted dogs still get
+    # an exploration boost, but order is not deterministic between sessions so
+    # repeat visitors see meaningfully different decks.
+    vote_count_expr = func.coalesce(vote_count_subq.c.vote_count, 0)
     query = (
         select(Dog)
         .outerjoin(vote_count_subq, Dog.id == vote_count_subq.c.dog_id)
@@ -53,10 +57,7 @@ async def get_feed(
             Dog.id.in_(has_photo_subq),
             Dog.adopted_at.is_(None),
         )
-        .order_by(
-            func.coalesce(vote_count_subq.c.vote_count, 0).asc(),
-            func.random(),
-        )
+        .order_by((func.random() * (1 + vote_count_expr)).asc())
         .limit(limit)
     )
 

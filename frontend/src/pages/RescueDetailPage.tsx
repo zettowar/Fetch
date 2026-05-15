@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getRescue, getRescueDogs } from '../api/rescues';
+import AdoptionInquiryForm from '../components/AdoptionInquiryForm';
 import BackButton from '../components/ui/BackButton';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
@@ -118,6 +119,14 @@ export default function RescueDetailPage() {
           ))}
         </div>
       )}
+
+      <div className="mt-8">
+        <AdoptionInquiryForm
+          rescueId={rescue.id}
+          rescueName={rescue.org_name}
+          dogs={dogs}
+        />
+      </div>
     </div>
   );
 }

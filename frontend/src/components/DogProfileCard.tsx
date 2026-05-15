@@ -58,6 +58,15 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
             {photoCount}
           </span>
         )}
+        {dog.rescue_id && (
+          <span
+            className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 bg-brand-500 text-white text-[11px] font-semibold rounded-full shadow-sm"
+            title={dog.rescue_name ?? 'Rescue dog'}
+          >
+            <span aria-hidden>🏠</span>
+            Rescue
+          </span>
+        )}
       </div>
       <div className="p-3">
         <div className="flex items-center justify-between">

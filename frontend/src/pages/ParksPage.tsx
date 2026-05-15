@@ -145,9 +145,9 @@ export default function ParksPage() {
         </div>
       </div>
 
-      {/* ── Map (fixed 45% of remaining height) ─────────────────────── */}
+      {/* ── Map ─────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="h-[45%] min-h-[220px] relative">
+        <div className="h-[65%] min-h-[280px] relative">
           <Map
             center={center}
             zoom={12}

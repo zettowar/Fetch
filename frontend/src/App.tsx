@@ -52,6 +52,7 @@ import NotificationsPage from './pages/NotificationsPage';
 import FollowingPage from './pages/FollowingPage';
 import ExplorePage from './pages/ExplorePage';
 import RescuesPage from './pages/RescuesPage';
+import BillingPage from './pages/BillingPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -134,6 +135,7 @@ function AppContent() {
                 <Route path="/rescues/:id" element={<AuthGuard><RescueDetailPage /></AuthGuard>} />
                 <Route path="/rescue/dashboard" element={<AuthGuard><RescueDashboardPage /></AuthGuard>} />
                 <Route path="/transfers" element={<AuthGuard><TransfersPage /></AuthGuard>} />
+                <Route path="/billing" element={<AuthGuard><BillingPage /></AuthGuard>} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </motion.div>

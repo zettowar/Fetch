@@ -14,11 +14,13 @@ import { resendVerification } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
+import { useSubscription } from '../utils/useSubscription';
 
 export default function UserProfilePage() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
   const [debugToken, setDebugToken] = useState<string | null>(null);
+  const subscription = useSubscription();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['user-profile', id],
@@ -111,6 +113,34 @@ export default function UserProfilePage() {
           </p>
         </div>
       </section>
+
+      {/* Subscription card (self only) */}
+      {isMe && (
+        <section className="mx-4 mb-4 rounded-2xl border border-brand-200/60 dark:border-brand-500/30 bg-gradient-to-br from-brand-50 to-white dark:from-brand-500/10 dark:to-gray-900 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {subscription.isSubscriber ? '🐾 Pack+ active' : 'Upgrade to Pack+'}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                {subscription.isSubscriber
+                  ? 'Ad-free swipes · unlimited rewinds · no daily limit.'
+                  : 'Rewind swipes, ditch ads, and skip the daily limit.'}
+              </p>
+            </div>
+            <Link
+              to="/billing"
+              className={`flex-shrink-0 inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+                subscription.isSubscriber
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  : 'bg-brand-500 text-white hover:bg-brand-600'
+              }`}
+            >
+              {subscription.isSubscriber ? 'Manage' : 'Upgrade'}
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Verify banner (self only) */}
       {isMe && currentUser && !currentUser.is_verified && (

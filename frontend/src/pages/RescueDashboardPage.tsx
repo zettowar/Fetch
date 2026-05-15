@@ -8,6 +8,7 @@ import {
   transferDog,
 } from '../api/rescues';
 import { getMyDogs } from '../api/dogs';
+import { listMyInquiries, updateInquiryStatus, type AdoptionInquiry } from '../api/adoption';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { Spinner } from '../components/ui/Skeleton';
@@ -34,6 +35,12 @@ export default function RescueDashboardPage() {
   const { data: dogs = [], refetch: refetchDogs } = useQuery<Dog[]>({
     queryKey: ['rescue-my-dogs'],
     queryFn: getMyDogs,
+    enabled: approved,
+  });
+
+  const { data: inquiries = [], refetch: refetchInquiries } = useQuery<AdoptionInquiry[]>({
+    queryKey: ['rescue-my-inquiries'],
+    queryFn: listMyInquiries,
     enabled: approved,
   });
 
@@ -132,6 +139,23 @@ export default function RescueDashboardPage() {
                 }}
                 onView={() => navigate(`/dogs/${d.id}`)}
               />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          Inquiries ({inquiries.length})
+        </h2>
+        {inquiries.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            No adoption inquiries yet. They'll show up here when someone reaches out from your rescue page.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {inquiries.map((q) => (
+              <InquiryRow key={q.id} inquiry={q} dogs={dogs} onChanged={refetchInquiries} />
             ))}
           </div>
         )}
@@ -282,6 +306,84 @@ function AdoptableDogRow({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const STATUS_LABEL: Record<AdoptionInquiry['status'], string> = {
+  new: 'New',
+  contacted: 'Contacted',
+  closed: 'Closed',
+};
+const STATUS_COLOR: Record<AdoptionInquiry['status'], string> = {
+  new: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  contacted: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
+  closed: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+};
+
+function InquiryRow({
+  inquiry,
+  dogs,
+  onChanged,
+}: {
+  inquiry: AdoptionInquiry;
+  dogs: Dog[];
+  onChanged: () => void;
+}) {
+  const mutation = useMutation({
+    mutationFn: (next: AdoptionInquiry['status']) => updateInquiryStatus(inquiry.id, next),
+    onSuccess: () => {
+      toast.success('Inquiry updated');
+      onChanged();
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to update inquiry')),
+  });
+
+  const aboutDog = inquiry.dog_id ? dogs.find((d) => d.id === inquiry.dog_id) : undefined;
+
+  return (
+    <div className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-semibold truncate">{inquiry.name}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <a href={`mailto:${inquiry.email}`} className="hover:underline">{inquiry.email}</a>
+            {inquiry.phone && ` · ${inquiry.phone}`}
+          </p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+            {new Date(inquiry.created_at).toLocaleString()}
+          </p>
+        </div>
+        <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_COLOR[inquiry.status]}`}>
+          {STATUS_LABEL[inquiry.status]}
+        </span>
+      </div>
+      {aboutDog && (
+        <Link
+          to={`/dogs/${aboutDog.id}`}
+          className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-300 text-[11px] font-medium hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
+        >
+          About {aboutDog.name} ↗
+        </Link>
+      )}
+      <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-wrap">{inquiry.message}</p>
+      <div className="flex gap-2 mt-3">
+        {inquiry.status !== 'contacted' && (
+          <Button size="sm" variant="secondary" onClick={() => mutation.mutate('contacted')} loading={mutation.isPending}>
+            Mark contacted
+          </Button>
+        )}
+        {inquiry.status !== 'closed' && (
+          <Button size="sm" variant="ghost" onClick={() => mutation.mutate('closed')} loading={mutation.isPending}>
+            Close
+          </Button>
+        )}
+        {inquiry.status === 'closed' && (
+          <Button size="sm" variant="ghost" onClick={() => mutation.mutate('new')} loading={mutation.isPending}>
+            Reopen
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

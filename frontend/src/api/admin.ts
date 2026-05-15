@@ -176,6 +176,18 @@ export const deleteFAQ = async (id: string) =>
 export const grantEntitlement = async (data: { user_id: string; entitlement_key: string; source?: string }) =>
   (await client.post('/billing/grant', data)).data;
 
+export const revokeEntitlement = async (userId: string, entitlementKey = 'ads_removed') =>
+  (await client.delete(`/billing/grant/${userId}/${entitlementKey}`)).data;
+
+export const getUserEntitlements = async (userId: string) =>
+  (await client.get(`/admin/users/${userId}/entitlements`)).data as Array<{
+    id: string;
+    entitlement_key: string;
+    source: string;
+    expires_at: string | null;
+    created_at: string;
+  }>;
+
 export const promoteUser = async (id: string) =>
   (await client.post(`/admin/users/${id}/promote`)).data;
 

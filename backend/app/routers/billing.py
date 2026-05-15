@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
@@ -34,12 +34,16 @@ async def premium_status(
 ):
     now = datetime.now(timezone.utc)
     result = await db.execute(
-        select(Entitlement).where(
+        select(Entitlement)
+        .where(
             Entitlement.user_id == user.id,
             Entitlement.entitlement_key == "ads_removed",
         )
+        .order_by(Entitlement.created_at.desc())
     )
-    ent = result.scalar_one_or_none()
+    # `first()` instead of scalar_one_or_none(): tolerate any pre-existing
+    # duplicate rows. The grant endpoint is now idempotent.
+    ent = result.scalars().first()
     is_premium = bool(ent and (not ent.expires_at or ent.expires_at > now))
     return PremiumStatus(
         is_premium=is_premium,
@@ -57,6 +61,19 @@ async def grant_entitlement(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Idempotent: if this user already holds this entitlement, return it
+    # rather than creating a duplicate row (premium_status uses
+    # scalar_one_or_none and would raise on multiples).
+    existing = await db.execute(
+        select(Entitlement).where(
+            Entitlement.user_id == body.user_id,
+            Entitlement.entitlement_key == body.entitlement_key,
+        )
+    )
+    held = existing.scalar_one_or_none()
+    if held is not None:
+        return held
+
     ent = Entitlement(
         user_id=body.user_id,
         entitlement_key=body.entitlement_key,
@@ -73,3 +90,34 @@ async def grant_entitlement(
     await db.commit()
     await db.refresh(ent)
     return ent
+
+
+@router.delete("/grant/{user_id}/{entitlement_key}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_entitlement(
+    user_id: UUID,
+    entitlement_key: str,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Entitlement).where(
+            Entitlement.user_id == user_id,
+            Entitlement.entitlement_key == entitlement_key,
+        )
+    )
+    if not result.scalars().first():
+        raise HTTPException(status_code=404, detail="Entitlement not found")
+    await db.execute(
+        delete(Entitlement).where(
+            Entitlement.user_id == user_id,
+            Entitlement.entitlement_key == entitlement_key,
+        )
+    )
+    db.add(AuditLog(
+        actor_id=admin.id,
+        action="entitlement.revoke",
+        target_type="user",
+        target_id=user_id,
+        metadata_={"entitlement_key": entitlement_key},
+    ))
+    await db.commit()
