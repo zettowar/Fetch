@@ -158,6 +158,27 @@
   border-bottom-color: white;
 }
 
+/* Dark-mode variants — without these the popup body keeps its white
+   background while the content inside uses the dark text palette, giving
+   light-grey-on-white text that's essentially unreadable. */
+.dark .fetch-popup .maplibregl-popup-content {
+  background: rgb(17 24 39); /* gray-900 */
+  border-color: rgb(31 41 55); /* gray-800 */
+  box-shadow:
+    0 10px 30px -10px rgb(0 0 0 / 0.60),
+    0 4px 12px -4px rgb(0 0 0 / 0.40);
+}
+.dark .fetch-popup .maplibregl-popup-close-button {
+  color: rgb(156 163 175); /* gray-400 */
+}
+.dark .fetch-popup .maplibregl-popup-close-button:hover {
+  color: rgb(243 244 246); /* gray-100 */
+}
+.dark .fetch-popup .maplibregl-popup-tip {
+  border-top-color: rgb(17 24 39);
+  border-bottom-color: rgb(17 24 39);
+}
+
 /* Tighten MapLibre's navigation-rail look — drop the blue focus ring on
    the control buttons (browser default) in favor of our own focus-visible
    styling elsewhere. */
