@@ -159,7 +159,7 @@ export default function ParksPage() {
             className="h-full w-full"
           />
           {/* Map legend */}
-          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 px-2.5 py-1.5 text-[11px] shadow-md ring-1 ring-black/5 backdrop-blur z-10">
+          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-[11px] text-gray-700 dark:text-gray-200 shadow-md ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-2.5 h-2.5 rounded-full bg-orange-500" />
               Active

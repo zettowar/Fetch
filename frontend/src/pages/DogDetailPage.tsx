@@ -238,15 +238,15 @@ export default function DogDetailPage() {
         {dog.breed_display && <p className="text-gray-500 dark:text-gray-400">{dog.breed_display}</p>}
 
         {dog.adoptable && dog.rescue_name && (
-          <div className="mt-3 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm">
-            <span className="font-semibold text-brand-700">Adoptable</span>
-            <span className="text-brand-700"> · available at </span>
+          <div className="mt-3 rounded-xl border border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10 px-3 py-2 text-sm">
+            <span className="font-semibold text-brand-700 dark:text-brand-300">Adoptable</span>
+            <span className="text-brand-700 dark:text-brand-300"> · available at </span>
             {dog.rescue_id ? (
-              <Link to={`/rescues/${dog.rescue_id}`} className="font-medium text-brand-700 hover:underline">
+              <Link to={`/rescues/${dog.rescue_id}`} className="font-medium text-brand-700 dark:text-brand-300 hover:underline">
                 {dog.rescue_name}
               </Link>
             ) : (
-              <span className="font-medium text-brand-700">{dog.rescue_name}</span>
+              <span className="font-medium text-brand-700 dark:text-brand-300">{dog.rescue_name}</span>
             )}
           </div>
         )}

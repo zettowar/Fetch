@@ -192,12 +192,12 @@ function StatCard({
     <div
       className={`rounded-xl border p-3 ${
         accent === 'brand'
-          ? 'border-brand-200 bg-brand-50'
+          ? 'border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10'
           : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
       }`}
     >
       <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
-      <p className={`text-2xl font-bold ${accent === 'brand' ? 'text-brand-700' : 'text-gray-900 dark:text-gray-100'}`}>
+      <p className={`text-2xl font-bold ${accent === 'brand' ? 'text-brand-700 dark:text-brand-300' : 'text-gray-900 dark:text-gray-100'}`}>
         {value}
       </p>
     </div>

@@ -192,14 +192,14 @@ export default function LostDogsPage() {
 
         {/* Empty state — only when not loading and no results for the filter */}
         {!isLoading && reports.length === 0 && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur rounded-xl shadow-md px-4 py-2 text-sm text-gray-600 dark:text-gray-300 max-w-[90%] text-center z-10">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 max-w-[90%] text-center z-10">
             {filterMeta[filter].emptyMsg}
           </div>
         )}
 
         {/* Loading spinner confined to the map area */}
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-sm z-20">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-gray-950/40 backdrop-blur-sm z-20">
             <Spinner />
           </div>
         )}
