@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 DEFAULT_TIMEOUT_SECONDS = 120
+# Overpass's Apache layer rejects httpx's default UA with 406 Not Acceptable.
+# Identifying ourselves also follows the Overpass usage policy:
+# https://operations.osmfoundation.org/policies/api/
+USER_AGENT = "Fetch/1.0 (https://fetchapp.dev; admin park import)"
 
 
 @dataclass
@@ -132,7 +136,8 @@ async def fetch_osm_dog_parks(
 ) -> list[dict[str, Any]]:
     """Query Overpass. Returns a list of parsed park dicts (one per OSM element)."""
     query = _build_query(bbox)
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
         resp = await client.post(OVERPASS_URL, data={"data": query})
         resp.raise_for_status()
         payload = resp.json()

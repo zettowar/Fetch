@@ -163,6 +163,45 @@ async def test_non_admin_cannot_create_park(client: AsyncClient, auth_headers: d
 
 
 @pytest.mark.asyncio
+async def test_overpass_request_sets_user_agent():
+    """Regression: Overpass's Apache layer 406s on httpx's default UA.
+
+    See https://operations.osmfoundation.org/policies/api/ — identifying
+    yourself is also the polite thing to do.
+    """
+    from app.services.park_import import fetch_osm_dog_parks
+
+    captured: dict = {}
+
+    class _Resp:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"version": 0.6, "elements": []}
+
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            captured["headers"] = kwargs.get("headers") or {}
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, *args, **kwargs):
+            return _Resp()
+
+    with patch("app.services.park_import.httpx.AsyncClient", new=_Client):
+        await fetch_osm_dog_parks(bbox=(0, 0, 1, 1))
+
+    ua = captured["headers"].get("User-Agent", "")
+    assert ua, "User-Agent header missing — Overpass will 406"
+    assert "Fetch" in ua
+
+
+@pytest.mark.asyncio
 async def test_park_stats_and_history(client: AsyncClient, admin_headers: dict):
     with patch(
         "app.services.park_import.httpx.AsyncClient",

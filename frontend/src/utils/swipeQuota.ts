@@ -56,6 +56,13 @@ export const swipeQuota = {
     write(userId, next);
     return next;
   },
+  refund(userId: string): QuotaState {
+    // Undo one `consume`. Floor at zero so a refund storm can't go negative.
+    const cur = read(userId);
+    const next = { ...cur, used: Math.max(0, cur.used - 1) };
+    write(userId, next);
+    return next;
+  },
   grantReward(userId: string): QuotaState {
     const cur = read(userId);
     const newCap = Math.min(MAX_DAILY, cur.cap + REWARD_INCREMENT);

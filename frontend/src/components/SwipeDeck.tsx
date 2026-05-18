@@ -75,6 +75,11 @@ export default function SwipeDeck() {
     onError: () => {
       toast.error('Vote failed');
       setCurrentIndex((i) => Math.max(0, i - 1));
+      // The vote didn't land server-side — give the swipe back so the user
+      // isn't punished for our flaky network.
+      if (!isSubscriber && user) {
+        setQuota(swipeQuota.refund(user.id));
+      }
     },
   });
 
@@ -146,6 +151,10 @@ export default function SwipeDeck() {
     setLastVote(null);
     setPrompt(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
+    // Refund quota on undo. Subscribers bypass the cap anyway so this is a
+    // no-op for them \u2014 but keeping the call site uniform avoids surprise if
+    // we later let free users undo once.
+    if (user) setQuota(swipeQuota.refund(user.id));
     toast('Swipe undone', { icon: '\u21a9\ufe0f' });
   };
 

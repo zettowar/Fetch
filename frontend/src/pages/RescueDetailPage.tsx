@@ -124,7 +124,7 @@ export default function RescueDetailPage() {
         <AdoptionInquiryForm
           rescueId={rescue.id}
           rescueName={rescue.org_name}
-          dogs={dogs}
+          dogs={dogs.filter((d) => !d.adopted_at && d.is_active)}
         />
       </div>
     </div>
