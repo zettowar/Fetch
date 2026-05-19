@@ -12,6 +12,12 @@ interface ExploreItem {
 
 const ITEMS: ExploreItem[] = [
   {
+    label: 'Lost & Found',
+    description: 'Missing or found dogs reported nearby.',
+    icon: '🚨',
+    to: '/lost',
+  },
+  {
     label: 'Rescues',
     description: 'Adopt, donate, or follow nearby rescues.',
     icon: '🏠',
