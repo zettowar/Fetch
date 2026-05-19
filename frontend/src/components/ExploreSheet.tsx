@@ -8,15 +8,10 @@ interface ExploreItem {
   icon: string;
   to?: string;
   disabled?: boolean;
+  featured?: boolean;
 }
 
 const ITEMS: ExploreItem[] = [
-  {
-    label: 'Lost & Found',
-    description: 'Missing or found dogs reported nearby.',
-    icon: '🚨',
-    to: '/lost',
-  },
   {
     label: 'Parks',
     description: 'Find dog-friendly parks around you.',
@@ -28,6 +23,7 @@ const ITEMS: ExploreItem[] = [
     description: 'Browse other Fetch users and their dogs.',
     icon: '🐾',
     to: '/explore',
+    featured: true,
   },
   {
     label: 'Vets',
@@ -141,13 +137,31 @@ export default function ExploreSheet({ open, onClose }: Props) {
                     <Link
                       to={item.to}
                       onClick={onClose}
-                      className={`${baseRow} hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.99]`}
+                      className={`${baseRow} ${
+                        item.featured
+                          ? 'bg-gradient-to-r from-brand-50 to-amber-50 dark:from-brand-500/10 dark:to-amber-500/10 ring-1 ring-brand-200 dark:ring-brand-500/30 shadow-brand-glow hover:from-brand-100 hover:to-amber-100 dark:hover:from-brand-500/20 dark:hover:to-amber-500/20'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      } active:scale-[0.99]`}
                     >
-                      <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/15 flex items-center justify-center text-xl" aria-hidden>
+                      <span
+                        className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
+                          item.featured
+                            ? 'bg-gradient-to-br from-brand-400 to-amber-500 text-white shadow-brand-glow'
+                            : 'bg-brand-50 dark:bg-brand-500/15'
+                        }`}
+                        aria-hidden
+                      >
                         {item.icon}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">{item.label}</p>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                          {item.label}
+                          {item.featured && (
+                            <span className="inline-flex items-center px-1.5 py-0 text-[10px] font-bold tracking-wide uppercase bg-gradient-to-r from-brand-500 to-amber-500 text-white rounded-full shadow-brand-glow">
+                              Pack+
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{item.description}</p>
                       </div>
                       <span aria-hidden className="text-gray-300 dark:text-gray-600">›</span>

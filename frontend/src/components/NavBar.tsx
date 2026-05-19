@@ -11,12 +11,13 @@ import ExploreSheet from './ExploreSheet';
 
 // Paths that the Explore sheet routes to — used to mark the tab "active"
 // when any of those destinations is showing.
-const EXPLORE_PATHS = ['/explore', '/parks', '/vets', '/lost'] as const;
+const EXPLORE_PATHS = ['/explore', '/parks', '/vets'] as const;
 
 const NAV_ITEMS = [
   { path: '/home', label: 'Home', icon: '🦴' },
   { path: '/swipe', label: 'Swipe', icon: '❤️' },
   { path: '/rescues', label: 'Rescues', icon: '🏠' },
+  { path: '/lost', label: 'Lost', icon: '🚨' },
   { path: '__explore__', label: 'Explore', icon: '🔍', isSheet: true },
 ] as const;
 
@@ -174,7 +175,7 @@ export default function NavBar() {
                     />
                   )}
                   <span
-                    className={`text-[28px] leading-none transition-transform duration-200 ease-soft-out ${
+                    className={`text-[29px] leading-none transition-transform duration-200 ease-soft-out ${
                       isActive ? 'scale-110' : ''
                     }`}
                   >

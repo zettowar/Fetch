@@ -300,10 +300,10 @@ export default function SwipeDeck() {
           whileTap={{ scale: 0.88 }}
           whileHover={{ scale: 1.06 }}
           transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-          className="w-14 h-14 rounded-full bg-red-100 text-red-500 dark:bg-red-500/15 dark:text-red-400 flex items-center justify-center shadow-soft-sm hover:bg-red-200 dark:hover:bg-red-500/25 transition-colors"
+          className="w-[84px] h-[84px] rounded-full bg-red-100 text-red-500 dark:bg-red-500/15 dark:text-red-400 flex items-center justify-center shadow-soft-sm hover:bg-red-200 dark:hover:bg-red-500/25 transition-colors"
           aria-label="Pass"
         >
-          <PawMark className="h-7 w-7 rotate-180" decorative />
+          <PawMark className="h-[42px] w-[42px] rotate-180" decorative />
         </motion.button>
 
         <AnimatePresence initial={false}>
@@ -335,7 +335,7 @@ export default function SwipeDeck() {
           whileTap={{ scale: 0.88 }}
           whileHover={{ scale: 1.06 }}
           transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-          className="w-14 h-14 rounded-full bg-green-100 text-green-500 dark:bg-green-500/15 dark:text-green-400 text-2xl flex items-center justify-center shadow-soft-sm hover:bg-green-200 dark:hover:bg-green-500/25 transition-colors"
+          className="w-[84px] h-[84px] rounded-full bg-green-100 text-green-500 dark:bg-green-500/15 dark:text-green-400 text-4xl flex items-center justify-center shadow-soft-sm hover:bg-green-200 dark:hover:bg-green-500/25 transition-colors"
           aria-label="Like"
         >
           &#x2764;
