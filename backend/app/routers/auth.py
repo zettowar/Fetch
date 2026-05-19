@@ -104,6 +104,8 @@ async def signup_rescue(
         org_name=body.org_name,
         description=body.description,
         location=body.location,
+        lat=body.lat,
+        lng=body.lng,
         website=body.website,
         donation_url=body.donation_url,
         proof_details=body.proof_details,

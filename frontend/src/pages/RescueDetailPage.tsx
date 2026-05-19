@@ -5,8 +5,11 @@ import AdoptionInquiryForm from '../components/AdoptionInquiryForm';
 import BackButton from '../components/ui/BackButton';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
+import Map from '../components/Map';
 import { photoUrl } from '../utils/time';
 import type { Dog } from '../types';
+
+const RESCUE_PIN_COLOR = '#8b5cf6'; // shared with the Rescue map page
 
 export default function RescueDetailPage() {
   const { id } = useParams();
@@ -38,10 +41,30 @@ export default function RescueDetailPage() {
     );
   }
 
+  const hasCoords = rescue.lat != null && rescue.lng != null;
+
   return (
     <div className="p-4 pb-8 max-w-xl mx-auto">
       <BackButton fallback="/rescues" />
-      <div className="flex items-center gap-2 flex-wrap mt-2 mb-1">
+      {hasCoords && (
+        <div className="mt-3 h-48 rounded-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 shadow-soft-sm">
+          <Map
+            center={[rescue.lng as number, rescue.lat as number]}
+            zoom={12}
+            markers={[
+              {
+                id: rescue.id,
+                lat: rescue.lat as number,
+                lng: rescue.lng as number,
+                color: RESCUE_PIN_COLOR,
+                label: rescue.org_name,
+              },
+            ]}
+            className="w-full h-full"
+          />
+        </div>
+      )}
+      <div className="flex items-center gap-2 flex-wrap mt-3 mb-1">
         <h1 className="text-2xl font-bold">{rescue.org_name}</h1>
         <span className="text-[10px] bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
           Verified

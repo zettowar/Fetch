@@ -8,6 +8,7 @@
 - `/api/v1/rescues/dogs/:dog_id/mark-adopted` rescue flags dog as adopted (no transfer)
 - `/api/v1/rescues/dogs/:dog_id/transfer`    rescue initiates a transfer to a Fetch user
 """
+import math
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -66,6 +67,35 @@ async def list_rescues(
     if q:
         query = query.where(RescueProfile.org_name.ilike(f"%{q.strip()}%"))
     result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+# --- Nearby (route must precede parameterized /{rescue_id}) ---
+
+@router.get("/nearby", response_model=list[RescuePublicOut])
+async def nearby_rescues(
+    lat: float = Query(..., ge=-90, le=90),
+    lng: float = Query(..., ge=-180, le=180),
+    radius_km: float = Query(50.0, ge=1, le=500),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    deg_per_km = 1.0 / 111.32
+    dlat = radius_km * deg_per_km
+    dlng = radius_km * deg_per_km / max(math.cos(math.radians(lat)), 0.01)
+
+    result = await db.execute(
+        select(RescueProfile)
+        .where(
+            RescueProfile.status == "approved",
+            RescueProfile.lat.is_not(None),
+            RescueProfile.lng.is_not(None),
+            RescueProfile.lat.between(lat - dlat, lat + dlat),
+            RescueProfile.lng.between(lng - dlng, lng + dlng),
+        )
+        .order_by(RescueProfile.org_name.asc())
+        .limit(200)
+    )
     return list(result.scalars().all())
 
 

@@ -207,6 +207,11 @@ export default function Map({
   const handleMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
       if (!onViewChange) return;
+      // Skip programmatic camera changes (flyTo / fitBounds / GeolocateControl
+      // "found you" animation) — those have no underlying user event. We only
+      // want pans/zooms the user actually performed, so consumers don't churn
+      // their data queries in response to their own fitMarkers behavior.
+      if (!(e as unknown as { originalEvent?: unknown }).originalEvent) return;
       const { latitude, longitude, zoom: z } = e.viewState;
       onViewChange(latitude, longitude, z);
     },

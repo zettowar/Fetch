@@ -51,7 +51,9 @@ import AdminAuditPage from './pages/admin/AdminAuditPage';
 import NotificationsPage from './pages/NotificationsPage';
 import FollowingPage from './pages/FollowingPage';
 import ExplorePage from './pages/ExplorePage';
+import RescuesHubPage from './pages/RescuesHubPage';
 import RescuesPage from './pages/RescuesPage';
+import RescuesMapPage from './pages/RescuesMapPage';
 import BillingPage from './pages/BillingPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -131,7 +133,9 @@ function AppContent() {
                 <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
                 <Route path="/following" element={<AuthGuard><FollowingPage /></AuthGuard>} />
                 <Route path="/explore" element={<AuthGuard><ExplorePage /></AuthGuard>} />
-                <Route path="/rescues" element={<AuthGuard><RescuesPage /></AuthGuard>} />
+                <Route path="/rescues" element={<AuthGuard><RescuesHubPage /></AuthGuard>} />
+                <Route path="/rescues/browse" element={<AuthGuard><RescuesPage /></AuthGuard>} />
+                <Route path="/rescues/map" element={<AuthGuard><RescuesMapPage /></AuthGuard>} />
                 <Route path="/rescues/:id" element={<AuthGuard><RescueDetailPage /></AuthGuard>} />
                 <Route path="/rescue/dashboard" element={<AuthGuard><RescueDashboardPage /></AuthGuard>} />
                 <Route path="/transfers" element={<AuthGuard><TransfersPage /></AuthGuard>} />

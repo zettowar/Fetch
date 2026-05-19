@@ -5,6 +5,8 @@ export interface RescuePublic {
   org_name: string;
   description: string;
   location: string | null;
+  lat: number | null;
+  lng: number | null;
   website: string | null;
   donation_url: string | null;
 }
@@ -24,6 +26,8 @@ export interface RescueSignupPayload {
   org_name: string;
   description: string;
   location?: string;
+  lat?: number;
+  lng?: number;
   website?: string;
   donation_url?: string;
   proof_details?: string;
@@ -40,6 +44,17 @@ export async function signupRescue(data: RescueSignupPayload) {
 
 export async function listRescues(q?: string): Promise<RescuePublic[]> {
   const res = await client.get('/rescues', { params: { q: q || undefined } });
+  return res.data;
+}
+
+export async function getNearbyRescues(
+  lat: number,
+  lng: number,
+  radius_km = 50,
+): Promise<RescuePublic[]> {
+  const res = await client.get('/rescues/nearby', {
+    params: { lat, lng, radius_km },
+  });
   return res.data;
 }
 
@@ -61,7 +76,7 @@ export async function getMyRescueProfile(): Promise<RescueProfile> {
 }
 
 export async function updateMyRescueProfile(
-  data: Partial<Pick<RescueProfile, 'org_name' | 'description' | 'location' | 'website' | 'donation_url'>>,
+  data: Partial<Pick<RescueProfile, 'org_name' | 'description' | 'location' | 'lat' | 'lng' | 'website' | 'donation_url'>>,
 ): Promise<RescueProfile> {
   const res = await client.patch('/rescues/me', data);
   return res.data;

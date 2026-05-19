@@ -28,6 +28,8 @@ class RescueSignupRequest(BaseModel):
     org_name: str
     description: str
     location: str | None = None
+    lat: float | None = None
+    lng: float | None = None
     website: str | None = None
     donation_url: str | None = None
     proof_details: str | None = None
@@ -58,6 +60,8 @@ class RescueProfileUpdate(BaseModel):
     org_name: str | None = None
     description: str | None = None
     location: str | None = None
+    lat: float | None = None
+    lng: float | None = None
     website: str | None = None
     donation_url: str | None = None
 
@@ -74,6 +78,8 @@ class RescueProfileOut(BaseModel):
     org_name: str
     description: str
     location: str | None = None
+    lat: float | None = None
+    lng: float | None = None
     website: str | None = None
     donation_url: str | None = None
     proof_details: str | None = None
@@ -91,6 +97,8 @@ class RescuePublicOut(BaseModel):
     org_name: str
     description: str
     location: str | None = None
+    lat: float | None = None
+    lng: float | None = None
     website: str | None = None
     donation_url: str | None = None
 

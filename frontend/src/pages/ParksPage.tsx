@@ -11,16 +11,22 @@ const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // fallback
 type Filter = 'all' | 'active' | 'verified';
 
 export default function ParksPage() {
-  const center = useUserLocation(DEFAULT_CENTER);
+  const initialCenter = useUserLocation(DEFAULT_CENTER);
+  const [viewCenter, setViewCenter] = useState<[number, number]>(initialCenter);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [selectedParkId, setSelectedParkId] = useState<string | null>(null);
   const listRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const navigate = useNavigate();
 
+  // Sync the query center when the user-location hook resolves.
+  useEffect(() => {
+    setViewCenter(initialCenter);
+  }, [initialCenter[0], initialCenter[1]]);
+
   const { data: parks = [], isLoading, isError } = useQuery({
-    queryKey: ['parks-nearby', center[1], center[0]],
-    queryFn: () => getNearbyParks(center[1], center[0], 25),
+    queryKey: ['parks-nearby', viewCenter[1], viewCenter[0]],
+    queryFn: () => getNearbyParks(viewCenter[1], viewCenter[0], 25),
   });
 
   const searchLower = search.trim().toLowerCase();
@@ -149,13 +155,13 @@ export default function ParksPage() {
       <div className="flex-1 flex flex-col min-h-0">
         <div className="h-[65%] min-h-[280px] relative">
           <Map
-            center={center}
+            center={initialCenter}
             zoom={12}
             markers={markers}
-            fitMarkers
             showLocateMe
             selectedMarkerId={selectedParkId}
             onPopupClose={() => setSelectedParkId(null)}
+            onViewChange={(lat, lng) => setViewCenter([lng, lat])}
             className="h-full w-full"
           />
           {/* Map legend */}

@@ -13,13 +13,19 @@ const LAST_VISITED_KEY = 'lost-last-visited';
 type Kind = 'all' | 'missing' | 'found';
 
 export default function LostDogsPage() {
-  const center = useUserLocation(DEFAULT_CENTER);
+  const initialCenter = useUserLocation(DEFAULT_CENTER);
+  const [viewCenter, setViewCenter] = useState<[number, number]>(initialCenter);
   const [selectedReport, setSelectedReport] = useState<NearbyReport | null>(null);
   const [filter, setFilter] = useState<Kind>('all');
   const [newCount, setNewCount] = useState(0);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const lastVisitedRef = useRef<string | null>(localStorage.getItem(LAST_VISITED_KEY));
   const navigate = useNavigate();
+
+  // Re-center the query when the user-location hook resolves a real fix.
+  useEffect(() => {
+    setViewCenter(initialCenter);
+  }, [initialCenter[0], initialCenter[1]]);
 
   const { data: subscription } = useQuery({
     queryKey: ['lost-subscription'],
@@ -28,19 +34,19 @@ export default function LostDogsPage() {
   });
 
   const { data: reports = [], isLoading } = useQuery({
-    queryKey: ['lost-nearby', center[1], center[0], filter],
+    queryKey: ['lost-nearby', viewCenter[1], viewCenter[0], filter],
     queryFn: () =>
       getNearbyReports(
-        center[1],
-        center[0],
+        viewCenter[1],
+        viewCenter[0],
         25,
         filter === 'all' ? undefined : filter,
       ),
   });
 
   const { data: allReports = [] } = useQuery({
-    queryKey: ['lost-nearby', center[1], center[0], 'all'],
-    queryFn: () => getNearbyReports(center[1], center[0], 25),
+    queryKey: ['lost-nearby', viewCenter[1], viewCenter[0], 'all'],
+    queryFn: () => getNearbyReports(viewCenter[1], viewCenter[0], 25),
   });
 
   const counts = {
@@ -152,7 +158,7 @@ export default function LostDogsPage() {
       <div className="flex-1 flex flex-col min-h-0">
         <div className="h-[62%] min-h-[280px] relative">
         <Map
-          center={center}
+          center={initialCenter}
           zoom={12}
           markers={markers}
           circles={
@@ -169,10 +175,10 @@ export default function LostDogsPage() {
                 ]
               : []
           }
-          fitMarkers
           showLocateMe
           selectedMarkerId={selectedReport?.id ?? null}
           onPopupClose={() => setSelectedReport(null)}
+          onViewChange={(lat, lng) => setViewCenter([lng, lat])}
           className="w-full h-full"
         />
 
