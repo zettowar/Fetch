@@ -1,24 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { useTheme } from '../store/ThemeContext';
 import { logout as apiLogout } from '../api/auth';
 import { getRefreshToken } from '../api/client';
 import PawMark from './ui/PawMark';
+import ExploreSheet from './ExploreSheet';
+
+// Paths that the Explore sheet routes to — used to mark the tab "active"
+// when any of those destinations is showing.
+const EXPLORE_PATHS = ['/explore', '/parks', '/rescues', '/vets'] as const;
 
 const NAV_ITEMS = [
   { path: '/home', label: 'Home', icon: '🏠' },
   { path: '/swipe', label: 'Swipe', icon: '❤️' },
   { path: '/lost', label: 'Lost', icon: '🚨' },
-  { path: '/parks', label: 'Parks', icon: '🌳', hasMenu: true },
-] as const;
-
-const PARKS_MENU = [
-  { path: '/parks', label: 'Explore Parks', icon: '🌳' },
-  { path: '/vets', label: 'Explore Vets', icon: '🩺', disabled: true },
-  { path: '/explore', label: 'Explore the Pack', icon: '🐾' },
+  { path: '__explore__', label: 'Explore', icon: '🔍', isSheet: true },
 ] as const;
 
 export default function NavBar() {
@@ -28,30 +27,13 @@ export default function NavBar() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [parksMenuOpen, setParksMenuOpen] = useState(false);
-  const parksMenuRef = useRef<HTMLDivElement | null>(null);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const showVerifyBanner = isAuthenticated && user && !user.is_verified && !bannerDismissed;
 
+  // Close the sheet on navigation so it doesn't linger when the user picks
+  // an item or hits back.
   useEffect(() => {
-    if (!parksMenuOpen) return;
-    const close = (e: Event) => {
-      if (!parksMenuRef.current?.contains(e.target as Node)) setParksMenuOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setParksMenuOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('touchstart', close);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('touchstart', close);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [parksMenuOpen]);
-
-  useEffect(() => {
-    setParksMenuOpen(false);
+    setExploreOpen(false);
   }, [location.pathname]);
 
   const handleLogout = async () => {
@@ -71,11 +53,13 @@ export default function NavBar() {
     queryClient.clear();
   };
 
-  const activePath = NAV_ITEMS.find(({ path }) => {
-    if (location.pathname === path) return true;
-    if (path === '/lost' && location.pathname.startsWith('/lost')) return true;
-    if (path === '/parks' && location.pathname.startsWith('/parks')) return true;
-    if (path === '/parks' && location.pathname.startsWith('/explore')) return true;
+  const onExploreDestination = EXPLORE_PATHS.some((p) =>
+    location.pathname.startsWith(p),
+  );
+  const activePath = NAV_ITEMS.find((item) => {
+    if (item.path === '__explore__') return onExploreDestination;
+    if (location.pathname === item.path) return true;
+    if (item.path === '/lost' && location.pathname.startsWith('/lost')) return true;
     return false;
   })?.path;
 
@@ -177,7 +161,7 @@ export default function NavBar() {
             {NAV_ITEMS.map((item) => {
               const { path, label, icon } = item;
               const isActive = activePath === path;
-              const hasMenu = 'hasMenu' in item && item.hasMenu;
+              const isSheet = 'isSheet' in item && item.isSheet;
               const itemClasses = `relative flex flex-1 flex-col items-center gap-1 px-2 pt-2.5 pb-2 min-h-[53px] transition-colors duration-200 ease-soft-out ${
                 isActive ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`;
@@ -197,68 +181,25 @@ export default function NavBar() {
                   >
                     {icon}
                   </span>
-                  <span className="text-[13px] font-semibold leading-none tracking-tight inline-flex items-center gap-0.5">
+                  <span className="text-[13px] font-semibold leading-none tracking-tight">
                     {label}
-                    {hasMenu && <span aria-hidden className="text-[8px] opacity-70">▾</span>}
                   </span>
                 </>
               );
 
-              if (hasMenu) {
+              if (isSheet) {
                 return (
-                  <div key={path} ref={parksMenuRef} className="relative flex-1 flex">
-                    <button
-                      type="button"
-                      onClick={() => setParksMenuOpen((v) => !v)}
-                      aria-label={`${label} menu`}
-                      aria-expanded={parksMenuOpen}
-                      aria-haspopup="menu"
-                      className={`${itemClasses} w-full`}
-                    >
-                      {content}
-                    </button>
-                    <AnimatePresence>
-                      {parksMenuOpen && (
-                        <motion.div
-                          role="menu"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-                          className="absolute bottom-full right-0 mb-2 min-w-[180px] rounded-xl bg-white dark:bg-gray-900 shadow-lg ring-1 ring-black/5 dark:ring-white/10 overflow-hidden"
-                        >
-                          {PARKS_MENU.map((entry) => {
-                            const disabled = 'disabled' in entry && entry.disabled;
-                            return disabled ? (
-                              <div
-                                key={entry.label}
-                                role="menuitem"
-                                aria-disabled
-                                className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                              >
-                                <span className="flex items-center gap-2">
-                                  <span aria-hidden>{entry.icon}</span>
-                                  {entry.label}
-                                </span>
-                                <span className="text-[10px] uppercase tracking-wide">Soon</span>
-                              </div>
-                            ) : (
-                              <Link
-                                key={entry.label}
-                                to={entry.path}
-                                role="menuitem"
-                                onClick={() => setParksMenuOpen(false)}
-                                className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                              >
-                                <span aria-hidden>{entry.icon}</span>
-                                {entry.label}
-                              </Link>
-                            );
-                          })}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                  <button
+                    key={path}
+                    type="button"
+                    onClick={() => setExploreOpen((v) => !v)}
+                    aria-label={label}
+                    aria-haspopup="dialog"
+                    aria-expanded={exploreOpen}
+                    className={itemClasses}
+                  >
+                    {content}
+                  </button>
                 );
               }
 
@@ -276,6 +217,10 @@ export default function NavBar() {
             })}
           </div>
         </div>
+      )}
+
+      {isAuthenticated && (
+        <ExploreSheet open={exploreOpen} onClose={() => setExploreOpen(false)} />
       )}
     </>
   );
