@@ -27,7 +27,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero: Weekly Winner */}
-      <div className="relative h-56 bg-gradient-to-b from-brand-400 to-brand-600 flex items-center justify-center overflow-hidden rounded-b-3xl">
+      <div className="relative h-56 bg-gradient-to-b from-brand-400 to-brand-600 flex flex-col overflow-hidden rounded-b-3xl">
         {winner?.primary_photo_url && (
           <img
             src={winner.primary_photo_url}
@@ -35,20 +35,17 @@ export default function HomePage() {
             className="absolute inset-0 w-full h-full object-cover opacity-40"
           />
         )}
-        <div className="relative z-10 text-center text-white px-4">
+        <div className="relative z-10 text-center text-white px-4 pt-5">
           <p className="text-xs uppercase tracking-widest opacity-80">🏆 This Week's Top Dog</p>
+        </div>
+        <div className="relative z-10 mt-auto text-center text-white px-4 pb-4">
           {winner ? (
-            <>
-              <h2 className="text-3xl font-bold mt-1">{winner.dog_name}</h2>
-              {winner.breed && <p className="text-base opacity-90">{winner.breed}</p>}
-              <p className="text-sm opacity-70 mt-1">Score: {winner.score}</p>
-            </>
+            <h2 className="text-3xl font-bold opacity-60">{winner.dog_name}</h2>
           ) : (
             <>
-              <h2 className="text-2xl font-bold mt-2">No winner yet</h2>
-              <p className="text-sm opacity-70 mt-1">Start swiping to cast your vote!</p>
+              <h2 className="text-2xl font-bold opacity-60">No winner yet</h2>
               <div
-                className="inline-flex items-center gap-1.5 mt-4 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium"
+                className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium"
                 title={`Winner announced ${nextWeeklyReset().toLocaleString()}`}
               >
                 <span aria-hidden>⏳</span>

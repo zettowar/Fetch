@@ -117,6 +117,21 @@ export default function LostDogsPage() {
           })}
         </div>
 
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <Link
+            to="/lost/report-missing"
+            className="flex items-center justify-center gap-1.5 rounded-full bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-600 active:scale-95 transition-all"
+          >
+            <span aria-hidden>🚨</span> Report Missing
+          </Link>
+          <Link
+            to="/lost/report-found"
+            className="flex items-center justify-center gap-1.5 rounded-full bg-blue-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 active:scale-95 transition-all"
+          >
+            <span aria-hidden>🐾</span> Report Found
+          </Link>
+        </div>
+
         {newCount > 0 && !bannerDismissed && (
           <div className="mt-2 flex items-center justify-between bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30 rounded-lg px-3 py-2 text-sm">
             <span className="text-amber-800 dark:text-amber-200 font-medium">
@@ -171,23 +186,6 @@ export default function LostDogsPage() {
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-500" />
             Found
           </span>
-        </div>
-
-        {/* Report FAB cluster (bottom-right). Lives on top of the map so
-            primary actions are one tap away while you're browsing pins. */}
-        <div className="absolute bottom-3 right-3 flex flex-col gap-2 z-10">
-          <Link
-            to="/lost/report-missing"
-            className="flex items-center gap-2 rounded-full bg-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all"
-          >
-            <span aria-hidden>🚨</span> Missing
-          </Link>
-          <Link
-            to="/lost/report-found"
-            className="flex items-center gap-2 rounded-full bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 active:scale-95 transition-all"
-          >
-            <span aria-hidden>🐾</span> Found
-          </Link>
         </div>
 
         {/* Empty state — only when not loading and no results for the filter */}
