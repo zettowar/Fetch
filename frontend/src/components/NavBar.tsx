@@ -16,7 +16,7 @@ const EXPLORE_PATHS = ['/explore', '/parks', '/vets', '/lost'] as const;
 const NAV_ITEMS = [
   { path: '/home', label: 'Home', icon: '🏠' },
   { path: '/swipe', label: 'Swipe', icon: '❤️' },
-  { path: '/rescues', label: 'Rescues', icon: '🐕‍🦺' },
+  { path: '/rescues', label: 'Rescues', icon: '🦮' },
   { path: '__explore__', label: 'Explore', icon: '🔍', isSheet: true },
 ] as const;
 
