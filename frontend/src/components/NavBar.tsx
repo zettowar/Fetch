@@ -11,7 +11,6 @@ import PawMark from './ui/PawMark';
 const NAV_ITEMS = [
   { path: '/home', label: 'Home', icon: '🏠' },
   { path: '/swipe', label: 'Swipe', icon: '❤️' },
-  { path: '/dogs', label: 'Dogs', icon: '🐶' },
   { path: '/lost', label: 'Lost', icon: '🚨' },
   { path: '/parks', label: 'Parks', icon: '🌳', hasMenu: true },
 ] as const;
@@ -74,7 +73,6 @@ export default function NavBar() {
 
   const activePath = NAV_ITEMS.find(({ path }) => {
     if (location.pathname === path) return true;
-    if (path === '/dogs' && location.pathname.startsWith('/dogs')) return true;
     if (path === '/lost' && location.pathname.startsWith('/lost')) return true;
     if (path === '/parks' && location.pathname.startsWith('/parks')) return true;
     if (path === '/parks' && location.pathname.startsWith('/explore')) return true;
@@ -193,13 +191,13 @@ export default function NavBar() {
                     />
                   )}
                   <span
-                    className={`text-[24px] leading-none transition-transform duration-200 ease-soft-out ${
+                    className={`text-[28px] leading-none transition-transform duration-200 ease-soft-out ${
                       isActive ? 'scale-110' : ''
                     }`}
                   >
                     {icon}
                   </span>
-                  <span className="text-[12px] font-semibold leading-none tracking-tight inline-flex items-center gap-0.5">
+                  <span className="text-[13px] font-semibold leading-none tracking-tight inline-flex items-center gap-0.5">
                     {label}
                     {hasMenu && <span aria-hidden className="text-[8px] opacity-70">▾</span>}
                   </span>
