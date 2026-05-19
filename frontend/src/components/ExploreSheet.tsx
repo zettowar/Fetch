@@ -18,12 +18,6 @@ const ITEMS: ExploreItem[] = [
     to: '/lost',
   },
   {
-    label: 'Rescues',
-    description: 'Adopt, donate, or follow nearby rescues.',
-    icon: '🏠',
-    to: '/rescues',
-  },
-  {
     label: 'Parks',
     description: 'Find dog-friendly parks around you.',
     icon: '🌳',
