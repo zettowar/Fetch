@@ -29,7 +29,7 @@ const ITEMS: ExploreItem[] = [
     label: 'Vets',
     description: 'Find a vet near you.',
     icon: '🩺',
-    disabled: true,
+    to: '/vets',
   },
 ];
 

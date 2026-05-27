@@ -28,6 +28,8 @@ import UserProfilePage from './pages/UserProfilePage';
 import ParksPage from './pages/ParksPage';
 import ParkDetailPage from './pages/ParkDetailPage';
 import ParkEditorPage from './pages/ParkEditorPage';
+import VetsPage from './pages/VetsPage';
+import VetDetailPage from './pages/VetDetailPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProfileEditPage from './pages/ProfileEditPage';
@@ -47,6 +49,7 @@ import AdminInvitesPage from './pages/admin/AdminInvitesPage';
 import AdminFAQPage from './pages/admin/AdminFAQPage';
 import AdminBreedsPage from './pages/admin/AdminBreedsPage';
 import AdminParksPage from './pages/admin/AdminParksPage';
+import AdminVetsPage from './pages/admin/AdminVetsPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
 import NotificationsPage from './pages/NotificationsPage';
 import FollowingPage from './pages/FollowingPage';
@@ -130,6 +133,8 @@ function AppContent() {
                 <Route path="/parks/new" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
                 <Route path="/parks/:id/edit" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
                 <Route path="/parks/:id" element={<AuthGuard><ParkDetailPage /></AuthGuard>} />
+                <Route path="/vets" element={<AuthGuard><VetsPage /></AuthGuard>} />
+                <Route path="/vets/:id" element={<AuthGuard><VetDetailPage /></AuthGuard>} />
                 <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
                 <Route path="/following" element={<AuthGuard><FollowingPage /></AuthGuard>} />
                 <Route path="/explore" element={<AuthGuard><ExplorePage /></AuthGuard>} />
@@ -165,6 +170,7 @@ function AppContent() {
             <Route path="faq" element={<AdminFAQPage />} />
             <Route path="breeds" element={<AdminBreedsPage />} />
             <Route path="parks" element={<AdminParksPage />} />
+            <Route path="vets" element={<AdminVetsPage />} />
             <Route path="audit" element={<AdminAuditPage />} />
           </Route>
         </Routes>
