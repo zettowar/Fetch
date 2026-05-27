@@ -8,6 +8,7 @@ import { logout as apiLogout } from '../api/auth';
 import { getRefreshToken } from '../api/client';
 import PawMark from './ui/PawMark';
 import ExploreSheet from './ExploreSheet';
+import SignupChooserSheet from './SignupChooserSheet';
 
 // Paths that the Explore sheet routes to — used to mark the tab "active"
 // when any of those destinations is showing.
@@ -36,12 +37,14 @@ export default function NavBar() {
   const queryClient = useQueryClient();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
+  const [signupChooserOpen, setSignupChooserOpen] = useState(false);
   const showVerifyBanner = isAuthenticated && user && !user.is_verified && !bannerDismissed;
 
-  // Close the sheet on navigation so it doesn't linger when the user picks
-  // an item or hits back.
+  // Close any open sheets on navigation so they don't linger when the user
+  // picks an item or hits back.
   useEffect(() => {
     setExploreOpen(false);
+    setSignupChooserOpen(false);
   }, [location.pathname]);
 
   const handleLogout = async () => {
@@ -151,12 +154,15 @@ export default function NavBar() {
             <Link to="/login" className="text-gray-600 dark:text-gray-300 transition-colors hover:text-brand-500">
               Log in
             </Link>
-            <Link
-              to="/signup"
+            <button
+              type="button"
+              onClick={() => setSignupChooserOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={signupChooserOpen}
               className="rounded-lg bg-brand-500 px-3 py-1.5 text-white shadow-soft-sm transition-all duration-200 ease-soft-out hover:bg-brand-600 hover:shadow-brand-glow active:scale-95"
             >
               Sign up
-            </Link>
+            </button>
           </div>
         )}
       </nav>
@@ -242,6 +248,12 @@ export default function NavBar() {
 
       {isAuthenticated && (
         <ExploreSheet open={exploreOpen} onClose={() => setExploreOpen(false)} />
+      )}
+      {!isAuthenticated && (
+        <SignupChooserSheet
+          open={signupChooserOpen}
+          onClose={() => setSignupChooserOpen(false)}
+        />
       )}
     </>
   );
