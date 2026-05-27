@@ -103,6 +103,12 @@ export default function SignupPage() {
             Log in
           </Link>
         </p>
+        <p className="mt-2 text-center text-xs text-gray-400 dark:text-gray-500">
+          Are you a rescue?{' '}
+          <Link to="/signup-rescue" className="font-medium text-purple-600 dark:text-purple-400 hover:underline">
+            Apply here →
+          </Link>
+        </p>
       </div>
     </div>
   );

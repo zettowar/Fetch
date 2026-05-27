@@ -17,7 +17,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as { from?: string })?.from || '/home';
+  const from = (location.state as { from?: string })?.from;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +25,10 @@ export default function LoginPage() {
     try {
       const data = await login(email, password);
       authLogin(data.tokens.access_token, data.tokens.refresh_token, data.user);
-      navigate(from, { replace: true });
+      // Deep-link `from` takes precedence; otherwise route by role so rescues
+      // land on their dashboard instead of the consumer home.
+      const dest = from || (data.user.role === 'rescue' ? '/rescue/dashboard' : '/home');
+      navigate(dest, { replace: true });
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Invalid email or password'));
     } finally {

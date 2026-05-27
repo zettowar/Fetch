@@ -13,13 +13,20 @@ import ExploreSheet from './ExploreSheet';
 // when any of those destinations is showing.
 const EXPLORE_PATHS = ['/explore', '/parks', '/vets'] as const;
 
-const NAV_ITEMS = [
+type NavItem = {
+  path: string;
+  label: string;
+  icon: string;
+  isSheet?: boolean;
+};
+
+const CONSUMER_NAV_ITEMS: readonly NavItem[] = [
   { path: '/home', label: 'Home', icon: '🦴' },
   { path: '/swipe', label: 'Swipe', icon: '❤️' },
   { path: '/rescues', label: 'Rescues', icon: '🏠' },
   { path: '/lost', label: 'Lost', icon: '🚨' },
   { path: '__explore__', label: 'Explore', icon: '🔍', isSheet: true },
-] as const;
+];
 
 export default function NavBar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -54,10 +61,22 @@ export default function NavBar() {
     queryClient.clear();
   };
 
+  // Rescue accounts get their own bottom-nav — different product surface, so
+  // we hide the consumer tabs (Swipe, Rescues map, Explore) entirely.
+  const navItems: readonly NavItem[] =
+    user?.role === 'rescue'
+      ? [
+          { path: '/rescue/dashboard', label: 'Dashboard', icon: '🦴' },
+          { path: '/dogs/new', label: 'Post', icon: '➕' },
+          { path: '/lost', label: 'Lost', icon: '🚨' },
+          { path: `/users/${user.id}`, label: 'Profile', icon: '👤' },
+        ]
+      : CONSUMER_NAV_ITEMS;
+
   const onExploreDestination = EXPLORE_PATHS.some((p) =>
     location.pathname.startsWith(p),
   );
-  const activePath = NAV_ITEMS.find((item) => {
+  const activePath = navItems.find((item) => {
     if (item.path === '__explore__') return onExploreDestination;
     if (location.pathname === item.path) return true;
     return false;
@@ -68,7 +87,13 @@ export default function NavBar() {
       {/* Top bar */}
       <nav className="sticky top-0 z-40 flex items-center justify-between px-4 py-2.5 glass border-b border-gray-200/60 dark:border-gray-800">
         <Link
-          to={isAuthenticated ? '/home' : '/'}
+          to={
+            isAuthenticated
+              ? user?.role === 'rescue'
+                ? '/rescue/dashboard'
+                : '/home'
+              : '/'
+          }
           className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-brand-600 transition-colors duration-200 ease-soft-out hover:text-brand-700 active:scale-[0.98]"
         >
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
@@ -86,20 +111,16 @@ export default function NavBar() {
                 Admin
               </Link>
             )}
-            {user?.role === 'rescue' && (
+            {/* Rescues used to have a small "Rescue" top-bar link here;
+                their bottom nav now exposes Dashboard directly. */}
+            {user?.role !== 'rescue' && (
               <Link
-                to="/rescue/dashboard"
-                className="text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
+                to={`/users/${user?.id}`}
+                className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
               >
-                Rescue
+                Profile
               </Link>
             )}
-            <Link
-              to={`/users/${user?.id}`}
-              className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
-            >
-              Profile
-            </Link>
             <button
               type="button"
               onClick={toggleTheme}
@@ -158,7 +179,7 @@ export default function NavBar() {
       {isAuthenticated && (
         <div className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gray-200/60 dark:border-gray-800 safe-bottom">
           <div className="mx-auto max-w-app flex py-2">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const { path, label, icon } = item;
               const isActive = activePath === path;
               const isSheet = 'isSheet' in item && item.isSheet;
