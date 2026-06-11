@@ -1,22 +1,35 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { getCurrentWinner } from '../api/rankings';
 import { getMyFollows } from '../api/social';
+import { getMyDogs } from '../api/dogs';
 import { useAuth } from '../store/AuthContext';
 import { dogHeroPhoto } from '../utils/time';
 import { useWeeklyResetCountdown, nextWeeklyReset } from '../utils/weeklyReset';
+import { onboarding } from '../utils/onboarding';
 
 const MAX_STRIP_AVATARS = 8;
 
 export default function HomePage() {
   const { user } = useAuth();
+  // Rescues are distinct content-producer accounts — they don't get the
+  // consumer home. Skip the consumer queries and send them to their dashboard.
+  const isRescue = user?.role === 'rescue';
   const { data: winner } = useQuery({
     queryKey: ['weekly-winner'],
     queryFn: getCurrentWinner,
+    enabled: !isRescue,
   });
   const { data: follows = [] } = useQuery({
     queryKey: ['my-follows'],
     queryFn: getMyFollows,
+    enabled: !isRescue,
+  });
+  const { data: myDogs = [], isLoading: dogsLoading } = useQuery({
+    queryKey: ['my-dogs'],
+    queryFn: getMyDogs,
+    enabled: !isRescue,
   });
   const resetsIn = useWeeklyResetCountdown();
 
@@ -24,10 +37,35 @@ export default function HomePage() {
   const stripDogs = followedDogs.slice(0, MAX_STRIP_AVATARS);
   const hasMore = followedDogs.length > MAX_STRIP_AVATARS;
 
+  // First-run checklist. The customer asked specifically to surface "add your
+  // dog" when the user owns none, so step 1 is the gate: once they have a dog
+  // the card disappears. Swipe/follow are shown as the path that follows.
+  const [dismissed, setDismissed] = useState(() =>
+    user ? onboarding.isDismissed(user.id) : false,
+  );
+  const steps: { key: string; label: string; to: string; done: boolean }[] = [
+    { key: 'dog', label: 'Add your dog', to: '/dogs/new', done: myDogs.length > 0 },
+    { key: 'swipe', label: 'Rate some dogs', to: '/swipe', done: user ? onboarding.hasSwiped(user.id) : false },
+    { key: 'follow', label: 'Follow a dog you like', to: '/explore', done: followedDogs.length > 0 },
+  ];
+  const showOnboarding =
+    !!user && !dismissed && !dogsLoading && myDogs.length === 0;
+  const handleDismiss = () => {
+    if (user) onboarding.dismiss(user.id);
+    setDismissed(true);
+  };
+
+  if (isRescue) {
+    return <Navigate to="/rescue/dashboard" replace />;
+  }
+
   return (
     <div className="flex flex-col">
       {/* Hero: Weekly Winner */}
-      <div className="relative h-56 bg-gradient-to-b from-brand-400 to-brand-600 flex flex-col overflow-hidden rounded-b-3xl">
+      <Link
+        to="/rankings"
+        className="group relative h-56 bg-gradient-to-b from-brand-400 to-brand-600 flex flex-col overflow-hidden rounded-b-3xl active:scale-[0.99] transition-transform duration-200 ease-soft-out"
+      >
         {winner?.primary_photo_url && (
           <img
             src={winner.primary_photo_url}
@@ -35,15 +73,18 @@ export default function HomePage() {
             className="absolute inset-0 w-full h-full object-cover opacity-40"
           />
         )}
-        <div className="relative z-10 text-center text-white px-4 pt-5">
+        <div className="relative z-10 flex items-center justify-between text-white px-4 pt-5">
           <p className="text-xs uppercase tracking-widest opacity-80">🏆 This Week's Top Dog</p>
+          <span className="text-xs font-medium opacity-80 group-hover:opacity-100 transition-opacity">
+            Rankings →
+          </span>
         </div>
         <div className="relative z-10 mt-auto text-center text-white px-4 pb-4">
           {winner ? (
-            <h2 className="text-3xl font-bold opacity-60">{winner.dog_name}</h2>
+            <h2 className="text-3xl font-bold drop-shadow-sm">{winner.dog_name}</h2>
           ) : (
             <>
-              <h2 className="text-2xl font-bold opacity-60">No winner yet</h2>
+              <h2 className="text-2xl font-bold opacity-90">No winner yet</h2>
               <div
                 className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium"
                 title={`Winner announced ${nextWeeklyReset().toLocaleString()}`}
@@ -54,12 +95,79 @@ export default function HomePage() {
             </>
           )}
         </div>
-      </div>
+      </Link>
 
       <div className="p-4 pt-5 flex flex-col gap-5">
         <h1 className="text-lg font-bold">
           Welcome back{user ? `, ${user.display_name}` : ''}!
         </h1>
+
+        {/* First-run checklist — shown until the user adds their first dog */}
+        {showOnboarding && (
+          <section className="relative overflow-hidden rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-brand-50/80 dark:bg-brand-500/10 p-4 shadow-soft-sm animate-fade-in-up">
+            <button
+              type="button"
+              onClick={handleDismiss}
+              aria-label="Dismiss"
+              className="absolute right-3 top-3 leading-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"
+            >
+              ×
+            </button>
+            <p className="text-base font-bold text-gray-900 dark:text-gray-100">
+              🐾 Join the pack
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+              Add your dog to get rated, climb the rankings, and follow other pups.
+            </p>
+            <ol className="mt-3 flex flex-col gap-1.5">
+              {steps.map((step, i) => {
+                const isNext = !step.done && steps.slice(0, i).every((s) => s.done);
+                const row = (
+                  <>
+                    <span
+                      className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                        step.done
+                          ? 'bg-brand-500 text-white'
+                          : isNext
+                            ? 'bg-white dark:bg-gray-900 text-brand-600 ring-2 ring-brand-400'
+                            : 'bg-white/70 dark:bg-gray-800 text-gray-400'
+                      }`}
+                      aria-hidden
+                    >
+                      {step.done ? '✓' : i + 1}
+                    </span>
+                    <span
+                      className={`text-sm font-medium ${
+                        step.done
+                          ? 'text-gray-400 line-through'
+                          : isNext
+                            ? 'text-gray-900 dark:text-gray-100'
+                            : 'text-gray-500 dark:text-gray-400'
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+                    {isNext && <span className="ml-auto text-brand-500 text-sm">→</span>}
+                  </>
+                );
+                return (
+                  <li key={step.key}>
+                    {step.done ? (
+                      <div className="flex items-center gap-2.5 py-1">{row}</div>
+                    ) : (
+                      <Link
+                        to={step.to}
+                        className="flex items-center gap-2.5 py-1 rounded-lg active:scale-[0.99] transition-transform"
+                      >
+                        {row}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )}
 
         {/* Primary CTA — matches the half-size hero style of Rescues / Lost & Found */}
         <Link

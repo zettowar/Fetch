@@ -15,6 +15,7 @@ import ErrorState from './ui/ErrorState';
 import { useAuth } from '../store/AuthContext';
 import { useSubscription } from '../utils/useSubscription';
 import { swipeQuota } from '../utils/swipeQuota';
+import { onboarding } from '../utils/onboarding';
 
 const SEEN_PROMPTS_KEY = 'fetch.adoption_prompts_seen';
 
@@ -102,6 +103,7 @@ export default function SwipeDeck() {
       setLastVote({ dogId: dog.id, index: currentIndex });
       setCurrentIndex((i) => i + 1);
       voteMutation.mutate({ dogId: dog.id, value });
+      if (user) onboarding.markSwiped(user.id);
 
       if (!isSubscriber && user) {
         const next = swipeQuota.consume(user.id);
@@ -247,12 +249,43 @@ export default function SwipeDeck() {
   return (
     <div className="flex flex-col items-center">
       {/* Vote counter / quota indicator */}
-      <div className="text-xs text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-2">
-        {ratedCount > 0 && <span>{ratedCount} rated this session</span>}
-        {!isSubscriber && user && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-            🐾 {remaining}/{quota.cap} swipes left today
-          </span>
+      <div className="w-full max-w-sm px-4 mb-2 flex flex-col gap-1">
+        {!isSubscriber && user ? (
+          <>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500 dark:text-gray-400">
+                🐾 {remaining} {remaining === 1 ? 'swipe' : 'swipes'} left today
+              </span>
+              {ratedCount > 0 && (
+                <span className="text-gray-400 dark:text-gray-500">{ratedCount} rated</span>
+              )}
+            </div>
+            <div
+              className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={quota.cap}
+              aria-valuenow={remaining}
+              aria-label={`${remaining} of ${quota.cap} daily swipes remaining`}
+            >
+              <div
+                className={`h-full rounded-full transition-all duration-300 ease-soft-out ${
+                  remaining === 0
+                    ? 'bg-red-400'
+                    : remaining <= quota.cap * 0.2
+                      ? 'bg-amber-400'
+                      : 'bg-brand-500'
+                }`}
+                style={{ width: `${quota.cap > 0 ? (remaining / quota.cap) * 100 : 0}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          ratedCount > 0 && (
+            <span className="text-xs text-gray-400 dark:text-gray-500 text-center">
+              {ratedCount} rated this session
+            </span>
+          )
         )}
       </div>
 
