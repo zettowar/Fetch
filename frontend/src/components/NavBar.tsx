@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { useTheme } from '../store/ThemeContext';
 import { logout as apiLogout } from '../api/auth';
@@ -32,9 +31,7 @@ const CONSUMER_NAV_ITEMS: readonly NavItem[] = [
 export default function NavBar() {
   const { isAuthenticated, user, logout } = useAuth();
   const { resolved: theme, toggle: toggleTheme } = useTheme();
-  const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
   const [signupChooserOpen, setSignupChooserOpen] = useState(false);
@@ -56,12 +53,13 @@ export default function NavBar() {
         // ignore
       }
     }
-    // Navigate away from the protected page first so it unmounts cleanly before
-    // we null the user — avoids protected-page components briefly rendering
-    // with user=null and tripping the ErrorBoundary.
-    navigate('/', { replace: true });
+    // Clear auth, then do a FULL-DOCUMENT navigation to the landing page.
+    // A client-side navigate would leave the page we're logging out from
+    // mounted during its route-exit animation (AnimatePresence), where it
+    // re-renders with user=null and can crash into the ErrorBoundary. A hard
+    // load unmounts the whole authenticated tree at once and starts clean.
     logout();
-    queryClient.clear();
+    window.location.assign('/');
   };
 
   // Rescue accounts get their own bottom-nav — different product surface, so

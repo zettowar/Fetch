@@ -93,7 +93,10 @@ export default function LoginPage() {
 
         <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
           New to Fetch?{' '}
-          <Link to="/signup" className="text-brand-600 font-semibold hover:text-brand-700 hover:underline">
+          <Link
+            to="/signup"
+            className="text-brand-600 font-semibold hover:text-brand-700 hover:underline"
+          >
             Create an account
           </Link>
         </p>

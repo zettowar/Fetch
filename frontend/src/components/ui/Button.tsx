@@ -34,7 +34,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`relative inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 ease-soft-out transform-gpu active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:translate-y-0 disabled:hover:shadow-none ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`relative inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 ease-soft-out transform-gpu active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:translate-y-0 disabled:hover:shadow-none ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >
