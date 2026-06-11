@@ -2,6 +2,11 @@ import type { EditorState } from './editorState';
 import { toFilterString } from './presets';
 import { loadImage } from './thumbnail';
 import { applyPixelAdjustments, hasPixelAdjustments } from './pixelOps';
+import {
+  applyColorMatrix,
+  filterStringToColorMatrix,
+  isIdentityMatrix,
+} from './colorMatrix';
 
 /**
  * Turn the editor state + the full-resolution source into a finished JPEG
@@ -12,14 +17,14 @@ import { applyPixelAdjustments, hasPixelAdjustments } from './pixelOps';
  *   2. Compose rotation (90° snaps) + straighten (−45..45°) + flips into a
  *      rotated intermediate canvas that's large enough to contain any
  *      rotation (diagonal of the source).
- *   3. Crop that rotated buffer onto the output canvas, applying the CSS
- *      filter (brightness/contrast/saturation/filter preset) via
- *      `ctx.filter` — fast, GPU-assisted.
- *   4. If any pixel-pass adjustment is non-zero (warmth, highlights,
- *      shadows, vignette), read the output buffer, apply the per-pixel
- *      pass from `pixelOps.ts`, and write it back. Warmth is intentionally
- *      excluded from the CSS filter in export mode so it isn't applied
- *      twice.
+ *   3. Crop that rotated buffer onto the output canvas (no `ctx.filter` —
+ *      Safari's canvas filter is a no-op for canvas sources, which silently
+ *      dropped every filter/adjustment from saved photos).
+ *   4. In one read-modify-write pass over the output buffer, bake in the
+ *      color filters (preset + brightness/contrast/saturation) as a color
+ *      matrix (see `colorMatrix.ts`) and the per-pixel adjustments (warmth,
+ *      highlights, shadows, vignette) from `pixelOps.ts`. Warmth and tone are
+ *      kept out of the color matrix so they aren't applied twice.
  *   5. Export as JPEG at 0.92 quality (same as the old CropModal).
  */
 export async function renderEditedBlob(
@@ -79,11 +84,8 @@ export async function renderEditedBlob(
   if (!octx) throw new Error('Canvas 2D unavailable');
   octx.imageSmoothingEnabled = true;
   octx.imageSmoothingQuality = 'high';
-  octx.filter =
-    toFilterString(state.filter, state.adjustments, {
-      warmthInCss: false, // real warmth happens in the pixel pass below
-      approxToneInCss: false, // real tone happens in the pixel pass below
-    }) || 'none';
+  // No octx.filter here on purpose — color filters are baked in by the matrix
+  // pass below so the result is identical across browsers (see colorMatrix.ts).
   octx.drawImage(
     rot,
     cropX,
@@ -96,19 +98,28 @@ export async function renderEditedBlob(
     out.height,
   );
 
-  // Pixel-pass adjustments — only pay the O(n) cost when something is set.
+  // Single read-modify-write pass: color filters first (preset +
+  // brightness/contrast/saturation, as a color matrix), then the per-pixel
+  // adjustments (warmth/highlights/shadows/vignette). Warmth and tone are
+  // excluded from the matrix string so they aren't applied twice. Skip the
+  // O(n) loop entirely when nothing is set.
+  const colorMatrix = filterStringToColorMatrix(
+    toFilterString(state.filter, state.adjustments, {
+      warmthInCss: false,
+      approxToneInCss: false,
+    }),
+  );
+  const needsColor = !isIdentityMatrix(colorMatrix);
   const pixelAdj = {
     warmth: state.adjustments.warmth,
     highlights: state.adjustments.highlights,
     shadows: state.adjustments.shadows,
     vignette: state.adjustments.vignette,
   };
-  if (hasPixelAdjustments(pixelAdj)) {
-    // Reset filter so getImageData returns the already-filtered pixels
-    // without re-applying the CSS filter on subsequent draws.
-    octx.filter = 'none';
+  if (needsColor || hasPixelAdjustments(pixelAdj)) {
     const imgData = octx.getImageData(0, 0, out.width, out.height);
-    applyPixelAdjustments(imgData, pixelAdj);
+    if (needsColor) applyColorMatrix(imgData, colorMatrix);
+    if (hasPixelAdjustments(pixelAdj)) applyPixelAdjustments(imgData, pixelAdj);
     octx.putImageData(imgData, 0, 0);
   }
 
