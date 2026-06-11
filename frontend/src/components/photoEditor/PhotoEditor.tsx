@@ -91,9 +91,13 @@ export default function PhotoEditor({
     if (!state.croppedAreaPixels) return;
     setConfirming(true);
     try {
-      // Export off the ORIGINAL full-res src, not the downscaled preview,
-      // so we don't ship lossier pixels than necessary to the server.
-      const blob = await renderEditedBlob(imageSrc, state);
+      // Export off the SAME image the cropper measured against (previewSrc).
+      // croppedAreaPixels lives in that image's coordinate space, so exporting
+      // from the full-res original would (a) mis-map the crop and (b) on large
+      // photos build a canvas past the browser's size limit, which Safari
+      // renders blank → a JPEG of that flattens to solid black. previewSrc is
+      // the untouched original for images already under the 1280px cap.
+      const blob = await renderEditedBlob(previewSrc, state);
       onConfirm(blob);
     } catch (err) {
       const message =

@@ -35,8 +35,23 @@ export async function renderEditedBlob(
   const totalRotDeg = state.rotation + state.straighten;
   const totalRotRad = (totalRotDeg * Math.PI) / 180;
 
-  // Intermediate canvas sized to the image's diagonal so any rotation fits.
-  const safe = Math.ceil(Math.hypot(img.naturalWidth, img.naturalHeight));
+  // The rotation buffer below is sized to the source's diagonal SQUARED.
+  // Browsers cap total canvas area (Safari/iOS ≈ 16.7M px = 4096²) and
+  // silently render an over-limit canvas BLANK — which toBlob('image/jpeg')
+  // then flattens to solid black (JPEG has no alpha). A full-res phone photo
+  // (4032×3024 → a 5040² ≈ 25M-px buffer) trips this. Scale the whole
+  // pipeline down uniformly so the buffer stays under the limit; `area` is in
+  // the same coordinate space as `img`, so it scales by the same factor.
+  // `fit` is 1 (a no-op) for anything already small enough.
+  const MAX_CANVAS_AREA = 16_000_000; // px²; conservative across browsers
+  const rawDiag = Math.hypot(img.naturalWidth, img.naturalHeight);
+  const fit = Math.min(1, Math.sqrt(MAX_CANVAS_AREA) / rawDiag);
+  const drawW = img.naturalWidth * fit;
+  const drawH = img.naturalHeight * fit;
+
+  // Intermediate canvas sized to the (scaled) image's diagonal so any
+  // rotation fits without clipping the corners.
+  const safe = Math.ceil(Math.hypot(drawW, drawH));
   const rot = document.createElement('canvas');
   rot.width = safe;
   rot.height = safe;
@@ -48,12 +63,18 @@ export async function renderEditedBlob(
   rctx.translate(safe / 2, safe / 2);
   rctx.rotate(totalRotRad);
   rctx.scale(state.flipH ? -1 : 1, state.flipV ? -1 : 1);
-  rctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+  rctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
 
-  // Output canvas sized to the crop region.
+  // Crop rectangle, scaled into the same space as the rotation buffer.
+  const cropX = area.x * fit;
+  const cropY = area.y * fit;
+  const cropW = area.width * fit;
+  const cropH = area.height * fit;
+
+  // Output canvas sized to the (scaled) crop region.
   const out = document.createElement('canvas');
-  out.width = Math.round(area.width);
-  out.height = Math.round(area.height);
+  out.width = Math.max(1, Math.round(cropW));
+  out.height = Math.max(1, Math.round(cropH));
   const octx = out.getContext('2d');
   if (!octx) throw new Error('Canvas 2D unavailable');
   octx.imageSmoothingEnabled = true;
@@ -65,14 +86,14 @@ export async function renderEditedBlob(
     }) || 'none';
   octx.drawImage(
     rot,
-    area.x,
-    area.y,
-    area.width,
-    area.height,
+    cropX,
+    cropY,
+    cropW,
+    cropH,
     0,
     0,
-    area.width,
-    area.height,
+    out.width,
+    out.height,
   );
 
   // Pixel-pass adjustments — only pay the O(n) cost when something is set.
