@@ -30,3 +30,6 @@ uploads/
 
 # Claude
 .claude/
+
+# Local business artifacts — kept out of the (public) repo
+financials/
