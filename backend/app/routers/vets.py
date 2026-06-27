@@ -4,7 +4,6 @@ Public read paths plus admin create/edit. Discovery is geographic
 (`/nearby` for a bbox-clipped list) — no reviews / check-ins / incidents
 unlike Park, since vets are utility lookups rather than social hangouts.
 """
-import math
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -16,6 +15,7 @@ from app.deps import get_current_user, require_admin
 from app.models.user import User
 from app.models.vet import Vet
 from app.schemas.vet import VetCreate, VetOut, VetUpdate
+from app.services.geo import bounding_box
 
 router = APIRouter()
 
@@ -49,15 +49,13 @@ async def nearby_vets(
     """Bounding-box approximation around (lat, lng). Same crude lat/lng
     rectangle as `/parks/nearby` — good enough at city scale, no PostGIS
     dependency."""
-    deg_per_km = 1.0 / 111.32
-    dlat = radius_km * deg_per_km
-    dlng = radius_km * deg_per_km / max(math.cos(math.radians(lat)), 0.01)
+    min_lat, max_lat, min_lng, max_lng = bounding_box(lat, lng, radius_km)
 
     result = await db.execute(
         select(Vet)
         .where(
-            Vet.lat.between(lat - dlat, lat + dlat),
-            Vet.lng.between(lng - dlng, lng + dlng),
+            Vet.lat.between(min_lat, max_lat),
+            Vet.lng.between(min_lng, max_lng),
         )
         .order_by(Vet.name)
         .limit(200)
@@ -123,3 +121,17 @@ async def update_vet(
     await db.commit()
     await db.refresh(vet)
     return _vet_to_out(vet)
+
+
+@router.delete("/{vet_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_vet(
+    vet_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Vet).where(Vet.id == vet_id))
+    vet = result.scalar_one_or_none()
+    if vet is None:
+        raise HTTPException(status_code=404, detail="Vet not found")
+    await db.delete(vet)
+    await db.commit()

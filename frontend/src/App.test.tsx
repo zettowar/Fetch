@@ -20,8 +20,8 @@ function renderApp(route = '/') {
 describe('App', () => {
   it('renders the landing page at /', () => {
     renderApp('/');
-    expect(screen.getByText('Get Started')).toBeDefined();
-    expect(screen.getByText('Rate dogs. Win hearts. Find the top pup.')).toBeDefined();
+    expect(screen.getByText(/Crown the top pup/)).toBeDefined();
+    expect(screen.getByText(/The home of good dogs/)).toBeDefined();
   });
 
   it('renders login page at /login', () => {

@@ -3,6 +3,18 @@ from celery.schedules import crontab
 
 from app.config import settings
 
+# Report background-job errors to Sentry too (the FastAPI app inits its own).
+# No-op if DSN isn't set.
+if settings.SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.celery import CeleryIntegration
+
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=0.1,
+        integrations=[CeleryIntegration()],
+    )
+
 celery_app = Celery(
     "fetch",
     broker=settings.CELERY_BROKER_URL,

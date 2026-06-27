@@ -4,18 +4,16 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from PIL import Image
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, contains_eager
+from sqlalchemy.orm import selectinload
 
 from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
 from app.models.dog import Dog
-from app.models.photo import Photo
 from app.models.lost_report import (
     LostReport,
-    LostReportPhoto,
     LostReportSighting,
     LostReportSubscription,
 )
@@ -35,6 +33,7 @@ from app.schemas.lost_report import (
 )
 from app.services.breed_display import breed_display
 from app.services.lost_service import fuzz_coordinate, get_nearby_reports
+from app.services.moderation import check_image
 from app.storage import generate_storage_key, get_storage
 
 router = APIRouter()
@@ -43,14 +42,24 @@ SIGHTING_PHOTO_MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 SIGHTING_PHOTO_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
-def _sighting_to_out(sighting: LostReportSighting) -> SightingOut:
+def _sighting_to_out(
+    sighting: LostReportSighting,
+    *,
+    is_owner: bool = False,
+    fuzz_m: int = 500,
+) -> SightingOut:
     storage = get_storage()
+    # A sighting's coordinates are often the dog's exact last-known location.
+    # Fuzz them for everyone except the report owner, mirroring report privacy.
+    lat, lng = sighting.lat, sighting.lng
+    if not is_owner:
+        lat, lng = fuzz_coordinate(lat, lng, fuzz_m, seed=str(sighting.id))
     return SightingOut(
         id=sighting.id,
         report_id=sighting.report_id,
         reporter_id=sighting.reporter_id,
-        lat=sighting.lat,
-        lng=sighting.lng,
+        lat=lat,
+        lng=lng,
         seen_at=sighting.seen_at,
         note=sighting.note,
         photo_url=storage.url(sighting.photo_key) if sighting.photo_key else None,
@@ -79,13 +88,15 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
     if report.dog:
         dog_name = report.dog.name
         dog_breed = breed_display(report.dog.mix_type, report.dog.breeds)
-        if report.dog.primary_photo_id and report.dog.photos:
+        approved = [
+            p for p in (report.dog.photos or []) if p.moderation_status == "approved"
+        ]
+        if approved:
             primary = next(
-                (p for p in report.dog.photos if p.id == report.dog.primary_photo_id),
-                report.dog.photos[0] if report.dog.photos else None,
+                (p for p in approved if p.id == report.dog.primary_photo_id),
+                approved[0],
             )
-            if primary:
-                dog_photo_url = storage.url(primary.storage_key)
+            dog_photo_url = storage.url(primary.storage_key)
 
     sighting_count = len(report.sightings) if report.sightings else 0
 
@@ -93,7 +104,9 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
     lat = report.last_seen_lat
     lng = report.last_seen_lng
     if not is_owner and lat is not None and lng is not None:
-        lat, lng = fuzz_coordinate(lat, lng, report.location_fuzz_m)
+        lat, lng = fuzz_coordinate(
+            lat, lng, report.location_fuzz_m, seed=str(report.id)
+        )
 
     return LostReportOut(
         id=report.id,
@@ -194,16 +207,21 @@ async def nearby_reports(
     storage = get_storage()
     out = []
     for r in reports:
-        f_lat, f_lng = fuzz_coordinate(r.last_seen_lat, r.last_seen_lng, r.location_fuzz_m)
+        f_lat, f_lng = fuzz_coordinate(
+            r.last_seen_lat, r.last_seen_lng, r.location_fuzz_m, seed=str(r.id)
+        )
         dog_name = r.dog.name if r.dog else None
         dog_breed = breed_display(r.dog.mix_type, r.dog.breeds) if r.dog else None
         dog_photo_url = None
-        if r.dog and r.dog.primary_photo_id and r.dog.photos:
-            primary = next(
-                (p for p in r.dog.photos if p.id == r.dog.primary_photo_id),
-                r.dog.photos[0] if r.dog.photos else None,
-            )
-            if primary:
+        if r.dog:
+            approved = [
+                p for p in (r.dog.photos or []) if p.moderation_status == "approved"
+            ]
+            if approved:
+                primary = next(
+                    (p for p in approved if p.id == r.dog.primary_photo_id),
+                    approved[0],
+                )
                 dog_photo_url = storage.url(primary.storage_key)
 
         out.append(NearbyReportOut(
@@ -351,6 +369,13 @@ async def add_sighting(
         detected = f"image/{img.format.lower()}" if img.format else photo.content_type
         if detected not in SIGHTING_PHOTO_ALLOWED_TYPES:
             raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP are allowed")
+        # Sighting photos are public; reject anything the moderator doesn't
+        # approve (sightings have no hidden/flagged review state).
+        mod_result = await check_image(data)
+        if mod_result.status != "approved":
+            raise HTTPException(
+                status_code=400, detail="Image rejected by content moderation"
+            )
         photo_content_type = detected
         photo_key = generate_storage_key(detected)
         storage = get_storage()
@@ -369,7 +394,10 @@ async def add_sighting(
     db.add(sighting)
     await db.commit()
     await db.refresh(sighting)
-    return _sighting_to_out(sighting)
+    is_owner = report.reporter_id == user.id
+    return _sighting_to_out(
+        sighting, is_owner=is_owner, fuzz_m=report.location_fuzz_m or 500
+    )
 
 
 @router.get("/reports/{report_id}/sightings", response_model=list[SightingOut])
@@ -378,12 +406,24 @@ async def list_sightings(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    report_result = await db.execute(
+        select(LostReport).where(LostReport.id == report_id)
+    )
+    report = report_result.scalar_one_or_none()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    is_owner = report.reporter_id == user.id
+    fuzz_m = report.location_fuzz_m or 500
+
     result = await db.execute(
         select(LostReportSighting)
         .where(LostReportSighting.report_id == report_id)
         .order_by(LostReportSighting.created_at.desc())
     )
-    return [_sighting_to_out(s) for s in result.scalars().all()]
+    return [
+        _sighting_to_out(s, is_owner=is_owner, fuzz_m=fuzz_m)
+        for s in result.scalars().all()
+    ]
 
 
 # --- Subscriptions ---

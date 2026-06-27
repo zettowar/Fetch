@@ -9,6 +9,11 @@ from app.config import settings
 
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 
+# Pre-computed hash used to equalize login timing when no account matches, so a
+# non-existent email can't be distinguished from a wrong password by how long
+# the response takes (bcrypt verify is the dominant cost on the happy path).
+DUMMY_PASSWORD_HASH = pwd_ctx.hash("timing-equalization-placeholder")
+
 
 def hash_password(password: str) -> str:
     return pwd_ctx.hash(password)

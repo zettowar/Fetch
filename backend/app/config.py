@@ -1,4 +1,4 @@
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -7,6 +7,7 @@ JWT_SECRET_MIN_LEN = 32
 
 
 class Settings(BaseSettings):
+    ENVIRONMENT: str = "development"  # development | staging | production
     DATABASE_URL: str = "postgresql+asyncpg://fetch:fetch@db:5432/fetch"
     JWT_SECRET: str = JWT_SECRET_PLACEHOLDER
     JWT_ALGORITHM: str = "HS256"
@@ -58,6 +59,30 @@ class Settings(BaseSettings):
                 f"(got {len(v)})."
             )
         return v
+
+    @field_validator("CORS_ORIGINS")
+    @classmethod
+    def no_wildcard_origin(cls, v: str) -> str:
+        # We respond with allow_credentials=True; a "*" origin is invalid per the
+        # CORS spec and would be an exfiltration risk if a browser honored it.
+        if "*" in [o.strip() for o in v.split(",")]:
+            raise ValueError(
+                "CORS_ORIGINS cannot contain '*' because credentials are allowed. "
+                "List explicit origins instead."
+            )
+        return v
+
+    @model_validator(mode="after")
+    def no_debug_tokens_in_production(self) -> "Settings":
+        if self.ENVIRONMENT.lower() == "production" and (
+            self.DEBUG_RESET_TOKEN or self.DEBUG_VERIFY_TOKEN
+        ):
+            raise ValueError(
+                "DEBUG_RESET_TOKEN / DEBUG_VERIFY_TOKEN must be False in "
+                "production — they leak password-reset/verification tokens in API "
+                "responses."
+            )
+        return self
 
 
 settings = Settings()

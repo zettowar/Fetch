@@ -1,0 +1,24 @@
+# Production frontend image: build the static bundle, then serve it from a
+# non-root nginx (contrast with the dev Dockerfile, which runs `vite dev`).
+FROM node:20-slim AS build
+
+WORKDIR /app
+
+# Reproducible install from the lockfile.
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Vite bakes VITE_* values at build time, so they must be present here.
+ARG VITE_API_BASE_URL
+ARG VITE_ENABLE_IP_GEOLOCATION
+ARG VITE_SHOPIFY_DOMAIN
+ARG VITE_SHOPIFY_STOREFRONT_TOKEN
+
+COPY . .
+RUN npm run build
+
+# Serve the static build from an unprivileged nginx (listens on 8080).
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS production
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 8080

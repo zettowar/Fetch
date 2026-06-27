@@ -1,4 +1,3 @@
-import math
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -14,6 +13,7 @@ from app.models.dog import Dog
 from app.models.park import Park, ParkCheckin, ParkIncident, ParkReview
 from app.models.user import User
 from app.services.breed_display import breed_display
+from app.services.geo import bounding_box
 from app.storage import get_storage
 from app.schemas.park import (
     CheckinCreate,
@@ -82,9 +82,7 @@ async def nearby_parks(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    deg_per_km = 1.0 / 111.32
-    dlat = radius_km * deg_per_km
-    dlng = radius_km * deg_per_km / max(math.cos(math.radians(lat)), 0.01)
+    min_lat, max_lat, min_lng, max_lng = bounding_box(lat, lng, radius_km)
 
     review_stats = (
         select(
@@ -120,8 +118,8 @@ async def nearby_parks(
         .outerjoin(review_stats, review_stats.c.park_id == Park.id)
         .outerjoin(active_stats, active_stats.c.park_id == Park.id)
         .where(
-            Park.lat.between(lat - dlat, lat + dlat),
-            Park.lng.between(lng - dlng, lng + dlng),
+            Park.lat.between(min_lat, max_lat),
+            Park.lng.between(min_lng, max_lng),
         )
         .order_by(Park.name)
         .limit(100)
@@ -211,6 +209,20 @@ async def update_park(
     await db.commit()
     await db.refresh(park)
     return await _park_to_out(park, db)
+
+
+@router.delete("/{park_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_park(
+    park_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Park).where(Park.id == park_id))
+    park = result.scalar_one_or_none()
+    if not park:
+        raise HTTPException(status_code=404, detail="Park not found")
+    await db.delete(park)
+    await db.commit()
 
 
 # --- Reviews ---

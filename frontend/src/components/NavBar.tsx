@@ -5,6 +5,7 @@ import { useAuth } from '../store/AuthContext';
 import { useTheme } from '../store/ThemeContext';
 import { logout as apiLogout } from '../api/auth';
 import { getRefreshToken } from '../api/client';
+import { useCart } from '../utils/useCart';
 import PawMark from './ui/PawMark';
 import ExploreSheet from './ExploreSheet';
 import SignupChooserSheet from './SignupChooserSheet';
@@ -32,6 +33,9 @@ export default function NavBar() {
   const { isAuthenticated, user, logout } = useAuth();
   const { resolved: theme, toggle: toggleTheme } = useTheme();
   const location = useLocation();
+  // Cart badge — consumer accounts only (rescues have a separate nav surface).
+  const isShopper = isAuthenticated && user?.role !== 'rescue';
+  const { count: cartCount } = useCart(isShopper);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
   const [signupChooserOpen, setSignupChooserOpen] = useState(false);
@@ -120,6 +124,25 @@ export default function NavBar() {
                 className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
               >
                 Profile
+              </Link>
+            )}
+            {isShopper && (
+              <Link
+                to="/cart"
+                aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : 'Cart'}
+                title="Cart"
+                className="relative w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95 text-gray-600 dark:text-gray-300"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[18px] h-[18px]" aria-hidden>
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3 6h18" strokeWidth={2} strokeLinecap="round" />
+                  <path d="M16 10a4 4 0 0 1-8 0" strokeWidth={2} strokeLinecap="round" />
+                </svg>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 inline-flex items-center justify-center text-[10px] font-bold leading-none text-white bg-brand-500 rounded-full">
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </span>
+                )}
               </Link>
             )}
             <button

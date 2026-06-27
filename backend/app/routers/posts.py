@@ -1,8 +1,9 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select, text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db import get_db
 from app.deps import get_current_user
@@ -49,21 +50,27 @@ async def list_posts(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Post).order_by(Post.pinned.desc(), Post.created_at.desc())
+    query = (
+        select(Post)
+        .options(selectinload(Post.author))
+        .order_by(Post.pinned.desc(), Post.created_at.desc())
+    )
     if kind:
         query = query.where(Post.kind == kind)
     if tag:
         query = query.where(Post.tags.contains([tag]))
     if search:
+        # Query the indexed generated column so the GIN index is used.
         query = query.where(
-            text("to_tsvector('english', title || ' ' || body) @@ plainto_tsquery('english', :q)")
-        ).params(q=search)
+            Post.search_vector.op("@@")(func.plainto_tsquery("english", search))
+        )
 
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)
     return [
         PostOut(
-            id=p.id, author_id=p.author_id, author_name=None,
+            id=p.id, author_id=p.author_id,
+            author_name=p.author.display_name if p.author else None,
             kind=p.kind, title=p.title, body=p.body,
             tags=p.tags, pinned=p.pinned, created_at=p.created_at,
         )
@@ -77,12 +84,15 @@ async def get_post(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Post).where(Post.id == post_id))
+    result = await db.execute(
+        select(Post).options(selectinload(Post.author)).where(Post.id == post_id)
+    )
     post = result.scalar_one_or_none()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     return PostOut(
-        id=post.id, author_id=post.author_id, author_name=None,
+        id=post.id, author_id=post.author_id,
+        author_name=post.author.display_name if post.author else None,
         kind=post.kind, title=post.title, body=post.body,
         tags=post.tags, pinned=post.pinned, created_at=post.created_at,
     )

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getStats, getStatsTimeseries } from '../../api/admin';
 import { Spinner } from '../../components/ui/Skeleton';
+import ErrorState from '../../components/ui/ErrorState';
 
 function formatHours(h: number | null): string {
   if (h === null) return '--';
@@ -11,7 +12,7 @@ function formatHours(h: number | null): string {
 }
 
 export default function AdminDashboardPage() {
-  const { data: stats, isLoading, dataUpdatedAt } = useQuery({
+  const { data: stats, isLoading, isError, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: getStats,
     refetchInterval: 30000,
@@ -22,6 +23,10 @@ export default function AdminDashboardPage() {
     queryFn: () => getStatsTimeseries(14),
     refetchInterval: 60_000,
   });
+
+  if (isError) {
+    return <ErrorState message="Couldn't load dashboard stats." onRetry={() => refetch()} />;
+  }
 
   if (isLoading || !stats) {
     return (

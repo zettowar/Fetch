@@ -64,7 +64,9 @@ class LostReportCreate(BaseModel):
 
 
 class LostReportUpdate(BaseModel):
-    status: str | None = None
+    # NOTE: `status` is intentionally NOT settable here. Status transitions go
+    # through the dedicated /resolve endpoint (which stamps resolved_at/by) so a
+    # client can't mass-assign the report into an inconsistent resolved state.
     description: str | None = Field(default=None, max_length=2000)
     last_seen_lat: float | None = None
     last_seen_lng: float | None = None
@@ -79,13 +81,6 @@ class LostReportUpdate(BaseModel):
             return v
         if not 50 <= v <= 10_000:
             raise ValueError("location_fuzz_m must be between 50 and 10000 meters")
-        return v
-
-    @field_validator("status")
-    @classmethod
-    def valid_status(cls, v: str | None) -> str | None:
-        if v is not None and v not in ("open", "resolved", "closed"):
-            raise ValueError("status must be 'open', 'resolved', or 'closed'")
         return v
 
 

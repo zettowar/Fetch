@@ -26,6 +26,12 @@ const ITEMS: ExploreItem[] = [
     featured: true,
   },
   {
+    label: 'Shop',
+    description: 'Branded gear for you and your dog.',
+    icon: '🛍️',
+    to: '/shop',
+  },
+  {
     label: 'Vets',
     description: 'Find a vet near you.',
     icon: '🩺',

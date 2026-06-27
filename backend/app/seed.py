@@ -8,7 +8,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import settings
-from app.models import Base, User, Dog
+from app.models import User, Dog
 from app.models.breed import Breed
 from app.models.park import Park, ParkReview
 from app.models.post import Post
@@ -182,10 +182,6 @@ async def seed():
             )
             users.append(user)
             session.add(user)
-
-        # Load breed lookup (migration seeded these)
-        breed_rows = (await session.execute(text("SELECT id, name FROM breeds"))).all()
-        breeds_by_name = {name: bid for bid, name in breed_rows}
 
         dogs = []
         for idx, (name, mix_type, breed_names) in enumerate(DOGS_DATA):

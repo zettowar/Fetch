@@ -8,8 +8,8 @@ from app.deps import get_current_user
 from app.models.dog import Dog
 from app.models.user import User
 from app.schemas.dog import DogOut
+from app.services.dog_serializer import dog_to_out as _dog_to_out
 from app.services.feed_service import get_feed
-from app.routers.dogs import _dog_to_out
 
 router = APIRouter()
 

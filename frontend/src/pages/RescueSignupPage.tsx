@@ -39,11 +39,7 @@ export default function RescueSignupPage() {
         donation_url: donationUrl.trim() || undefined,
         proof_details: proof.trim() || undefined,
       });
-      authLogin(
-        data.tokens.access_token,
-        data.tokens.refresh_token,
-        { ...data.user, show_adoption_prompt: true, is_verified: false, location_rough: null, date_of_birth: null, created_at: new Date().toISOString() } as any,
-      );
+      authLogin(data.tokens.access_token, data.tokens.refresh_token, data.user);
       toast.success('Application submitted — we\'ll review it shortly.');
       navigate('/rescue/dashboard', { replace: true });
     } catch (err) {

@@ -8,30 +8,19 @@ import TimeAgo from '../../components/TimeAgo';
 import { apiErrorMessage } from '../../utils/apiError';
 
 type Bbox = [number, number, number, number];
+type Tab = 'import' | 'manual';
 
-interface ImportResponse {
-  created: number;
-  updated: number;
-  total_fetched: number;
-  errors: string[];
-}
+interface ImportResponse { created: number; updated: number; total_fetched: number; errors: string[] }
 interface ImportHistoryEntry {
-  id: string;
-  actor_id: string | null;
-  actor_name: string | null;
-  created: number;
-  updated: number;
-  total_fetched: number;
-  bbox: Bbox | null;
-  created_at: string;
+  id: string; actor_id: string | null; actor_name: string | null;
+  created: number; updated: number; total_fetched: number; bbox: Bbox | null; created_at: string;
 }
-interface ParkStats {
-  total: number;
-  by_source: Record<string, number>;
+interface ParkStats { total: number; by_source: Record<string, number> }
+interface ParkRecord {
+  id: string; name: string; address: string | null; lat: number; lng: number;
+  verified: boolean; avg_rating: number | null; review_count: number; created_at: string;
 }
 
-// Preset bboxes for common regions. `null` means worldwide.
-// (south, west, north, east)
 const PRESETS: { key: string; label: string; bbox: Bbox | null; note?: string }[] = [
   { key: 'sf', label: 'San Francisco', bbox: [37.70, -122.52, 37.83, -122.35] },
   { key: 'nyc', label: 'New York City', bbox: [40.48, -74.26, 40.92, -73.70] },
@@ -44,28 +33,66 @@ const PRESETS: { key: string; label: string; bbox: Bbox | null; note?: string }[
 
 export default function AdminParksPage() {
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<string>('sf');
+  const [tab, setTab] = useState<Tab>('import');
+  const [selected, setSelected] = useState('sf');
 
   const { data: stats } = useQuery<ParkStats>({
     queryKey: ['admin-parks-stats'],
     queryFn: async () => (await client.get('/admin/parks/stats')).data,
   });
 
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-1">Dog parks library</h1>
+
+      <section className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Total parks" value={stats?.total ?? '—'} />
+        <StatCard label="From OpenStreetMap" value={stats?.by_source?.osm ?? 0} accent="brand" />
+        <StatCard label="User-submitted" value={stats?.by_source?.user ?? 0} />
+        <StatCard label="Seed / other" value={(stats?.by_source?.seed ?? 0) + (stats?.by_source?.unknown ?? 0)} />
+      </section>
+
+      <div className="flex gap-1 mb-5">
+        {(['import', 'manual'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            {t === 'import' ? 'OSM Import' : 'Manual Entries'}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'import' ? (
+        <ImportTab selected={selected} setSelected={setSelected} queryClient={queryClient} />
+      ) : (
+        <ManualParksTab queryClient={queryClient} />
+      )}
+    </div>
+  );
+}
+
+function ImportTab({
+  selected,
+  setSelected,
+  queryClient,
+}: {
+  selected: string;
+  setSelected: (s: string) => void;
+  queryClient: ReturnType<typeof useQueryClient>;
+}) {
   const { data: history = [], isLoading: historyLoading } = useQuery<ImportHistoryEntry[]>({
     queryKey: ['admin-parks-history'],
     queryFn: async () => (await client.get('/admin/parks/import-history')).data,
   });
 
   const runImport = useMutation<ImportResponse, unknown, Bbox | null>({
-    mutationFn: async (bbox) => {
-      const res = await client.post('/admin/parks/import-osm', { bbox });
-      return res.data;
-    },
+    mutationFn: async (bbox) => (await client.post('/admin/parks/import-osm', { bbox })).data,
     onSuccess: (data) => {
-      toast.success(
-        `Imported: +${data.created} new, ${data.updated} updated (from ${data.total_fetched})`,
-        { duration: 5000 },
-      );
+      toast.success(`Imported: +${data.created} new, ${data.updated} updated (from ${data.total_fetched})`, { duration: 5000 });
       queryClient.invalidateQueries({ queryKey: ['admin-parks-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-parks-history'] });
     },
@@ -75,23 +102,11 @@ export default function AdminParksPage() {
   const activePreset = PRESETS.find((p) => p.key === selected)!;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-1">Dog parks library</h1>
+    <>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
         Refresh the public parks catalog from OpenStreetMap. Re-runs are safe —
-        existing OSM rows are updated in place and user-submitted parks are
-        never touched.
+        existing OSM rows are updated in place and user-submitted parks are never touched.
       </p>
-
-      {/* Source breakdown */}
-      <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total parks" value={stats?.total ?? '—'} />
-        <StatCard label="From OpenStreetMap" value={stats?.by_source?.osm ?? 0} accent="brand" />
-        <StatCard label="User-submitted" value={stats?.by_source?.user ?? 0} />
-        <StatCard label="Seed / other" value={(stats?.by_source?.seed ?? 0) + (stats?.by_source?.unknown ?? 0)} />
-      </section>
-
-      {/* Region picker + run button */}
       <section className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Import region</h2>
         <div className="flex flex-wrap gap-1.5 mb-4">
@@ -114,28 +129,18 @@ export default function AdminParksPage() {
             </button>
           ))}
         </div>
-
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Source:{' '}
-            <a
-              href="https://wiki.openstreetmap.org/wiki/Tag:leisure%3Ddog_park"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand-500 hover:underline"
-            >
+            <a href="https://wiki.openstreetmap.org/wiki/Tag:leisure%3Ddog_park" target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:underline">
               OSM · leisure=dog_park
             </a>{' '}
             via Overpass API
           </p>
-          <Button
-            onClick={() => runImport.mutate(activePreset.bbox)}
-            loading={runImport.isPending}
-          >
+          <Button onClick={() => runImport.mutate(activePreset.bbox)} loading={runImport.isPending}>
             Import {activePreset.label}
           </Button>
         </div>
-
         {runImport.isPending && (
           <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
             <Spinner className="h-3 w-3" />
@@ -144,13 +149,10 @@ export default function AdminParksPage() {
         )}
       </section>
 
-      {/* History */}
       <section>
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recent imports</h2>
         {historyLoading ? (
-          <div className="flex justify-center py-4">
-            <Spinner className="h-5 w-5" />
-          </div>
+          <div className="flex justify-center py-4"><Spinner className="h-5 w-5" /></div>
         ) : history.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-gray-500 py-4">No imports yet.</p>
         ) : (
@@ -158,16 +160,12 @@ export default function AdminParksPage() {
             {history.map((h) => (
               <div key={h.id} className="px-3 py-2.5 flex items-center gap-3 text-sm">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800 dark:text-gray-200">
-                    {h.bbox ? bboxLabel(h.bbox) : 'Worldwide'}
-                  </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                    {h.actor_name ?? 'admin'} · <TimeAgo value={h.created_at} />
-                  </p>
+                  <p className="font-medium text-gray-800 dark:text-gray-200">{h.bbox ? bboxLabel(h.bbox) : 'Worldwide'}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">{h.actor_name ?? 'admin'} · <TimeAgo value={h.created_at} /></p>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 shrink-0">
                   <span className="text-green-600 dark:text-green-400">+{h.created}</span>
-                  <span className="text-gray-500 dark:text-gray-400">~{h.updated}</span>
+                  <span>~{h.updated}</span>
                   <span className="text-gray-400 dark:text-gray-500">of {h.total_fetched}</span>
                 </div>
               </div>
@@ -175,44 +173,208 @@ export default function AdminParksPage() {
           </div>
         )}
       </section>
+    </>
+  );
+}
+
+function ManualParksTab({ queryClient }: { queryClient: ReturnType<typeof useQueryClient> }) {
+  const [search, setSearch] = useState('');
+  const [source, setSource] = useState('user');
+  const [editId, setEditId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ name: '', address: '', lat: '', lng: '' });
+
+  const { data: records = [], isLoading } = useQuery<ParkRecord[]>({
+    queryKey: ['admin-parks-list', search, source],
+    queryFn: async () => {
+      const params = new URLSearchParams({ q: search, limit: '100' });
+      if (source) params.set('source', source);
+      return (await client.get(`/admin/parks/list?${params}`)).data;
+    },
+  });
+
+  const resetForm = () => setForm({ name: '', address: '', lat: '', lng: '' });
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      client.post('/parks', { name: form.name, address: form.address || null, lat: parseFloat(form.lat), lng: parseFloat(form.lng) }),
+    onSuccess: () => {
+      toast.success('Park created');
+      queryClient.invalidateQueries({ queryKey: ['admin-parks-list'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-parks-stats'] });
+      setShowCreate(false);
+      resetForm();
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Create failed')),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (id: string) =>
+      client.patch(`/parks/${id}`, { name: form.name, address: form.address || null }),
+    onSuccess: () => {
+      toast.success('Park updated');
+      queryClient.invalidateQueries({ queryKey: ['admin-parks-list'] });
+      setEditId(null);
+      resetForm();
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Update failed')),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => client.delete(`/parks/${id}`),
+    onSuccess: () => {
+      toast.success('Park deleted');
+      queryClient.invalidateQueries({ queryKey: ['admin-parks-list'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-parks-stats'] });
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Delete failed')),
+  });
+
+  const startEdit = (r: ParkRecord) => {
+    setEditId(r.id);
+    setShowCreate(false);
+    setForm({ name: r.name, address: r.address ?? '', lat: String(r.lat), lng: String(r.lng) });
+  };
+
+  const startCreate = () => {
+    setEditId(null);
+    resetForm();
+    setShowCreate(true);
+  };
+
+  const cancel = () => { setEditId(null); setShowCreate(false); resetForm(); };
+  const isFormValid = form.name.trim() && (editId || (form.lat && form.lng && !isNaN(parseFloat(form.lat)) && !isNaN(parseFloat(form.lng))));
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <input
+          type="text"
+          placeholder="Search by name…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 min-w-0 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+        />
+        <select
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+        >
+          <option value="">All sources</option>
+          <option value="user">Manual (user)</option>
+          <option value="osm">OSM</option>
+        </select>
+        <Button size="sm" onClick={startCreate}>+ Add park</Button>
+      </div>
+
+      {(showCreate || editId) && (
+        <div className="mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+          <h3 className="text-sm font-semibold mb-3">{editId ? 'Edit park' : 'New park'}</h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Name *</label>
+              <input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Address</label>
+              <input
+                value={form.address}
+                onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+              />
+            </div>
+            {!editId && (
+              <>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Latitude *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 37.7749"
+                    value={form.lat}
+                    onChange={(e) => setForm((f) => ({ ...f, lat: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Longitude *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. -122.4194"
+                    value={form.lng}
+                    onChange={(e) => setForm((f) => ({ ...f, lng: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex gap-2 mt-3">
+            <Button
+              size="sm"
+              disabled={!isFormValid}
+              loading={createMutation.isPending || updateMutation.isPending}
+              onClick={() => editId ? updateMutation.mutate(editId) : createMutation.mutate()}
+            >
+              {editId ? 'Update' : 'Create'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={cancel}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Spinner className="h-5 w-5" /></div>
+      ) : records.length === 0 ? (
+        <p className="text-sm text-gray-400 dark:text-gray-500 py-8 text-center">No parks found.</p>
+      ) : (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 divide-y">
+          {records.map((r) => (
+            <div key={r.id} className="px-3 py-2.5 flex items-center gap-3 text-sm">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{r.name}</p>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">
+                  {r.address ?? `${r.lat.toFixed(4)}, ${r.lng.toFixed(4)}`} · <TimeAgo value={r.created_at} />
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button size="sm" variant="ghost" onClick={() => startEdit(r)}>Edit</Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  loading={deleteMutation.isPending}
+                  onClick={() => { if (confirm(`Delete "${r.name}"?`)) deleteMutation.mutate(r.id); }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  accent = 'gray',
-}: {
-  label: string;
-  value: number | string;
-  accent?: 'gray' | 'brand';
-}) {
+function StatCard({ label, value, accent = 'gray' }: { label: string; value: number | string; accent?: 'gray' | 'brand' }) {
   return (
-    <div
-      className={`rounded-xl border p-3 ${
-        accent === 'brand'
-          ? 'border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10'
-          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
-      }`}
-    >
+    <div className={`rounded-xl border p-3 ${accent === 'brand' ? 'border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
       <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
-      <p className={`text-2xl font-bold ${accent === 'brand' ? 'text-brand-700 dark:text-brand-300' : 'text-gray-900 dark:text-gray-100'}`}>
-        {value}
-      </p>
+      <p className={`text-2xl font-bold ${accent === 'brand' ? 'text-brand-700 dark:text-brand-300' : 'text-gray-900 dark:text-gray-100'}`}>{value}</p>
     </div>
   );
 }
 
 function bboxLabel(bbox: Bbox): string {
-  // Try to match it back to a preset; fall back to raw numbers.
   const match = PRESETS.find(
-    (p) =>
-      p.bbox &&
-      Math.abs(p.bbox[0] - bbox[0]) < 0.01 &&
-      Math.abs(p.bbox[1] - bbox[1]) < 0.01 &&
-      Math.abs(p.bbox[2] - bbox[2]) < 0.01 &&
-      Math.abs(p.bbox[3] - bbox[3]) < 0.01,
+    (p) => p.bbox &&
+      Math.abs(p.bbox[0] - bbox[0]) < 0.01 && Math.abs(p.bbox[1] - bbox[1]) < 0.01 &&
+      Math.abs(p.bbox[2] - bbox[2]) < 0.01 && Math.abs(p.bbox[3] - bbox[3]) < 0.01,
   );
   if (match) return match.label;
   return `${bbox[0].toFixed(2)}, ${bbox[1].toFixed(2)} → ${bbox[2].toFixed(2)}, ${bbox[3].toFixed(2)}`;

@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom';
 import { getFeedback } from '../../api/admin';
 import TimeAgo from '../../components/TimeAgo';
 import { Spinner } from '../../components/ui/Skeleton';
+import ErrorState from '../../components/ui/ErrorState';
 
 export default function AdminFeedbackPage() {
   const [search, setSearch] = useState('');
 
-  const { data: allFeedback = [], isLoading } = useQuery({
+  const { data: allFeedback = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-feedback'],
     queryFn: getFeedback,
   });
@@ -37,6 +38,8 @@ export default function AdminFeedbackPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-8"><Spinner size="sm" /></div>
+      ) : isError ? (
+        <ErrorState message="Couldn't load feedback." onRetry={() => refetch()} />
       ) : feedback.length === 0 ? (
         <div className="text-center py-12 text-gray-400 dark:text-gray-500">
           {search ? 'No feedback matching your search.' : 'No feedback yet.'}

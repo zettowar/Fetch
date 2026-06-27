@@ -1,4 +1,3 @@
-import os
 import uuid
 from pathlib import Path
 
@@ -10,18 +9,31 @@ class LocalStorage:
         self.base_path = Path(base_path)
         self.base_path.mkdir(parents=True, exist_ok=True)
 
+    def _resolve(self, key: str) -> Path:
+        """Resolve a storage key to a path inside base_path.
+
+        Guards against path traversal: an absolute key or one containing
+        ``..`` segments that escapes the storage root raises FileNotFoundError
+        (surfaced to callers as a 404) instead of touching arbitrary files.
+        """
+        base = self.base_path.resolve()
+        target = (base / key).resolve()
+        if target != base and base not in target.parents:
+            raise FileNotFoundError(key)
+        return target
+
     async def put(self, key: str, data: bytes, content_type: str) -> str:
-        file_path = self.base_path / key
+        file_path = self._resolve(key)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_bytes(data)
         return key
 
     async def get(self, key: str) -> bytes:
-        file_path = self.base_path / key
+        file_path = self._resolve(key)
         return file_path.read_bytes()
 
     async def delete(self, key: str) -> None:
-        file_path = self.base_path / key
+        file_path = self._resolve(key)
         if file_path.exists():
             file_path.unlink()
 

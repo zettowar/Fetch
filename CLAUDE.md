@@ -11,7 +11,7 @@ cp .env.example .env
 make up          # Start all 6 Docker services
 make migrate     # Run database migrations
 make seed        # Create 10 test users + 20 dogs
-make test        # Run all tests (85 backend + 3 frontend)
+make test        # Run all tests (215 backend + 61 frontend)
 ```
 
 - **Frontend:** http://localhost:3174
@@ -35,7 +35,7 @@ Fetch/
 │   │   ├── main.py           # App factory, middleware, router registration
 │   │   ├── config.py         # Pydantic Settings (all env vars)
 │   │   ├── db.py             # Async engine + session
-│   │   ├── deps.py           # get_current_user, require_admin, require_entitlement
+│   │   ├── deps.py           # get_current_user, require_admin, require_approved_rescue
 │   │   ├── security.py       # PyJWT encode/decode, bcrypt hashing
 │   │   ├── storage.py        # LocalStorage (S3 planned)
 │   │   ├── worker.py         # Celery app + Beat schedule
@@ -48,7 +48,7 @@ Fetch/
 │   │   ├── routers/          # 18 FastAPI router files
 │   │   ├── services/         # 4 service files (feed, ranking, lost, moderation)
 │   │   └── tasks/            # 2 Celery tasks (weekly_winner, lost_alerts)
-│   ├── tests/                # 16 test files, 85 tests
+│   ├── tests/                # backend test suite (~215 tests)
 │   ├── alembic/              # 8 migrations
 │   └── pyproject.toml
 ├── frontend/
@@ -81,7 +81,7 @@ Fetch/
 
 **Auth dependencies:**
 ```python
-from app.deps import get_current_user, require_admin, require_entitlement
+from app.deps import get_current_user, require_admin, require_approved_rescue
 
 # Regular auth
 user: User = Depends(get_current_user)
@@ -89,8 +89,8 @@ user: User = Depends(get_current_user)
 # Admin only
 admin: User = Depends(require_admin)
 
-# Feature-gated
-user: User = Depends(require_entitlement("ads_removed"))
+# Approved rescue accounts only
+user: User = Depends(require_approved_rescue)
 ```
 
 **All ForeignKeys must have `ondelete`** — use `CASCADE` for owned data, `SET NULL` for references.
@@ -181,3 +181,40 @@ make lint                        # Lint backend + frontend
 docker compose logs backend -f   # Tail backend logs
 docker compose logs celery-worker -f  # Tail worker logs
 ```
+
+## Production Deployment
+
+`docker-compose.yml` is for **local dev only** (bind-mounts, autoreload, dev
+servers, runs as root). For production use `docker-compose.prod.yml`:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+It builds immutable images from `backend/Dockerfile.prod` and
+`frontend/Dockerfile.prod` (non-root users, multi-worker Uvicorn, static build
+served by nginx), adds healthchecks + memory limits, and sets
+`ENVIRONMENT=production`. Set real secrets in `.env` first — the app refuses to
+boot if `JWT_SECRET` is weak, `CORS_ORIGINS` contains `*`, or the
+`DEBUG_*_TOKEN` flags are on while `ENVIRONMENT=production`.
+
+## Shop (Shopify-only — no backend)
+
+The shop (`ShopPage`, `CartPage`, `frontend/src/api/shop.ts`) talks **directly
+to the Shopify Storefront GraphQL API from the browser** — there is intentionally
+no shop/product/cart/order table or router in the backend. Set
+`VITE_SHOPIFY_DOMAIN` / `VITE_SHOPIFY_STOREFRONT_TOKEN` to point at a store;
+leave them empty to run an in-memory demo catalog + localStorage cart (checkout
+disabled). The Storefront token is a public, client-side token by design.
+
+## Phased / stub features (intentionally incomplete)
+
+These are scaffolded but not fully wired — marked with `PHASEn` comments in code:
+
+- **Push notification delivery** — subscriptions are stored
+  (`routers/notifications.py`) but never dispatched.
+- **Lost-dog proximity alerts** (`tasks/lost_alerts.py`) — computes recipients
+  but only logs instead of sending.
+- **Billing checkout** — entitlements can be granted/revoked by an admin
+  (`routers/billing.py`); there is no self-serve payment flow.
+- **S3 storage** (`storage.py`) — only `LocalStorage` is implemented.

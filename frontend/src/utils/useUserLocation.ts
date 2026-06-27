@@ -3,6 +3,10 @@ import { useEffect, useState } from 'react';
 const CACHE_KEY = 'user-location';
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 const IP_LOOKUP_URL = 'https://ipapi.co/json/';
+// IP geolocation sends the visitor's IP to a third party (ipapi.co). It's a
+// convenience for pre-centering maps, so allow operators to turn it off for
+// privacy. Enabled unless explicitly set to "false".
+const IP_GEOLOCATION_ENABLED = import.meta.env.VITE_ENABLE_IP_GEOLOCATION !== 'false';
 
 type Source = 'gps' | 'ip';
 
@@ -81,9 +85,10 @@ export function useUserLocation(fallback: [number, number]): [number, number] {
       );
     }
 
-    // Layer 2: IP-based approximate location. Skip if we already have a usable
-    // cached location — avoids hitting the third-party service on every mount.
-    if (!cached) {
+    // Layer 2: IP-based approximate location. Skip if disabled by config, or if
+    // we already have a usable cached location (avoids hitting the third-party
+    // service on every mount).
+    if (!cached && IP_GEOLOCATION_ENABLED) {
       fetch(IP_LOOKUP_URL, { headers: { Accept: 'application/json' } })
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {

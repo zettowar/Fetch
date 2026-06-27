@@ -24,9 +24,16 @@ async def _create_approved_rescue(client: AsyncClient) -> tuple[str, dict]:
     from sqlalchemy import select
 
     async with test_session_factory() as db:
-        res = await db.execute(select(RescueProfile).where(RescueProfile.org_name == "Test Rescue"))
-        # Approve the most recent one.
-        profile = list(res.scalars().all())[-1]
+        # Approve the most recently created "Test Rescue". The shared test DB
+        # accumulates rows across runs, so we must order explicitly rather than
+        # rely on the (undefined) default row order.
+        res = await db.execute(
+            select(RescueProfile)
+            .where(RescueProfile.org_name == "Test Rescue")
+            .order_by(RescueProfile.created_at.desc())
+            .limit(1)
+        )
+        profile = res.scalar_one()
         profile.status = "approved"
         await db.commit()
         rescue_id = str(profile.id)

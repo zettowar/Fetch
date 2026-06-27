@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -247,8 +247,14 @@ async def rsvp_playdate(
     )
     existing = existing_result.scalar_one_or_none()
     if existing:
+        # The RSVP row is keyed by dog only. If it belongs to a different
+        # account (e.g. the dog changed owners), don't silently take it over.
+        if existing.user_id != user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="This dog already has an RSVP from another account",
+            )
         existing.status = body.status
-        existing.user_id = user.id
         await db.commit()
         await db.refresh(existing)
         existing.dog = dog

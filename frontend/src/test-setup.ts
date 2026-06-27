@@ -1,4 +1,11 @@
+import { vi } from 'vitest';
 import '@testing-library/jest-dom';
+
+// Force the shop client into demo mode regardless of any Shopify creds in the
+// developer's local .env, so shop tests are deterministic. Runs before any test
+// module (and thus before shop.ts reads import.meta.env).
+vi.stubEnv('VITE_SHOPIFY_DOMAIN', '');
+vi.stubEnv('VITE_SHOPIFY_STOREFRONT_TOKEN', '');
 
 // Node 22+ provides a native `localStorage` that trips jsdom's own shim when
 // invoked without a storage path. Replace it with a plain in-memory store so

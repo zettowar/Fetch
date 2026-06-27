@@ -23,11 +23,25 @@ async def subscribe_push(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    sub = PushSubscription(
-        user_id=user.id, endpoint=body.endpoint,
-        p256dh=body.p256dh, auth=body.auth,
+    # Upsert by (user_id, endpoint): re-subscribing from the same browser must
+    # refresh the existing row rather than pile up duplicate active rows.
+    result = await db.execute(
+        select(PushSubscription).where(
+            PushSubscription.user_id == user.id,
+            PushSubscription.endpoint == body.endpoint,
+        )
     )
-    db.add(sub)
+    sub = result.scalar_one_or_none()
+    if sub:
+        sub.p256dh = body.p256dh
+        sub.auth = body.auth
+        sub.active = True
+    else:
+        sub = PushSubscription(
+            user_id=user.id, endpoint=body.endpoint,
+            p256dh=body.p256dh, auth=body.auth,
+        )
+        db.add(sub)
     await db.commit()
     await db.refresh(sub)
     return sub

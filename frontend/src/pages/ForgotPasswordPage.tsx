@@ -16,8 +16,9 @@ export default function ForgotPasswordPage() {
     try {
       const data = await forgotPassword(email);
       setSent(true);
-      // In dev mode the backend may return the token directly
-      if (data.debug_token) {
+      // Only ever surface the token in a dev build, even if a misconfigured
+      // backend returns one in production.
+      if (import.meta.env.DEV && data.debug_token) {
         toast.success(`Dev token: ${data.debug_token}`, { duration: 30000 });
       }
     } catch {

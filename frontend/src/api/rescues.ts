@@ -1,4 +1,5 @@
 import client from './client';
+import type { User } from '../types';
 
 export interface RescuePublic {
   id: string;
@@ -37,7 +38,7 @@ export async function signupRescue(data: RescueSignupPayload) {
   const res = await client.post('/auth/signup-rescue', data);
   return res.data as {
     tokens: { access_token: string; refresh_token: string };
-    user: { id: string; email: string; display_name: string; role: string };
+    user: User;
     rescue_profile: { id: string; status: string; org_name: string };
   };
 }

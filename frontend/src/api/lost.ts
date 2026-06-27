@@ -90,7 +90,8 @@ export async function getLostReport(id: string): Promise<LostReport> {
 
 export async function updateLostReport(
   id: string,
-  data: Partial<{ status: string; description: string }>,
+  // `status` is not editable here — use the dedicated resolve endpoint.
+  data: Partial<{ description: string; last_seen_lat: number; last_seen_lng: number }>,
 ): Promise<LostReport> {
   const res = await client.patch(`/lost/reports/${id}`, data);
   return res.data;

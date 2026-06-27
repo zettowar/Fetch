@@ -45,6 +45,8 @@ from app.schemas.support import FAQOut, TicketOut
 from app.services.park_import import import_osm_dog_parks
 from app.services.vet_import import import_osm_vets
 from app.models.vet import Vet
+from app.schemas.park import ParkOut
+from app.schemas.vet import VetOut
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
@@ -1075,6 +1077,39 @@ async def park_source_stats(
     return {"total": total, "by_source": by_source}
 
 
+@router.get("/parks/list", response_model=list[ParkOut])
+async def list_parks_admin(
+    response: Response,
+    q: str = Query(default=""),
+    source: str | None = Query(None),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Paginated park list for admin management. Optionally filter by source."""
+    filters = []
+    if q:
+        filters.append(Park.name.ilike(f"%{q}%"))
+    if source:
+        filters.append(Park.source == source)
+
+    count_stmt = select(func.count()).select_from(Park)
+    if filters:
+        for f in filters:
+            count_stmt = count_stmt.where(f)
+    total = (await db.execute(count_stmt)).scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+    stmt = select(Park).order_by(Park.created_at.desc()).offset(offset).limit(limit)
+    if filters:
+        for f in filters:
+            stmt = stmt.where(f)
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
 # --- Vets: external-dataset import (mirrors the parks import flow). ---
 
 @router.post("/vets/import-osm", response_model=ParkImportResponse)
@@ -1153,6 +1188,39 @@ async def vet_source_stats(
     by_source = {source or "unknown": count for source, count in result.all()}
     total = sum(by_source.values())
     return {"total": total, "by_source": by_source}
+
+
+@router.get("/vets/list", response_model=list[VetOut])
+async def list_vets_admin(
+    response: Response,
+    q: str = Query(default=""),
+    source: str | None = Query(None),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Paginated vet list for admin management. Optionally filter by source."""
+    filters = []
+    if q:
+        filters.append(Vet.name.ilike(f"%{q}%"))
+    if source:
+        filters.append(Vet.source == source)
+
+    count_stmt = select(func.count()).select_from(Vet)
+    if filters:
+        for f in filters:
+            count_stmt = count_stmt.where(f)
+    total = (await db.execute(count_stmt)).scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+    stmt = select(Vet).order_by(Vet.created_at.desc()).offset(offset).limit(limit)
+    if filters:
+        for f in filters:
+            stmt = stmt.where(f)
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
 
 
 # --- Helpers ---

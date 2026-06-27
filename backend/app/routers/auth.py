@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +29,7 @@ from app.schemas.auth import (
 from app.schemas.rescue import RescueSignupRequest
 from app.schemas.user import UserOut
 from app.security import (
+    DUMMY_PASSWORD_HASH,
     create_access_token,
     generate_refresh_token,
     generate_reset_token,
@@ -133,7 +134,12 @@ async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends
         select(User).where(User.email == body.email.lower(), User.is_active == True)
     )
     user = result.scalar_one_or_none()
-    if not user or not verify_password(body.password, user.password_hash):
+    if user is None:
+        # Run a throwaway verify so response time doesn't reveal whether the
+        # email exists (constant-time-ish enumeration defense).
+        verify_password(body.password, DUMMY_PASSWORD_HASH)
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     tokens = await _create_tokens(user, db)

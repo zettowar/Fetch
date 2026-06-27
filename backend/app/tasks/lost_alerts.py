@@ -20,7 +20,7 @@ async def _send_alerts(report_id: str):
     from sqlalchemy.pool import NullPool
 
     from app.config import settings
-    from app.models.lost_report import LostReport, LostReportSubscription
+    from app.models.lost_report import LostReport
     from app.services.lost_service import get_matching_subscribers
 
     engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)

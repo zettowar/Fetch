@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAuditLog, type AuditLogEntry } from '../../api/admin';
 import { Spinner } from '../../components/ui/Skeleton';
+import ErrorState from '../../components/ui/ErrorState';
 import TimeAgo from '../../components/TimeAgo';
 
 const ACTION_COLORS: Record<string, string> = {
@@ -43,7 +44,7 @@ export default function AdminAuditPage() {
   const [targetTypeFilter, setTargetTypeFilter] = useState('');
   const [limit, setLimit] = useState(100);
 
-  const { data: entries = [], isLoading, refetch } = useQuery({
+  const { data: entries = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-audit', actionFilter, targetTypeFilter, limit],
     queryFn: () => getAuditLog({
       action: actionFilter || undefined,
@@ -113,6 +114,8 @@ export default function AdminAuditPage() {
         <div className="flex justify-center py-8">
           <Spinner className="h-6 w-6" />
         </div>
+      ) : isError ? (
+        <ErrorState message="Couldn't load the audit log." onRetry={() => refetch()} />
       ) : entries.length === 0 ? (
         <p className="text-gray-400 dark:text-gray-500 text-center py-12">No audit entries found.</p>
       ) : (

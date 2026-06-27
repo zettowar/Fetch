@@ -5,7 +5,7 @@ Rescue-initiated creation lives in rescues.py (POST /rescues/dogs/:id/transfer).
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -21,11 +21,6 @@ from app.schemas.dog_transfer import DogTransferOut
 from app.storage import get_storage
 
 router = APIRouter()
-
-
-async def _expire_stale(transfer: DogTransfer) -> None:
-    if transfer.status == "pending" and transfer.expires_at < datetime.now(timezone.utc):
-        transfer.status = "expired"
 
 
 async def _to_out(t: DogTransfer, db: AsyncSession) -> DogTransferOut:
@@ -52,6 +47,12 @@ async def _to_out(t: DogTransfer, db: AsyncSession) -> DogTransferOut:
     if row:
         rescue_name = row[0]
 
+    # Show "expired" for stale pending transfers without persisting the change
+    # (a read endpoint shouldn't write). accept/decline re-check expiry inline.
+    effective_status = t.status
+    if t.status == "pending" and t.expires_at < datetime.now(timezone.utc):
+        effective_status = "expired"
+
     return DogTransferOut(
         id=t.id,
         dog_id=t.dog_id,
@@ -61,7 +62,7 @@ async def _to_out(t: DogTransfer, db: AsyncSession) -> DogTransferOut:
         from_rescue_name=rescue_name,
         to_user_id=t.to_user_id,
         invited_email=t.invited_email,
-        status=t.status,
+        status=effective_status,
         expires_at=t.expires_at,
         responded_at=t.responded_at,
         created_at=t.created_at,
@@ -86,17 +87,6 @@ async def list_my_transfers(
         .order_by(DogTransfer.created_at.desc())
     )
     transfers = list(result.scalars().all())
-
-    # Attach email-only transfers to this user opportunistically.
-    changed = False
-    for t in transfers:
-        if t.to_user_id is None and t.invited_email == user.email:
-            t.to_user_id = user.id
-            changed = True
-        await _expire_stale(t)
-    if changed:
-        await db.commit()
-
     return [await _to_out(t, db) for t in transfers]
 
 
@@ -169,8 +159,14 @@ async def _load_transfer_for_user(
     t = result.scalar_one_or_none()
     if not t:
         raise HTTPException(status_code=404, detail="Transfer not found")
-    # Authorize: must be the addressed recipient (user_id match or email match).
-    is_recipient = t.to_user_id == user.id or t.invited_email == user.email
+    # Authorize: either directly assigned to this user, or invited by email —
+    # but an email match only counts if the account's email is verified, so an
+    # unverified user can't claim a dog by setting a victim's invited address.
+    is_recipient = t.to_user_id == user.id or (
+        t.invited_email is not None
+        and t.invited_email == user.email
+        and user.is_verified
+    )
     if not is_recipient:
         raise HTTPException(status_code=403, detail="Not your transfer")
     return t

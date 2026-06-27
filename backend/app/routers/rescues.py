@@ -8,12 +8,11 @@
 - `/api/v1/rescues/dogs/:dog_id/mark-adopted` rescue flags dog as adopted (no transfer)
 - `/api/v1/rescues/dogs/:dog_id/transfer`    rescue initiates a transfer to a Fetch user
 """
-import math
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import and_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -25,7 +24,8 @@ from app.models.dog import Dog
 from app.models.dog_transfer import DogTransfer
 from app.models.rescue import RescueProfile
 from app.models.user import User
-from app.routers.dogs import _dog_to_out, _get_dog_full
+from app.services.dog_serializer import dog_to_out as _dog_to_out, get_dog_full as _get_dog_full
+from app.services.geo import bounding_box
 from app.schemas.dog import DogOut
 from app.schemas.dog_transfer import DogTransferCreate, DogTransferOut
 from app.schemas.rescue import (
@@ -80,9 +80,7 @@ async def nearby_rescues(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    deg_per_km = 1.0 / 111.32
-    dlat = radius_km * deg_per_km
-    dlng = radius_km * deg_per_km / max(math.cos(math.radians(lat)), 0.01)
+    min_lat, max_lat, min_lng, max_lng = bounding_box(lat, lng, radius_km)
 
     result = await db.execute(
         select(RescueProfile)
@@ -90,8 +88,8 @@ async def nearby_rescues(
             RescueProfile.status == "approved",
             RescueProfile.lat.is_not(None),
             RescueProfile.lng.is_not(None),
-            RescueProfile.lat.between(lat - dlat, lat + dlat),
-            RescueProfile.lng.between(lng - dlng, lng + dlng),
+            RescueProfile.lat.between(min_lat, max_lat),
+            RescueProfile.lng.between(min_lng, max_lng),
         )
         .order_by(RescueProfile.org_name.asc())
         .limit(200)

@@ -48,35 +48,3 @@ async def require_approved_rescue(
             detail="Your rescue account is pending review",
         )
     return user
-
-
-def require_entitlement(key: str):
-    """FastAPI dependency factory that checks if the current user has a specific entitlement."""
-
-    async def _check(
-        user: User = Depends(get_current_user),
-        db: AsyncSession = Depends(get_db),
-    ) -> User:
-        from datetime import datetime, timezone
-        from app.models.entitlement import Entitlement
-
-        result = await db.execute(
-            select(Entitlement).where(
-                Entitlement.user_id == user.id,
-                Entitlement.entitlement_key == key,
-            )
-        )
-        ent = result.scalar_one_or_none()
-        if not ent:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Entitlement '{key}' required",
-            )
-        if ent.expires_at and ent.expires_at < datetime.now(timezone.utc):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Entitlement '{key}' has expired",
-            )
-        return user
-
-    return _check

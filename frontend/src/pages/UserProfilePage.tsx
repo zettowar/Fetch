@@ -37,7 +37,8 @@ export default function UserProfilePage() {
   const resendMutation = useMutation({
     mutationFn: resendVerification,
     onSuccess: (data) => {
-      if (data.debug_token) {
+      // Only surface the token in a dev build, never in production.
+      if (import.meta.env.DEV && data.debug_token) {
         setDebugToken(data.debug_token);
         toast.success('Verification email sent (dev token below)');
       } else {

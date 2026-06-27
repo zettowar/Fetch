@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -12,7 +12,7 @@ from app.limiter import limiter
 from app.models.dog import Dog
 from app.models.social import Comment, Follow, Reaction
 from app.models.user import User
-from app.routers.dogs import _dog_to_out
+from app.services.dog_serializer import dog_to_out as _dog_to_out
 from app.schemas.social import (
     CommentCreate,
     CommentOut,

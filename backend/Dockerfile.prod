@@ -1,0 +1,26 @@
+# Production backend image: runs as a non-root user with multiple workers and
+# no autoreload (contrast with the dev Dockerfile / compose command override).
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install runtime deps only (no [dev] extras).
+COPY pyproject.toml .
+RUN pip install --no-cache-dir .
+
+COPY . .
+
+# Drop privileges and make the uploads dir writable by the app user.
+RUN mkdir -p /app/uploads \
+    && adduser --disabled-password --gecos "" appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8000
+
+# Multiple Uvicorn workers, no --reload.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
