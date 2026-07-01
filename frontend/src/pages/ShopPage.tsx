@@ -20,7 +20,7 @@ function ProductCard({ product, index }: { product: ShopProduct; index: number }
       }}
       className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-soft-sm overflow-hidden flex flex-col"
     >
-      <Link to={`/shop/${product.handle}`} className="block relative group">
+      <Link to={`/app/shop/${product.handle}`} className="block relative group">
         {img ? (
           <img
             src={img.url}
@@ -41,7 +41,7 @@ function ProductCard({ product, index }: { product: ShopProduct; index: number }
       </Link>
       <div className="p-3 flex flex-col gap-1 flex-1">
         <Link
-          to={`/shop/${product.handle}`}
+          to={`/app/shop/${product.handle}`}
           className="font-semibold text-gray-900 dark:text-gray-100 leading-tight hover:text-brand-600 transition-colors line-clamp-2"
         >
           {product.title}

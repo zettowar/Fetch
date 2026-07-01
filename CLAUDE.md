@@ -99,9 +99,27 @@ user: User = Depends(require_approved_rescue)
 
 ### Frontend
 
+**Two intents — keep them separate (`src/App.tsx`):**
+The frontend serves two distinct experiences, split by route tree:
+- **Marketing website** (`src/marketing/*`) — the web-first, full-width,
+  responsive site every *unauthenticated* visitor sees. Routes: `/` (Home),
+  `/about`, `/mission`, `/news`, wrapped in `MarketingLayout` (site header +
+  footer). NOT constrained to the app's mobile column. The app is invite/beta
+  gated ("coming soon"), so the site funnels to **Log in** only — public
+  sign-up is not surfaced (the `/signup` routes still work by direct link).
+- **Web app** (`src/pages/*`) — the authenticated product, a mobile-portrait
+  420px column, mounted under `/app/*` behind `<AuthGuard>` via `AppShell`
+  (top bar + bottom tab bar). All in-app router links MUST use the `/app/...`
+  prefix or they dead-end in the 404.
+- **Auth screens** (login/signup/reset/verify) use `AuthLayout` (centered,
+  responsive) at the domain root.
+- **Admin** — full-width own shell at `/admin/*`.
+
 **Adding a new page:**
 1. Create page in `src/pages/NewPage.tsx`
-2. Add route in `src/App.tsx` (wrap with `<AuthGuard>` for protected routes)
+2. Add a child route under the `/app` tree in `src/App.tsx` (already inside
+   `<AuthGuard>` + `AppShell`); use the un-prefixed child path (e.g. `foo` →
+   `/app/foo`). Internal links to it use the full `/app/foo`.
 3. Add API functions in `src/api/newfeature.ts` (import `client` from `./client`)
 4. Use TanStack Query: `useQuery({ queryKey: ['key'], queryFn: apiFn })`
 
@@ -120,10 +138,12 @@ user: User = Depends(require_approved_rescue)
 - `photoUrl(photo)` — resolves photo URL with fallback
 
 **Layout:**
-- Consumer app: 420px max-width, bottom tab bar (6 items), top bar with brand + logout
+- Marketing site: web-first, full-width, responsive (`max-w-7xl` sections), own
+  site header + footer, mobile hamburger nav — NOT the app column
+- Consumer app (`/app/*`): 420px max-width, bottom tab bar (6 items), top bar
+  with brand + logout, `pb-20` shell clearance for the tab bar
 - Admin panel: full-width, dark top bar, horizontal tab navigation, separate route tree at `/admin/*`
-- Bottom tab bar hidden on admin routes
-- `pb-16` on consumer shell for tab bar clearance
+- Bottom tab bar hidden on admin/marketing routes (they render outside `AppShell`)
 
 ### Testing
 

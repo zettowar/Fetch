@@ -59,7 +59,7 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
       {/* Rescue badge — links to the rescue's profile, on top of the photo */}
       {dog.rescue_id && (
         <Link
-          to={`/rescues/${dog.rescue_id}`}
+          to={`/app/rescues/${dog.rescue_id}`}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           className="absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-[11px] font-semibold px-2.5 py-1 shadow-md hover:bg-brand-600 transition-colors"

@@ -112,7 +112,7 @@ export default function RescueDetailPage() {
           {dogs.map((d) => (
             <Link
               key={d.id}
-              to={`/dogs/${d.id}`}
+              to={`/app/dogs/${d.id}`}
               className="block rounded-xl overflow-hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
             >
               {d.primary_photo_url ? (

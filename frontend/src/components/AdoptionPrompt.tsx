@@ -23,7 +23,7 @@ export default function AdoptionPrompt({ dogId, dogName, rescueName, onDismiss }
           </p>
           <div className="flex gap-2 mt-3">
             <Link
-              to={`/dogs/${dogId}`}
+              to={`/app/dogs/${dogId}`}
               onClick={onDismiss}
               className="text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 px-3 py-1.5 rounded-lg transition-colors"
             >

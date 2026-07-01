@@ -108,7 +108,7 @@ export default function RescuesMapPage() {
               {rescues.slice(0, 10).map((r) => (
                 <li key={r.id}>
                   <Link
-                    to={`/rescues/${r.id}`}
+                    to={`/app/rescues/${r.id}`}
                     className="flex items-center gap-3 px-4 py-2 hover:bg-white dark:hover:bg-gray-800 transition-colors"
                     onMouseEnter={() => setSelected(r)}
                   >

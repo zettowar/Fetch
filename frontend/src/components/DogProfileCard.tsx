@@ -18,7 +18,7 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
 
   return (
     <Link
-      to={`/dogs/${dog.id}`}
+      to={`/app/dogs/${dog.id}`}
       className="block bg-white dark:bg-gray-900 rounded-2xl shadow-soft-sm border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-200 ease-soft-out hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99]"
     >
       <div className="relative aspect-[4/3] bg-gray-100 dark:bg-gray-800">
@@ -82,7 +82,7 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
             )}
             {showEdit && (
               <Link
-                to={`/dogs/${dog.id}/edit`}
+                to={`/app/dogs/${dog.id}/edit`}
                 onClick={(e) => e.stopPropagation()}
                 className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >

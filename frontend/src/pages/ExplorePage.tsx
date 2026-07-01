@@ -33,7 +33,7 @@ function ExploreCard({ dog, index }: { dog: Dog; index: number }) {
       }}
       className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-soft-sm overflow-hidden flex flex-col"
     >
-      <Link to={`/dogs/${dog.id}`} className="block relative group">
+      <Link to={`/app/dogs/${dog.id}`} className="block relative group">
         {hero ? (
           <img
             src={hero}
@@ -51,7 +51,7 @@ function ExploreCard({ dog, index }: { dog: Dog; index: number }) {
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <Link
-              to={`/dogs/${dog.id}`}
+              to={`/app/dogs/${dog.id}`}
               className="font-semibold text-gray-900 dark:text-gray-100 truncate hover:text-brand-600 transition-colors"
             >
               {dog.name}

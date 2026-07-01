@@ -88,7 +88,7 @@ export default function AdminTicketsPage() {
                   </div>
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-gray-500">
                     {t.source_screen && <span>Screen: {t.source_screen}</span>}
-                    <Link to={`/users/${t.user_id}`} className="text-brand-500 hover:underline" target="_blank">
+                    <Link to={`/app/users/${t.user_id}`} className="text-brand-500 hover:underline" target="_blank">
                       View user
                     </Link>
                     <span>{new Date(t.created_at).toLocaleString()}</span>

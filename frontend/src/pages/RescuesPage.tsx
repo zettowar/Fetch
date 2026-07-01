@@ -7,7 +7,7 @@ import { Spinner } from '../components/ui/Skeleton';
 function RescueCard({ rescue }: { rescue: RescuePublic }) {
   return (
     <Link
-      to={`/rescues/${rescue.id}`}
+      to={`/app/rescues/${rescue.id}`}
       className="block bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 hover:border-brand-200 dark:hover:border-brand-500/40 transition-colors"
     >
       <div className="flex items-center gap-2 flex-wrap mb-1">

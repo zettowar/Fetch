@@ -49,7 +49,7 @@ export default function VerifyEmailPage() {
           <span className="text-4xl mb-2">✅</span>
           <h1 className="text-2xl font-bold mb-2">{message}</h1>
           <p className="text-gray-500 dark:text-gray-400 mb-6">Thanks for confirming your address.</p>
-          <Button onClick={() => navigate(user ? `/users/${user.id}` : '/')}>
+          <Button onClick={() => navigate(user ? `/app/users/${user.id}` : '/')}>
             Continue
           </Button>
         </>
@@ -60,7 +60,7 @@ export default function VerifyEmailPage() {
           <h1 className="text-2xl font-bold mb-2">Verification failed</h1>
           <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm">{message}</p>
           {user ? (
-            <Link to={`/users/${user.id}`}>
+            <Link to={`/app/users/${user.id}`}>
               <Button variant="secondary">Back to profile</Button>
             </Link>
           ) : (

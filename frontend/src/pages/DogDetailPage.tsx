@@ -227,7 +227,7 @@ export default function DogDetailPage() {
             {!isOwner && <FollowButton dogId={dog.id} />}
             {isOwner && (
               <Link
-                to={`/dogs/${dog.id}/edit`}
+                to={`/app/dogs/${dog.id}/edit`}
                 className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
               >
                 Edit
@@ -242,7 +242,7 @@ export default function DogDetailPage() {
             <span className="font-semibold text-brand-700 dark:text-brand-300">Adoptable</span>
             <span className="text-brand-700 dark:text-brand-300"> · available at </span>
             {dog.rescue_id ? (
-              <Link to={`/rescues/${dog.rescue_id}`} className="font-medium text-brand-700 dark:text-brand-300 hover:underline">
+              <Link to={`/app/rescues/${dog.rescue_id}`} className="font-medium text-brand-700 dark:text-brand-300 hover:underline">
                 {dog.rescue_name}
               </Link>
             ) : (
@@ -274,7 +274,7 @@ export default function DogDetailPage() {
 
         <div className="flex items-center gap-3 mt-1">
           <Link
-            to={`/users/${dog.owner_id}`}
+            to={`/app/users/${dog.owner_id}`}
             className="text-sm text-brand-500 hover:underline"
           >
             Owner profile

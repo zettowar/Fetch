@@ -105,7 +105,7 @@ export default function AdminContentPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
-                      to={`/dogs/${dog.id}`}
+                      to={`/app/dogs/${dog.id}`}
                       target="_blank"
                       className="font-medium text-sm text-brand-600 hover:underline"
                     >
@@ -123,7 +123,7 @@ export default function AdminContentPage() {
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Owner:{' '}
-                    <Link to={`/users/${dog.owner_id}`} target="_blank" className="hover:underline">
+                    <Link to={`/app/users/${dog.owner_id}`} target="_blank" className="hover:underline">
                       {dog.owner_name ?? 'Unknown'}
                     </Link>
                     {dog.owner_email && (

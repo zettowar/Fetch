@@ -151,7 +151,7 @@ function TransferCard({
           </p>
         </div>
         <Link
-          to={`/dogs/${transfer.dog_id}`}
+          to={`/app/dogs/${transfer.dog_id}`}
           className="text-xs text-brand-500 hover:underline"
         >
           View dog

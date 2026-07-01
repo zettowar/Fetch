@@ -12,9 +12,9 @@ const TABS = ['pending', 'reviewed', 'dismissed', 'all'] as const;
 const PAGE_SIZE = 50;
 
 function targetLink(type: string, id: string): string {
-  if (type === 'dog') return `/dogs/${id}`;
-  if (type === 'photo') return `/dogs/${id}`;
-  if (type === 'user') return `/users/${id}`;
+  if (type === 'dog') return `/app/dogs/${id}`;
+  if (type === 'photo') return `/app/dogs/${id}`;
+  if (type === 'user') return `/app/users/${id}`;
   return '#';
 }
 
@@ -106,7 +106,7 @@ export default function AdminReportsPage() {
                     <p><span className="font-medium">Reported:</span> <TimeAgo value={r.created_at} /></p>
                     <p>
                       <span className="font-medium">Reporter:</span>{' '}
-                      <Link to={`/users/${r.reporter_id}`} className="text-brand-500 hover:underline" target="_blank">
+                      <Link to={`/app/users/${r.reporter_id}`} className="text-brand-500 hover:underline" target="_blank">
                         {r.reporter_id.slice(0, 8)}...
                       </Link>
                     </p>

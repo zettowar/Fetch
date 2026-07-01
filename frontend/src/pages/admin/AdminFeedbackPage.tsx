@@ -53,7 +53,7 @@ export default function AdminFeedbackPage() {
                 {f.screen_name && (
                   <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded text-[10px]">{f.screen_name}</span>
                 )}
-                <Link to={`/users/${f.user_id}`} className="text-brand-500 hover:underline" target="_blank">
+                <Link to={`/app/users/${f.user_id}`} className="text-brand-500 hover:underline" target="_blank">
                   User
                 </Link>
                 <TimeAgo value={f.created_at} />

@@ -140,7 +140,7 @@ export default function AdminUserDetailPage() {
             {user.location_rough ? ` · ${user.location_rough}` : ''}
           </p>
           <div className="mt-1">
-            <Link to={`/users/${user.id}`} target="_blank" className="text-xs text-brand-500 hover:underline">
+            <Link to={`/app/users/${user.id}`} target="_blank" className="text-xs text-brand-500 hover:underline">
               View public profile ↗
             </Link>
           </div>

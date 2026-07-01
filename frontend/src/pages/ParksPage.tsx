@@ -238,7 +238,7 @@ export default function ParksPage() {
                     <Link
                       key={park.id}
                       ref={(el) => { listRefs.current[park.id] = el; }}
-                      to={`/parks/${park.id}`}
+                      to={`/app/parks/${park.id}`}
                       onClick={(e) => {
                         // First tap: select + center map. Second tap: navigate.
                         if (!isSelected) {

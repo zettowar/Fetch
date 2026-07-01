@@ -290,7 +290,7 @@ export default function AdminUsersPage() {
                     <p><span className="font-medium">Verified:</span> {u.is_verified ? 'Yes' : 'No'}</p>
                     <p>
                       <span className="font-medium">Profile:</span>{' '}
-                      <Link to={`/users/${u.id}`} className="text-brand-500 hover:underline" target="_blank">View</Link>
+                      <Link to={`/app/users/${u.id}`} className="text-brand-500 hover:underline" target="_blank">View</Link>
                     </p>
                   </div>
 

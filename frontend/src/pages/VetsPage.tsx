@@ -224,7 +224,7 @@ export default function VetsPage() {
                     <Link
                       key={vet.id}
                       ref={(el) => { listRefs.current[vet.id] = el; }}
-                      to={`/vets/${vet.id}`}
+                      to={`/app/vets/${vet.id}`}
                       onClick={(e) => {
                         if (!isSelected) {
                           e.preventDefault();

@@ -1,16 +1,30 @@
 import { Component, type ReactNode } from 'react';
-import { Routes, Route, Outlet, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './store/AuthContext';
 import { ThemeProvider } from './store/ThemeContext';
 import AuthGuard from './components/AuthGuard';
 import AdminGuard from './components/AdminGuard';
-import NavBar from './components/NavBar';
 import AdminLayout from './components/AdminLayout';
-import LandingPage from './pages/LandingPage';
+import AppShell from './components/AppShell';
+import ScrollToTop from './components/ScrollToTop';
+
+// Marketing website (web-first, unauthenticated front door)
+import MarketingLayout from './marketing/MarketingLayout';
+import MarketingHome from './marketing/MarketingHome';
+import AboutPage from './marketing/AboutPage';
+import MissionPage from './marketing/MissionPage';
+import NewsPage from './marketing/NewsPage';
+import AuthLayout from './marketing/AuthLayout';
+
+// Auth screens
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import RescueSignupPage from './pages/RescueSignupPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+
+// Authenticated app pages
 import RescueDashboardPage from './pages/RescueDashboardPage';
 import RescueDetailPage from './pages/RescueDetailPage';
 import TransfersPage from './pages/TransfersPage';
@@ -30,12 +44,19 @@ import ParkDetailPage from './pages/ParkDetailPage';
 import ParkEditorPage from './pages/ParkEditorPage';
 import VetsPage from './pages/VetsPage';
 import VetDetailPage from './pages/VetDetailPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProfileEditPage from './pages/ProfileEditPage';
-import VerifyEmailPage from './pages/VerifyEmailPage';
-import FeedbackWidget from './components/FeedbackWidget';
-import ScrollToTop from './components/ScrollToTop';
+import NotificationsPage from './pages/NotificationsPage';
+import FollowingPage from './pages/FollowingPage';
+import ExplorePage from './pages/ExplorePage';
+import RescuesHubPage from './pages/RescuesHubPage';
+import RescuesPage from './pages/RescuesPage';
+import RescuesMapPage from './pages/RescuesMapPage';
+import BillingPage from './pages/BillingPage';
+import ShopPage from './pages/ShopPage';
+import ShopProductPage from './pages/ShopProductPage';
+import CartPage from './pages/CartPage';
+
+// Admin pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
@@ -51,16 +72,7 @@ import AdminBreedsPage from './pages/admin/AdminBreedsPage';
 import AdminParksPage from './pages/admin/AdminParksPage';
 import AdminVetsPage from './pages/admin/AdminVetsPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
-import NotificationsPage from './pages/NotificationsPage';
-import FollowingPage from './pages/FollowingPage';
-import ExplorePage from './pages/ExplorePage';
-import RescuesHubPage from './pages/RescuesHubPage';
-import RescuesPage from './pages/RescuesPage';
-import RescuesMapPage from './pages/RescuesMapPage';
-import BillingPage from './pages/BillingPage';
-import ShopPage from './pages/ShopPage';
-import ShopProductPage from './pages/ShopProductPage';
-import CartPage from './pages/CartPage';
+
 import NotFoundPage from './pages/NotFoundPage';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -93,99 +105,101 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 }
 
 function AppContent() {
-  const location = useLocation();
-  const isAdmin = location.pathname.startsWith('/admin');
-
   return (
     <>
       <ScrollToTop />
-      {/* Consumer app shell (hidden on admin routes) */}
-      {!isAdmin && (
-        <div className="mx-auto max-w-app min-h-screen bg-white dark:bg-gray-900 pb-20 shadow-soft-lg">
-          <NavBar />
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <Routes location={location}>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/signup-rescue" element={<RescueSignupPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+      <Routes>
+        {/* ── Marketing website — web-first, for everyone (logged out) ── */}
+        <Route element={<MarketingLayout />}>
+          <Route path="/" element={<MarketingHome />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/mission" element={<MissionPage />} />
+          <Route path="/news" element={<NewsPage />} />
+          {/* Unknown public URL — 404 inside the site chrome. */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
 
-                {/* Authenticated app — everything here requires a session. */}
-                <Route path="/app" element={<AuthGuard><Outlet /></AuthGuard>}>
-                  <Route path="profile/edit" element={<ProfileEditPage />} />
-                  <Route path="home" element={<HomePage />} />
-                  <Route path="swipe" element={<SwipePage />} />
-                  <Route path="dogs" element={<MyDogsPage />} />
-                  <Route path="dogs/new" element={<DogEditorPage />} />
-                  <Route path="dogs/:id" element={<DogDetailPage />} />
-                  <Route path="dogs/:id/edit" element={<DogEditorPage />} />
-                  <Route path="rankings" element={<RankingsPage />} />
-                  <Route path="lost" element={<LostDogsPage />} />
-                  <Route path="lost/report-missing" element={<ReportMissingPage />} />
-                  <Route path="lost/report-found" element={<ReportFoundPage />} />
-                  <Route path="lost/:id" element={<LostReportDetailPage />} />
-                  <Route path="users/:id" element={<UserProfilePage />} />
-                  <Route path="parks" element={<ParksPage />} />
-                  <Route path="parks/new" element={<ParkEditorPage />} />
-                  <Route path="parks/:id/edit" element={<ParkEditorPage />} />
-                  <Route path="parks/:id" element={<ParkDetailPage />} />
-                  <Route path="vets" element={<VetsPage />} />
-                  <Route path="vets/:id" element={<VetDetailPage />} />
-                  <Route path="notifications" element={<NotificationsPage />} />
-                  <Route path="following" element={<FollowingPage />} />
-                  <Route path="explore" element={<ExplorePage />} />
-                  <Route path="rescues" element={<RescuesHubPage />} />
-                  <Route path="rescues/browse" element={<RescuesPage />} />
-                  <Route path="rescues/map" element={<RescuesMapPage />} />
-                  <Route path="rescues/:id" element={<RescueDetailPage />} />
-                  <Route path="rescue/dashboard" element={<RescueDashboardPage />} />
-                  <Route path="transfers" element={<TransfersPage />} />
-                  <Route path="billing" element={<BillingPage />} />
-                  <Route path="shop" element={<ShopPage />} />
-                  <Route path="shop/:handle" element={<ShopProductPage />} />
-                  <Route path="cart" element={<CartPage />} />
-                </Route>
+        {/* ── Auth — centered, responsive ── */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/signup-rescue" element={<RescueSignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+        </Route>
 
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </motion.div>
-          </AnimatePresence>
-          {location.pathname === '/app/home' && <FeedbackWidget />}
-        </div>
-      )}
+        {/* ── Authenticated web app — mobile-portrait shell, session required ── */}
+        <Route
+          path="/app"
+          element={
+            <AuthGuard>
+              <AppShell />
+            </AuthGuard>
+          }
+        >
+          <Route path="profile/edit" element={<ProfileEditPage />} />
+          <Route path="home" element={<HomePage />} />
+          <Route path="swipe" element={<SwipePage />} />
+          <Route path="dogs" element={<MyDogsPage />} />
+          <Route path="dogs/new" element={<DogEditorPage />} />
+          <Route path="dogs/:id" element={<DogDetailPage />} />
+          <Route path="dogs/:id/edit" element={<DogEditorPage />} />
+          <Route path="rankings" element={<RankingsPage />} />
+          <Route path="lost" element={<LostDogsPage />} />
+          <Route path="lost/report-missing" element={<ReportMissingPage />} />
+          <Route path="lost/report-found" element={<ReportFoundPage />} />
+          <Route path="lost/:id" element={<LostReportDetailPage />} />
+          <Route path="users/:id" element={<UserProfilePage />} />
+          <Route path="parks" element={<ParksPage />} />
+          <Route path="parks/new" element={<ParkEditorPage />} />
+          <Route path="parks/:id/edit" element={<ParkEditorPage />} />
+          <Route path="parks/:id" element={<ParkDetailPage />} />
+          <Route path="vets" element={<VetsPage />} />
+          <Route path="vets/:id" element={<VetDetailPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="following" element={<FollowingPage />} />
+          <Route path="explore" element={<ExplorePage />} />
+          <Route path="rescues" element={<RescuesHubPage />} />
+          <Route path="rescues/browse" element={<RescuesPage />} />
+          <Route path="rescues/map" element={<RescuesMapPage />} />
+          <Route path="rescues/:id" element={<RescueDetailPage />} />
+          <Route path="rescue/dashboard" element={<RescueDashboardPage />} />
+          <Route path="transfers" element={<TransfersPage />} />
+          <Route path="billing" element={<BillingPage />} />
+          <Route path="shop" element={<ShopPage />} />
+          <Route path="shop/:handle" element={<ShopProductPage />} />
+          <Route path="cart" element={<CartPage />} />
+          {/* Unknown /app URL — 404 inside the app shell. */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
 
-      {/* Admin shell (own layout, full-width) */}
-      {isAdmin && (
-        <Routes>
-          <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
-            <Route index element={<AdminDashboardPage />} />
-            <Route path="reports" element={<AdminReportsPage />} />
-            <Route path="users" element={<AdminUsersPage />} />
-            <Route path="users/:id" element={<AdminUserDetailPage />} />
-            <Route path="content" element={<AdminContentPage />} />
-            <Route path="lost" element={<AdminLostReportsPage />} />
-            <Route path="tickets" element={<AdminTicketsPage />} />
-            <Route path="rescues" element={<AdminRescuesPage />} />
-            <Route path="feedback" element={<AdminFeedbackPage />} />
-            <Route path="invites" element={<AdminInvitesPage />} />
-            <Route path="faq" element={<AdminFAQPage />} />
-            <Route path="breeds" element={<AdminBreedsPage />} />
-            <Route path="parks" element={<AdminParksPage />} />
-            <Route path="vets" element={<AdminVetsPage />} />
-            <Route path="audit" element={<AdminAuditPage />} />
-          </Route>
-        </Routes>
-      )}
+        {/* ── Admin — full-width, own shell ── */}
+        <Route
+          path="/admin"
+          element={
+            <AdminGuard>
+              <AdminLayout />
+            </AdminGuard>
+          }
+        >
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="users/:id" element={<AdminUserDetailPage />} />
+          <Route path="content" element={<AdminContentPage />} />
+          <Route path="lost" element={<AdminLostReportsPage />} />
+          <Route path="tickets" element={<AdminTicketsPage />} />
+          <Route path="rescues" element={<AdminRescuesPage />} />
+          <Route path="feedback" element={<AdminFeedbackPage />} />
+          <Route path="invites" element={<AdminInvitesPage />} />
+          <Route path="faq" element={<AdminFAQPage />} />
+          <Route path="breeds" element={<AdminBreedsPage />} />
+          <Route path="parks" element={<AdminParksPage />} />
+          <Route path="vets" element={<AdminVetsPage />} />
+          <Route path="audit" element={<AdminAuditPage />} />
+        </Route>
+      </Routes>
     </>
   );
 }

@@ -222,7 +222,7 @@ export default function LostDogsPage() {
                 return (
                   <li key={r.id}>
                     <Link
-                      to={`/lost/${r.id}`}
+                      to={`/app/lost/${r.id}`}
                       className="flex items-center gap-3 px-4 py-2 hover:bg-white dark:hover:bg-gray-800 transition-colors"
                       onMouseEnter={() => setSelectedReport(r)}
                     >

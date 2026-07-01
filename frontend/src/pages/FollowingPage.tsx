@@ -12,7 +12,7 @@ function FollowedDogCard({ dog }: { dog: Dog }) {
   const age = dogAge(dog.birthday);
 
   return (
-    <Link to={`/dogs/${dog.id}`} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-brand-200 hover:bg-brand-50/30 transition-colors">
+    <Link to={`/app/dogs/${dog.id}`} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-brand-200 hover:bg-brand-50/30 transition-colors">
       {hero ? (
         <img src={hero} alt={dog.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
       ) : (

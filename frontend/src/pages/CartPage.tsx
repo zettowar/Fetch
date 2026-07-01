@@ -26,7 +26,7 @@ function CartRow({
   return (
     <div className="flex gap-3 py-3">
       <Link
-        to={`/shop/${line.productHandle}`}
+        to={`/app/shop/${line.productHandle}`}
         className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800"
       >
         {line.image ? (
@@ -38,7 +38,7 @@ function CartRow({
 
       <div className="flex-1 min-w-0">
         <Link
-          to={`/shop/${line.productHandle}`}
+          to={`/app/shop/${line.productHandle}`}
           className="font-semibold text-sm text-gray-900 dark:text-gray-100 leading-tight hover:text-brand-600 transition-colors line-clamp-2"
         >
           {line.productTitle}

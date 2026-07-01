@@ -49,7 +49,7 @@ export default function RankingsPage() {
             return (
             <Link
               key={entry.dog_id}
-              to={`/dogs/${entry.dog_id}`}
+              to={`/app/dogs/${entry.dog_id}`}
               className={`flex items-center gap-3 p-3 transition-colors ${
                 isMine
                   ? 'bg-brand-50 dark:bg-brand-500/10 ring-1 ring-inset ring-brand-200 dark:ring-brand-500/40 hover:bg-brand-100 dark:hover:bg-brand-500/20'
@@ -100,7 +100,7 @@ export default function RankingsPage() {
             {history.map((winner) => (
               <Link
                 key={winner.id}
-                to={`/dogs/${winner.dog_id}`}
+                to={`/app/dogs/${winner.dog_id}`}
                 className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
               >
                 <span className="text-lg">{'\ud83c\udfc6'}</span>

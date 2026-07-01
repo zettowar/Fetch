@@ -119,7 +119,7 @@ export default function AdminLostReportsPage() {
                     <span>
                       Reporter:{' '}
                       <Link
-                        to={`/users/${report.reporter_id}`}
+                        to={`/app/users/${report.reporter_id}`}
                         target="_blank"
                         className="text-brand-500 hover:underline"
                       >
@@ -130,7 +130,7 @@ export default function AdminLostReportsPage() {
                       <span>
                         Dog:{' '}
                         <Link
-                          to={`/dogs/${report.dog_id}`}
+                          to={`/app/dogs/${report.dog_id}`}
                           target="_blank"
                           className="text-brand-500 hover:underline"
                         >

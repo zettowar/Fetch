@@ -360,7 +360,7 @@ function InquiryRow({
       </div>
       {aboutDog && (
         <Link
-          to={`/dogs/${aboutDog.id}`}
+          to={`/app/dogs/${aboutDog.id}`}
           className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-300 text-[11px] font-medium hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
         >
           About {aboutDog.name} ↗
