@@ -197,10 +197,10 @@ function MarketingFooter() {
               <li>
                 {/* TODO(about-us): swap in your real contact address. */}
                 <a
-                  href="mailto:hello@fetchapp.dev"
+                  href="mailto:fetchpawz.inc@gmail.com"
                   className="text-gray-600 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
                 >
-                  hello@fetchapp.dev
+                  fetchpawz.inc@gmail.com
                 </a>
               </li>
               <li>

@@ -73,8 +73,8 @@ export default function AboutPage() {
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             {/* TODO(about-us): real contact address / socials, or remove. */}
             Questions, press, or partnership ideas? Reach us at{' '}
-            <a href="mailto:hello@fetchapp.dev" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
-              hello@fetchapp.dev
+            <a href="mailto:fetchpawz.inc@gmail.com" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
+              fetchpawz.inc@gmail.com
             </a>
             .
           </p>

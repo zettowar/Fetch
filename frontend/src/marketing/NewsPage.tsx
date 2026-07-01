@@ -66,7 +66,7 @@ export default function NewsPage() {
         <p className="mt-10 text-center text-sm text-gray-400 dark:text-gray-500">
           Want updates in your inbox?{' '}
           {/* TODO(news): wire up a real newsletter/waitlist, or remove this line. */}
-          <a href="mailto:hello@fetchapp.dev" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
+          <a href="mailto:fetchpawz.inc@gmail.com" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
             Drop us a note
           </a>
           .
