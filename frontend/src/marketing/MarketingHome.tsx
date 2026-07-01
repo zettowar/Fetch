@@ -49,22 +49,26 @@ export default function MarketingHome() {
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
           <div className="grid items-center gap-12 lg:grid-cols-2">
-            {/* Copy */}
+            {/* Copy — lead with the status; the product pitch is the flavor. */}
             <div className="text-center lg:text-left">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-sm px-3 py-1 text-[11px] font-semibold tracking-widest uppercase ring-1 ring-white/20">
-                <span aria-hidden>🚧</span> In development · Available soon
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur-sm px-4 py-1.5 text-xs sm:text-sm font-semibold tracking-widest uppercase ring-1 ring-white/25">
+                <span aria-hidden>🚧</span> In development
               </span>
 
-              <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-balance">
-                Rate good dogs.
+              <h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.02] tracking-tight text-balance">
+                Fetch is
                 <br />
-                <span className="text-white/85">Crown the top pup.</span>
+                almost here.
               </h1>
 
-              <p className="mt-5 mx-auto lg:mx-0 max-w-xl text-lg text-white/90 leading-relaxed text-balance">
-                Fetch is a home for dog people — swipe the feed, follow your
-                favorites, crown a new weekly champion, and help lost dogs find
-                their way home. We're still building it, and it's almost ready.
+              <p className="mt-5 text-xl sm:text-2xl font-bold text-white/85 text-balance">
+                Rate good dogs. Crown the top pup.
+              </p>
+
+              <p className="mt-4 mx-auto lg:mx-0 max-w-xl text-base sm:text-lg text-white/85 leading-relaxed text-balance">
+                A home for dog people — swipe the feed, follow your favorites,
+                crown a weekly champion, and help lost dogs find their way home.
+                We're putting the final touches on it now.
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3">
@@ -81,6 +85,10 @@ export default function MarketingHome() {
                   Beta / team log in
                 </Link>
               </div>
+
+              <p className="mt-6 text-sm text-white/75">
+                <span aria-hidden>📣</span> Launching soon — public sign-ups aren't open yet.
+              </p>
             </div>
 
             {/* Visual — a decorative "app preview" that hints at the swipe UI */}
@@ -96,7 +104,7 @@ export default function MarketingHome() {
 
       {/* ── Audience split ─────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        <SectionHeading eyebrow="Who it's for" title="Built for both sides of the leash" />
+        <SectionHeading eyebrow="Who it's for" title="Made for the whole pack" />
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           <AudienceCard
             accent="brand"
@@ -272,6 +280,10 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
 function AppPreview() {
   return (
     <div className="relative w-[300px] h-[420px]">
+      {/* Signals this is a mockup of what's coming, not a live app. */}
+      <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1 rounded-full bg-brand-700 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-soft-lg ring-1 ring-white/40">
+        <span aria-hidden>🚧</span> Sneak peek
+      </span>
       <div aria-hidden className="absolute inset-0 translate-x-5 translate-y-4 rotate-6 rounded-[2rem] bg-white/20" />
       <div aria-hidden className="absolute inset-0 -translate-x-3 translate-y-2 -rotate-3 rounded-[2rem] bg-white/25" />
       <div className="relative h-full w-full rounded-[2rem] bg-white shadow-soft-lg ring-1 ring-black/5 overflow-hidden flex flex-col">
