@@ -28,10 +28,10 @@ export default function MarketingLayout() {
     setMenuOpen(false);
   }, [location.pathname]);
 
-  // Logged-in visitors get "Open app" instead of "Log in".
+  // Access is gated until launch: the public sees no login entry in the top
+  // bar. Visitors who already have a session still get an "Open app" shortcut.
+  // (To reopen public login, restore a `/login` CTA for the logged-out case.)
   const appHref = user?.role === 'rescue' ? '/app/rescue/dashboard' : '/app/home';
-  const ctaTo = isAuthenticated ? appHref : '/login';
-  const ctaLabel = isAuthenticated ? 'Open app' : 'Log in';
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -80,12 +80,15 @@ export default function MarketingLayout() {
                 {theme === 'dark' ? '☀️' : '🌙'}
               </button>
 
-              <Link
-                to={ctaTo}
-                className="hidden sm:inline-flex items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-soft-sm transition-all duration-200 ease-soft-out hover:bg-brand-600 hover:shadow-brand-glow active:scale-95"
-              >
-                {ctaLabel}
-              </Link>
+              {/* Gated: no public login. Session-holders still get "Open app". */}
+              {isAuthenticated && (
+                <Link
+                  to={appHref}
+                  className="hidden sm:inline-flex items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-soft-sm transition-all duration-200 ease-soft-out hover:bg-brand-600 hover:shadow-brand-glow active:scale-95"
+                >
+                  Open app
+                </Link>
+              )}
 
               {/* Mobile menu toggle */}
               <button
@@ -120,12 +123,14 @@ export default function MarketingLayout() {
                   {l.label}
                 </NavLink>
               ))}
-              <Link
-                to={ctaTo}
-                className="mt-1 inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-soft-sm active:scale-95"
-              >
-                {ctaLabel}
-              </Link>
+              {isAuthenticated && (
+                <Link
+                  to={appHref}
+                  className="mt-1 inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-soft-sm active:scale-95"
+                >
+                  Open app
+                </Link>
+              )}
             </nav>
           </div>
         )}
