@@ -1,5 +1,4 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import NavBar from './NavBar';
 import FeedbackWidget from './FeedbackWidget';
 
@@ -17,17 +16,24 @@ export default function AppShell() {
   return (
     <div className="mx-auto max-w-app min-h-screen bg-white dark:bg-gray-900 pb-20 shadow-soft-lg">
       <NavBar />
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={location.pathname}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <Outlet />
-        </motion.div>
-      </AnimatePresence>
+      {/*
+        Keyed, opacity-only fade instead of AnimatePresence.
+
+        AnimatePresence kept the *outgoing* route mounted (as an in-flow block)
+        while the incoming route mounted below it during the exit animation, so
+        the new page was pushed down and dead space opened at the top until the
+        exit finished. On slower devices / rapid navigation the outgoing node
+        could linger, so the gap accumulated across clicks and only a full
+        refresh cleared it. (A bare <Outlet/> made it worse: the outgoing copy
+        re-rendered the *current* route, briefly duplicating the page height.)
+
+        A keyed CSS fade swaps atomically — the old node unmounts in the same
+        commit the new one mounts, with no exit phase — so two pages never share
+        the layout. This is the same approach the marketing pages use.
+      */}
+      <div key={location.pathname} className="animate-fade-in">
+        <Outlet />
+      </div>
       {location.pathname === '/app/home' && <FeedbackWidget />}
     </div>
   );
