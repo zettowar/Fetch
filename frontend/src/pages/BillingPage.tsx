@@ -18,7 +18,7 @@ export default function BillingPage() {
   return (
     <div className="px-4 pb-24 max-w-app mx-auto">
       <div className="py-3">
-        <BackButton fallback="/home" />
+        <BackButton fallback="/app/home" />
       </div>
 
       <header className="mb-6">
@@ -61,7 +61,7 @@ export default function BillingPage() {
         <p className="text-sm text-gray-600 dark:text-gray-300">
           Payments aren't wired up yet. Ask an admin to grant Pack+ to your account for testing.
         </p>
-        <Link to="/home" className="mt-3 inline-block">
+        <Link to="/app/home" className="mt-3 inline-block">
           <Button variant="secondary" size="sm">Back to home</Button>
         </Link>
       </div>

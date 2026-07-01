@@ -44,9 +44,9 @@ export default function HomePage() {
     user ? onboarding.isDismissed(user.id) : false,
   );
   const steps: { key: string; label: string; to: string; done: boolean }[] = [
-    { key: 'dog', label: 'Add your dog', to: '/dogs/new', done: myDogs.length > 0 },
-    { key: 'swipe', label: 'Rate some dogs', to: '/swipe', done: user ? onboarding.hasSwiped(user.id) : false },
-    { key: 'follow', label: 'Follow a dog you like', to: '/explore', done: followedDogs.length > 0 },
+    { key: 'dog', label: 'Add your dog', to: '/app/dogs/new', done: myDogs.length > 0 },
+    { key: 'swipe', label: 'Rate some dogs', to: '/app/swipe', done: user ? onboarding.hasSwiped(user.id) : false },
+    { key: 'follow', label: 'Follow a dog you like', to: '/app/explore', done: followedDogs.length > 0 },
   ];
   const showOnboarding =
     !!user && !dismissed && !dogsLoading && myDogs.length === 0;
@@ -56,14 +56,14 @@ export default function HomePage() {
   };
 
   if (isRescue) {
-    return <Navigate to="/rescue/dashboard" replace />;
+    return <Navigate to="/app/rescue/dashboard" replace />;
   }
 
   return (
     <div className="flex flex-col">
       {/* Hero: Weekly Winner */}
       <Link
-        to="/rankings"
+        to="/app/rankings"
         className="group relative h-56 bg-gradient-to-b from-brand-400 to-brand-600 flex flex-col overflow-hidden rounded-b-3xl active:scale-[0.99] transition-transform duration-200 ease-soft-out"
       >
         {winner?.primary_photo_url && (
@@ -171,7 +171,7 @@ export default function HomePage() {
 
         {/* Primary CTA — matches the half-size hero style of Rescues / Lost & Found */}
         <Link
-          to="/swipe"
+          to="/app/swipe"
           className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 text-white p-3.5 shadow-brand-glow hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
         >
           <div className="relative z-10 flex items-center justify-between gap-3">
@@ -189,7 +189,7 @@ export default function HomePage() {
 
         {/* Rescues — half-size hero panel, purple theme */}
         <Link
-          to="/rescues"
+          to="/app/rescues"
           className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 text-white p-3.5 shadow-soft-lg hover:shadow-[0_10px_30px_-8px_rgba(147,51,234,0.5)] hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
         >
           <div className="relative z-10 flex items-center justify-between gap-3">
@@ -212,7 +212,7 @@ export default function HomePage() {
 
         {/* Lost & Found — half-size hero panel, red theme */}
         <Link
-          to="/lost"
+          to="/app/lost"
           className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 to-red-700 text-white p-3.5 shadow-soft-lg hover:shadow-[0_10px_30px_-8px_rgba(239,68,68,0.5)] hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
         >
           <div className="relative z-10 flex items-center justify-between gap-3">
@@ -238,7 +238,7 @@ export default function HomePage() {
           <section>
             <div className="flex items-baseline justify-between mb-2">
               <h2 className="text-sm font-bold tracking-tight text-gray-800 dark:text-gray-200">Following</h2>
-              <Link to="/following" className="text-xs font-medium text-brand-600 hover:text-brand-700">
+              <Link to="/app/following" className="text-xs font-medium text-brand-600 hover:text-brand-700">
                 See all
               </Link>
             </div>
@@ -248,7 +248,7 @@ export default function HomePage() {
                 return (
                   <Link
                     key={dog.id}
-                    to={`/dogs/${dog.id}`}
+                    to={`/app/dogs/${dog.id}`}
                     className="flex flex-col items-center gap-1.5 w-16 snap-start flex-shrink-0"
                   >
                     <div className="p-[2px] rounded-full bg-gradient-to-br from-brand-300 to-brand-500 shadow-soft-sm">
@@ -275,7 +275,7 @@ export default function HomePage() {
               })}
               {hasMore && (
                 <Link
-                  to="/following"
+                  to="/app/following"
                   className="flex flex-col items-center justify-center gap-1.5 w-16 snap-start flex-shrink-0 text-gray-400 dark:text-gray-500 hover:text-brand-600"
                 >
                   <div className="w-14 h-14 rounded-full border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center">
@@ -288,7 +288,7 @@ export default function HomePage() {
           </section>
         ) : (
           <Link
-            to="/following"
+            to="/app/following"
             className="flex items-center justify-between gap-3 p-3 bg-white/70 dark:bg-white/5 border border-gray-200/80 dark:border-white/10 backdrop-blur rounded-2xl shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
           >
             <div className="flex items-center gap-3">

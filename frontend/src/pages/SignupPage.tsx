@@ -28,7 +28,7 @@ export default function SignupPage() {
       const data = await signup(email, password, displayName);
       login(data.tokens.access_token, data.tokens.refresh_token, data.user);
       toast.success('Welcome to Fetch!');
-      navigate('/home');
+      navigate('/app/home');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Signup failed. Email may already be registered.'));
     } finally {

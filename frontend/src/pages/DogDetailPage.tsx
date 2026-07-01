@@ -78,7 +78,7 @@ export default function DogDetailPage() {
   });
 
   const handleShare = () => {
-    const url = `${window.location.origin}/dogs/${id}`;
+    const url = `${window.location.origin}/app/dogs/${id}`;
     shareLink(url, dog?.name ? `${dog.name} on Fetch` : 'Fetch');
   };
 
@@ -208,7 +208,7 @@ export default function DogDetailPage() {
       )}
 
       <div className="p-4">
-        <BackButton fallback="/dogs" />
+        <BackButton fallback="/app/dogs" />
 
         {/* Name + age + actions */}
         <div className="flex items-center justify-between">

@@ -121,11 +121,11 @@ export default function ParkDetailPage() {
 
   return (
     <div className="p-4 pb-8">
-      <BackButton fallback="/parks" />
+      <BackButton fallback="/app/parks" />
       <div className="flex items-start justify-between gap-2">
         <h1 className="text-2xl font-bold">{park.name}</h1>
         <button
-          onClick={() => shareLink(`${window.location.origin}/parks/${id}`, `${park.name} · Fetch`)}
+          onClick={() => shareLink(`${window.location.origin}/app/parks/${id}`, `${park.name} · Fetch`)}
           className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors flex-shrink-0"
           title="Share park"
         >
@@ -189,7 +189,7 @@ export default function ParkDetailPage() {
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => navigate(`/parks/${id}/edit`)}
+          onClick={() => navigate(`/app/parks/${id}/edit`)}
         >
           Edit
         </Button>
@@ -201,7 +201,7 @@ export default function ParkDetailPage() {
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Which dog is with you?</p>
           {myDogs.length === 0 ? (
             <p className="text-sm text-gray-400 dark:text-gray-500">
-              <Link to="/dogs/new" className="text-brand-500 hover:underline">Add a dog</Link> first
+              <Link to="/app/dogs/new" className="text-brand-500 hover:underline">Add a dog</Link> first
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">

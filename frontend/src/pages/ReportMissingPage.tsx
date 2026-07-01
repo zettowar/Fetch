@@ -44,7 +44,7 @@ export default function ReportMissingPage() {
         location_fuzz_m: radius,
       });
       toast.success('Missing dog report created');
-      navigate(`/lost/${report.id}`);
+      navigate(`/app/lost/${report.id}`);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Failed to create report'));
     } finally {
@@ -54,7 +54,7 @@ export default function ReportMissingPage() {
 
   return (
     <div className="p-4">
-      <BackButton fallback="/lost" />
+      <BackButton fallback="/app/lost" />
       <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
         <span aria-hidden>🚨</span> Report Missing Dog
       </h1>

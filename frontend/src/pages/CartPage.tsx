@@ -102,7 +102,7 @@ export default function CartPage() {
 
   return (
     <div className="p-4 pb-8">
-      <BackButton fallback="/shop" label="Shop" />
+      <BackButton fallback="/app/shop" label="Shop" />
       <h1 className="text-xl font-bold tracking-tight mb-4 flex items-center gap-2">
         <span aria-hidden>🛒</span> Your cart
       </h1>
@@ -123,7 +123,7 @@ export default function CartPage() {
           title="Your cart is empty"
           body="Browse the shop and add some gear for you and your pup."
           action={
-            <Link to="/shop">
+            <Link to="/app/shop">
               <Button size="sm">Go to shop</Button>
             </Link>
           }

@@ -107,7 +107,7 @@ export default function LostReportDetailPage() {
 
   return (
     <div className="p-4 pb-8">
-      <BackButton fallback="/lost" />
+      <BackButton fallback="/app/lost" />
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
@@ -142,7 +142,7 @@ export default function LostReportDetailPage() {
         <button
           onClick={() =>
             shareLink(
-              `${window.location.origin}/lost/${id}`,
+              `${window.location.origin}/app/lost/${id}`,
               `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.dog_name || 'Dog'}`,
             )
           }

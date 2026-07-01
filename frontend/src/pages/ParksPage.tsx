@@ -83,7 +83,7 @@ export default function ParksPage() {
         </div>
         <button
           type="button"
-          onClick={() => navigate(`/parks/${p.id}`)}
+          onClick={() => navigate(`/app/parks/${p.id}`)}
           className="mt-2 w-full rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium py-1.5 transition-colors"
         >
           View park

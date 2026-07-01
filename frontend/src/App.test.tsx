@@ -21,7 +21,12 @@ describe('App', () => {
   it('renders the landing page at /', () => {
     renderApp('/');
     expect(screen.getByText(/Crown the top pup/)).toBeDefined();
-    expect(screen.getByText(/The home of good dogs/)).toBeDefined();
+    expect(screen.getByText(/In development/)).toBeDefined();
+  });
+
+  it('redirects a logged-out visit to /app/home back to the landing page', () => {
+    renderApp('/app/home');
+    expect(screen.getByText(/Crown the top pup/)).toBeDefined();
   });
 
   it('renders login page at /login', () => {

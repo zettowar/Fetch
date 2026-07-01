@@ -133,7 +133,7 @@ export default function DogEditorPage() {
           );
         }
         queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
-        navigate(`/dogs/${newDog.id}`);
+        navigate(`/app/dogs/${newDog.id}`);
         return;
       }
       queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
@@ -151,7 +151,7 @@ export default function DogEditorPage() {
       await deleteDog(id!);
       toast.success('Dog removed');
       queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
-      navigate('/dogs');
+      navigate('/app/dogs');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Failed to delete'));
     }
@@ -169,7 +169,7 @@ export default function DogEditorPage() {
 
   return (
     <div className="p-4">
-      <BackButton fallback="/dogs" />
+      <BackButton fallback="/app/dogs" />
       <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
         <span aria-hidden>{isEditing ? '✏️' : '🐶'}</span>
         {isEditing ? 'Edit Dog' : 'Add a Dog'}

@@ -85,7 +85,7 @@ export default function LostDogsPage() {
     popup: (
       <ReportPopup
         report={r}
-        onView={() => navigate(`/lost/${r.id}`)}
+        onView={() => navigate(`/app/lost/${r.id}`)}
       />
     ),
   }));
@@ -125,13 +125,13 @@ export default function LostDogsPage() {
 
         <div className="mt-2 grid grid-cols-2 gap-2">
           <Link
-            to="/lost/report-missing"
+            to="/app/lost/report-missing"
             className="flex items-center justify-center gap-1.5 rounded-full bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-600 active:scale-95 transition-all"
           >
             <span aria-hidden>🚨</span> Report Missing
           </Link>
           <Link
-            to="/lost/report-found"
+            to="/app/lost/report-found"
             className="flex items-center justify-center gap-1.5 rounded-full bg-blue-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 active:scale-95 transition-all"
           >
             <span aria-hidden>🐾</span> Report Found

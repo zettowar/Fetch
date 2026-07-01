@@ -72,7 +72,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="p-4 pb-8">
-      <BackButton fallback="/home" />
+      <BackButton fallback="/app/home" />
       <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
         <span aria-hidden>🔔</span> Notifications
       </h1>

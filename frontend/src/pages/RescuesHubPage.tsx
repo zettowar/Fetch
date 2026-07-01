@@ -13,7 +13,7 @@ export default function RescuesHubPage() {
       </div>
 
       <Link
-        to="/rescues/browse"
+        to="/app/rescues/browse"
         className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 text-white p-3.5 shadow-soft-lg hover:shadow-[0_10px_30px_-8px_rgba(147,51,234,0.5)] hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
       >
         <div className="relative z-10 flex items-center justify-between gap-3">
@@ -35,7 +35,7 @@ export default function RescuesHubPage() {
       </Link>
 
       <Link
-        to="/rescues/map"
+        to="/app/rescues/map"
         className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white p-3.5 shadow-soft-lg hover:shadow-[0_10px_30px_-8px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
       >
         <div className="relative z-10 flex items-center justify-between gap-3">

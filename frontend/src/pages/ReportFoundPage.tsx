@@ -33,7 +33,7 @@ export default function ReportFoundPage() {
         last_seen_at: new Date().toISOString(),
       });
       toast.success('Found dog report created');
-      navigate(`/lost/${report.id}`);
+      navigate(`/app/lost/${report.id}`);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Failed to create report'));
     } finally {
@@ -43,7 +43,7 @@ export default function ReportFoundPage() {
 
   return (
     <div className="p-4">
-      <BackButton fallback="/lost" />
+      <BackButton fallback="/app/lost" />
       <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
         <span aria-hidden>🐾</span> Report Found Dog
       </h1>

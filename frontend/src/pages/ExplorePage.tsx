@@ -183,7 +183,7 @@ export default function ExplorePage() {
           title="No dogs to explore yet"
           body="Check back once more dogs join the pack."
           action={
-            <Link to="/dogs/new">
+            <Link to="/app/dogs/new">
               <Button size="sm">Add your dog</Button>
             </Link>
           }

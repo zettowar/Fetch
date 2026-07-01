@@ -65,10 +65,10 @@ export default function FollowingPage() {
           body="Follow dogs from their profile to keep up with their photos and posts."
           action={
             <>
-              <Link to="/swipe">
+              <Link to="/app/swipe">
                 <Button size="sm">Start swiping</Button>
               </Link>
-              <Link to="/rankings">
+              <Link to="/app/rankings">
                 <Button size="sm" variant="secondary">Browse top dogs</Button>
               </Link>
             </>

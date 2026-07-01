@@ -35,7 +35,7 @@ export default function RescueDetailPage() {
   if (isError || !rescue) {
     return (
       <div className="p-6">
-        <BackButton fallback="/rescues" />
+        <BackButton fallback="/app/rescues" />
         <ErrorState message="Rescue not found." />
       </div>
     );
@@ -45,7 +45,7 @@ export default function RescueDetailPage() {
 
   return (
     <div className="p-4 pb-8 max-w-xl mx-auto">
-      <BackButton fallback="/rescues" />
+      <BackButton fallback="/app/rescues" />
       {hasCoords && (
         <div className="mt-3 h-48 rounded-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 shadow-soft-sm">
           <Map

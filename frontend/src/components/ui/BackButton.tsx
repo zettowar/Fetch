@@ -5,7 +5,7 @@ interface BackButtonProps {
   label?: string;
 }
 
-export default function BackButton({ fallback = '/home', label = 'Back' }: BackButtonProps) {
+export default function BackButton({ fallback = '/app/home', label = 'Back' }: BackButtonProps) {
   const navigate = useNavigate();
 
   return (

@@ -66,7 +66,7 @@ export default function ShopProductPage() {
   if (isError) {
     return (
       <div className="p-4">
-        <BackButton fallback="/shop" label="Shop" />
+        <BackButton fallback="/app/shop" label="Shop" />
         <ErrorState message="Couldn't load this product." onRetry={() => refetch()} />
       </div>
     );
@@ -75,11 +75,11 @@ export default function ShopProductPage() {
   if (!product) {
     return (
       <div className="p-4">
-        <BackButton fallback="/shop" label="Shop" />
+        <BackButton fallback="/app/shop" label="Shop" />
         <div className="text-center py-16 text-gray-400 dark:text-gray-500">
           <p className="text-4xl mb-2">🤷</p>
           <p className="text-sm font-medium">This product isn't available.</p>
-          <Link to="/shop" className="text-brand-500 text-sm hover:underline mt-2 inline-block">
+          <Link to="/app/shop" className="text-brand-500 text-sm hover:underline mt-2 inline-block">
             Back to shop
           </Link>
         </div>
@@ -102,7 +102,7 @@ export default function ShopProductPage() {
 
   return (
     <div className="p-4 pb-8">
-      <BackButton fallback="/shop" label="Shop" />
+      <BackButton fallback="/app/shop" label="Shop" />
 
       <div className="rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         {hero ? (
@@ -210,7 +210,7 @@ export default function ShopProductPage() {
           {soldOut ? 'Sold out' : 'Add to cart'}
         </Button>
         <Link
-          to="/cart"
+          to="/app/cart"
           className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline whitespace-nowrap"
         >
           View cart

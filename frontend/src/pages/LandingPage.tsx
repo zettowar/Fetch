@@ -85,7 +85,7 @@ export default function LandingPage() {
 
         <div className="relative z-10 flex flex-col items-center text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-sm px-3 py-1 text-[10px] font-semibold tracking-widest uppercase ring-1 ring-white/20">
-            <span aria-hidden>🐾</span> The home of good dogs
+            <span aria-hidden>🚧</span> In development &middot; Available soon
           </span>
 
           <h1 className="mt-5 text-[2.6rem] leading-[1.05] font-extrabold tracking-tight text-balance">
@@ -95,35 +95,32 @@ export default function LandingPage() {
           </h1>
 
           <p className="mt-4 text-base font-medium text-white/90 max-w-sm text-balance">
-            Swipe the feed, follow your favorites, and crown a new champion
-            every week. Adoptable rescue dogs slot right in.
+            Fetch is a home for dog people — swipe the feed, follow your
+            favorites, and crown a new weekly champion. We're still building
+            it. Check back soon.
           </p>
         </div>
       </section>
 
-      {/* Two-path chooser — compact cards on a neutral surface */}
+      {/* Who it's for — preview only, no live signup yet */}
       <section className="px-4 mt-7 relative">
         <p className="text-[11px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-semibold text-center mb-3">
-          Pick your path
+          Who it's for
         </p>
         <div className="flex flex-col gap-3">
-          <PathCard
+          <AudienceCard
             accent="brand"
             eyebrow="Dog owners"
             iconEmoji="🐶"
             title="Rate, follow, find."
             body="Swipe, follow, crown a weekly top dog. Lost & Found built in."
-            primary={{ to: '/signup', label: 'Get started' }}
-            secondary={{ to: '/login', label: 'Log in' }}
           />
-          <PathCard
+          <AudienceCard
             accent="purple"
             eyebrow="Rescues & partners"
             iconEmoji="🏠"
             title="Reach adopters where they swipe."
             body="List adoptable dogs, manage inquiries, find forever-home matches."
-            primary={{ to: '/signup-rescue', label: 'Apply to join' }}
-            secondary={{ to: '/login', label: 'Rescue log in' }}
           />
         </div>
       </section>
@@ -144,10 +141,10 @@ export default function LandingPage() {
         features={RESCUE_FEATURES}
       />
 
-      {/* How it works */}
+      {/* How it'll work */}
       <section className="px-6 mt-10">
         <p className="text-[11px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-semibold text-center">
-          How it works
+          How it'll work
         </p>
         <h2 className="mt-1 text-xl font-bold tracking-tight text-center">
           Three quick steps
@@ -160,29 +157,46 @@ export default function LandingPage() {
         </ol>
       </section>
 
+      {/* About us — scaffolded, fill in with the real story */}
+      <section className="px-4 mt-10">
+        <p className="text-[11px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-semibold text-center">
+          About us
+        </p>
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-center text-balance">
+          The people behind Fetch
+        </h2>
+
+        <div className="mt-5 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-soft-sm">
+          {/* TODO(about-us): replace with the real origin story — why Fetch exists, what problem it solves, what makes it different. */}
+          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            [ Placeholder — write a short paragraph about why Fetch was
+            started and what you're building toward. This is your chance to
+            make it personal. ]
+          </p>
+        </div>
+
+        {/* TODO(about-us): swap in real founders/team, or delete this row entirely if it doesn't apply. */}
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <TeamCardPlaceholder />
+          <TeamCardPlaceholder />
+        </div>
+
+        <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
+          {/* TODO(about-us): link real socials/contact, or remove. */}
+          Say hello — <span className="font-medium">hello@fetchapp.dev</span>
+        </p>
+      </section>
+
       {/* Closing nudge */}
       <section className="px-4 mt-10">
         <div className="rounded-2xl border border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 text-center shadow-soft-sm">
-          <p className="text-base font-bold text-gray-900 dark:text-gray-100">Ready to join the pack?</p>
+          <p className="text-base font-bold text-gray-900 dark:text-gray-100">We're not open yet.</p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Free to start. No ads, no feed tricks.
+            Fetch is still in active development. Come back soon for the
+            full launch.
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <Link
-              to="/signup"
-              className="block w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2.5 rounded-xl text-center transition-colors active:scale-[0.98]"
-            >
-              Sign up
-            </Link>
-            <Link
-              to="/signup-rescue"
-              className="block w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2.5 rounded-xl text-center transition-colors active:scale-[0.98]"
-            >
-              Apply as rescue
-            </Link>
-          </div>
-          <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
-            Already in?{' '}
+          <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
+            Beta tester or team member?{' '}
             <Link to="/login" className="text-brand-600 dark:text-brand-400 font-medium hover:underline">
               Log in
             </Link>
@@ -195,32 +209,28 @@ export default function LandingPage() {
 
 type Accent = 'brand' | 'purple';
 
-interface PathCardProps {
+interface AudienceCardProps {
   accent: Accent;
   eyebrow: string;
   iconEmoji: string;
   title: string;
   body: string;
-  primary: { to: string; label: string };
-  secondary: { to: string; label: string };
 }
 
-function PathCard({ accent, eyebrow, iconEmoji, title, body, primary, secondary }: PathCardProps) {
+function AudienceCard({ accent, eyebrow, iconEmoji, title, body }: AudienceCardProps) {
   // Centralize the per-accent class strings so the card itself stays terse.
   const a = accent === 'brand'
     ? {
         card: 'bg-white dark:bg-gray-900 ring-1 ring-brand-200 dark:ring-brand-500/30 shadow-brand-glow',
         iconRing: 'bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow',
         eyebrow: 'text-brand-600 dark:text-brand-400',
-        primaryBtn: 'bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white',
-        secondaryLink: 'text-brand-600 dark:text-brand-400 hover:text-brand-700',
+        tag: 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400',
       }
     : {
         card: 'bg-white dark:bg-gray-900 ring-1 ring-purple-200 dark:ring-purple-500/30 shadow-[0_8px_24px_-8px_rgba(147,51,234,0.35)]',
         iconRing: 'bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-[0_8px_24px_-8px_rgba(147,51,234,0.45)]',
         eyebrow: 'text-purple-600 dark:text-purple-400',
-        primaryBtn: 'bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white',
-        secondaryLink: 'text-purple-600 dark:text-purple-400 hover:text-purple-700',
+        tag: 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400',
       };
 
   return (
@@ -246,21 +256,25 @@ function PathCard({ accent, eyebrow, iconEmoji, title, body, primary, secondary 
         {body}
       </p>
 
-      <div className="mt-4 flex items-center gap-3">
-        <Link
-          to={primary.to}
-          className={`flex-1 font-semibold py-2.5 rounded-xl text-center transition-colors active:scale-[0.98] ${a.primaryBtn}`}
-        >
-          {primary.label}
-        </Link>
-        <Link
-          to={secondary.to}
-          className={`text-sm font-medium whitespace-nowrap ${a.secondaryLink}`}
-        >
-          {secondary.label} →
-        </Link>
-      </div>
+      <span className={`mt-4 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${a.tag}`}>
+        Coming soon
+      </span>
     </article>
+  );
+}
+
+function TeamCardPlaceholder() {
+  return (
+    <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 flex flex-col items-center text-center gap-2">
+      <span
+        aria-hidden
+        className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400 dark:text-gray-500 text-lg font-bold"
+      >
+        ?
+      </span>
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500">Name</p>
+      <p className="text-[11px] text-gray-400 dark:text-gray-600">Role</p>
+    </div>
   );
 }
 

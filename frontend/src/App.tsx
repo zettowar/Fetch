@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './store/AuthContext';
 import { ThemeProvider } from './store/ThemeContext';
@@ -119,43 +119,48 @@ function AppContent() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
-                <Route path="/profile/edit" element={<AuthGuard><ProfileEditPage /></AuthGuard>} />
-                <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
-                <Route path="/swipe" element={<AuthGuard><SwipePage /></AuthGuard>} />
-                <Route path="/dogs" element={<AuthGuard><MyDogsPage /></AuthGuard>} />
-                <Route path="/dogs/new" element={<AuthGuard><DogEditorPage /></AuthGuard>} />
-                <Route path="/dogs/:id" element={<AuthGuard><DogDetailPage /></AuthGuard>} />
-                <Route path="/dogs/:id/edit" element={<AuthGuard><DogEditorPage /></AuthGuard>} />
-                <Route path="/rankings" element={<AuthGuard><RankingsPage /></AuthGuard>} />
-                <Route path="/lost" element={<AuthGuard><LostDogsPage /></AuthGuard>} />
-                <Route path="/lost/report-missing" element={<AuthGuard><ReportMissingPage /></AuthGuard>} />
-                <Route path="/lost/report-found" element={<AuthGuard><ReportFoundPage /></AuthGuard>} />
-                <Route path="/lost/:id" element={<AuthGuard><LostReportDetailPage /></AuthGuard>} />
-                <Route path="/users/:id" element={<AuthGuard><UserProfilePage /></AuthGuard>} />
-                <Route path="/parks" element={<AuthGuard><ParksPage /></AuthGuard>} />
-                <Route path="/parks/new" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
-                <Route path="/parks/:id/edit" element={<AuthGuard><ParkEditorPage /></AuthGuard>} />
-                <Route path="/parks/:id" element={<AuthGuard><ParkDetailPage /></AuthGuard>} />
-                <Route path="/vets" element={<AuthGuard><VetsPage /></AuthGuard>} />
-                <Route path="/vets/:id" element={<AuthGuard><VetDetailPage /></AuthGuard>} />
-                <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
-                <Route path="/following" element={<AuthGuard><FollowingPage /></AuthGuard>} />
-                <Route path="/explore" element={<AuthGuard><ExplorePage /></AuthGuard>} />
-                <Route path="/rescues" element={<AuthGuard><RescuesHubPage /></AuthGuard>} />
-                <Route path="/rescues/browse" element={<AuthGuard><RescuesPage /></AuthGuard>} />
-                <Route path="/rescues/map" element={<AuthGuard><RescuesMapPage /></AuthGuard>} />
-                <Route path="/rescues/:id" element={<AuthGuard><RescueDetailPage /></AuthGuard>} />
-                <Route path="/rescue/dashboard" element={<AuthGuard><RescueDashboardPage /></AuthGuard>} />
-                <Route path="/transfers" element={<AuthGuard><TransfersPage /></AuthGuard>} />
-                <Route path="/billing" element={<AuthGuard><BillingPage /></AuthGuard>} />
-                <Route path="/shop" element={<AuthGuard><ShopPage /></AuthGuard>} />
-                <Route path="/shop/:handle" element={<AuthGuard><ShopProductPage /></AuthGuard>} />
-                <Route path="/cart" element={<AuthGuard><CartPage /></AuthGuard>} />
+
+                {/* Authenticated app — everything here requires a session. */}
+                <Route path="/app" element={<AuthGuard><Outlet /></AuthGuard>}>
+                  <Route path="profile/edit" element={<ProfileEditPage />} />
+                  <Route path="home" element={<HomePage />} />
+                  <Route path="swipe" element={<SwipePage />} />
+                  <Route path="dogs" element={<MyDogsPage />} />
+                  <Route path="dogs/new" element={<DogEditorPage />} />
+                  <Route path="dogs/:id" element={<DogDetailPage />} />
+                  <Route path="dogs/:id/edit" element={<DogEditorPage />} />
+                  <Route path="rankings" element={<RankingsPage />} />
+                  <Route path="lost" element={<LostDogsPage />} />
+                  <Route path="lost/report-missing" element={<ReportMissingPage />} />
+                  <Route path="lost/report-found" element={<ReportFoundPage />} />
+                  <Route path="lost/:id" element={<LostReportDetailPage />} />
+                  <Route path="users/:id" element={<UserProfilePage />} />
+                  <Route path="parks" element={<ParksPage />} />
+                  <Route path="parks/new" element={<ParkEditorPage />} />
+                  <Route path="parks/:id/edit" element={<ParkEditorPage />} />
+                  <Route path="parks/:id" element={<ParkDetailPage />} />
+                  <Route path="vets" element={<VetsPage />} />
+                  <Route path="vets/:id" element={<VetDetailPage />} />
+                  <Route path="notifications" element={<NotificationsPage />} />
+                  <Route path="following" element={<FollowingPage />} />
+                  <Route path="explore" element={<ExplorePage />} />
+                  <Route path="rescues" element={<RescuesHubPage />} />
+                  <Route path="rescues/browse" element={<RescuesPage />} />
+                  <Route path="rescues/map" element={<RescuesMapPage />} />
+                  <Route path="rescues/:id" element={<RescueDetailPage />} />
+                  <Route path="rescue/dashboard" element={<RescueDashboardPage />} />
+                  <Route path="transfers" element={<TransfersPage />} />
+                  <Route path="billing" element={<BillingPage />} />
+                  <Route path="shop" element={<ShopPage />} />
+                  <Route path="shop/:handle" element={<ShopProductPage />} />
+                  <Route path="cart" element={<CartPage />} />
+                </Route>
+
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </motion.div>
           </AnimatePresence>
-          {location.pathname === '/home' && <FeedbackWidget />}
+          {location.pathname === '/app/home' && <FeedbackWidget />}
         </div>
       )}
 

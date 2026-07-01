@@ -47,7 +47,7 @@ export default function RescuesMapPage() {
       label: r.org_name,
       onClick: () => setSelected(r),
       popup: (
-        <RescuePopup rescue={r} onView={() => navigate(`/rescues/${r.id}`)} />
+        <RescuePopup rescue={r} onView={() => navigate(`/app/rescues/${r.id}`)} />
       ),
     }));
 
@@ -60,7 +60,7 @@ export default function RescuesMapPage() {
             <span aria-hidden>🗺️</span> Rescue map
           </h1>
           <Link
-            to="/rescues/browse"
+            to="/app/rescues/browse"
             className="text-xs font-medium text-brand-500 hover:text-brand-600 whitespace-nowrap"
           >
             Browse list →

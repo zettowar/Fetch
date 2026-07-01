@@ -46,7 +46,7 @@ export default function TransfersPage() {
 
   return (
     <div className="p-4 pb-8 max-w-xl mx-auto">
-      <BackButton fallback="/home" />
+      <BackButton fallback="/app/home" />
       <h1 className="text-2xl font-bold mt-2 mb-1 flex items-center gap-2">
         <span aria-hidden>🔄</span> Dog transfers
       </h1>

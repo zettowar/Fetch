@@ -226,7 +226,7 @@ export default function SwipeDeck() {
           Come back Monday for a fresh batch of pups.
         </motion.p>
         <motion.div variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}>
-          <Link to="/home">
+          <Link to="/app/home">
             <Button>Back to Home</Button>
           </Link>
         </motion.div>
@@ -317,7 +317,7 @@ export default function SwipeDeck() {
                 ) : (
                   <p className="text-xs text-gray-500">Daily cap reached. Come back tomorrow.</p>
                 )}
-                <Link to="/billing" className="text-sm text-brand-500 hover:underline">
+                <Link to="/app/billing" className="text-sm text-brand-500 hover:underline">
                   Subscribe to Pack+ →
                 </Link>
               </div>
@@ -392,7 +392,7 @@ export default function SwipeDeck() {
       {!isSubscriber && (
         <div className="w-full max-w-sm mt-4 px-4">
           <Link
-            to="/billing"
+            to="/app/billing"
             className="block rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <div className="flex items-center justify-between gap-2">

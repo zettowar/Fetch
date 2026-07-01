@@ -41,7 +41,7 @@ export default function RescueSignupPage() {
       });
       authLogin(data.tokens.access_token, data.tokens.refresh_token, data.user);
       toast.success('Application submitted — we\'ll review it shortly.');
-      navigate('/rescue/dashboard', { replace: true });
+      navigate('/app/rescue/dashboard', { replace: true });
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Signup failed'));
     } finally {

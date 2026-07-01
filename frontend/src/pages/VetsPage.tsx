@@ -79,7 +79,7 @@ export default function VetsPage() {
         </div>
         <button
           type="button"
-          onClick={() => navigate(`/vets/${v.id}`)}
+          onClick={() => navigate(`/app/vets/${v.id}`)}
           className="mt-2 w-full rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium py-1.5 transition-colors"
         >
           View clinic

@@ -47,7 +47,7 @@ export default function RescueDashboardPage() {
   if (user?.role !== 'rescue') {
     return (
       <div className="p-6">
-        <BackButton fallback="/home" />
+        <BackButton fallback="/app/home" />
         <ErrorState message="This page is only for rescue accounts." />
       </div>
     );
@@ -64,7 +64,7 @@ export default function RescueDashboardPage() {
   if (isError || !profile) {
     return (
       <div className="p-6">
-        <BackButton fallback="/home" />
+        <BackButton fallback="/app/home" />
         <ErrorState message="Could not load your rescue profile." />
       </div>
     );
@@ -106,7 +106,7 @@ export default function RescueDashboardPage() {
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-2xl font-bold">{profile.org_name}</h1>
         <Link
-          to="/dogs/new"
+          to="/app/dogs/new"
           className="text-sm font-medium text-brand-500 hover:text-brand-600"
         >
           + Post a dog
@@ -123,7 +123,7 @@ export default function RescueDashboardPage() {
         {unadopted.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-gray-500">
             No adoptable dogs yet —{' '}
-            <Link to="/dogs/new" className="text-brand-500 hover:underline">
+            <Link to="/app/dogs/new" className="text-brand-500 hover:underline">
               post your first
             </Link>.
           </p>
@@ -137,7 +137,7 @@ export default function RescueDashboardPage() {
                   refetchDogs();
                   queryClient.invalidateQueries({ queryKey: ['dog', d.id] });
                 }}
-                onView={() => navigate(`/dogs/${d.id}`)}
+                onView={() => navigate(`/app/dogs/${d.id}`)}
               />
             ))}
           </div>

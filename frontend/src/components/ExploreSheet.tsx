@@ -16,26 +16,26 @@ const ITEMS: ExploreItem[] = [
     label: 'Parks',
     description: 'Find dog-friendly parks around you.',
     icon: '🌳',
-    to: '/parks',
+    to: '/app/parks',
   },
   {
     label: 'The Pack',
     description: 'Browse other Fetch users and their dogs.',
     icon: '🐾',
-    to: '/explore',
+    to: '/app/explore',
     featured: true,
   },
   {
     label: 'Shop',
     description: 'Branded gear for you and your dog.',
     icon: '🛍️',
-    to: '/shop',
+    to: '/app/shop',
   },
   {
     label: 'Vets',
     description: 'Find a vet near you.',
     icon: '🩺',
-    to: '/vets',
+    to: '/app/vets',
   },
 ];
 

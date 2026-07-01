@@ -23,7 +23,7 @@ export default function AdminLayout() {
       {/* Admin top bar */}
       <div className="bg-gray-900 text-white px-4 py-2.5 flex items-center justify-between">
         <span className="font-bold text-sm">Fetch Admin</span>
-        <Link to="/home" className="text-xs text-gray-400 dark:text-gray-500 hover:text-white transition-colors">
+        <Link to="/app/home" className="text-xs text-gray-400 dark:text-gray-500 hover:text-white transition-colors">
           Back to app
         </Link>
       </div>

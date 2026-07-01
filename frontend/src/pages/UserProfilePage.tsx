@@ -63,7 +63,7 @@ export default function UserProfilePage() {
   const isMe = currentUser?.id === profile.id;
 
   const handleShare = () => {
-    const url = `${window.location.origin}/users/${profile.id}`;
+    const url = `${window.location.origin}/app/users/${profile.id}`;
     shareLink(url, `${profile.display_name} on Fetch`);
   };
 
@@ -130,7 +130,7 @@ export default function UserProfilePage() {
               </p>
             </div>
             <Link
-              to="/billing"
+              to="/app/billing"
               className={`flex-shrink-0 inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
                 subscription.isSubscriber
                   ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -181,9 +181,9 @@ export default function UserProfilePage() {
       {/* Account menu (self only) */}
       {isMe && (
         <section className="mx-4 mb-6 flex flex-col gap-2">
-          <MenuLink to="/profile/edit" label="Edit profile" icon="✏️" />
-          <MenuLink to="/following" label="Dogs I follow" icon="🐾" />
-          <MenuLink to="/notifications" label="Notifications" icon="🔔" />
+          <MenuLink to="/app/profile/edit" label="Edit profile" icon="✏️" />
+          <MenuLink to="/app/following" label="Dogs I follow" icon="🐾" />
+          <MenuLink to="/app/notifications" label="Notifications" icon="🔔" />
         </section>
       )}
 
@@ -195,7 +195,7 @@ export default function UserProfilePage() {
           </h2>
           {isMe && (
             <Link
-              to="/dogs/new"
+              to="/app/dogs/new"
               className="text-xs font-medium text-brand-600 hover:text-brand-700"
             >
               + Add dog
@@ -215,7 +215,7 @@ export default function UserProfilePage() {
             </p>
             {isMe && (
               <Link
-                to="/dogs/new"
+                to="/app/dogs/new"
                 className="inline-block mt-3 text-sm font-medium text-brand-600 hover:text-brand-700"
               >
                 Add your first dog →

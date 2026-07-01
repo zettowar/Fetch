@@ -69,7 +69,7 @@ export default function ParkEditorPage() {
           attributes: Object.keys(attrs).length > 0 ? attrs : undefined,
         });
         toast.success('Park updated');
-        navigate(`/parks/${parkId}`);
+        navigate(`/app/parks/${parkId}`);
       } else {
         const park = await createPark({
           name: name.trim(),
@@ -79,7 +79,7 @@ export default function ParkEditorPage() {
           attributes: Object.keys(attrs).length > 0 ? attrs : undefined,
         });
         toast.success('Park submitted for review');
-        navigate(`/parks/${park.id}`);
+        navigate(`/app/parks/${park.id}`);
       }
     } catch {
       toast.error(isEditing ? 'Failed to update park' : 'Failed to add park');
@@ -94,7 +94,7 @@ export default function ParkEditorPage() {
 
   return (
     <div className="p-4">
-      <BackButton fallback={isEditing ? `/parks/${parkId}` : '/parks'} />
+      <BackButton fallback={isEditing ? `/app/parks/${parkId}` : '/app/parks'} />
       <h1 className="text-2xl font-bold mb-4">
         {isEditing ? 'Edit Park' : 'Add a Dog Park'}
       </h1>

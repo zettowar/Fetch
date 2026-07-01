@@ -36,7 +36,7 @@ export default function VetDetailPage() {
   if (isError || !vet) {
     return (
       <div className="p-6">
-        <BackButton fallback="/vets" />
+        <BackButton fallback="/app/vets" />
         <ErrorState message="Vet clinic not found." />
       </div>
     );
@@ -53,7 +53,7 @@ export default function VetDetailPage() {
 
   return (
     <div className="p-4 pb-8 max-w-xl mx-auto">
-      <BackButton fallback="/vets" />
+      <BackButton fallback="/app/vets" />
 
       <div className="mt-3 h-48 rounded-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 shadow-soft-sm">
         <Map

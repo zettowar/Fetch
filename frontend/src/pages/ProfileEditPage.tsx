@@ -48,7 +48,7 @@ export default function ProfileEditPage() {
       });
       setUser(updated);
       toast.success('Profile saved');
-      navigate(`/users/${user.id}`);
+      navigate(`/app/users/${user.id}`);
     } catch {
       toast.error('Could not save profile');
     } finally {
@@ -58,7 +58,7 @@ export default function ProfileEditPage() {
 
   return (
     <div className="p-4">
-      <BackButton fallback={`/users/${user.id}`} />
+      <BackButton fallback={`/app/users/${user.id}`} />
       <h1 className="text-2xl font-bold mt-2 mb-4 flex items-center gap-2">
         <span aria-hidden>✏️</span> Edit profile
       </h1>
@@ -124,7 +124,7 @@ export default function ProfileEditPage() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => navigate(`/users/${user.id}`)}
+            onClick={() => navigate(`/app/users/${user.id}`)}
           >
             Cancel
           </Button>

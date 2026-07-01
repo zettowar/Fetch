@@ -28,7 +28,7 @@ export default function MyDogsPage() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <span aria-hidden>🐶</span> My Dogs
         </h1>
-        <Link to="/dogs/new">
+        <Link to="/app/dogs/new">
           <Button size="sm">+ Add Dog</Button>
         </Link>
       </div>
@@ -55,7 +55,7 @@ export default function MyDogsPage() {
           title="No dogs yet"
           body="Add your pup to start collecting votes and climbing the weekly leaderboard."
           action={
-            <Link to="/dogs/new">
+            <Link to="/app/dogs/new">
               <Button>Add your first dog</Button>
             </Link>
           }

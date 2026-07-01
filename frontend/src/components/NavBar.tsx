@@ -12,7 +12,7 @@ import SignupChooserSheet from './SignupChooserSheet';
 
 // Paths that the Explore sheet routes to — used to mark the tab "active"
 // when any of those destinations is showing.
-const EXPLORE_PATHS = ['/explore', '/parks', '/vets'] as const;
+const EXPLORE_PATHS = ['/app/explore', '/app/parks', '/app/vets'] as const;
 
 type NavItem = {
   path: string;
@@ -22,10 +22,10 @@ type NavItem = {
 };
 
 const CONSUMER_NAV_ITEMS: readonly NavItem[] = [
-  { path: '/home', label: 'Home', icon: '🦴' },
-  { path: '/swipe', label: 'Swipe', icon: '❤️' },
-  { path: '/rescues', label: 'Rescues', icon: '🏠' },
-  { path: '/lost', label: 'Lost', icon: '🚨' },
+  { path: '/app/home', label: 'Home', icon: '🦴' },
+  { path: '/app/swipe', label: 'Swipe', icon: '❤️' },
+  { path: '/app/rescues', label: 'Rescues', icon: '🏠' },
+  { path: '/app/lost', label: 'Lost', icon: '🚨' },
   { path: '__explore__', label: 'Explore', icon: '🔍', isSheet: true },
 ];
 
@@ -71,10 +71,10 @@ export default function NavBar() {
   const navItems: readonly NavItem[] =
     user?.role === 'rescue'
       ? [
-          { path: '/rescue/dashboard', label: 'Dashboard', icon: '🦴' },
-          { path: '/dogs/new', label: 'Post', icon: '➕' },
-          { path: '/lost', label: 'Lost', icon: '🚨' },
-          { path: `/users/${user.id}`, label: 'Profile', icon: '👤' },
+          { path: '/app/rescue/dashboard', label: 'Dashboard', icon: '🦴' },
+          { path: '/app/dogs/new', label: 'Post', icon: '➕' },
+          { path: '/app/lost', label: 'Lost', icon: '🚨' },
+          { path: `/app/users/${user.id}`, label: 'Profile', icon: '👤' },
         ]
       : CONSUMER_NAV_ITEMS;
 
@@ -95,8 +95,8 @@ export default function NavBar() {
           to={
             isAuthenticated
               ? user?.role === 'rescue'
-                ? '/rescue/dashboard'
-                : '/home'
+                ? '/app/rescue/dashboard'
+                : '/app/home'
               : '/'
           }
           className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-brand-600 transition-colors duration-200 ease-soft-out hover:text-brand-700 active:scale-[0.98]"
@@ -120,7 +120,7 @@ export default function NavBar() {
                 their bottom nav now exposes Dashboard directly. */}
             {user?.role !== 'rescue' && (
               <Link
-                to={`/users/${user?.id}`}
+                to={`/app/users/${user?.id}`}
                 className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
               >
                 Profile
@@ -128,7 +128,7 @@ export default function NavBar() {
             )}
             {isShopper && (
               <Link
-                to="/cart"
+                to="/app/cart"
                 aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : 'Cart'}
                 title="Cart"
                 className="relative w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95 text-gray-600 dark:text-gray-300"
