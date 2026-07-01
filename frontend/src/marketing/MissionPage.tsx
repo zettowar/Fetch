@@ -14,29 +14,30 @@ export default function MissionPage() {
         eyebrow="Our mission"
         title="Why Fetch exists"
         subtitle={
-          /* TODO(mission): a single, memorable sentence that captures the mission. */
-          'To celebrate every dog and make sure no lost dog stays lost.'
+          /* TODO(mission): make it yours — this draft commits to the adoption north star. */
+          "Shorten every shelter dog's road to a forever home — by putting adoptable dogs in front of the people already here for the dogs."
         }
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-14">
         {/* Statement */}
         <section className="text-center">
-          {/* TODO(mission): the full mission statement in your own words. */}
+          {/* TODO(mission): finalize in your own voice — drafted around the adoption north star. */}
           <blockquote className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-balance text-gray-900 dark:text-gray-100">
-            “[ Placeholder — write the mission statement here. Keep it bold,
-            clear, and human. This is the sentence people should remember. ]”
+            “Too many good dogs wait too long in shelters. Fetch exists to get
+            every adoptable dog in front of the person who’ll take them home —
+            and make adopting your next dog the easiest thing you do online.”
           </blockquote>
         </section>
 
         {/* Pillars */}
         <section>
           <h2 className="text-center text-2xl font-bold tracking-tight">What that looks like</h2>
-          {/* TODO(mission): adjust these pillars to match how you'll deliver on the mission. */}
+          {/* TODO(mission): tweak to match exactly how you'll drive adoptions. */}
           <div className="mt-8 grid gap-5 sm:grid-cols-3">
-            <Pillar emoji="🏆" title="Celebrate every dog" body="[ A fun, positive place where every good boy and girl gets their moment. ]" />
-            <Pillar emoji="🚨" title="Bring lost dogs home" body="[ A real-time safety net that mobilizes the community when a dog goes missing. ]" />
-            <Pillar emoji="🏠" title="Support rescues" body="[ Tools that help rescues reach adopters and find forever homes faster. ]" />
+            <Pillar emoji="🐶" title="Adoptables in the feed" body="Every adoptable dog shows up right where people already swipe — not buried on a shelter page nobody visits." />
+            <Pillar emoji="🤝" title="Tools rescues use" body="Listings, inquiries, and handoffs in one place, so rescues spend their time on dogs, not spreadsheets." />
+            <Pillar emoji="🏡" title="A faster match" body="Surface the right dog to the right adopter sooner — and get them home." />
           </div>
         </section>
 
