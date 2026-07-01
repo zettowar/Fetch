@@ -276,34 +276,76 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
   );
 }
 
-/** Decorative mock of the swipe card — pure illustration, not interactive. */
+/**
+ * Faithful static preview of the real "Rate My Dog" swipe screen, shown inside
+ * a phone frame so the whole screen — card AND controls — is contained, the way
+ * it is in the app. Mirrors SwipeCard + the SwipeDeck controls verbatim: Pass is
+ * a downward-rotated paw, Like is a heart. There is deliberately no thumbs-down
+ * — you never vote a dog down. Non-interactive; a mockup of what's coming.
+ */
 function AppPreview() {
   return (
-    <div className="relative w-[300px] h-[420px]">
+    <div className="relative">
       {/* Signals this is a mockup of what's coming, not a live app. */}
-      <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1 rounded-full bg-brand-700 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-soft-lg ring-1 ring-white/40">
+      <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-1 rounded-full bg-brand-700 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-soft-lg ring-1 ring-white/40">
         <span aria-hidden>🚧</span> Sneak peek
       </span>
-      <div aria-hidden className="absolute inset-0 translate-x-5 translate-y-4 rotate-6 rounded-[2rem] bg-white/20" />
-      <div aria-hidden className="absolute inset-0 -translate-x-3 translate-y-2 -rotate-3 rounded-[2rem] bg-white/25" />
-      <div className="relative h-full w-full rounded-[2rem] bg-white shadow-soft-lg ring-1 ring-black/5 overflow-hidden flex flex-col">
-        <div className="flex-1 bg-gradient-to-br from-brand-100 to-brand-300 flex items-center justify-center">
-          <span className="text-[7rem] leading-none" aria-hidden>🐕</span>
-        </div>
-        <div className="p-5 text-gray-900">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xl font-extrabold tracking-tight">Biscuit, 3</p>
-              <p className="text-sm text-gray-500">Golden Retriever</p>
+
+      {/* Phone frame — the app viewport (mobile-portrait). */}
+      <div className="w-[320px] rounded-[2.75rem] bg-gray-900 p-2.5 shadow-soft-lg ring-1 ring-black/10">
+        {/* Screen — the app surface; everything below lives on it. */}
+        <div className="rounded-[2.25rem] bg-white dark:bg-gray-900 overflow-hidden">
+          <div className="px-4 pt-6 pb-5">
+            {/* SwipePage heading */}
+            <h4 className="text-center text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Rate My Dog
+            </h4>
+
+            {/* Card — mirrors SwipeCard */}
+            <div className="relative w-full h-[290px]">
+              <div aria-hidden className="absolute inset-x-4 top-3 -bottom-1 rounded-2xl bg-black/5 dark:bg-white/5" />
+              <div className="relative h-full w-full rounded-2xl bg-white dark:bg-gray-900 shadow-lg ring-1 ring-black/5 overflow-hidden">
+                <div className="w-full h-[66%] bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center">
+                  <span className="text-[5rem] leading-none" aria-hidden>🐕</span>
+                </div>
+
+                {/* Rescue badge — a real SwipeCard element; ties into adoption. */}
+                <span className="absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-[10px] font-semibold px-2 py-0.5 shadow-md">
+                  <span aria-hidden>🏠</span> Happy Tails Rescue
+                </span>
+
+                <div className="p-3">
+                  <div className="flex items-baseline gap-2">
+                    <h5 className="text-lg font-bold text-gray-900 dark:text-gray-100">Biscuit</h5>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">3 yrs</span>
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Golden Retriever</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {['Playful', 'Gentle', 'Good boy'].map((t) => (
+                      <span key={t} className="px-2 py-0.5 bg-brand-50 text-brand-600 text-[10px] rounded-full font-medium">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700">
-              🏆 #1
-            </span>
-          </div>
-          <div className="mt-4 flex items-center justify-center gap-4">
-            <span aria-hidden className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl">👎</span>
-            <span aria-hidden className="w-16 h-16 rounded-full bg-brand-500 text-white flex items-center justify-center text-3xl shadow-brand-glow">❤️</span>
-            <span aria-hidden className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl">⭐</span>
+
+            {/* Controls — mirror SwipeDeck: Pass (downward paw) + Like (heart). */}
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <div
+                aria-hidden
+                className="w-16 h-16 rounded-full bg-red-100 text-red-500 dark:bg-red-500/15 dark:text-red-400 flex items-center justify-center shadow-soft-sm"
+              >
+                <PawMark className="h-8 w-8 rotate-180" decorative />
+              </div>
+              <div
+                aria-hidden
+                className="w-16 h-16 rounded-full bg-green-100 text-green-500 dark:bg-green-500/15 dark:text-green-400 text-3xl flex items-center justify-center shadow-soft-sm"
+              >
+                &#x2764;
+              </div>
+            </div>
           </div>
         </div>
       </div>
