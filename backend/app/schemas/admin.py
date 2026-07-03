@@ -31,6 +31,17 @@ class AdminDogOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class FlaggedPhotoOut(BaseModel):
+    id: UUID
+    dog_id: UUID
+    dog_name: str | None = None
+    owner_id: UUID | None = None
+    owner_email: str | None = None
+    content_type: str
+    moderation_status: str
+    created_at: datetime
+
+
 class AdminLostReportOut(BaseModel):
     id: UUID
     kind: str

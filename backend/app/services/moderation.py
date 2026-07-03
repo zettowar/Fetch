@@ -17,8 +17,10 @@ class ModerationResult:
 async def check_image(image_bytes: bytes) -> ModerationResult:
     """Check image content using Sightengine API.
 
-    Falls back to approved if no API key is configured or on timeout.
-    Set SIGHTENGINE_API_USER and SIGHTENGINE_API_SECRET in .env for production.
+    With no API key configured, moderation is disabled and everything is
+    approved (dev/demo). With keys configured, API errors and timeouts fail
+    CLOSED to "flagged": the photo is hidden from all read paths and lands in
+    the admin review queue instead of going live unchecked.
     """
     if not settings.SIGHTENGINE_API_USER or not settings.SIGHTENGINE_API_SECRET:
         logger.warning(
@@ -42,7 +44,7 @@ async def check_image(image_bytes: bytes) -> ModerationResult:
 
         if result.get("status") != "success":
             logger.warning("Sightengine API error: %s", result)
-            return ModerationResult(status="approved", reason="api_error_fallback")
+            return ModerationResult(status="flagged", reason="api_error_fallback")
 
         # Check for flagged content
         nudity = result.get("nudity", {})
@@ -60,8 +62,8 @@ async def check_image(image_bytes: bytes) -> ModerationResult:
         return ModerationResult(status="approved")
 
     except httpx.TimeoutException:
-        logger.warning("Sightengine timeout, approving image by default")
-        return ModerationResult(status="approved", reason="timeout_fallback")
+        logger.warning("Sightengine timeout, flagging image for human review")
+        return ModerationResult(status="flagged", reason="timeout_fallback")
     except Exception:
-        logger.exception("Sightengine error, approving image by default")
-        return ModerationResult(status="approved", reason="error_fallback")
+        logger.exception("Sightengine error, flagging image for human review")
+        return ModerationResult(status="flagged", reason="error_fallback")

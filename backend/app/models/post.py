@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, Computed, ForeignKey, String, Text
+from sqlalchemy import Boolean, Computed, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,6 +14,9 @@ _SEARCH_VECTOR_EXPR = (
 
 class Post(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "posts"
+    __table_args__ = (
+        Index("idx_posts_search", "search_vector", postgresql_using="gin"),
+    )
 
     author_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True

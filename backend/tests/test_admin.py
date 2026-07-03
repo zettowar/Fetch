@@ -79,6 +79,48 @@ async def test_admin_review_report(client: AsyncClient, admin_headers: dict, aut
 
 
 @pytest.mark.asyncio
+async def test_strike_suspension_at_exactly_three(client: AsyncClient, admin_headers: dict):
+    """Auto-suspension must fire on the 3rd strike, not the 2nd (off-by-one regression)."""
+    email = f"striketarget-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    signup_res = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "Strike Target"
+    })
+    target_id = signup_res.json()["user"]["id"]
+    target_headers = {"Authorization": f"Bearer {signup_res.json()['tokens']['access_token']}"}
+    dog_res = await client.post("/api/v1/dogs", json={"name": "StrikeDog"}, headers=target_headers)
+    dog_id = dog_res.json()["id"]
+
+    async def strike_once() -> None:
+        reporter_email = f"striker-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+        r = await client.post("/api/v1/auth/signup", json={
+            "email": reporter_email, "password": "password123", "display_name": "Striker"
+        })
+        reporter_headers = {"Authorization": f"Bearer {r.json()['tokens']['access_token']}"}
+        report_res = await client.post("/api/v1/reports", json={
+            "target_type": "dog", "target_id": dog_id, "reason": "strike test"
+        }, headers=reporter_headers)
+        assert report_res.status_code == 201, report_res.text
+        review_res = await client.post(
+            f"/api/v1/admin/reports/{report_res.json()['id']}/review",
+            json={"status": "reviewed", "apply_strike": True, "strike_reason": "test"},
+            headers=admin_headers,
+        )
+        assert review_res.status_code == 200, review_res.text
+
+    async def target_is_active() -> bool:
+        res = await client.get(f"/api/v1/admin/users/{target_id}", headers=admin_headers)
+        assert res.status_code == 200
+        return res.json()["is_active"]
+
+    await strike_once()
+    assert await target_is_active(), "1 strike must not suspend"
+    await strike_once()
+    assert await target_is_active(), "2 strikes must not suspend"
+    await strike_once()
+    assert not await target_is_active(), "3rd strike must suspend"
+
+
+@pytest.mark.asyncio
 async def test_admin_users_search_pagination(client: AsyncClient, admin_headers: dict):
     """Pagination on /admin/users/search returns X-Total-Count and honors offset."""
     # Seed a handful of signups so pagination is meaningful.

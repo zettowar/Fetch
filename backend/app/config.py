@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     STORAGE_LOCAL_PATH: str = "/app/uploads"
     CORS_ORIGINS: str = "http://localhost:3174"
     RATE_LIMIT_ENABLED: bool = True
+    # Beta gate: when True, /auth/signup requires an unused invite code
+    # (admin-generated). Rescue signups stay open — they are approval-gated.
+    INVITE_REQUIRED: bool = False
 
     # Redis
     REDIS_URL: str = "redis://redis:6379/0"

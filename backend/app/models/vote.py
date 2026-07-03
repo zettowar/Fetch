@@ -21,4 +21,4 @@ class Vote(Base, UUIDPrimaryKey, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("dogs.id", ondelete="CASCADE"), nullable=False, index=True
     )
     value: Mapped[int] = mapped_column(SmallInteger, nullable=False)  # 1=like, -1=pass
-    week_bucket: Mapped[date] = mapped_column(Date, nullable=False)
+    week_bucket: Mapped[date] = mapped_column(Date, nullable=False, index=True)

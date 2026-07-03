@@ -5,7 +5,7 @@ Vets are utility lookups (find a clinic), not social hangouts, so unlike
 """
 import uuid
 
-from sqlalchemy import Boolean, Float, ForeignKey, String, Text
+from sqlalchemy import Boolean, Float, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,11 +14,14 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKey
 
 class Vet(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "vets"
+    __table_args__ = (
+        Index("ix_vets_source_external_id", "source", "external_id"),
+    )
 
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
-    lat: Mapped[float] = mapped_column(Float, nullable=False)
-    lng: Mapped[float] = mapped_column(Float, nullable=False)
+    lat: Mapped[float] = mapped_column(Float, nullable=False, index=True)
+    lng: Mapped[float] = mapped_column(Float, nullable=False, index=True)
 
     # Contact / hours come straight from OSM tags when present.
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)

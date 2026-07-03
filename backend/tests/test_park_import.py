@@ -69,7 +69,7 @@ def _mock_overpass_response(payload):
 @pytest.mark.asyncio
 async def test_import_inserts_new_parks(client: AsyncClient, admin_headers: dict):
     with patch(
-        "app.services.park_import.httpx.AsyncClient",
+        "app.services.osm_import.httpx.AsyncClient",
         new=_mock_overpass_response(SAMPLE_OVERPASS),
     ):
         res = await client.post(
@@ -91,7 +91,7 @@ async def test_import_inserts_new_parks(client: AsyncClient, admin_headers: dict
 async def test_reimport_is_idempotent(client: AsyncClient, admin_headers: dict):
     """A second run with the same payload updates rows in place; nothing new."""
     with patch(
-        "app.services.park_import.httpx.AsyncClient",
+        "app.services.osm_import.httpx.AsyncClient",
         new=_mock_overpass_response(SAMPLE_OVERPASS),
     ):
         first = await client.post(
@@ -125,7 +125,7 @@ async def test_user_park_row_is_untouched_by_import(
     assert manual.status_code == 201, manual.text
 
     with patch(
-        "app.services.park_import.httpx.AsyncClient",
+        "app.services.osm_import.httpx.AsyncClient",
         new=_mock_overpass_response(SAMPLE_OVERPASS),
     ):
         await client.post(
@@ -193,7 +193,7 @@ async def test_overpass_request_sets_user_agent():
         async def post(self, *args, **kwargs):
             return _Resp()
 
-    with patch("app.services.park_import.httpx.AsyncClient", new=_Client):
+    with patch("app.services.osm_import.httpx.AsyncClient", new=_Client):
         await fetch_osm_dog_parks(bbox=(0, 0, 1, 1))
 
     ua = captured["headers"].get("User-Agent", "")
@@ -204,7 +204,7 @@ async def test_overpass_request_sets_user_agent():
 @pytest.mark.asyncio
 async def test_park_stats_and_history(client: AsyncClient, admin_headers: dict):
     with patch(
-        "app.services.park_import.httpx.AsyncClient",
+        "app.services.osm_import.httpx.AsyncClient",
         new=_mock_overpass_response(SAMPLE_OVERPASS),
     ):
         await client.post(

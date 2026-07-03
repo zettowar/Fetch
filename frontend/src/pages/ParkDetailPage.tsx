@@ -249,7 +249,7 @@ export default function ParkDetailPage() {
                   {isMyDog && ci.dog_id && (
                     <button
                       onClick={() => checkoutMutation.mutate(ci.dog_id!)}
-                      className="ml-1 text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-500 dark:text-red-400"
+                      className="ml-1 text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400"
                       title="Check out"
                       aria-label="Check out of this park"
                     >

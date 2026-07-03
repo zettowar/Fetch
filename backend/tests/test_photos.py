@@ -85,6 +85,69 @@ async def test_upload_dog_photo_requires_ownership(client: AsyncClient, auth_hea
     assert res.status_code == 403
 
 
+# --- Format preservation through resize (regression: resize() drops format) ---
+
+@pytest.mark.asyncio
+async def test_upload_large_rgba_png_survives_resize(client: AsyncClient, auth_headers: dict):
+    """A >1600px RGBA PNG must not 500 (JPEG can't encode RGBA) and must stay PNG."""
+    dog_id = await _create_dog(client, auth_headers)
+    img = Image.new("RGBA", (2000, 1400), color=(0, 200, 0, 128))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    res = await client.post(
+        f"/api/v1/dogs/{dog_id}/photos",
+        files={"file": ("big.png", buf.getvalue(), "image/png")},
+        headers=auth_headers,
+    )
+    assert res.status_code == 201, res.text
+    data = res.json()
+    assert data["content_type"] == "image/png"
+    assert max(data["width"], data["height"]) == 1600
+
+    file_res = await client.get(f"/api/v1/photos/file/{data['storage_key']}")
+    assert file_res.status_code == 200
+    assert file_res.content.startswith(b"\x89PNG")
+
+
+@pytest.mark.asyncio
+async def test_upload_large_webp_survives_resize(client: AsyncClient, auth_headers: dict):
+    dog_id = await _create_dog(client, auth_headers)
+    img = Image.new("RGB", (1800, 900), color="blue")
+    buf = io.BytesIO()
+    img.save(buf, format="WEBP")
+    res = await client.post(
+        f"/api/v1/dogs/{dog_id}/photos",
+        files={"file": ("big.webp", buf.getvalue(), "image/webp")},
+        headers=auth_headers,
+    )
+    assert res.status_code == 201, res.text
+    data = res.json()
+    assert data["content_type"] == "image/webp"
+    assert max(data["width"], data["height"]) == 1600
+
+    file_res = await client.get(f"/api/v1/photos/file/{data['storage_key']}")
+    assert file_res.status_code == 200
+    assert file_res.content.startswith(b"RIFF")
+
+
+@pytest.mark.asyncio
+async def test_upload_large_jpeg_survives_resize(client: AsyncClient, auth_headers: dict):
+    dog_id = await _create_dog(client, auth_headers)
+    res = await client.post(
+        f"/api/v1/dogs/{dog_id}/photos",
+        files={"file": ("big.jpg", _make_jpeg(size=(2400, 1200)), "image/jpeg")},
+        headers=auth_headers,
+    )
+    assert res.status_code == 201, res.text
+    data = res.json()
+    assert data["content_type"] == "image/jpeg"
+    assert max(data["width"], data["height"]) == 1600
+
+    file_res = await client.get(f"/api/v1/photos/file/{data['storage_key']}")
+    assert file_res.status_code == 200
+    assert file_res.content.startswith(b"\xff\xd8")
+
+
 # --- Sighting photo uploads ---
 
 @pytest.mark.asyncio

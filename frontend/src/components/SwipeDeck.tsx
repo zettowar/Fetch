@@ -70,6 +70,23 @@ export default function SwipeDeck() {
     queryFn: () => getFeed(30),
   });
 
+  // A feed refetch returns a fresh re-shuffled batch that excludes dogs the
+  // user already voted on — it replaces the deck wholesale, so any index into
+  // the old deck is meaningless. When the data's identity changes, restart
+  // from the top of the new batch and drop state tied to the old one. An
+  // empty refill keeps the current index so the end state can report the
+  // session count (and any adoption prompt) from the deck just finished.
+  const feedIdentity = `${dogs[0]?.id ?? 'none'}:${dogs.length}`;
+  const [deckIdentity, setDeckIdentity] = useState(feedIdentity);
+  if (feedIdentity !== deckIdentity) {
+    setDeckIdentity(feedIdentity);
+    if (dogs.length > 0) {
+      setCurrentIndex(0);
+      setLastVote(null);
+      setPrompt(null);
+    }
+  }
+
   const voteMutation = useMutation({
     mutationFn: ({ dogId, value }: { dogId: string; value: 1 | -1 }) =>
       castVote(dogId, value),

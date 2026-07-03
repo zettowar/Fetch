@@ -1,0 +1,5 @@
+# node_modules must never enter the build context: the prod image runs its own
+# `npm ci` for Linux and a host (macOS) copy would overwrite it via `COPY . .`.
+node_modules/
+dist/
+.env

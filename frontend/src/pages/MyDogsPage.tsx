@@ -6,9 +6,10 @@ import DogProfileCard from '../components/DogProfileCard';
 import Button from '../components/ui/Button';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
 
 export default function MyDogsPage() {
-  const { data: dogs, isLoading } = useQuery({
+  const { data: dogs, isLoading, isError, refetch } = useQuery({
     queryKey: ['my-dogs'],
     queryFn: getMyDogs,
   });
@@ -38,6 +39,8 @@ export default function MyDogsPage() {
           <CardSkeleton />
           <CardSkeleton />
         </div>
+      ) : isError ? (
+        <ErrorState message="Couldn't load your dogs." onRetry={() => refetch()} />
       ) : dogs && dogs.length > 0 ? (
         <div className="grid gap-4">
           {dogs.map((dog) => (

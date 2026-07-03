@@ -14,7 +14,7 @@ from app.models.park import Park, ParkCheckin, ParkIncident, ParkReview
 from app.models.user import User
 from app.services.breed_display import breed_display
 from app.services.geo import bounding_box
-from app.storage import get_storage
+from app.services.dog_serializer import display_photo_url
 from app.schemas.park import (
     CheckinCreate,
     ParkCheckinOut,
@@ -330,17 +330,8 @@ async def list_incidents(
 
 # --- Check-ins ---
 
-def _checkin_to_out(ci: ParkCheckin, storage) -> ParkCheckinOut:
-    photo_url = None
-    if ci.dog and ci.dog.photos:
-        photos_by_id = {p.id: p for p in ci.dog.photos}
-        photo = (
-            photos_by_id.get(ci.dog.primary_photo_id)
-            if ci.dog.primary_photo_id
-            else ci.dog.photos[0]
-        )
-        if photo:
-            photo_url = storage.url(photo.storage_key)
+def _checkin_to_out(ci: ParkCheckin) -> ParkCheckinOut:
+    photo_url = display_photo_url(ci.dog)
 
     return ParkCheckinOut(
         id=ci.id,
@@ -390,7 +381,7 @@ async def checkin(
     await db.commit()
     await db.refresh(ci)
     ci.dog = dog
-    return _checkin_to_out(ci, get_storage())
+    return _checkin_to_out(ci)
 
 
 @router.delete("/{park_id}/checkin/{dog_id}", status_code=status.HTTP_200_OK)
@@ -436,5 +427,4 @@ async def list_checkins(
         .order_by(ParkCheckin.created_at.desc())
     )
     checkins = result.scalars().all()
-    storage = get_storage()
-    return [_checkin_to_out(ci, storage) for ci in checkins]
+    return [_checkin_to_out(ci) for ci in checkins]

@@ -24,7 +24,11 @@ from app.models.dog import Dog
 from app.models.dog_transfer import DogTransfer
 from app.models.rescue import RescueProfile
 from app.models.user import User
-from app.services.dog_serializer import dog_to_out as _dog_to_out, get_dog_full as _get_dog_full
+from app.services.dog_serializer import (
+    display_photo_url,
+    dog_to_out as _dog_to_out,
+    get_dog_full as _get_dog_full,
+)
 from app.services.geo import bounding_box
 from app.schemas.dog import DogOut
 from app.schemas.dog_transfer import DogTransferCreate, DogTransferOut
@@ -302,18 +306,8 @@ async def _transfer_to_out(t: DogTransfer, db: AsyncSession) -> DogTransferOut:
         select(Dog).options(selectinload(Dog.photos)).where(Dog.id == t.dog_id)
     )
     dog = dog_res.scalar_one_or_none()
-    from app.storage import get_storage
-    storage = get_storage()
-
-    photo_url = None
-    dog_name = None
-    if dog:
-        dog_name = dog.name
-        if dog.primary_photo_id:
-            for p in dog.photos:
-                if p.id == dog.primary_photo_id:
-                    photo_url = storage.url(p.storage_key)
-                    break
+    photo_url = display_photo_url(dog)
+    dog_name = dog.name if dog else None
     rescue_name = await _rescue_name_for_user(t.from_user_id, db)
     return DogTransferOut(
         id=t.id,

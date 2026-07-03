@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      const data = await signup(email, password, displayName);
+      const data = await signup(email, password, displayName, inviteCode.trim() || undefined);
       login(data.tokens.access_token, data.tokens.refresh_token, data.user);
       toast.success('Welcome to Fetch!');
       navigate('/app/home');
@@ -87,6 +88,18 @@ export default function SignupPage() {
             showStrength
             autoComplete="new-password"
           />
+          <div className="flex flex-col gap-1.5">
+            <Input
+              label="Invite code"
+              placeholder="FETCH-XXXXXXXX"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              autoComplete="off"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              Required while Fetch is in private beta.
+            </p>
+          </div>
 
           <Button type="submit" loading={loading} size="lg" className="w-full">
             Create account

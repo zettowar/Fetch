@@ -5,6 +5,7 @@ import { dogAge, dogHeroPhoto } from '../utils/time';
 import Skeleton from '../components/ui/Skeleton';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
 import type { Dog } from '../types';
 
 function FollowedDogCard({ dog }: { dog: Dog }) {
@@ -34,7 +35,7 @@ function FollowedDogCard({ dog }: { dog: Dog }) {
 }
 
 export default function FollowingPage() {
-  const { data: follows = [], isLoading } = useQuery({
+  const { data: follows = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['my-follows'],
     queryFn: getMyFollows,
   });
@@ -58,7 +59,11 @@ export default function FollowingPage() {
         </div>
       )}
 
-      {!isLoading && followedDogs.length === 0 && (
+      {!isLoading && isError && (
+        <ErrorState message="Couldn't load the dogs you follow." onRetry={() => refetch()} />
+      )}
+
+      {!isLoading && !isError && followedDogs.length === 0 && (
         <EmptyState
           icon="🐾"
           title="No dogs followed yet"

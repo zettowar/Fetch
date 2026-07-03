@@ -183,6 +183,7 @@ export default function UserProfilePage() {
         <section className="mx-4 mb-6 flex flex-col gap-2">
           <MenuLink to="/app/profile/edit" label="Edit profile" icon="✏️" />
           <MenuLink to="/app/following" label="Dogs I follow" icon="🐾" />
+          <MenuLink to="/app/transfers" label="Dog transfers" icon="🔄" />
           <MenuLink to="/app/notifications" label="Notifications" icon="🔔" />
         </section>
       )}

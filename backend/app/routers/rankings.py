@@ -47,7 +47,12 @@ async def current_winner(
     storage = get_storage()
     photo_url = None
     if dog and dog.primary_photo_id:
-        photo_result = await db.execute(select(Photo).where(Photo.id == dog.primary_photo_id))
+        photo_result = await db.execute(
+            select(Photo).where(
+                Photo.id == dog.primary_photo_id,
+                Photo.moderation_status == "approved",
+            )
+        )
         photo = photo_result.scalar_one_or_none()
         if photo:
             photo_url = storage.url(photo.storage_key)

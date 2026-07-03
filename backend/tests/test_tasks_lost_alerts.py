@@ -1,19 +1,18 @@
 """Coverage for the lost-dog proximity-alert Celery task.
 
 We exercise the underlying async helper `_send_alerts` directly — the Celery
-wrapper is a 1-line `asyncio.run()` shim. The helper builds its own engine
-against `settings.DATABASE_URL` (same URL the test conftest points at), so
-data committed via the test session is visible to it.
+wrapper is a 1-line `asyncio.run()` shim. The helper takes an injectable
+session factory so we can point it at the isolated test database.
 """
 import logging
 import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
 
-from app.models.lost_report import LostReport, LostReportSubscription
+from app.models.lost_report import LostReportSubscription
 from app.tasks.lost_alerts import _send_alerts
+from tests.conftest import test_session_factory
 
 
 async def _make_user(client: AsyncClient) -> tuple[str, dict]:
@@ -31,8 +30,6 @@ async def _make_user(client: AsyncClient) -> tuple[str, dict]:
 async def test_send_alerts_excludes_reporter_and_out_of_radius(
     client: AsyncClient, caplog
 ):
-    from tests.conftest import test_session_factory
-
     reporter_id, reporter_headers = await _make_user(client)
     in_range_id, _ = await _make_user(client)
     far_away_id, _ = await _make_user(client)
@@ -65,7 +62,7 @@ async def test_send_alerts_excludes_reporter_and_out_of_radius(
         await db.commit()
 
     caplog.set_level(logging.INFO, logger="app.tasks.lost_alerts")
-    await _send_alerts(report_id)
+    await _send_alerts(report_id, session_factory=test_session_factory)
 
     # Reporter must not appear in any "Would notify user X" log line.
     notified_lines = [r.message for r in caplog.records if "Would notify user" in r.message]
@@ -84,7 +81,7 @@ async def test_send_alerts_no_coords_short_circuits(client: AsyncClient, caplog)
     report_id = create.json()["id"]
 
     caplog.set_level(logging.INFO, logger="app.tasks.lost_alerts")
-    await _send_alerts(report_id)
+    await _send_alerts(report_id, session_factory=test_session_factory)
     assert any("no coordinates" in r.message for r in caplog.records)
 
 
@@ -92,5 +89,5 @@ async def test_send_alerts_no_coords_short_circuits(client: AsyncClient, caplog)
 async def test_send_alerts_missing_report_is_a_noop(caplog):
     caplog.set_level(logging.INFO, logger="app.tasks.lost_alerts")
     # Random UUID with no matching row.
-    await _send_alerts(str(uuid.uuid4()))
+    await _send_alerts(str(uuid.uuid4()), session_factory=test_session_factory)
     assert any("not found" in r.message for r in caplog.records)

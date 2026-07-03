@@ -27,6 +27,24 @@ def _loaded(obj, attr: str) -> bool:
     return attr not in sa_inspect(obj).unloaded
 
 
+def display_photo_url(dog: Dog | None) -> str | None:
+    """URL of the dog's face photo for embedded payloads (check-ins, RSVPs,
+    transfers, winner cards): the primary photo if it passed moderation, else
+    the first approved photo. Requires dog.photos to be eager-loaded.
+    """
+    if dog is None or not _loaded(dog, "photos") or not dog.photos:
+        return None
+    approved = [p for p in dog.photos if p.moderation_status == "approved"]
+    if not approved:
+        return None
+    storage = get_storage()
+    if dog.primary_photo_id:
+        for p in approved:
+            if p.id == dog.primary_photo_id:
+                return storage.url(p.storage_key)
+    return storage.url(approved[0].storage_key)
+
+
 def dog_to_out(
     dog: Dog,
     *,

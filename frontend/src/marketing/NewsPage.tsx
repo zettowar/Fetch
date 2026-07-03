@@ -1,11 +1,10 @@
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 import PageHero from './PageHero';
 
 /**
- * News — SCAFFOLDED.
- *
- * A simple, styled update feed you can maintain by hand for now. Replace the
- * `POSTS` array below with real entries (or wire it to a CMS / the backend
- * later). If you delete every post, a friendly empty state shows instead.
+ * News — a simple update feed maintained by hand for now (a CMS or backend
+ * feed can replace `POSTS` later). If every post is removed, a friendly empty
+ * state shows instead.
  */
 
 type NewsPost = {
@@ -15,23 +14,24 @@ type NewsPost = {
   body: string;
 };
 
-// TODO(news): replace these placeholder entries with real updates.
 const POSTS: NewsPost[] = [
   {
-    date: 'Coming soon',
+    date: 'June 2026',
     tag: 'Milestone',
-    title: 'Fetch is heading to beta',
-    body: '[ Placeholder — announce your first milestone here: closed beta, waitlist opening, a launch date. ]',
+    title: 'Fetch enters private beta',
+    body: "The first pack is in. A small group of invited dog owners and rescue partners is now swiping, rating, and crowning weekly top dogs while we tighten the last screws. Their feedback is already reshaping the feed — next stop, a public launch date.",
   },
   {
-    date: 'Coming soon',
-    tag: 'Behind the scenes',
-    title: 'Building the swipe feed',
-    body: '[ Placeholder — a short behind-the-scenes note on what you shipped or learned this month. ]',
+    date: 'May 2026',
+    tag: 'Partnerships',
+    title: 'Partnering with rescues for launch',
+    body: "Adoption is the whole point of Fetch, so rescues come first. We've started onboarding our first rescue partners, whose adoptable dogs will appear right in the swipe feed at launch — with listings, inquiry tools, and donation links included. Run a rescue and want in? We'd love to hear from you.",
   },
 ];
 
 export default function NewsPage() {
+  useDocumentTitle('News · Fetch');
+
   return (
     <div className="animate-fade-in">
       <PageHero
@@ -65,7 +65,6 @@ export default function NewsPage() {
 
         <p className="mt-10 text-center text-sm text-gray-400 dark:text-gray-500">
           Want updates in your inbox?{' '}
-          {/* TODO(news): wire up a real newsletter/waitlist, or remove this line. */}
           <a href="mailto:fetchpawz.inc@gmail.com" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
             Drop us a note
           </a>

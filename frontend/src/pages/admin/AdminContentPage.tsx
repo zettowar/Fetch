@@ -6,7 +6,12 @@ import {
   getAdminDogs,
   deactivateDog,
   reactivateDog,
+  getFlaggedPhotos,
+  getFlaggedPhotoBlob,
+  approvePhoto,
+  rejectPhoto,
   type AdminDog,
+  type FlaggedPhoto,
 } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -15,6 +20,117 @@ import PaginationFooter from '../../components/ui/PaginationFooter';
 import TimeAgo from '../../components/TimeAgo';
 
 const PAGE_SIZE = 50;
+
+function FlaggedPhotoImage({ photoId, alt }: { photoId: string; alt: string }) {
+  const { data: src } = useQuery({
+    queryKey: ['admin-flagged-photo-file', photoId],
+    queryFn: async () => URL.createObjectURL(await getFlaggedPhotoBlob(photoId)),
+    staleTime: Infinity,
+  });
+  if (!src) {
+    return <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0" />;
+  }
+  return <img src={src} alt={alt} className="w-16 h-16 rounded-lg object-cover shrink-0" />;
+}
+
+function FlaggedPhotoQueue() {
+  const queryClient = useQueryClient();
+  const { data: photos = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['admin-flagged-photos'],
+    queryFn: getFlaggedPhotos,
+  });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-flagged-photos'] });
+  };
+  const approveMutation = useMutation({
+    mutationFn: approvePhoto,
+    onSuccess: () => { toast.success('Photo approved'); invalidate(); },
+    onError: () => toast.error('Failed to approve photo'),
+  });
+  const rejectMutation = useMutation({
+    mutationFn: rejectPhoto,
+    onSuccess: () => { toast.success('Photo rejected and deleted'); invalidate(); },
+    onError: () => toast.error('Failed to reject photo'),
+  });
+
+  return (
+    <div className="mb-8">
+      <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
+        Flagged Photos
+        {photos.length > 0 && (
+          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 rounded font-medium">
+            {photos.length} awaiting review
+          </span>
+        )}
+      </h2>
+
+      {isLoading ? (
+        <div className="flex justify-center py-6">
+          <Spinner className="h-6 w-6" />
+        </div>
+      ) : isError ? (
+        <p className="text-sm text-red-500 text-center py-6">
+          Couldn't load the review queue.{' '}
+          <button onClick={() => refetch()} className="underline">Retry</button>
+        </p>
+      ) : photos.length === 0 ? (
+        <p className="text-gray-400 dark:text-gray-500 text-center py-6">
+          No flagged photos — the queue is clear.
+        </p>
+      ) : (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+          {photos.map((p: FlaggedPhoto) => (
+            <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+              <FlaggedPhotoImage photoId={p.id} alt={`Flagged photo of ${p.dog_name ?? 'a dog'}`} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    to={`/app/dogs/${p.dog_id}`}
+                    target="_blank"
+                    className="font-medium text-sm text-brand-600 hover:underline"
+                  >
+                    {p.dog_name ?? 'Unknown dog'}
+                  </Link>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 rounded font-medium">
+                    flagged
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {p.owner_email ?? 'Unknown owner'}
+                  {' · '}
+                  <TimeAgo value={p.created_at} />
+                </p>
+              </div>
+              <div className="shrink-0 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  loading={approveMutation.isPending && approveMutation.variables === p.id}
+                  onClick={() => approveMutation.mutate(p.id)}
+                >
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  loading={rejectMutation.isPending && rejectMutation.variables === p.id}
+                  onClick={() => {
+                    if (confirm('Reject this photo? The file will be permanently deleted.')) {
+                      rejectMutation.mutate(p.id);
+                    }
+                  }}
+                >
+                  Reject
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminContentPage() {
   const [dogQuery, setDogQuery] = useState('');
@@ -57,6 +173,8 @@ export default function AdminContentPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Content Moderation</h1>
+
+      <FlaggedPhotoQueue />
 
       <div className="mb-6">
         <h2 className="text-base font-semibold mb-3 flex items-center gap-2">

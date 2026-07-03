@@ -43,7 +43,6 @@ async def test_search_posts(client: AsyncClient, auth_headers: dict):
 @pytest.mark.asyncio
 async def test_rescue_signup_creates_pending_profile(client: AsyncClient):
     """The rescue signup flow creates a user with role=rescue + a pending RescueProfile."""
-    import uuid
     suffix = uuid.uuid4().hex[:8]
     email = f"resc-{suffix}@fetchapp.dev"
     org_name = f"Happy Paws Rescue {suffix}"

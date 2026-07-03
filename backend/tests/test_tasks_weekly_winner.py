@@ -9,10 +9,8 @@ from datetime import timedelta
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 
-from app.models.user import User
-from app.models.dog import Dog
 from app.models.vote import Vote
 from app.models.weekly_winner import WeeklyWinner
 from app.services.feed_service import current_week_bucket

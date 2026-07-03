@@ -1,14 +1,12 @@
 """Direct coverage for `feed_service.get_feed` ranking + filtering rules."""
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import delete, select
 
 from app.models.dog import Dog
 from app.models.photo import Photo
-from app.models.user import User
 from app.models.vote import Vote
 from app.services.feed_service import current_week_bucket, get_feed
 

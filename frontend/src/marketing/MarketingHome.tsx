@@ -1,5 +1,6 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 import PawMark from '../components/ui/PawMark';
 import { Spinner } from '../components/ui/Skeleton';
 
@@ -25,6 +26,7 @@ const SITE_TEASERS = [
 
 export default function MarketingHome() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  useDocumentTitle('Fetch — The dog app that gets rescues adopted');
 
   if (isLoading) {
     return (

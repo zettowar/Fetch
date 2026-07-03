@@ -1,7 +1,10 @@
+import os
 import uuid
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -12,9 +15,36 @@ from app.limiter import limiter
 # Disable rate limiting in tests
 limiter.enabled = False
 
+# Tests run against an isolated database (dropped and recreated each session)
+# so they never touch dev data. Defaults to "<dbname>_test" on the same server;
+# override with TEST_DATABASE_URL.
+_app_url = make_url(settings.DATABASE_URL)
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL",
+    _app_url.set(database=f"{_app_url.database}_test").render_as_string(hide_password=False),
+)
+_test_url = make_url(TEST_DATABASE_URL)
+assert _test_url.database != _app_url.database, (
+    "TEST_DATABASE_URL must not point at the application database"
+)
+
 # Create a test engine with NullPool to avoid connection sharing issues
-test_engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+test_engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
 test_session_factory = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def _recreate_test_database():
+    admin_engine = create_async_engine(
+        _test_url.set(database="postgres").render_as_string(hide_password=False),
+        poolclass=NullPool,
+        isolation_level="AUTOCOMMIT",
+    )
+    async with admin_engine.connect() as conn:
+        await conn.execute(
+            text(f'DROP DATABASE IF EXISTS "{_test_url.database}" WITH (FORCE)')
+        )
+        await conn.execute(text(f'CREATE DATABASE "{_test_url.database}"'))
+    await admin_engine.dispose()
 
 
 async def get_test_db():
@@ -28,6 +58,7 @@ async def setup_db():
     from app.breed_data import BREED_SEED, slugify
     from app.models.breed import Breed
 
+    await _recreate_test_database()
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     # Seed a handful of breeds so tests can reference them (idempotent)

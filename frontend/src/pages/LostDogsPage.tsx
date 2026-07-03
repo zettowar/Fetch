@@ -145,7 +145,7 @@ export default function LostDogsPage() {
             </span>
             <button
               onClick={() => setBannerDismissed(true)}
-              className="text-amber-500 dark:text-amber-400 hover:text-amber-700 dark:text-amber-300 ml-2 text-xs"
+              className="text-amber-500 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 ml-2 text-xs"
               aria-label="Dismiss"
             >
               Dismiss

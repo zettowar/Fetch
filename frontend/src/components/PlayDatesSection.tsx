@@ -75,7 +75,7 @@ function PlayDateCard({
         {isHost && (
           <button
             onClick={() => onCancel(playdate.id)}
-            className="text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-500 dark:text-red-400 flex-shrink-0"
+            className="text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 flex-shrink-0"
             title="Cancel meetup"
           >
             Cancel

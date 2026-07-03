@@ -44,6 +44,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.weekly_winner.pick_current_winner_task",
         "schedule": 600.0,  # seconds
     },
+    "purge-refresh-tokens": {
+        "task": "app.tasks.token_cleanup.purge_refresh_tokens_task",
+        "schedule": crontab(hour=3, minute=0),
+    },
 }
 
 celery_app.autodiscover_tasks(["app.tasks"])

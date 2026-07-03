@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, String, Table
+from sqlalchemy import Boolean, Column, ForeignKey, Index, String, Table, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,11 +20,18 @@ dog_breeds = Table(
         ForeignKey("breeds.id", ondelete="RESTRICT"),
         primary_key=True,
     ),
+    Index("ix_dog_breeds_breed_id", "breed_id"),
 )
 
 
 class Breed(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "breeds"
+    # The initial migration created both a unique constraint (column-level
+    # unique=True) and the explicit ix_breeds_slug unique index; declare both
+    # so the migrated schema and create_all agree.
+    __table_args__ = (
+        UniqueConstraint("slug"),
+    )
 
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     slug: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)

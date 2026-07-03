@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getCurrentRankings, getWinnerHistory } from '../api/rankings';
 import { getMyDogs } from '../api/dogs';
 import { ListSkeleton } from '../components/ui/Skeleton';
+import ErrorState from '../components/ui/ErrorState';
 import { useAuth } from '../store/AuthContext';
 import { useWeeklyResetCountdown } from '../utils/weeklyReset';
 
@@ -11,7 +12,7 @@ const RANK_EMOJI: Record<number, string> = { 1: '\ud83e\udd47', 2: '\ud83e\udd48
 export default function RankingsPage() {
   const { user } = useAuth();
 
-  const { data: leaderboard, isLoading } = useQuery({
+  const { data: leaderboard, isLoading, isError, refetch } = useQuery({
     queryKey: ['rankings', 'current'],
     queryFn: getCurrentRankings,
   });
@@ -42,6 +43,8 @@ export default function RankingsPage() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load the rankings." onRetry={() => refetch()} />
       ) : leaderboard && leaderboard.length > 0 ? (
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
           {leaderboard.map((entry) => {

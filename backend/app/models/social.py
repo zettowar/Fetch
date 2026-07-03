@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -32,6 +32,9 @@ class Comment(Base, UUIDPrimaryKey, TimestampMixin):
     """One-level-deep comments on photos or posts."""
 
     __tablename__ = "comments"
+    __table_args__ = (
+        Index("ix_comments_target", "target_type", "target_id"),
+    )
 
     author_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
@@ -54,6 +57,7 @@ class Reaction(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "reactions"
     __table_args__ = (
         UniqueConstraint("user_id", "target_type", "target_id", name="uq_reaction"),
+        Index("ix_reactions_target", "target_type", "target_id"),
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(

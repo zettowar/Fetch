@@ -514,7 +514,12 @@ function readMockLines(): MockLine[] {
 }
 
 function writeMockLines(lines: MockLine[]): void {
-  localStorage.setItem(MOCK_CART_KEY, JSON.stringify(lines));
+  try {
+    localStorage.setItem(MOCK_CART_KEY, JSON.stringify(lines));
+  } catch {
+    // localStorage unavailable (e.g. Safari private mode) — the cart still
+    // works for this page view, it just won't persist across reloads.
+  }
 }
 
 function buildMockCart(lines: MockLine[]): ShopCart {

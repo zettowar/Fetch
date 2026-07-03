@@ -32,7 +32,7 @@ export default function AdoptionPrompt({ dogId, dogName, rescueName, onDismiss }
             <button
               type="button"
               onClick={onDismiss}
-              className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               Dismiss
             </button>

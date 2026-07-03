@@ -20,31 +20,20 @@ from app.schemas.playdate import (
     PlayDateRsvpCreate,
     PlayDateRsvpOut,
 )
-from app.storage import get_storage
+from app.services.dog_serializer import display_photo_url
 
 router = APIRouter()
 
 
 def _rsvp_to_out(rsvp: PlayDateRsvp) -> PlayDateRsvpOut:
-    storage = get_storage()
-    photo_url = None
-    dog = rsvp.dog
-    if dog and dog.photos:
-        photos_by_id = {p.id: p for p in dog.photos}
-        photo = (
-            photos_by_id.get(dog.primary_photo_id)
-            if dog.primary_photo_id
-            else dog.photos[0]
-        )
-        if photo:
-            photo_url = storage.url(photo.storage_key)
+    photo_url = display_photo_url(rsvp.dog)
 
     return PlayDateRsvpOut(
         id=rsvp.id,
         playdate_id=rsvp.playdate_id,
         user_id=rsvp.user_id,
         dog_id=rsvp.dog_id,
-        dog_name=dog.name if dog else None,
+        dog_name=rsvp.dog.name if rsvp.dog else None,
         dog_photo_url=photo_url,
         status=rsvp.status,
         created_at=rsvp.created_at,

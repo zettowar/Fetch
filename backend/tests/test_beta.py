@@ -1,5 +1,20 @@
+import uuid
+
 import pytest
 from httpx import AsyncClient
+
+from app.config import settings
+
+
+def _signup_payload(invite_code: str | None = None) -> dict:
+    payload = {
+        "email": f"invited-{uuid.uuid4().hex[:8]}@fetchapp.dev",
+        "password": "password123",
+        "display_name": "Invited User",
+    }
+    if invite_code is not None:
+        payload["invite_code"] = invite_code
+    return payload
 
 
 @pytest.mark.asyncio
@@ -72,3 +87,52 @@ async def test_generate_invite_codes_rejects_oversized_batch(
         "count": 250,
     }, headers=admin_headers)
     assert res.status_code == 422
+
+
+# --- Invite-gated signup (INVITE_REQUIRED) ---
+
+@pytest.mark.asyncio
+async def test_gated_signup_requires_code(client: AsyncClient, monkeypatch):
+    monkeypatch.setattr(settings, "INVITE_REQUIRED", True)
+    res = await client.post("/api/v1/auth/signup", json=_signup_payload())
+    assert res.status_code == 400
+    assert "invite" in res.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_gated_signup_rejects_unknown_code(client: AsyncClient, monkeypatch):
+    monkeypatch.setattr(settings, "INVITE_REQUIRED", True)
+    res = await client.post(
+        "/api/v1/auth/signup", json=_signup_payload("FETCH-DOESNOTEXIST")
+    )
+    assert res.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_gated_signup_consumes_code(
+    client: AsyncClient, admin_headers: dict, monkeypatch
+):
+    gen = await client.post(
+        "/api/v1/invites/generate", json={"count": 1}, headers=admin_headers
+    )
+    code = gen.json()[0]["code"]
+
+    monkeypatch.setattr(settings, "INVITE_REQUIRED", True)
+    first = await client.post("/api/v1/auth/signup", json=_signup_payload(code))
+    assert first.status_code == 201, first.text
+
+    # The code is single-use.
+    second = await client.post("/api/v1/auth/signup", json=_signup_payload(code))
+    assert second.status_code == 400
+
+    # Consumption is recorded for the admin view.
+    listing = await client.get("/api/v1/invites", headers=admin_headers)
+    used = next(c for c in listing.json() if c["code"] == code)
+    assert used["is_used"] is True
+
+
+@pytest.mark.asyncio
+async def test_ungated_signup_ignores_code(client: AsyncClient, monkeypatch):
+    monkeypatch.setattr(settings, "INVITE_REQUIRED", False)
+    res = await client.post("/api/v1/auth/signup", json=_signup_payload())
+    assert res.status_code == 201

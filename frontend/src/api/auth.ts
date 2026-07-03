@@ -5,8 +5,14 @@ export async function signup(
   email: string,
   password: string,
   display_name: string,
+  invite_code?: string,
 ): Promise<AuthResponse> {
-  const res = await client.post('/auth/signup', { email, password, display_name });
+  const res = await client.post('/auth/signup', {
+    email,
+    password,
+    display_name,
+    ...(invite_code ? { invite_code } : {}),
+  });
   return res.data;
 }
 

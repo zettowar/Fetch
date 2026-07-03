@@ -18,7 +18,7 @@ from app.models.dog_transfer import DogTransfer
 from app.models.rescue import RescueProfile
 from app.models.user import User
 from app.schemas.dog_transfer import DogTransferOut
-from app.storage import get_storage
+from app.services.dog_serializer import display_photo_url
 
 router = APIRouter()
 
@@ -28,16 +28,8 @@ async def _to_out(t: DogTransfer, db: AsyncSession) -> DogTransferOut:
         select(Dog).options(selectinload(Dog.photos)).where(Dog.id == t.dog_id)
     )
     dog = dog_res.scalar_one_or_none()
-    storage = get_storage()
-    photo_url = None
-    dog_name = None
-    if dog:
-        dog_name = dog.name
-        if dog.primary_photo_id:
-            for p in dog.photos:
-                if p.id == dog.primary_photo_id:
-                    photo_url = storage.url(p.storage_key)
-                    break
+    photo_url = display_photo_url(dog)
+    dog_name = dog.name if dog else None
 
     rescue_name = None
     rp_res = await db.execute(

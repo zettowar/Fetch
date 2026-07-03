@@ -108,3 +108,13 @@ jobs:
           node-version: "20"
       - run: npm ci
       - run: npm run build
+
+  # Smoke-build the production images so Dockerfile.prod / nginx.conf breakage
+  # surfaces here instead of at deploy time.
+  prod-images:
+    runs-on: ubuntu-latest
+    needs: [backend-lint, frontend-lint]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f backend/Dockerfile.prod backend/
+      - run: docker build -f frontend/Dockerfile.prod frontend/

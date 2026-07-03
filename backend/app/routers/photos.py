@@ -71,6 +71,11 @@ async def upload_photo(
     if content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP are allowed")
 
+    # Image.resize() returns a copy with format=None, so capture the source
+    # format before scaling or every large upload would fall back to JPEG
+    # (500ing on RGBA PNGs and storing mislabeled bytes otherwise).
+    save_format = (img.format or "JPEG").upper()
+
     # Resize
     img = _resize_image(img, MAX_DIMENSION)
 
@@ -83,11 +88,16 @@ async def upload_photo(
 
     # Save to storage
     buf = io.BytesIO()
-    save_format = img.format or "JPEG"
-    if save_format.lower() == "webp":
+    if save_format == "WEBP":
+        if img.mode == "P":
+            img = img.convert("RGBA")
         img.save(buf, format="WEBP", quality=85)
+    elif save_format == "PNG":
+        img.save(buf, format="PNG")
     else:
-        img.save(buf, format=save_format, quality=85)
+        if img.mode not in ("RGB", "L", "CMYK"):
+            img = img.convert("RGB")
+        img.save(buf, format="JPEG", quality=85)
     buf.seek(0)
     saved_data = buf.read()
 
@@ -151,7 +161,15 @@ async def delete_photo(
 
 
 @router.get("/photos/file/{key:path}")
-async def get_photo_file(key: str):
+async def get_photo_file(key: str, db: AsyncSession = Depends(get_db)):
+    # Withhold dog photos that haven't passed moderation — otherwise sharing
+    # the direct file URL bypasses every feed-level filter. Keys with no Photo
+    # row (e.g. sighting photos, which are reject-on-upload) pass through.
+    photo_result = await db.execute(select(Photo).where(Photo.storage_key == key))
+    photo = photo_result.scalar_one_or_none()
+    if photo and photo.moderation_status != "approved":
+        raise HTTPException(status_code=404, detail="File not found")
+
     storage = get_storage()
     try:
         data = await storage.get(key)

@@ -250,6 +250,33 @@ export const deactivateDog = async (id: string) =>
 export const reactivateDog = async (id: string) =>
   (await client.post(`/admin/dogs/${id}/reactivate`)).data;
 
+// --- Flagged photo review queue ---
+
+export interface FlaggedPhoto {
+  id: string;
+  dog_id: string;
+  dog_name: string | null;
+  owner_id: string | null;
+  owner_email: string | null;
+  content_type: string;
+  moderation_status: string;
+  created_at: string;
+}
+
+export const getFlaggedPhotos = async (): Promise<FlaggedPhoto[]> =>
+  (await client.get('/admin/photos/flagged')).data;
+
+// Flagged files are withheld by the public endpoint, so the reviewer image is
+// fetched through the authenticated admin route as a blob.
+export const getFlaggedPhotoBlob = async (id: string): Promise<Blob> =>
+  (await client.get(`/admin/photos/${id}/file`, { responseType: 'blob' })).data;
+
+export const approvePhoto = async (id: string) =>
+  (await client.post(`/admin/photos/${id}/approve`)).data;
+
+export const rejectPhoto = async (id: string) =>
+  (await client.post(`/admin/photos/${id}/reject`)).data;
+
 // --- Lost reports (admin) ---
 
 export interface AdminLostReport {

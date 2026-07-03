@@ -46,8 +46,17 @@ services:
       dockerfile: Dockerfile.prod
     environment:
       ENVIRONMENT: production
+      # nginx (the only route to this container) sets X-Forwarded-For; trust it
+      # so rate limiting keys on real client IPs, not the proxy's.
+      FORWARDED_ALLOW_IPS: "*"
+      INVITE_REQUIRED: ${INVITE_REQUIRED:-true}
     env_file:
       - .env
+    # Migrations run here (and only here) before the server starts, so a fresh
+    # deploy boots with its schema in place.
+    command: >
+      sh -c "alembic upgrade head &&
+             exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers"
     volumes:
       - uploads:/app/uploads
     depends_on:
@@ -83,6 +92,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      # Sequenced after the backend's healthcheck so migrations have run.
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "celery", "-A", "app.worker", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
       interval: 30s
@@ -108,6 +120,8 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      backend:
         condition: service_healthy
     restart: unless-stopped
     deploy:

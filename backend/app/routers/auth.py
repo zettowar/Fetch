@@ -2,12 +2,13 @@ from datetime import datetime, timedelta, timezone
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
+from app.models.beta import InviteCode
 from app.models.rescue import RescueProfile
 from app.models.user import EmailVerificationToken, PasswordResetToken, RefreshToken, User
 from app.config import settings
@@ -60,6 +61,12 @@ async def _create_tokens(user: User, db: AsyncSession) -> TokenResponse:
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def signup(request: Request, body: SignupRequest, db: AsyncSession = Depends(get_db)):
+    invite_code = (body.invite_code or "").strip().upper()
+    if settings.INVITE_REQUIRED and not invite_code:
+        raise HTTPException(
+            status_code=400, detail="An invite code is required while Fetch is in beta"
+        )
+
     existing = await db.execute(select(User).where(User.email == body.email.lower()))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered")
@@ -71,6 +78,19 @@ async def signup(request: Request, body: SignupRequest, db: AsyncSession = Depen
     )
     db.add(user)
     await db.flush()
+
+    if settings.INVITE_REQUIRED:
+        # Atomic claim: the WHERE on is_used makes concurrent signups with the
+        # same code race safely — exactly one UPDATE wins.
+        claimed = await db.execute(
+            update(InviteCode)
+            .where(InviteCode.code == invite_code, InviteCode.is_used == False)
+            .values(is_used=True, used_by=user.id, used_at=datetime.now(timezone.utc))
+        )
+        if claimed.rowcount == 0:
+            raise HTTPException(
+                status_code=400, detail="Invalid or already-used invite code"
+            )
 
     tokens = await _create_tokens(user, db)
     return AuthResponse(tokens=tokens, user=UserOut.model_validate(user))
@@ -147,6 +167,7 @@ async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends
 
 
 @router.post("/refresh", response_model=RefreshResponse)
+@limiter.limit("30/minute")
 async def refresh(request: Request, body: RefreshRequest, db: AsyncSession = Depends(get_db)):
     token_hash = hash_refresh_token(body.refresh_token)
     result = await db.execute(
@@ -174,7 +195,8 @@ async def refresh(request: Request, body: RefreshRequest, db: AsyncSession = Dep
 
 
 @router.post("/logout", response_model=DetailResponse)
-async def logout(body: LogoutRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("30/minute")
+async def logout(request: Request, body: LogoutRequest, db: AsyncSession = Depends(get_db)):
     if body.refresh_token:
         token_hash = hash_refresh_token(body.refresh_token)
         result = await db.execute(
@@ -262,6 +284,13 @@ async def reset_password(
 
     user.password_hash = hash_password(new_password)
     prt.used = True
+    # A password reset usually means the old credentials can't be trusted —
+    # kill every live session so a stolen refresh token dies with them.
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked == False)
+        .values(revoked=True)
+    )
     await db.commit()
 
     logger.info("password_reset_completed", user_id=str(user.id))

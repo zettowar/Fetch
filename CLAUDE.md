@@ -2,7 +2,7 @@
 
 ## What is Fetch?
 
-A mobile-first web app where dog owners create profiles for their dogs, rate other dogs via a Tinder-style swipe interface, and compete for the weekly "top dog" crown. Extended with lost & found dogs, dog park reviews, community posts, a donation center, and a full admin panel.
+A mobile-first web app where dog owners create profiles for their dogs, rate other dogs via a Tinder-style swipe interface, and compete for the weekly "top dog" crown. Extended with lost & found dogs, dog parks (reviews, check-ins, play dates), vets, rescues + adoption inquiries, dog transfers, social (follows/comments/reactions), community posts, support tickets + FAQ, beta feedback + invite codes, billing entitlements, and a full admin panel. Donations are external links on rescue profiles (no payment backend); the shop is Shopify-only (see below).
 
 ## Quick Start
 
@@ -11,7 +11,7 @@ cp .env.example .env
 make up          # Start all 6 Docker services
 make migrate     # Run database migrations
 make seed        # Create 10 test users + 20 dogs
-make test        # Run all tests (215 backend + 61 frontend)
+make test        # Run all tests (~232 backend + ~63 frontend)
 ```
 
 - **Frontend:** http://localhost:3174
@@ -43,20 +43,23 @@ Fetch/
 │   │   ├── logging.py        # structlog setup
 │   │   ├── middleware.py      # RequestID, logging, security headers
 │   │   ├── seed.py           # Dev seed data
-│   │   ├── models/           # 17 SQLAlchemy model files (29 classes, 28 tables)
-│   │   ├── schemas/          # 17 Pydantic schema files
-│   │   ├── routers/          # 18 FastAPI router files
-│   │   ├── services/         # 4 service files (feed, ranking, lost, moderation)
-│   │   └── tasks/            # 2 Celery tasks (weekly_winner, lost_alerts)
-│   ├── tests/                # backend test suite (~215 tests)
-│   ├── alembic/              # 8 migrations
+│   │   ├── models/           # ~22 SQLAlchemy model files
+│   │   ├── schemas/          # ~23 Pydantic schema files
+│   │   ├── routers/          # ~23 FastAPI router files
+│   │   ├── services/         # feed, ranking, lost, moderation, dog_serializer,
+│   │   │                     #   breed_display, osm_import (+ park/vet configs)
+│   │   └── tasks/            # 3 Celery tasks (weekly_winner, lost_alerts,
+│   │                         #   token_cleanup)
+│   ├── tests/                # backend test suite (~232 tests)
+│   ├── alembic/              # ~26 migrations (linear chain)
 │   └── pyproject.toml
 ├── frontend/
 │   └── src/
-│       ├── App.tsx            # Routing (consumer + admin shells)
-│       ├── pages/             # 19 consumer pages + 8 admin pages
-│       ├── components/        # 15 components + 7 ui/ components
-│       ├── api/               # 11 API client modules
+│       ├── App.tsx            # Routing (marketing + consumer + admin shells)
+│       ├── marketing/         # public marketing site (Home/About/Mission/News)
+│       ├── pages/             # ~37 consumer pages + admin/ (15 admin pages)
+│       ├── components/        # shared components + ui/ primitives
+│       ├── api/               # ~20 typed API client modules
 │       ├── store/             # AuthContext (React Context)
 │       ├── utils/             # time.ts (relativeTime, dogAge, photoUrl)
 │       └── types/             # TypeScript interfaces
@@ -107,6 +110,9 @@ The frontend serves two distinct experiences, split by route tree:
   footer). NOT constrained to the app's mobile column. The app is invite/beta
   gated ("coming soon"), so the site funnels to **Log in** only — public
   sign-up is not surfaced (the `/signup` routes still work by direct link).
+  The gate is enforced server-side: with `INVITE_REQUIRED=true` (prod default)
+  `/auth/signup` requires an unused admin-generated invite code and consumes
+  it atomically. Rescue signups stay open — they are approval-gated instead.
 - **Web app** (`src/pages/*`) — the authenticated product, a mobile-portrait
   420px column, mounted under `/app/*` behind `<AuthGuard>` via `AppShell`
   (top bar + bottom tab bar). All in-app router links MUST use the `/app/...`
@@ -159,6 +165,14 @@ Available fixtures: `client`, `auth_headers` (regular user), `admin_headers` (ad
 
 Rate limiting is disabled in tests via `limiter.enabled = False` in conftest.
 
+**Tests run against an isolated database** — conftest derives
+`<dbname>_test` from `DATABASE_URL` (override with `TEST_DATABASE_URL`) and
+drops/recreates it each session, so `make test` never touches dev data. The
+schema comes from `create_all`, so migration↔model drift would normally be
+invisible — `tests/test_migration_model_sync.py` closes that hole by
+upgrading a scratch DB to alembic head and diffing it against the models.
+Keep new indexes/constraints declared in BOTH a migration and the model.
+
 **Frontend tests** use Vitest + React Testing Library with jsdom.
 
 ## Docker Services
@@ -179,9 +193,16 @@ Key vars (see `.env.example` for full list):
 - `JWT_SECRET` — HMAC signing key (**change in production**)
 - `REDIS_URL` / `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` — Redis connections
 - `SENTRY_DSN` — Sentry error tracking (empty = disabled)
-- `SIGHTENGINE_API_USER` / `SIGHTENGINE_API_SECRET` — Image moderation (empty = auto-approve)
-- `RATE_LIMIT_ENABLED` — Set `false` to disable rate limiting
-- `VITE_API_BASE_URL` — Frontend API target
+- `SIGHTENGINE_API_USER` / `SIGHTENGINE_API_SECRET` — Image moderation (empty =
+  auto-approve; with keys set, API errors fail CLOSED to "flagged" and land in
+  the admin review queue at Admin → Content)
+- `RATE_LIMIT_ENABLED` — Set `false` to disable rate limiting (counters live in
+  Redis so limits hold across workers)
+- `INVITE_REQUIRED` — require an invite code at signup (off in dev, on in prod)
+- `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` — Postgres container
+  credentials (prod compose requires the password; must match `DATABASE_URL`)
+- `VITE_API_BASE_URL` — Frontend API target (leave empty in prod; nginx proxies
+  the relative `/api` to the backend)
 
 ## Test Accounts
 
@@ -218,6 +239,15 @@ served by nginx), adds healthchecks + memory limits, and sets
 boot if `JWT_SECRET` is weak, `CORS_ORIGINS` contains `*`, or the
 `DEBUG_*_TOKEN` flags are on while `ENVIRONMENT=production`.
 
+Traffic flow: only the frontend publishes a port; nginx serves the SPA and
+proxies `/api/` to the backend container (`frontend/nginx.conf`), which trusts
+its `X-Forwarded-For` (`--proxy-headers` + `FORWARDED_ALLOW_IPS`) so rate
+limiting keys on real client IPs. The backend service runs
+`alembic upgrade head` before starting uvicorn, and the celery services wait
+on its healthcheck, so a fresh deploy boots with schema in place. CI
+smoke-builds both prod images on every push. Still missing for real
+production: TLS termination, database backups, log shipping, and S3 uploads.
+
 ## Shop (Shopify-only — no backend)
 
 The shop (`ShopPage`, `CartPage`, `frontend/src/api/shop.ts`) talks **directly
@@ -232,9 +262,16 @@ disabled). The Storefront token is a public, client-side token by design.
 These are scaffolded but not fully wired — marked with `PHASEn` comments in code:
 
 - **Push notification delivery** — subscriptions are stored
-  (`routers/notifications.py`) but never dispatched.
+  (`routers/notifications.py`) but never dispatched. There is also no
+  notification inbox UI (preferences only).
 - **Lost-dog proximity alerts** (`tasks/lost_alerts.py`) — computes recipients
   but only logs instead of sending.
+- **Lost-dog contact relay** (`routers/lost.py`, PHASE3) — the "contact
+  reporter" endpoint returns success but sends nothing.
 - **Billing checkout** — entitlements can be granted/revoked by an admin
   (`routers/billing.py`); there is no self-serve payment flow.
 - **S3 storage** (`storage.py`) — only `LocalStorage` is implemented.
+
+No longer stubs: invite codes are enforced at signup when `INVITE_REQUIRED=true`,
+and flagged photos have a full admin review queue (list/view/approve/reject
+under `/api/v1/admin/photos/*`, surfaced on the admin Content page).

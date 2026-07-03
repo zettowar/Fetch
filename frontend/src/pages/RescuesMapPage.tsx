@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getNearbyRescues, type RescuePublic } from '../api/rescues';
 import Map from '../components/Map';
 import { Spinner } from '../components/ui/Skeleton';
+import ErrorState from '../components/ui/ErrorState';
 import { useUserLocation } from '../utils/useUserLocation';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // San Francisco fallback
@@ -22,7 +23,7 @@ export default function RescuesMapPage() {
     setViewCenter(initialCenter);
   }, [initialCenter[0], initialCenter[1]]);
 
-  const { data: rescues = [], isLoading } = useQuery({
+  const { data: rescues = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['rescues-nearby', viewCenter[1], viewCenter[0]],
     queryFn: () => getNearbyRescues(viewCenter[1], viewCenter[0], 200),
   });
@@ -85,7 +86,7 @@ export default function RescuesMapPage() {
             className="w-full h-full"
           />
 
-          {!isLoading && markers.length === 0 && (
+          {!isLoading && !isError && markers.length === 0 && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 max-w-[90%] text-center z-10">
               No mapped rescues in this area yet.
             </div>
@@ -99,7 +100,9 @@ export default function RescuesMapPage() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800">
-          {rescues.length === 0 ? (
+          {isError ? (
+            <ErrorState message="Couldn't load nearby rescues." onRetry={() => refetch()} />
+          ) : rescues.length === 0 ? (
             <p className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 text-center">
               No rescues to show.
             </p>

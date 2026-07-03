@@ -113,4 +113,25 @@ describe('SwipeDeck', () => {
     renderDeck();
     expect(await screen.findByText(/Couldn't load the feed/i)).toBeInTheDocument();
   });
+
+  it('restarts from the top when a refill replaces the deck', async () => {
+    const first = [makeDog('d1'), makeDog('d2'), makeDog('d3')];
+    const refill = [makeDog('d4'), makeDog('d5'), makeDog('d6')];
+    vi.spyOn(feedApi, 'getFeed')
+      .mockResolvedValueOnce(first as never)
+      .mockResolvedValue(refill as never);
+    const cast = vi.spyOn(votesApi, 'castVote').mockResolvedValue({} as never);
+
+    renderDeck();
+    const like = await screen.findByLabelText('Like');
+    fireEvent.click(like);
+    fireEvent.click(like);
+    fireEvent.click(like);
+    await waitFor(() => expect(cast).toHaveBeenCalledTimes(3));
+
+    // The refill returned a brand-new batch: the deck should show its first
+    // card instead of the premature end state.
+    expect(await screen.findByText('Dog d4')).toBeInTheDocument();
+    expect(screen.queryByText(/rated everyone this week/i)).toBeNull();
+  });
 });

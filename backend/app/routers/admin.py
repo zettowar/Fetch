@@ -29,8 +29,10 @@ from app.schemas.admin import (
     DashboardTimeseries,
     FAQCreate,
     FAQUpdate,
+    FlaggedPhotoOut,
     TicketStatusUpdate,
 )
+from app.storage import get_storage
 from app.breed_data import slugify
 from app.schemas.breed import BreedAdminOut, BreedCreate, BreedUpdate
 from app.schemas.report import ReportOut, ReportReview, StrikeOut
@@ -413,10 +415,11 @@ async def review_report(
             db.add(strike)
             strike_applied = True
 
+            # Autoflush means the count already includes the strike added above.
             count_result = await db.execute(
                 select(func.count()).where(Strike.user_id == target_user_id)
             )
-            strike_count = (count_result.scalar() or 0) + 1
+            strike_count = count_result.scalar() or 0
             if strike_count >= STRIKE_THRESHOLD:
                 user_result = await db.execute(select(User).where(User.id == target_user_id))
                 target_user = user_result.scalar_one_or_none()
@@ -780,6 +783,132 @@ async def reactivate_dog(
                metadata={"name": dog.name, "owner_id": str(dog.owner_id)})
     await db.commit()
     return {"detail": "Dog reactivated"}
+
+
+# --- Flagged photo review queue ---
+#
+# Photos that Sightengine flags (or that hit its fail-closed fallback) are
+# hidden from every read path, including the public file endpoint. This queue
+# is the human backstop: approve to publish, reject to delete.
+
+@router.get("/photos/flagged", response_model=list[FlaggedPhotoOut])
+async def list_flagged_photos(
+    response: Response,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    total = (
+        await db.execute(
+            select(func.count()).select_from(Photo).where(Photo.moderation_status == "flagged")
+        )
+    ).scalar() or 0
+    result = await db.execute(
+        select(Photo)
+        .where(Photo.moderation_status == "flagged")
+        .order_by(Photo.created_at.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    photos = list(result.scalars().all())
+
+    dogs: dict[UUID, Dog] = {}
+    owners: dict[UUID, User] = {}
+    if photos:
+        dog_result = await db.execute(
+            select(Dog).where(Dog.id.in_({p.dog_id for p in photos}))
+        )
+        dogs = {d.id: d for d in dog_result.scalars().all()}
+    if dogs:
+        owner_result = await db.execute(
+            select(User).where(User.id.in_({d.owner_id for d in dogs.values()}))
+        )
+        owners = {u.id: u for u in owner_result.scalars().all()}
+
+    response.headers["X-Total-Count"] = str(total)
+    out = []
+    for p in photos:
+        dog = dogs.get(p.dog_id)
+        owner = owners.get(dog.owner_id) if dog else None
+        out.append(FlaggedPhotoOut(
+            id=p.id,
+            dog_id=p.dog_id,
+            dog_name=dog.name if dog else None,
+            owner_id=dog.owner_id if dog else None,
+            owner_email=owner.email if owner else None,
+            content_type=p.content_type,
+            moderation_status=p.moderation_status,
+            created_at=p.created_at,
+        ))
+    return out
+
+
+@router.get("/photos/{photo_id}/file")
+async def get_photo_file_admin(
+    photo_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Serve a photo regardless of moderation status so reviewers can see it
+    (the public file endpoint withholds anything not approved)."""
+    result = await db.execute(select(Photo).where(Photo.id == photo_id))
+    photo = result.scalar_one_or_none()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    storage = get_storage()
+    try:
+        data = await storage.get(photo.storage_key)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found")
+    return Response(content=data, media_type=photo.content_type)
+
+
+@router.post("/photos/{photo_id}/approve")
+async def approve_photo(
+    photo_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Photo).where(Photo.id == photo_id))
+    photo = result.scalar_one_or_none()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    photo.moderation_status = "approved"
+    await _log(db, actor_id=admin.id, action="photo.approve", target_type="photo",
+               target_id=photo_id, metadata={"dog_id": str(photo.dog_id)})
+    await db.commit()
+    return {"detail": "Photo approved"}
+
+
+@router.post("/photos/{photo_id}/reject")
+async def reject_photo(
+    photo_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Photo).where(Photo.id == photo_id))
+    photo = result.scalar_one_or_none()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    dog_result = await db.execute(select(Dog).where(Dog.id == photo.dog_id))
+    dog = dog_result.scalar_one_or_none()
+    if dog and dog.primary_photo_id == photo.id:
+        dog.primary_photo_id = None
+
+    key = photo.storage_key
+    await db.delete(photo)
+    await _log(db, actor_id=admin.id, action="photo.reject", target_type="photo",
+               target_id=photo_id, metadata={"dog_id": str(photo.dog_id)})
+    await db.commit()
+
+    storage = get_storage()
+    try:
+        await storage.delete(key)
+    except Exception:
+        pass  # row is gone; an orphaned file is harmless and unreachable
+    return {"detail": "Photo rejected and deleted"}
 
 
 # --- Lost Reports (admin view) ---

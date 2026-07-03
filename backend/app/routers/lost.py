@@ -373,6 +373,13 @@ async def add_sighting(
         # approve (sightings have no hidden/flagged review state).
         mod_result = await check_image(data)
         if mod_result.status != "approved":
+            # check_image fails closed, so a moderation outage lands here too —
+            # surface that as retryable rather than as a content rejection.
+            if (mod_result.reason or "").endswith("_fallback"):
+                raise HTTPException(
+                    status_code=503,
+                    detail="Image checks are temporarily unavailable — please try again shortly",
+                )
             raise HTTPException(
                 status_code=400, detail="Image rejected by content moderation"
             )

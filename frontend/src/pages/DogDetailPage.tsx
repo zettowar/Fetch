@@ -356,7 +356,7 @@ export default function DogDetailPage() {
                           ★
                         </button>
                         <button
-                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:text-red-400 transition-opacity shadow"
+                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity shadow"
                           title="Delete photo"
                           aria-label="Delete photo"
                           onClick={(e) => {

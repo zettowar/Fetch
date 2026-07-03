@@ -4,6 +4,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { getCurrentWinner } from '../api/rankings';
 import { getMyFollows } from '../api/social';
 import { getMyDogs } from '../api/dogs';
+import { listMyTransfers } from '../api/dogTransfers';
 import { useAuth } from '../store/AuthContext';
 import { dogHeroPhoto } from '../utils/time';
 import { useWeeklyResetCountdown, nextWeeklyReset } from '../utils/weeklyReset';
@@ -31,6 +32,12 @@ export default function HomePage() {
     queryFn: getMyDogs,
     enabled: !isRescue,
   });
+  const { data: transfers = [] } = useQuery({
+    queryKey: ['my-transfers'],
+    queryFn: listMyTransfers,
+    enabled: !isRescue,
+  });
+  const pendingTransfers = transfers.filter((t) => t.status === 'pending');
   const resetsIn = useWeeklyResetCountdown();
 
   const followedDogs = follows.map((f) => f.dog).filter((d) => !!d);
@@ -101,6 +108,27 @@ export default function HomePage() {
         <h1 className="text-lg font-bold">
           Welcome back{user ? `, ${user.display_name}` : ''}!
         </h1>
+
+        {/* Pending dog transfers — only shown when an invitation is waiting */}
+        {pendingTransfers.length > 0 && (
+          <Link
+            to="/app/transfers"
+            className="flex items-center justify-between gap-3 p-3 bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 rounded-2xl shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
+          >
+            <div className="flex items-center gap-3">
+              <span className="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-white dark:bg-gray-900 text-lg" aria-hidden>🔄</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {pendingTransfers.length === 1
+                    ? 'A dog transfer is waiting for you'
+                    : `${pendingTransfers.length} dog transfers are waiting for you`}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Review the invitation to take ownership.</p>
+              </div>
+            </div>
+            <span className="text-gray-300 dark:text-gray-600">›</span>
+          </Link>
+        )}
 
         {/* First-run checklist — shown until the user adds their first dog */}
         {showOnboarding && (

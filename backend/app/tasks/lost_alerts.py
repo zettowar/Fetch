@@ -12,7 +12,9 @@ def send_proximity_alerts(report_id: str):
     asyncio.run(_send_alerts(report_id))
 
 
-async def _send_alerts(report_id: str):
+async def _send_alerts(report_id: str, session_factory=None):
+    """session_factory is injectable so tests can point at their own database;
+    the Celery path builds one against the app DATABASE_URL."""
     from uuid import UUID
 
     from sqlalchemy import select
@@ -23,8 +25,10 @@ async def _send_alerts(report_id: str):
     from app.models.lost_report import LostReport
     from app.services.lost_service import get_matching_subscribers
 
-    engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    engine = None
+    if session_factory is None:
+        engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+        session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with session_factory() as db:
         result = await db.execute(
@@ -57,4 +61,5 @@ async def _send_alerts(report_id: str):
                 sub.radius_km,
             )
 
-    await engine.dispose()
+    if engine is not None:
+        await engine.dispose()

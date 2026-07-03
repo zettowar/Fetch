@@ -195,7 +195,6 @@ function MarketingFooter() {
             </p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
-                {/* TODO(about-us): swap in your real contact address. */}
                 <a
                   href="mailto:fetchpawz.inc@gmail.com"
                   className="text-gray-600 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"

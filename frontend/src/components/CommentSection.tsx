@@ -21,7 +21,7 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
   const [body, setBody] = useState('');
   const [showAll, setShowAll] = useState(false);
 
-  const { data: comments = [] } = useQuery({
+  const { data: comments = [], isError, refetch } = useQuery({
     queryKey: ['comments', targetType, targetId],
     queryFn: () => getComments(targetType, targetId),
   });
@@ -47,9 +47,16 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
 
   return (
     <div className="mt-4">
-      <h3 className="font-semibold mb-2">Comments ({comments.length})</h3>
+      <h3 className="font-semibold mb-2">Comments{isError ? '' : ` (${comments.length})`}</h3>
 
-      {comments.length > 0 ? (
+      {isError ? (
+        <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">
+          Couldn't load comments.{' '}
+          <button onClick={() => refetch()} className="text-brand-500 hover:underline">
+            Retry
+          </button>
+        </p>
+      ) : comments.length > 0 ? (
         <div className="flex flex-col gap-2 mb-3">
           {visibleComments.map((c) => (
             <div key={c.id} className="flex gap-2.5 p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
@@ -67,7 +74,7 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
                       onClick={() => {
                         if (confirm('Delete this comment?')) deleteMutation.mutate(c.id);
                       }}
-                      className="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:text-red-400 transition-colors px-1"
+                      className="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors px-1"
                     >
                       Delete
                     </button>

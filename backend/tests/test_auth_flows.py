@@ -67,6 +67,50 @@ async def test_password_reset_end_to_end(client: AsyncClient, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_password_reset_revokes_refresh_tokens(client: AsyncClient, monkeypatch):
+    """A stolen refresh token must die when the victim resets their password."""
+    monkeypatch.setattr(settings, "DEBUG_RESET_TOKEN", True)
+    email, tokens = await _signup(client)
+    old_refresh = tokens["refresh_token"]
+
+    forgot = await client.post("/api/v1/auth/forgot-password", json={"email": email})
+    reset = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": forgot.json()["debug_token"], "password": "newpassword456"},
+    )
+    assert reset.status_code == 200, reset.text
+
+    refreshed = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": old_refresh}
+    )
+    assert refreshed.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_purge_dead_refresh_tokens(client: AsyncClient):
+    """The reaper deletes revoked/expired tokens but leaves live ones usable."""
+    from tests.conftest import test_session_factory
+    from app.tasks.token_cleanup import purge_dead_refresh_tokens
+
+    _, tokens = await _signup(client)
+    # Rotation revokes the original token, leaving a dead row behind.
+    rotated = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+    )
+    assert rotated.status_code == 200, rotated.text
+    live_refresh = rotated.json()["tokens"]["refresh_token"]
+
+    async with test_session_factory() as db:
+        purged = await purge_dead_refresh_tokens(db)
+    assert purged >= 1
+
+    still_works = await client.post(
+        "/api/v1/auth/refresh", json={"refresh_token": live_refresh}
+    )
+    assert still_works.status_code == 200, still_works.text
+
+
+@pytest.mark.asyncio
 async def test_reset_with_invalid_token_rejected(client: AsyncClient):
     res = await client.post(
         "/api/v1/auth/reset-password",

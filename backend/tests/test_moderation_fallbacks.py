@@ -54,26 +54,26 @@ def _patch_httpx(monkeypatch, *, payload=None, raise_exc=None):
 
 
 @pytest.mark.asyncio
-async def test_timeout_falls_back_to_approved(with_creds, monkeypatch):
+async def test_timeout_fails_closed_to_flagged(with_creds, monkeypatch):
     _patch_httpx(monkeypatch, raise_exc=httpx.TimeoutException("slow"))
     result = await check_image(b"x")
-    assert result.status == "approved"
+    assert result.status == "flagged"
     assert result.reason == "timeout_fallback"
 
 
 @pytest.mark.asyncio
-async def test_unexpected_error_falls_back_to_approved(with_creds, monkeypatch):
+async def test_unexpected_error_fails_closed_to_flagged(with_creds, monkeypatch):
     _patch_httpx(monkeypatch, raise_exc=RuntimeError("boom"))
     result = await check_image(b"x")
-    assert result.status == "approved"
+    assert result.status == "flagged"
     assert result.reason == "error_fallback"
 
 
 @pytest.mark.asyncio
-async def test_api_error_status_falls_back(with_creds, monkeypatch):
+async def test_api_error_status_fails_closed_to_flagged(with_creds, monkeypatch):
     _patch_httpx(monkeypatch, payload={"status": "failure", "error": "nope"})
     result = await check_image(b"x")
-    assert result.status == "approved"
+    assert result.status == "flagged"
     assert result.reason == "api_error_fallback"
 
 

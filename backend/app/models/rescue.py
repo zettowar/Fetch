@@ -26,7 +26,7 @@ class RescueProfile(Base, UUIDPrimaryKey, TimestampMixin):
     website: Mapped[str | None] = mapped_column(String(500), nullable=True)
     donation_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     proof_details: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False, index=True)
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True,

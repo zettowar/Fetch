@@ -1,0 +1,9 @@
+# Keep the build context lean and the prod image free of dev artifacts.
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.env
+uploads/
+tests/

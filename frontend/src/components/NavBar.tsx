@@ -153,7 +153,7 @@ export default function NavBar() {
             </button>
             <button
               onClick={handleLogout}
-              className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-red-500 dark:text-red-400"
+              className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-red-500 dark:hover:text-red-400"
             >
               Log out
             </button>
@@ -188,7 +188,7 @@ export default function NavBar() {
           <span>Please verify your email address to unlock all features.</span>
           <button
             onClick={() => setBannerDismissed(true)}
-            className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:text-amber-200 font-bold leading-none flex-shrink-0"
+            className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-bold leading-none flex-shrink-0"
             aria-label="Dismiss"
           >
             ×

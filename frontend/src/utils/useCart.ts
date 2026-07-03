@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import {
   addToCart,
   getCart,
@@ -33,17 +34,20 @@ export function useCart(enabled = true) {
     mutationFn: ({ variantId, quantity }: { variantId: string; quantity: number }) =>
       addToCart(variantId, quantity),
     onSuccess: setCart,
+    onError: () => toast.error("Couldn't add that to your cart. Please try again."),
   });
 
   const update = useMutation({
     mutationFn: ({ lineId, quantity }: { lineId: string; quantity: number }) =>
       updateCartLine(lineId, quantity),
     onSuccess: setCart,
+    onError: () => toast.error("Couldn't update your cart. Please try again."),
   });
 
   const remove = useMutation({
     mutationFn: (lineId: string) => removeCartLine(lineId),
     onSuccess: setCart,
+    onError: () => toast.error("Couldn't remove that item. Please try again."),
   });
 
   return {
