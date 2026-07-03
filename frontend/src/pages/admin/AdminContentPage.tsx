@@ -256,7 +256,7 @@ export default function AdminContentPage() {
                     <Button
                       size="sm"
                       variant="danger"
-                      loading={deactivateMutation.isPending}
+                      loading={deactivateMutation.isPending && deactivateMutation.variables === dog.id}
                       onClick={() => {
                         if (confirm(`Deactivate "${dog.name}"? It will be hidden from swipe and search.`)) {
                           deactivateMutation.mutate(dog.id);
@@ -269,7 +269,7 @@ export default function AdminContentPage() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      loading={reactivateMutation.isPending}
+                      loading={reactivateMutation.isPending && reactivateMutation.variables === dog.id}
                       onClick={() => reactivateMutation.mutate(dog.id)}
                     >
                       Reactivate

@@ -23,21 +23,31 @@ from app.services.dog_serializer import display_photo_url
 router = APIRouter()
 
 
-async def _to_out(t: DogTransfer, db: AsyncSession) -> DogTransferOut:
-    dog_res = await db.execute(
-        select(Dog).options(selectinload(Dog.photos)).where(Dog.id == t.dog_id)
-    )
-    dog = dog_res.scalar_one_or_none()
+async def _serialize_transfers(
+    transfers: list[DogTransfer], db: AsyncSession
+) -> list[DogTransferOut]:
+    """Batch-load dogs and rescue names once, however many transfers there are."""
+    dogs: dict = {}
+    rescue_names: dict = {}
+    if transfers:
+        dog_res = await db.execute(
+            select(Dog)
+            .options(selectinload(Dog.photos))
+            .where(Dog.id.in_({t.dog_id for t in transfers}))
+        )
+        dogs = {d.id: d for d in dog_res.scalars().all()}
+        rp_res = await db.execute(
+            select(RescueProfile.user_id, RescueProfile.org_name).where(
+                RescueProfile.user_id.in_({t.from_user_id for t in transfers})
+            )
+        )
+        rescue_names = dict(rp_res.all())
+    return [_to_out(t, dogs.get(t.dog_id), rescue_names.get(t.from_user_id)) for t in transfers]
+
+
+def _to_out(t: DogTransfer, dog: Dog | None, rescue_name: str | None) -> DogTransferOut:
     photo_url = display_photo_url(dog)
     dog_name = dog.name if dog else None
-
-    rescue_name = None
-    rp_res = await db.execute(
-        select(RescueProfile.org_name).where(RescueProfile.user_id == t.from_user_id)
-    )
-    row = rp_res.first()
-    if row:
-        rescue_name = row[0]
 
     # Show "expired" for stale pending transfers without persisting the change
     # (a read endpoint shouldn't write). accept/decline re-check expiry inline.
@@ -79,7 +89,7 @@ async def list_my_transfers(
         .order_by(DogTransfer.created_at.desc())
     )
     transfers = list(result.scalars().all())
-    return [await _to_out(t, db) for t in transfers]
+    return await _serialize_transfers(transfers, db)
 
 
 @router.post("/{transfer_id}/accept", response_model=DogTransferOut)
@@ -118,7 +128,7 @@ async def accept_transfer(
     ))
     await db.commit()
     await db.refresh(t)
-    return await _to_out(t, db)
+    return (await _serialize_transfers([t], db))[0]
 
 
 @router.post("/{transfer_id}/decline", response_model=DogTransferOut)
@@ -141,7 +151,7 @@ async def decline_transfer(
     ))
     await db.commit()
     await db.refresh(t)
-    return await _to_out(t, db)
+    return (await _serialize_transfers([t], db))[0]
 
 
 async def _load_transfer_for_user(

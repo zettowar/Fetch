@@ -138,8 +138,8 @@ services:
         VITE_ENABLE_IP_GEOLOCATION: ${VITE_ENABLE_IP_GEOLOCATION:-true}
         VITE_SHOPIFY_DOMAIN: ${VITE_SHOPIFY_DOMAIN:-}
         VITE_SHOPIFY_STOREFRONT_TOKEN: ${VITE_SHOPIFY_STOREFRONT_TOKEN:-}
-    ports:
-      - "8080:8080"
+    # Not published — caddy is the only public entry point, so nothing is
+    # reachable over cleartext HTTP.
     depends_on:
       - backend
     restart: unless-stopped
@@ -148,7 +148,55 @@ services:
         limits:
           memory: 256m
 
+  # TLS terminator: auto-provisioned Let's Encrypt certs for $DOMAIN, with
+  # HTTP->HTTPS redirect and HSTS (deploy/Caddyfile). DOMAIN=localhost gives
+  # a self-signed cert for smoke tests without DNS.
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env (your site hostname)}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
+  # Daily pg_dump with rotation into the db_backups volume (deploy/backup.sh).
+  # Off-box copies are still on you — sync the volume to DO Spaces or similar.
+  db-backup:
+    image: postgres:15
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-fetch}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      PGDATABASE: ${POSTGRES_DB:-fetch}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./deploy/backup.sh:/backup.sh:ro
+      - db_backups:/backups
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
 volumes:
   pgdata:
   redisdata:
   uploads:
+  caddy_data:
+  caddy_config:
+  db_backups:

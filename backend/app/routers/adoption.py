@@ -1,7 +1,7 @@
 """Adoption inquiries — POST a question to a rescue, list/update as a rescue."""
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -80,6 +80,8 @@ async def create_inquiry(
     response_model=list[AdoptionInquiryOut],
 )
 async def list_my_inquiries(
+    limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     user: User = Depends(require_approved_rescue),
     db: AsyncSession = Depends(get_db),
 ):
@@ -95,7 +97,8 @@ async def list_my_inquiries(
         select(AdoptionInquiry)
         .where(AdoptionInquiry.rescue_id == profile.id)
         .order_by(AdoptionInquiry.created_at.desc())
-        .limit(200)
+        .limit(limit)
+        .offset(offset)
     )
     return list(result.scalars().all())
 

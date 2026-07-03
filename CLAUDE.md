@@ -196,6 +196,14 @@ Key vars (see `.env.example` for full list):
 - `SIGHTENGINE_API_USER` / `SIGHTENGINE_API_SECRET` — Image moderation (empty =
   auto-approve; with keys set, API errors fail CLOSED to "flagged" and land in
   the admin review queue at Admin → Content)
+- `RESEND_API_KEY` / `EMAIL_FROM` / `FRONTEND_BASE_URL` — Transactional email
+  via Resend's HTTPS API (`app/services/email.py`; API-only, so it works on
+  SMTP-blocking hosts like DigitalOcean). Empty key = email disabled: sends
+  are logged and skipped, the contact relay returns 503, and reset/verify
+  fall back to the `DEBUG_*_TOKEN` dev flows. With a key: signup + resend
+  send verification links, forgot-password sends reset links, the lost-dog
+  contact relay delivers (reporter address hidden, Reply-To = sender), and
+  proximity alerts email subscribers. `FRONTEND_BASE_URL` builds the links.
 - `RATE_LIMIT_ENABLED` — Set `false` to disable rate limiting (counters live in
   Redis so limits hold across workers)
 - `INVITE_REQUIRED` — require an invite code at signup (off in dev, on in prod)
@@ -239,14 +247,18 @@ served by nginx), adds healthchecks + memory limits, and sets
 boot if `JWT_SECRET` is weak, `CORS_ORIGINS` contains `*`, or the
 `DEBUG_*_TOKEN` flags are on while `ENVIRONMENT=production`.
 
-Traffic flow: only the frontend publishes a port; nginx serves the SPA and
-proxies `/api/` to the backend container (`frontend/nginx.conf`), which trusts
-its `X-Forwarded-For` (`--proxy-headers` + `FORWARDED_ALLOW_IPS`) so rate
-limiting keys on real client IPs. The backend service runs
-`alembic upgrade head` before starting uvicorn, and the celery services wait
-on its healthcheck, so a fresh deploy boots with schema in place. CI
-smoke-builds both prod images on every push. Still missing for real
-production: TLS termination, database backups, log shipping, and S3 uploads.
+Traffic flow: caddy (ports 80/443) terminates TLS with auto-provisioned
+Let's Encrypt certs for `$DOMAIN` (`deploy/Caddyfile`; HSTS + HTTP→HTTPS
+redirect) and proxies to nginx, which serves the SPA and proxies `/api/` to
+the backend container (`frontend/nginx.conf`). The backend trusts the
+forwarded chain (`--proxy-headers` + `FORWARDED_ALLOW_IPS`) so rate limiting
+keys on real client IPs, runs `alembic upgrade head` before starting uvicorn,
+and the celery services wait on its healthcheck — a fresh deploy boots with
+schema in place. A `db-backup` sidecar takes daily rotated `pg_dump`s into
+the `db_backups` volume (`deploy/backup.sh`, `BACKUP_KEEP_DAYS`); off-box
+copies are on you (e.g. sync to DO Spaces). CI smoke-builds both prod images
+on every push. Still missing for real production: log shipping and S3
+uploads.
 
 ## Shop (Shopify-only — no backend)
 
@@ -264,14 +276,13 @@ These are scaffolded but not fully wired — marked with `PHASEn` comments in co
 - **Push notification delivery** — subscriptions are stored
   (`routers/notifications.py`) but never dispatched. There is also no
   notification inbox UI (preferences only).
-- **Lost-dog proximity alerts** (`tasks/lost_alerts.py`) — computes recipients
-  but only logs instead of sending.
-- **Lost-dog contact relay** (`routers/lost.py`, PHASE3) — the "contact
-  reporter" endpoint returns success but sends nothing.
 - **Billing checkout** — entitlements can be granted/revoked by an admin
   (`routers/billing.py`); there is no self-serve payment flow.
 - **S3 storage** (`storage.py`) — only `LocalStorage` is implemented.
 
-No longer stubs: invite codes are enforced at signup when `INVITE_REQUIRED=true`,
-and flagged photos have a full admin review queue (list/view/approve/reject
-under `/api/v1/admin/photos/*`, surfaced on the admin Content page).
+No longer stubs: invite codes are enforced at signup when `INVITE_REQUIRED=true`;
+flagged photos have a full admin review queue (list/view/approve/reject under
+`/api/v1/admin/photos/*`, surfaced on the admin Content page); and with
+`RESEND_API_KEY` set, the lost-dog contact relay actually delivers email and
+proximity alerts email subscribers (both degrade explicitly when unset —
+relay 503s, alerts log-only).

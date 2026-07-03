@@ -139,7 +139,10 @@ async def test_get_my_subscription(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_contact_reporter(client: AsyncClient, auth_headers: dict):
+async def test_contact_reporter_relays_email(client: AsyncClient, auth_headers: dict, monkeypatch):
+    from app.config import settings
+    import app.routers.lost as lost_router
+
     create_res = await client.post("/api/v1/lost/reports", json={
         "kind": "missing", "description": "Contact test"
     }, headers=auth_headers)
@@ -152,10 +155,47 @@ async def test_contact_reporter(client: AsyncClient, auth_headers: dict):
     })
     other_headers = {"Authorization": f"Bearer {signup_res.json()['tokens']['access_token']}"}
 
+    sent: list[dict] = []
+
+    async def fake_relay(to, **kwargs):
+        sent.append({"to": to, **kwargs})
+        return True
+
+    monkeypatch.setattr(settings, "RESEND_API_KEY", "re_test_key")
+    monkeypatch.setattr(lost_router, "send_contact_relay_email", fake_relay)
+
     res = await client.post(f"/api/v1/lost/reports/{report_id}/contact", json={
         "message": "I think I saw your dog!"
     }, headers=other_headers)
     assert res.status_code == 200
+
+    assert len(sent) == 1
+    assert sent[0]["sender_email"] == email
+    assert sent[0]["message"] == "I think I saw your dog!"
+    # The reporter's address is the recipient, never surfaced to the sender.
+    assert sent[0]["to"] != email
+
+
+@pytest.mark.asyncio
+async def test_contact_reporter_503_when_email_unconfigured(
+    client: AsyncClient, auth_headers: dict
+):
+    """No provider — the relay is honestly down instead of pretending to send."""
+    create_res = await client.post("/api/v1/lost/reports", json={
+        "kind": "missing", "description": "Contact 503 test"
+    }, headers=auth_headers)
+    report_id = create_res.json()["id"]
+
+    email = f"contacter-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    signup_res = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "Contacter"
+    })
+    other_headers = {"Authorization": f"Bearer {signup_res.json()['tokens']['access_token']}"}
+
+    res = await client.post(f"/api/v1/lost/reports/{report_id}/contact", json={
+        "message": "I think I saw your dog!"
+    }, headers=other_headers)
+    assert res.status_code == 503
 
 
 @pytest.mark.asyncio

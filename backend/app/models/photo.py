@@ -13,7 +13,9 @@ class Photo(Base, UUIDPrimaryKey, TimestampMixin):
     dog_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("dogs.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    storage_key: Mapped[str] = mapped_column(Text, nullable=False)
+    # Unique-indexed: the public file endpoint looks photos up by key on
+    # every image request.
+    storage_key: Mapped[str] = mapped_column(Text, nullable=False, unique=True, index=True)
     width: Mapped[int] = mapped_column(Integer, nullable=False)
     height: Mapped[int] = mapped_column(Integer, nullable=False)
     content_type: Mapped[str] = mapped_column(String(50), nullable=False)

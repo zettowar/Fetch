@@ -12,6 +12,8 @@ import { getUserProfile } from '../api/social';
 import { getDogsByUser } from '../api/dogs';
 import { resendVerification } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
+import ErrorState from '../components/ui/ErrorState';
+import { isNotFound } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
 import { useSubscription } from '../utils/useSubscription';
@@ -22,7 +24,7 @@ export default function UserProfilePage() {
   const [debugToken, setDebugToken] = useState<string | null>(null);
   const subscription = useSubscription();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['user-profile', id],
     queryFn: () => getUserProfile(id!),
     enabled: !!id,
@@ -58,6 +60,9 @@ export default function UserProfilePage() {
     );
   }
 
+  if (isError && !isNotFound(error)) {
+    return <ErrorState message="Couldn't load this profile." onRetry={() => refetch()} />;
+  }
   if (!profile) return <div className="p-4 text-gray-500 dark:text-gray-400">User not found</div>;
 
   const isMe = currentUser?.id === profile.id;

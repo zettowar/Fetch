@@ -27,6 +27,13 @@ export default function AdminTicketsPage() {
     queryFn: () => getTickets(tab),
   });
 
+  // Shared notes field — reset whenever a different ticket is expanded so
+  // notes typed on one ticket can't be submitted with another.
+  const openRow = (id: string | null) => {
+    setExpanded(id);
+    setAdminNotes('');
+  };
+
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       updateTicket(id, { status, admin_notes: adminNotes || undefined }),
@@ -47,7 +54,7 @@ export default function AdminTicketsPage() {
         {TABS.map((t) => (
           <button
             key={t}
-            onClick={() => { setTab(t); setExpanded(null); }}
+            onClick={() => { setTab(t); openRow(null); }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors whitespace-nowrap ${
               tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
@@ -70,7 +77,7 @@ export default function AdminTicketsPage() {
           {tickets.map((t) => (
             <div key={t.id}>
               <button
-                onClick={() => setExpanded(expanded === t.id ? null : t.id)}
+                onClick={() => openRow(expanded === t.id ? null : t.id)}
                 className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 text-left"
               >
                 <span className="text-xs font-mono text-gray-400 dark:text-gray-500 shrink-0">{t.ticket_number}</span>

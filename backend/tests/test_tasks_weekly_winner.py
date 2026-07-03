@@ -97,10 +97,26 @@ async def test_compute_weekly_winner_creates_row_for_prior_week(client: AsyncCli
         assert winner is not None
         assert winner.week_bucket == last_week
         assert winner.dog_id == dog_id
+        winner_row_id = winner.id
 
-        # Idempotent: second invocation finds the existing row and returns None.
+        # Re-running is an authoritative recompute: same row, no duplicate.
         again = await compute_weekly_winner(db)
-        assert again is None
+        assert again is not None
+        assert again.id == winner_row_id
+
+        # Votes landing after an interim compute (the final-Sunday window)
+        # still count: a stronger late entrant overtakes on the next run.
+        late_dog = await _seed_dog(client)
+        late_voter_a = await _seed_voter(client)
+        late_voter_b = await _seed_voter(client)
+        db.add(Vote(voter_id=late_voter_a, dog_id=late_dog, value=1, week_bucket=last_week))
+        db.add(Vote(voter_id=late_voter_b, dog_id=late_dog, value=1, week_bucket=last_week))
+        await db.commit()
+
+        final = await compute_weekly_winner(db)
+        assert final is not None
+        assert final.id == winner_row_id  # updated in place
+        assert final.dog_id == late_dog
 
 
 @pytest.mark.asyncio

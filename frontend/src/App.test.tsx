@@ -24,9 +24,11 @@ describe('App', () => {
     expect(screen.getByText(/In development/)).toBeDefined();
   });
 
-  it('redirects a logged-out visit to /app/home back to the landing page', () => {
+  it('redirects a logged-out visit to /app/home to the login page', () => {
+    // Deep links bounce to /login (carrying the destination in router state)
+    // so the user returns there after authenticating.
     renderApp('/app/home');
-    expect(screen.getByText(/Crown the top pup/)).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeDefined();
   });
 
   it('renders login page at /login', () => {

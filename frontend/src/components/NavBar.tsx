@@ -80,8 +80,13 @@ export default function NavBar() {
   );
   const activePath = navItems.find((item) => {
     if (item.path === '__explore__') return onExploreDestination;
-    if (location.pathname === item.path) return true;
-    return false;
+    // Subpages keep their tab lit: /app/rescues/browse → Rescues,
+    // /app/lost/:id → Lost. The trailing slash prevents sibling-prefix
+    // false positives.
+    return (
+      location.pathname === item.path ||
+      location.pathname.startsWith(`${item.path}/`)
+    );
   })?.path;
 
   return (

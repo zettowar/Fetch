@@ -10,6 +10,8 @@ from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
 from app.models.dog import Dog
+from app.models.photo import Photo
+from app.models.post import Post
 from app.models.social import Comment, Follow, Reaction
 from app.models.user import User
 from app.services.dog_serializer import dog_to_out as _dog_to_out
@@ -123,6 +125,18 @@ async def follower_count(
     return {"count": count, "is_following": is_following}
 
 
+_TARGET_MODELS = {"photo": Photo, "post": Post, "dog": Dog}
+
+
+async def _require_target(db: AsyncSession, target_type: str, target_id: UUID) -> None:
+    """404 unless the commented/reacted-on entity actually exists — otherwise
+    arbitrary UUIDs accumulate orphan rows."""
+    model = _TARGET_MODELS[target_type]
+    exists = await db.execute(select(model.id).where(model.id == target_id))
+    if exists.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail=f"{target_type} not found")
+
+
 # --- Comments ---
 
 @router.post("/comments", response_model=CommentOut, status_code=status.HTTP_201_CREATED)
@@ -133,6 +147,7 @@ async def create_comment(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await _require_target(db, body.target_type, body.target_id)
     comment = Comment(
         author_id=user.id,
         target_type=body.target_type,
@@ -157,6 +172,8 @@ async def create_comment(
 async def list_comments(
     target_type: str = Query(...),
     target_id: UUID = Query(...),
+    limit: int = Query(100, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -165,7 +182,8 @@ async def list_comments(
         .options(selectinload(Comment.author))
         .where(Comment.target_type == target_type, Comment.target_id == target_id)
         .order_by(Comment.created_at.asc())
-        .limit(100)
+        .limit(limit)
+        .offset(offset)
     )
     comments = result.scalars().all()
     return [
@@ -209,6 +227,7 @@ async def toggle_reaction(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await _require_target(db, body.target_type, body.target_id)
     # Check for existing reaction
     result = await db.execute(
         select(Reaction).where(

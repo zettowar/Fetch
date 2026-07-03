@@ -20,8 +20,8 @@ class LostReportCreate(BaseModel):
     dog_id: UUID | None = None
     kind: str
     last_seen_at: datetime | None = None
-    last_seen_lat: float | None = None
-    last_seen_lng: float | None = None
+    last_seen_lat: float | None = Field(default=None, ge=-90, le=90)
+    last_seen_lng: float | None = Field(default=None, ge=-180, le=180)
     # Doubles as both the reporter's stated search-area radius (shown on the
     # map) and the privacy fuzz applied when non-owners view the coordinates.
     location_fuzz_m: int = 500
@@ -68,8 +68,8 @@ class LostReportUpdate(BaseModel):
     # through the dedicated /resolve endpoint (which stamps resolved_at/by) so a
     # client can't mass-assign the report into an inconsistent resolved state.
     description: str | None = Field(default=None, max_length=2000)
-    last_seen_lat: float | None = None
-    last_seen_lng: float | None = None
+    last_seen_lat: float | None = Field(default=None, ge=-90, le=90)
+    last_seen_lng: float | None = Field(default=None, ge=-180, le=180)
     location_fuzz_m: int | None = None
     contact_method: str | None = None
     contact_value: str | None = Field(default=None, max_length=200)

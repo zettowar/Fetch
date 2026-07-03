@@ -5,6 +5,11 @@ import axios from 'axios';
  * Prefers the FastAPI `detail` field from the response body, handles
  * rate-limit (429) with a specific message, and falls back to `fallback`.
  */
+/** True only for a definitive 404 — network and server errors are not "not found". */
+export function isNotFound(err: unknown): boolean {
+  return axios.isAxiosError(err) && err.response?.status === 404;
+}
+
 export function apiErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
   if (axios.isAxiosError(err)) {
     if (err.response?.status === 429) {

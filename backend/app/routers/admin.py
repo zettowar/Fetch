@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import select, func, or_, cast, Date
+from sqlalchemy import select, func, or_, cast, update, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -287,6 +287,23 @@ async def get_user_detail(
     )
 
 
+async def _suspend_with_dogs(user: User, db: AsyncSession) -> list[str]:
+    """Suspend a user and hide their dogs from feed/explore/rankings.
+
+    Returns the ids of dogs this suspension deactivated (as strings, for the
+    audit-log metadata) so reinstatement can revive exactly those — dogs that
+    were already inactive for other reasons stay that way.
+    """
+    user.is_active = False
+    result = await db.execute(
+        update(Dog)
+        .where(Dog.owner_id == user.id, Dog.is_active == True)  # noqa: E712
+        .values(is_active=False)
+        .returning(Dog.id)
+    )
+    return [str(dog_id) for dog_id in result.scalars().all()]
+
+
 @router.post("/users/{user_id}/suspend")
 async def suspend_user(
     user_id: UUID,
@@ -297,9 +314,9 @@ async def suspend_user(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.is_active = False
+    deactivated = await _suspend_with_dogs(user, db)
     await _log(db, actor_id=admin.id, action="user.suspend", target_type="user", target_id=user_id,
-               metadata={"email": user.email})
+               metadata={"email": user.email, "deactivated_dogs": deactivated})
     await db.commit()
     return {"detail": "User suspended"}
 
@@ -315,8 +332,25 @@ async def reinstate_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = True
+
+    # Revive only the dogs the suspension itself deactivated.
+    last_suspend = await db.execute(
+        select(AuditLog)
+        .where(AuditLog.action == "user.suspend", AuditLog.target_id == user_id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(1)
+    )
+    entry = last_suspend.scalar_one_or_none()
+    dog_ids = (entry.metadata_ or {}).get("deactivated_dogs", []) if entry else []
+    if dog_ids:
+        await db.execute(
+            update(Dog)
+            .where(Dog.id.in_([UUID(d) for d in dog_ids]))
+            .values(is_active=True)
+        )
+
     await _log(db, actor_id=admin.id, action="user.reinstate", target_type="user", target_id=user_id,
-               metadata={"email": user.email})
+               metadata={"email": user.email, "reactivated_dogs": dog_ids})
     await db.commit()
     return {"detail": "User reinstated"}
 
@@ -424,7 +458,14 @@ async def review_report(
                 user_result = await db.execute(select(User).where(User.id == target_user_id))
                 target_user = user_result.scalar_one_or_none()
                 if target_user:
-                    target_user.is_active = False
+                    deactivated = await _suspend_with_dogs(target_user, db)
+                    # Logged as user.suspend so reinstatement can find the
+                    # dog list, same as a manual suspension.
+                    await _log(db, actor_id=admin.id, action="user.suspend",
+                               target_type="user", target_id=target_user.id,
+                               metadata={"email": target_user.email,
+                                         "reason": "strike_threshold",
+                                         "deactivated_dogs": deactivated})
 
     await _log(db, actor_id=admin.id, action="report.review", target_type="report", target_id=report_id,
                metadata={"status": body.status, "strike_applied": strike_applied})

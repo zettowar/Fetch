@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { login } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login: authLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +23,13 @@ export default function LoginPage() {
     try {
       const data = await login(email, password);
       authLogin(data.tokens.access_token, data.tokens.refresh_token, data.user);
-      // Route by role so rescues land on their dashboard instead of the consumer home.
-      const dest = data.user.role === 'rescue' ? '/app/rescue/dashboard' : '/app/home';
+      // Return to the deep link that bounced us here, else route by role so
+      // rescues land on their dashboard instead of the consumer home.
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+      const dest =
+        from && from.startsWith('/app')
+          ? from
+          : data.user.role === 'rescue' ? '/app/rescue/dashboard' : '/app/home';
       navigate(dest, { replace: true });
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Invalid email or password'));

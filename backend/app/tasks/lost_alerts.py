@@ -52,14 +52,41 @@ async def _send_alerts(report_id: str, session_factory=None):
             len(subscribers),
         )
 
-        # PHASE6: Send actual push notifications and emails here
-        for sub in subscribers:
-            logger.info(
-                "Would notify user %s about report %s (distance within %s km)",
-                sub.user_id,
-                report_id,
-                sub.radius_km,
+        if not settings.RESEND_API_KEY:
+            # Email delivery not configured — log who would have been notified.
+            # (PHASE6: push notifications would also go out here.)
+            for sub in subscribers:
+                logger.info(
+                    "Would notify user %s about report %s (distance within %s km)",
+                    sub.user_id,
+                    report_id,
+                    sub.radius_km,
+                )
+        elif subscribers:
+            from app.models.user import User
+            from app.services.email import send_lost_alert_email
+
+            email_result = await db.execute(
+                select(User.id, User.email).where(
+                    User.id.in_({s.user_id for s in subscribers}),
+                    User.is_active == True,  # noqa: E712
+                )
             )
+            emails = dict(email_result.all())
+            for sub in subscribers:
+                to = emails.get(sub.user_id)
+                if not to:
+                    continue
+                sent = await send_lost_alert_email(
+                    to,
+                    report_id=report_id,
+                    description=report.description,
+                    area_hint=None,
+                )
+                logger.info(
+                    "Notified user %s about report %s (email_sent=%s)",
+                    sub.user_id, report_id, sent,
+                )
 
     if engine is not None:
         await engine.dispose()

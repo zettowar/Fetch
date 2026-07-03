@@ -59,6 +59,8 @@ async def _rescue_name_for_user(user_id: UUID, db: AsyncSession) -> str | None:
 @router.get("", response_model=list[RescuePublicOut])
 async def list_rescues(
     q: str = Query(default=""),
+    limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -66,7 +68,8 @@ async def list_rescues(
         select(RescueProfile)
         .where(RescueProfile.status == "approved")
         .order_by(RescueProfile.org_name.asc())
-        .limit(200)
+        .limit(limit)
+        .offset(offset)
     )
     if q:
         query = query.where(RescueProfile.org_name.ilike(f"%{q.strip()}%"))

@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
@@ -29,6 +30,7 @@ from app.schemas.auth import (
 )
 from app.schemas.rescue import RescueSignupRequest
 from app.schemas.user import UserOut
+from app.services.email import send_password_reset_email, send_verification_email
 from app.security import (
     DUMMY_PASSWORD_HASH,
     create_access_token,
@@ -43,6 +45,30 @@ from app.security import (
 logger = structlog.stdlib.get_logger()
 
 router = APIRouter()
+
+
+async def _issue_verification_token(user: User, db: AsyncSession) -> str:
+    """Invalidate prior unused verification tokens and mint a fresh one.
+
+    Adds to the session without committing — the caller owns the transaction.
+    """
+    existing = await db.execute(
+        select(EmailVerificationToken).where(
+            EmailVerificationToken.user_id == user.id,
+            EmailVerificationToken.used == False,  # noqa: E712
+        )
+    )
+    for old in existing.scalars().all():
+        old.used = True
+
+    raw_token = generate_reset_token()
+    db.add(EmailVerificationToken(
+        user_id=user.id,
+        token_hash=hash_reset_token(raw_token),
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
+    ))
+    return raw_token
 
 
 async def _create_tokens(user: User, db: AsyncSession) -> TokenResponse:
@@ -60,7 +86,12 @@ async def _create_tokens(user: User, db: AsyncSession) -> TokenResponse:
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
-async def signup(request: Request, body: SignupRequest, db: AsyncSession = Depends(get_db)):
+async def signup(
+    request: Request,
+    body: SignupRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
     invite_code = (body.invite_code or "").strip().upper()
     if settings.INVITE_REQUIRED and not invite_code:
         raise HTTPException(
@@ -77,7 +108,12 @@ async def signup(request: Request, body: SignupRequest, db: AsyncSession = Depen
         display_name=body.display_name,
     )
     db.add(user)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        # Two concurrent signups can both pass the SELECT above; the unique
+        # constraint decides, and the loser gets the same 409 as the fast path.
+        raise HTTPException(status_code=409, detail="Email already registered")
 
     if settings.INVITE_REQUIRED:
         # Atomic claim: the WHERE on is_used makes concurrent signups with the
@@ -92,7 +128,16 @@ async def signup(request: Request, body: SignupRequest, db: AsyncSession = Depen
                 status_code=400, detail="Invalid or already-used invite code"
             )
 
+    # Kick off email verification right away when a provider is configured;
+    # without one, the resend-verification + DEBUG_VERIFY_TOKEN dev flow
+    # remains the only path and no token row is minted here.
+    verify_token: str | None = None
+    if settings.RESEND_API_KEY:
+        verify_token = await _issue_verification_token(user, db)
+
     tokens = await _create_tokens(user, db)
+    if verify_token:
+        background_tasks.add_task(send_verification_email, user.email, verify_token)
     return AuthResponse(tokens=tokens, user=UserOut.model_validate(user))
 
 
@@ -118,7 +163,10 @@ async def signup_rescue(
         role="rescue",
     )
     db.add(user)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        raise HTTPException(status_code=409, detail="Email already registered")
 
     profile = RescueProfile(
         user_id=user.id,
@@ -219,6 +267,7 @@ async def me(user: User = Depends(get_current_user)):
 async def forgot_password(
     request: Request,
     body: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     email = body.email.lower().strip()
@@ -249,6 +298,8 @@ async def forgot_password(
     await db.commit()
 
     logger.info("password_reset_requested", user_id=str(user.id), email=user.email)
+    # Sent after the response so timing stays flat vs the unknown-email path.
+    background_tasks.add_task(send_password_reset_email, user.email, raw_token)
 
     response: dict = {"detail": "If that email is registered, a reset link has been sent."}
     if settings.DEBUG_RESET_TOKEN:
@@ -303,6 +354,7 @@ async def reset_password(
 @limiter.limit("3/minute")
 async def resend_verification(
     request: Request,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -310,27 +362,11 @@ async def resend_verification(
     if user.is_verified:
         return {"detail": "Email already verified"}
 
-    # Invalidate any previous unused tokens for this user.
-    existing = await db.execute(
-        select(EmailVerificationToken).where(
-            EmailVerificationToken.user_id == user.id,
-            EmailVerificationToken.used == False,  # noqa: E712
-        )
-    )
-    for old in existing.scalars().all():
-        old.used = True
-
-    raw_token = generate_reset_token()
-    evt = EmailVerificationToken(
-        user_id=user.id,
-        token_hash=hash_reset_token(raw_token),
-        expires_at=datetime.now(timezone.utc)
-        + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
-    )
-    db.add(evt)
+    raw_token = await _issue_verification_token(user, db)
     await db.commit()
 
     logger.info("verification_email_requested", user_id=str(user.id), email=user.email)
+    background_tasks.add_task(send_verification_email, user.email, raw_token)
 
     response: dict = {"detail": "Verification email sent."}
     if settings.DEBUG_VERIFY_TOKEN:

@@ -1,5 +1,7 @@
+import { API_BASE } from '../api/client';
+
 export function photoUrl(photo: { url?: string; storage_key: string }): string {
-  return photo.url || `/api/v1/photos/file/${photo.storage_key}`;
+  return photo.url || `${API_BASE}/photos/file/${photo.storage_key}`;
 }
 
 export function dogHeroPhoto(dog: { primary_photo_url?: string | null; photos: Array<{ url?: string; storage_key: string }> }): string | null {

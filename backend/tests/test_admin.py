@@ -79,6 +79,36 @@ async def test_admin_review_report(client: AsyncClient, admin_headers: dict, aut
 
 
 @pytest.mark.asyncio
+async def test_suspension_cascades_to_dogs(client: AsyncClient, admin_headers: dict):
+    """Suspending hides the user's dogs; reinstating revives exactly those."""
+    email = f"cascade-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    signup_res = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "Cascade"
+    })
+    user_id = signup_res.json()["user"]["id"]
+    headers = {"Authorization": f"Bearer {signup_res.json()['tokens']['access_token']}"}
+
+    active_dog = (await client.post(
+        "/api/v1/dogs", json={"name": "ActivePup"}, headers=headers
+    )).json()["id"]
+    # A dog the admin deactivated separately must NOT revive on reinstate.
+    pre_deactivated = (await client.post(
+        "/api/v1/dogs", json={"name": "AlreadyHidden"}, headers=headers
+    )).json()["id"]
+    await client.post(f"/api/v1/admin/dogs/{pre_deactivated}/deactivate", headers=admin_headers)
+
+    await client.post(f"/api/v1/admin/users/{user_id}/suspend", headers=admin_headers)
+    res = await client.get(f"/api/v1/dogs/{active_dog}", headers=admin_headers)
+    assert res.status_code == 404, "suspended user's dog must be hidden"
+
+    await client.post(f"/api/v1/admin/users/{user_id}/reinstate", headers=admin_headers)
+    res = await client.get(f"/api/v1/dogs/{active_dog}", headers=admin_headers)
+    assert res.status_code == 200, "reinstatement must revive the cascaded dog"
+    res = await client.get(f"/api/v1/dogs/{pre_deactivated}", headers=admin_headers)
+    assert res.status_code == 404, "separately-deactivated dog must stay hidden"
+
+
+@pytest.mark.asyncio
 async def test_strike_suspension_at_exactly_three(client: AsyncClient, admin_headers: dict):
     """Auto-suspension must fire on the 3rd strike, not the 2nd (off-by-one regression)."""
     email = f"striketarget-{uuid.uuid4().hex[:8]}@fetchapp.dev"
@@ -118,6 +148,10 @@ async def test_strike_suspension_at_exactly_three(client: AsyncClient, admin_hea
     assert await target_is_active(), "2 strikes must not suspend"
     await strike_once()
     assert not await target_is_active(), "3rd strike must suspend"
+
+    # Auto-suspension cascades to the user's dogs like a manual one.
+    dog_res = await client.get(f"/api/v1/dogs/{dog_id}", headers=admin_headers)
+    assert dog_res.status_code == 404
 
 
 @pytest.mark.asyncio

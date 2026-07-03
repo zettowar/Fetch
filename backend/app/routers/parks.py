@@ -271,6 +271,8 @@ async def create_review(
 @router.get("/{park_id}/reviews", response_model=list[ParkReviewOut])
 async def list_reviews(
     park_id: UUID,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -279,7 +281,8 @@ async def list_reviews(
         .options(selectinload(ParkReview.author))
         .where(ParkReview.park_id == park_id)
         .order_by(ParkReview.created_at.desc())
-        .limit(50)
+        .limit(limit)
+        .offset(offset)
     )
     reviews = result.scalars().all()
     return [_review_to_out(r, r.author.display_name if r.author else None) for r in reviews]

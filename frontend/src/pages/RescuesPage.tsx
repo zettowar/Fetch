@@ -6,11 +6,16 @@ import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
 
 function RescueCard({ rescue }: { rescue: RescuePublic }) {
+  // Stretched-link pattern: the detail Link is an overlay sibling of the
+  // Donate/Website anchors rather than their parent — interactive elements
+  // must never nest.
   return (
-    <Link
-      to={`/app/rescues/${rescue.id}`}
-      className="block bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 hover:border-brand-200 dark:hover:border-brand-500/40 transition-colors"
-    >
+    <div className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 hover:border-brand-200 dark:hover:border-brand-500/40 transition-colors">
+      <Link
+        to={`/app/rescues/${rescue.id}`}
+        aria-label={`View ${rescue.org_name}`}
+        className="absolute inset-0 rounded-2xl"
+      />
       <div className="flex items-center gap-2 flex-wrap mb-1">
         <h3 className="font-semibold text-gray-900 dark:text-gray-100">{rescue.org_name}</h3>
         <span className="text-[10px] bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
@@ -22,13 +27,12 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
       )}
       <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{rescue.description}</p>
       {(rescue.website || rescue.donation_url) && (
-        <div className="flex items-center gap-2 mt-3">
+        <div className="relative flex items-center gap-2 mt-3">
           {rescue.donation_url && (
             <a
               href={rescue.donation_url}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 px-3 py-1.5 rounded-lg transition-colors"
             >
               Donate
@@ -39,7 +43,6 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
               href={rescue.website}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="text-xs font-medium text-brand-600 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 px-3 py-1.5 rounded-lg transition-colors"
             >
               Website
@@ -47,7 +50,7 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
           )}
         </div>
       )}
-    </Link>
+    </div>
   );
 }
 

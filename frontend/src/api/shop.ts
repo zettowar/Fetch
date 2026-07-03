@@ -12,7 +12,8 @@
 
 const DOMAIN = (import.meta.env.VITE_SHOPIFY_DOMAIN ?? '').trim();
 const TOKEN = (import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN ?? '').trim();
-const API_VERSION = '2024-10';
+// Shopify supports Storefront API versions for ~12 months — bump quarterly.
+const API_VERSION = '2025-04';
 const CART_ID_KEY = 'fetch_shop_cart_id';
 const MOCK_CART_KEY = 'fetch_shop_cart_demo';
 const DEFAULT_CURRENCY = 'USD';

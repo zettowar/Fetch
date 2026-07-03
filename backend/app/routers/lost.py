@@ -2,7 +2,18 @@ import io
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +42,9 @@ from app.schemas.lost_report import (
     SubscriptionOut,
     SubscriptionUpdate,
 )
+from app.config import settings
 from app.services.breed_display import breed_display
+from app.services.email import send_contact_relay_email
 from app.services.lost_service import fuzz_coordinate, get_nearby_reports
 from app.services.moderation import check_image
 from app.storage import generate_storage_key, get_storage
@@ -504,13 +517,22 @@ async def update_subscription(
 # --- Contact relay ---
 
 @router.post("/reports/{report_id}/contact")
+@limiter.limit("10/hour")
 async def contact_reporter(
+    request: Request,
     report_id: UUID,
     body: ContactRequest,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(LostReport).where(LostReport.id == report_id))
+    """Relay a message to the reporter by email (their address stays hidden;
+    replies go to the sender via Reply-To)."""
+    result = await db.execute(
+        select(LostReport)
+        .options(selectinload(LostReport.dog))
+        .where(LostReport.id == report_id)
+    )
     report = result.scalar_one_or_none()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -519,8 +541,34 @@ async def contact_reporter(
     if report.status != "open":
         raise HTTPException(status_code=400, detail="Report is not open")
 
-    # PHASE3: Send actual notification/email to reporter
-    # For now, log and return success
+    reporter_result = await db.execute(
+        select(User).where(User.id == report.reporter_id, User.is_active == True)  # noqa: E712
+    )
+    reporter = reporter_result.scalar_one_or_none()
+    if not reporter:
+        raise HTTPException(status_code=400, detail="Reporter is no longer reachable")
+
+    # Checked last so validation errors (404/400) stay meaningful even when
+    # email is unconfigured. Without a provider the relay is honestly down —
+    # no more pretending the message was delivered.
+    if not settings.RESEND_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Contact relay is unavailable — email delivery is not configured",
+        )
+
+    report_title = (
+        report.dog.name if report.dog else (report.description or "your report")[:60]
+    )
+    background_tasks.add_task(
+        send_contact_relay_email,
+        reporter.email,
+        sender_name=user.display_name,
+        sender_email=user.email,
+        report_title=report_title,
+        message=body.message,
+    )
+
     import structlog
     logger = structlog.stdlib.get_logger()
     logger.info(

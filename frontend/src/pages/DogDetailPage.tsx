@@ -18,7 +18,7 @@ import TimeAgo from '../components/TimeAgo';
 import { dogAge, photoUrl, dogHeroPhoto } from '../utils/time';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
-import { apiErrorMessage } from '../utils/apiError';
+import { apiErrorMessage, isNotFound } from '../utils/apiError';
 
 export default function DogDetailPage() {
   const { id } = useParams();
@@ -26,7 +26,7 @@ export default function DogDetailPage() {
   const queryClient = useQueryClient();
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
 
-  const { data: dog, isLoading } = useQuery({
+  const { data: dog, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['dog', id],
     queryFn: () => getDog(id!),
   });
@@ -110,6 +110,9 @@ export default function DogDetailPage() {
     );
   }
 
+  if (isError && !isNotFound(error)) {
+    return <ErrorState message="Couldn't load this dog." onRetry={() => refetch()} />;
+  }
   if (!dog) {
     return <ErrorState message="Dog not found." />;
   }

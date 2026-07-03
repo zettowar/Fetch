@@ -1,0 +1,9 @@
+# TLS terminator for the production stack. Caddy provisions and renews
+# Let's Encrypt certificates for {$DOMAIN} automatically and redirects
+# HTTP -> HTTPS. DOMAIN=localhost gets a self-signed local cert, handy for
+# smoke-testing the prod stack without DNS.
+{$DOMAIN} {
+	encode gzip
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	reverse_proxy frontend:8080
+}

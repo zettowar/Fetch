@@ -73,18 +73,12 @@ async def get_dog_stats(dog_id: UUID, db: AsyncSession) -> dict:
 async def compute_weekly_winner(db: AsyncSession) -> WeeklyWinner | None:
     """Compute the prior week's winner (production weekly job).
 
-    Skips if a winner row already exists for that week.
+    Upserts rather than skips: the 10-minute pick_current_winner job usually
+    creates the row during the week, but votes cast in its final window would
+    otherwise never be counted — Monday's run is the authoritative tally.
     """
     last_week = current_week_bucket() - timedelta(days=7)
-
-    existing = await db.execute(
-        select(WeeklyWinner).where(WeeklyWinner.week_bucket == last_week)
-    )
-    if existing.scalar_one_or_none():
-        logger.info("Weekly winner for %s already computed", last_week)
-        return None
-
-    return await _pick_winner_for_week(db, last_week, upsert=False)
+    return await _pick_winner_for_week(db, last_week, upsert=True)
 
 
 async def pick_current_winner(db: AsyncSession) -> WeeklyWinner | None:
@@ -99,11 +93,17 @@ async def pick_current_winner(db: AsyncSession) -> WeeklyWinner | None:
 async def _pick_winner_for_week(
     db: AsyncSession, week: date, *, upsert: bool
 ) -> WeeklyWinner | None:
+    # Ties break deterministically: first dog to enter the race wins, with
+    # dog_id as a final absolute tiebreaker.
     query = (
         select(Vote.dog_id, func.sum(Vote.value).label("score"))
         .where(Vote.week_bucket == week)
         .group_by(Vote.dog_id)
-        .order_by(func.sum(Vote.value).desc())
+        .order_by(
+            func.sum(Vote.value).desc(),
+            func.min(Vote.created_at).asc(),
+            Vote.dog_id.asc(),
+        )
         .limit(1)
     )
     result = await db.execute(query)

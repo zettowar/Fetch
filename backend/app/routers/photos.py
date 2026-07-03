@@ -176,8 +176,12 @@ async def get_photo_file(key: str, db: AsyncSession = Depends(get_db)):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found")
 
-    ext = key.rsplit(".", 1)[-1] if "." in key else "jpg"
-    media_type = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(
-        ext, "image/jpeg"
-    )
+    if photo:
+        media_type = photo.content_type
+    else:
+        # Keys with no Photo row (e.g. sighting photos) fall back to extension.
+        ext = key.rsplit(".", 1)[-1] if "." in key else "jpg"
+        media_type = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(
+            ext, "image/jpeg"
+        )
     return Response(content=data, media_type=media_type)

@@ -1,7 +1,7 @@
 """Beta feedback and invite code management."""
 import secrets
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,11 +38,13 @@ async def submit_feedback(
 
 @router.get("/feedback", response_model=list[FeedbackOut])
 async def list_feedback(
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Feedback).order_by(Feedback.created_at.desc()).limit(100)
+        select(Feedback).order_by(Feedback.created_at.desc()).limit(limit).offset(offset)
     )
     return list(result.scalars().all())
 
@@ -80,10 +82,12 @@ async def generate_invite_codes(
 
 @router.get("/invites", response_model=list[InviteCodeOut])
 async def list_invite_codes(
+    limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(InviteCode).order_by(InviteCode.created_at.desc()).limit(200)
+        select(InviteCode).order_by(InviteCode.created_at.desc()).limit(limit).offset(offset)
     )
     return list(result.scalars().all())

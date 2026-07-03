@@ -38,6 +38,20 @@ class Settings(BaseSettings):
     SIGHTENGINE_API_SECRET: str = ""
     MODERATION_TIMEOUT_S: int = 10
 
+    # Transactional email via Resend's HTTPS API (no SMTP — works on hosts
+    # that block outbound SMTP, e.g. DigitalOcean). Empty key = email
+    # disabled: sends are logged and skipped, and email-dependent endpoints
+    # degrade explicitly (contact relay returns 503, reset/verify fall back
+    # to the DEBUG_* dev flows).
+    RESEND_API_KEY: str = ""
+    # Sender in "Name <addr>" form. The resend.dev sandbox sender works
+    # without DNS setup but only delivers to your own Resend account email;
+    # switch to a verified domain before launch.
+    EMAIL_FROM: str = "Fetch <onboarding@resend.dev>"
+    EMAIL_TIMEOUT_S: int = 10
+    # Absolute origin used to build links inside emails.
+    FRONTEND_BASE_URL: str = "http://localhost:3174"
+
     # Password reset (set to True in dev/staging to return token in response)
     RESET_TOKEN_TTL_MIN: int = 30
     DEBUG_RESET_TOKEN: bool = False

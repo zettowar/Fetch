@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
 import ErrorState from '../components/ui/ErrorState';
+import { isNotFound } from '../utils/apiError';
 import Avatar from '../components/ui/Avatar';
 import { Spinner } from '../components/ui/Skeleton';
 import PlayDatesSection from '../components/PlayDatesSection';
@@ -28,7 +29,7 @@ export default function ParkDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: park, isLoading } = useQuery({
+  const { data: park, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['park', id],
     queryFn: () => getPark(id!),
     enabled: !!id,
@@ -113,6 +114,9 @@ export default function ParkDetailPage() {
     );
   }
 
+  if (isError && !isNotFound(error)) {
+    return <ErrorState message="Couldn't load this park." onRetry={() => refetch()} />;
+  }
   if (!park) {
     return <ErrorState message="Park not found." />;
   }

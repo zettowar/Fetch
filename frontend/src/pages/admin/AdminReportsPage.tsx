@@ -34,6 +34,16 @@ export default function AdminReportsPage() {
   const reports = page?.items ?? [];
   const total = page?.total ?? 0;
 
+  // The review form is shared by whichever row is expanded — reset it on
+  // every expansion change so notes typed on one report can't ride along
+  // into another's review.
+  const openRow = (id: string | null) => {
+    setExpanded(id);
+    setAdminNotes('');
+    setStrikeReason('');
+    setApplyStrike(false);
+  };
+
   const reviewMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       reviewReport(id, {
@@ -62,7 +72,7 @@ export default function AdminReportsPage() {
         {TABS.map((t) => (
           <button
             key={t}
-            onClick={() => { setTab(t); setExpanded(null); setOffset(0); }}
+            onClick={() => { setTab(t); openRow(null); setOffset(0); }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize whitespace-nowrap transition-colors ${
               tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
@@ -86,7 +96,7 @@ export default function AdminReportsPage() {
           {reports.map((r) => (
             <div key={r.id}>
               <button
-                onClick={() => setExpanded(expanded === r.id ? null : r.id)}
+                onClick={() => openRow(expanded === r.id ? null : r.id)}
                 className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 text-left"
               >
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${

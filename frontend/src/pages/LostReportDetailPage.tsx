@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
+import { isNotFound } from '../utils/apiError';
 import TimeAgo from '../components/TimeAgo';
 import Linkify from '../components/Linkify';
 import {
@@ -15,6 +16,7 @@ import {
   contactReporter,
 } from '../api/lost';
 import { useAuth } from '../store/AuthContext';
+import { photoUrl } from '../utils/time';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { shareLink } from '../utils/shareLink';
@@ -26,7 +28,7 @@ export default function LostReportDetailPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: report, isLoading } = useQuery({
+  const { data: report, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['lost-report', id],
     queryFn: () => getLostReport(id!),
     enabled: !!id,
@@ -101,6 +103,9 @@ export default function LostReportDetailPage() {
     );
   }
 
+  if (isError && !isNotFound(error)) {
+    return <ErrorState message="Couldn't load this report." onRetry={() => refetch()} />;
+  }
   if (!report) return <ErrorState message="Report not found." />;
 
   const isOwner = user?.id === report.reporter_id;
@@ -159,7 +164,7 @@ export default function LostReportDetailPage() {
           {report.photos.map((p, idx) => (
             <img
               key={p.id}
-              src={p.url || `/api/v1/photos/file/${p.storage_key}`}
+              src={photoUrl(p)}
               alt={`Photo ${idx + 1} of ${report.dog_name || 'the dog'}`}
               loading="lazy"
               className="w-full h-48 sm:h-32 object-cover rounded-lg"

@@ -88,11 +88,16 @@ export default function SwipeDeck() {
   }
 
   const voteMutation = useMutation({
-    mutationFn: ({ dogId, value }: { dogId: string; value: 1 | -1 }) =>
+    mutationFn: ({ dogId, value }: { dogId: string; value: 1 | -1; index: number }) =>
       castVote(dogId, value),
-    onError: () => {
+    onError: (_err, vars) => {
       toast.error('Vote failed');
-      setCurrentIndex((i) => Math.max(0, i - 1));
+      // Only rewind when the failed vote is the one the deck just advanced
+      // past — an older failure from a rapid-swipe burst must not yank the
+      // user off the card they're currently on.
+      setCurrentIndex((i) => (i === vars.index + 1 ? vars.index : i));
+      // Undo would re-rewind and re-refund the same failed vote; drop it.
+      setLastVote((lv) => (lv?.dogId === vars.dogId ? null : lv));
       // The vote didn't land server-side — give the swipe back so the user
       // isn't punished for our flaky network.
       if (!isSubscriber && user) {
@@ -119,7 +124,7 @@ export default function SwipeDeck() {
       navigator.vibrate?.(direction === 'right' ? 20 : 10);
       setLastVote({ dogId: dog.id, index: currentIndex });
       setCurrentIndex((i) => i + 1);
-      voteMutation.mutate({ dogId: dog.id, value });
+      voteMutation.mutate({ dogId: dog.id, value, index: currentIndex });
       if (user) onboarding.markSwiped(user.id);
 
       if (!isSubscriber && user) {
