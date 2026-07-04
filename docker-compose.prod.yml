@@ -96,11 +96,15 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "celery", "-A", "app.worker", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
+      # Must run in a shell: exec-form CMD does not expand $HOSTNAME, so the
+      # old check pinged a literal node "celery@$HOSTNAME" that never exists
+      # and was therefore always unhealthy. $(hostname) resolves to this
+      # worker's real node name (celery defaults to celery@<hostname>).
+      test: ["CMD-SHELL", "celery -A app.worker inspect ping -d celery@$(hostname) || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 30s
     restart: unless-stopped
     deploy:
       resources:
