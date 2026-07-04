@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import PageHero from './PageHero';
 
@@ -11,7 +13,7 @@ type NewsPost = {
   date: string; // e.g. 'June 2026'
   tag: string; // e.g. 'Product', 'Milestone', 'Behind the scenes'
   title: string;
-  body: string;
+  body: ReactNode;
 };
 
 const POSTS: NewsPost[] = [
@@ -19,13 +21,30 @@ const POSTS: NewsPost[] = [
     date: 'June 2026',
     tag: 'Milestone',
     title: 'Fetch enters private beta',
-    body: "The first pack is in. A small group of invited dog owners and rescue partners is now swiping, rating, and crowning weekly top dogs while we tighten the last screws. Their feedback is already reshaping the feed — next stop, a public launch date.",
+    body: (
+      <>
+        The first invites went out. A small group of dog owners and rescue
+        partners is using Fetch daily now, and their feedback has already
+        changed how the feed works. A public launch date comes next.
+      </>
+    ),
   },
   {
     date: 'May 2026',
     tag: 'Partnerships',
     title: 'Partnering with rescues for launch',
-    body: "Adoption is the whole point of Fetch, so rescues come first. We've started onboarding our first rescue partners, whose adoptable dogs will appear right in the swipe feed at launch — with listings, inquiry tools, and donation links included. Run a rescue and want in? We'd love to hear from you.",
+    body: (
+      <>
+        Adoption is the whole point of Fetch, so rescues got the first look.
+        Our earliest partners are setting up their profiles now, and their
+        adoptable dogs will be in the feed on day one. If you run a rescue and
+        want in,{' '}
+        <Link to="/signup-rescue" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
+          applications are open
+        </Link>
+        .
+      </>
+    ),
   },
 ];
 
@@ -37,7 +56,7 @@ export default function NewsPage() {
       <PageHero
         eyebrow="News"
         title="What's new at Fetch"
-        subtitle="Follow along as we build in the open on the road to launch."
+        subtitle="Short notes from the team as we get Fetch ready."
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
@@ -80,7 +99,7 @@ function EmptyState() {
     <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-12 text-center">
       <span className="text-4xl" aria-hidden>📰</span>
       <p className="mt-3 font-semibold text-gray-700 dark:text-gray-300">No news yet</p>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Check back soon — updates are on the way.</p>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Check back soon.</p>
     </div>
   );
 }

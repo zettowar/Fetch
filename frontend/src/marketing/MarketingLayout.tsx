@@ -161,8 +161,8 @@ function MarketingFooter() {
               <span className="text-lg font-bold tracking-tight text-brand-600">Fetch</span>
             </div>
             <p className="mt-3 max-w-sm text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              A home for dog people — rate good dogs, crown a weekly top pup, and
-              help lost dogs find their way home. Currently in active development.
+              A swipe feed for dog people, with rescue dogs in the deck and a
+              Lost & Found for the neighborhood. In development now.
             </p>
             <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-400 ring-1 ring-brand-200 dark:ring-brand-500/30">
               <span aria-hidden>🚧</span> Available soon

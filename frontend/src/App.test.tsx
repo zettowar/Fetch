@@ -21,7 +21,9 @@ describe('App', () => {
   it('renders the landing page at /', () => {
     renderApp('/');
     expect(screen.getByText(/Crown the top pup/)).toBeDefined();
-    expect(screen.getByText(/In development/)).toBeDefined();
+    // The status badge appears in the hero; the footer echoes similar copy,
+    // so assert at least one match rather than exactly one.
+    expect(screen.getAllByText(/In development/).length).toBeGreaterThan(0);
   });
 
   it('redirects a logged-out visit to /app/home to the login page', () => {

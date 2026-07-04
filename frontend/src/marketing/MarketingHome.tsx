@@ -6,27 +6,27 @@ import { Spinner } from '../components/ui/Skeleton';
 
 const OWNER_FEATURES = [
   { icon: '❤️', title: 'Swipe & rate', body: 'A Tinder-style feed of good boys and girls. One tap, one vote.' },
-  { icon: '🏆', title: 'Weekly top dog', body: 'Votes reset every Monday. A new community champion is crowned each week.' },
-  { icon: '🚨', title: 'Lost & Found', body: 'Nearby missing-dog alerts and sighting reports — a safety net for your pack.' },
-  { icon: '🐾', title: 'Follow your faves', body: "Keep tabs on the pups you can't get enough of and never miss an update." },
+  { icon: '🏆', title: 'Weekly top dog', body: 'Votes reset every Monday, so every dog gets a fresh shot at the crown.' },
+  { icon: '🚨', title: 'Lost & Found', body: "If a dog goes missing nearby, you'll know. Sightings go straight to the owner." },
+  { icon: '🐾', title: 'Follow your faves', body: 'Some dogs you just need to see again. Follow them and you will.' },
 ];
 
 const RESCUE_FEATURES = [
-  { icon: '🏠', title: 'List adoptables', body: 'Photos, traits, and a story — your dogs show up right in the swipe feed.' },
+  { icon: '🏠', title: 'List adoptables', body: 'Give each dog photos, traits, and a story. They appear in the same feed as everyone else.' },
   { icon: '💬', title: 'Manage inquiries', body: 'Inbound interest, organized. Status, notes, and history in one place.' },
-  { icon: '🗺️', title: 'Map presence', body: 'Adopters discover your organization on the rescue map by location.' },
+  { icon: '🗺️', title: 'Map presence', body: 'Your organization shows up on the rescue map, so nearby adopters can find you.' },
   { icon: '🤝', title: 'Smooth handoff', body: 'Mark adoptions complete or transfer a dog to its new family on Fetch.' },
 ];
 
 const SITE_TEASERS = [
-  { to: '/about', emoji: '🐕', eyebrow: 'About us', title: 'The people behind Fetch', body: 'Who we are and why we started building a better home for dog people.' },
-  { to: '/mission', emoji: '🎯', eyebrow: 'Our mission', title: 'Why Fetch exists', body: 'Every dog celebrated, every lost dog found. The north star we build toward.' },
-  { to: '/news', emoji: '📰', eyebrow: 'News', title: 'Latest updates', body: 'Follow along as we build in the open on the road to launch.' },
+  { to: '/about', emoji: '🐕', eyebrow: 'About us', title: 'The people behind Fetch', body: "Who we are, and why this started in a group chat full of shelter listings." },
+  { to: '/mission', emoji: '🎯', eyebrow: 'Our mission', title: 'Why Fetch exists', body: "Shelter dogs wait too long for homes. Here's what we're doing about it." },
+  { to: '/news', emoji: '📰', eyebrow: 'News', title: 'Latest updates', body: 'Short notes from the team as we get Fetch ready.' },
 ];
 
 export default function MarketingHome() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  useDocumentTitle('Fetch — The dog app that gets rescues adopted');
+  useDocumentTitle('Fetch · The dog app that gets rescues adopted');
 
   if (isLoading) {
     return (
@@ -68,8 +68,9 @@ export default function MarketingHome() {
               </p>
 
               <p className="mt-4 mx-auto lg:mx-0 max-w-xl text-base sm:text-lg text-white/85 leading-relaxed text-balance">
-                A home for dog people — swipe the feed, follow your favorites,
-                crown a weekly champion, and help lost dogs find their way home.
+                Swipe through the neighborhood's dogs and crown a weekly
+                champion. Adoptable rescue dogs are in the deck, and if a dog
+                goes missing nearby, the whole neighborhood hears about it.
                 We're putting the final touches on it now.
               </p>
 
@@ -89,7 +90,7 @@ export default function MarketingHome() {
               </div>
 
               <p className="mt-6 text-sm text-white/75">
-                <span aria-hidden>📣</span> Launching soon — public sign-ups aren't open yet.
+                <span aria-hidden>📣</span> Launching soon. Public sign-ups aren't open yet.
               </p>
             </div>
 
@@ -113,14 +114,17 @@ export default function MarketingHome() {
             eyebrow="Dog owners"
             iconEmoji="🐶"
             title="Rate, follow, find."
-            body="Swipe through the feed, follow your favorites, and crown a weekly top dog — with Lost & Found built right in."
+            body="Swipe the feed, follow your favorites, and vote for a weekly top dog. Lost & Found is built in for the days you hope never come."
+            tag="Coming soon"
           />
           <AudienceCard
             accent="purple"
             eyebrow="Rescues & partners"
             iconEmoji="🏠"
             title="Reach adopters where they swipe."
-            body="List adoptable dogs, manage inquiries, and find forever-home matches — no spreadsheet required."
+            body="List adoptable dogs in the feed people actually open, and keep every inquiry out of your spreadsheet."
+            tag="Applications open"
+            tagTo="/signup-rescue"
           />
         </div>
       </section>
@@ -128,7 +132,7 @@ export default function MarketingHome() {
       {/* ── Owner features ─────────────────────────────────────── */}
       <section className="bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-          <SectionHeading accent="brand" eyebrow="For dog owners" title="Everything dog people actually want" />
+          <SectionHeading accent="brand" eyebrow="For dog owners" title="The daily dog fix" />
           <FeatureGrid features={OWNER_FEATURES} />
         </div>
       </section>
@@ -137,6 +141,12 @@ export default function MarketingHome() {
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
         <SectionHeading accent="purple" eyebrow="For rescues" title="Adoption tools, without the busywork" />
         <FeatureGrid features={RESCUE_FEATURES} />
+        <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+          Run a rescue? Applications are open ahead of launch.{' '}
+          <Link to="/signup-rescue" className="font-semibold text-purple-600 dark:text-purple-400 hover:underline">
+            Apply as a rescue <span aria-hidden>→</span>
+          </Link>
+        </p>
       </section>
 
       {/* ── How it'll work ─────────────────────────────────────── */}
@@ -146,7 +156,7 @@ export default function MarketingHome() {
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             <Step n={1} title="Pick your path" body="Sign up as an owner or apply as a rescue. Same login, separate spaces." />
             <Step n={2} title="Build your profile" body="Owners add photos, breeds, and traits. Rescues add org details and their first adoptable." />
-            <Step n={3} title="Meet the pack" body="Owners climb the rankings; rescues meet potential adopters. Everybody wins." />
+            <Step n={3} title="Meet the pack" body="Owners climb the weekly rankings. Rescues hear from adopters." />
           </div>
         </div>
       </section>
@@ -181,8 +191,11 @@ export default function MarketingHome() {
           <PawMark decorative className="pointer-events-none absolute -bottom-8 -right-4 h-28 w-28 text-white/[0.08] rotate-12" />
           <h2 className="relative text-3xl sm:text-4xl font-extrabold tracking-tight text-balance">We're not open yet.</h2>
           <p className="relative mt-3 mx-auto max-w-xl text-white/90 text-balance">
-            Fetch is still in active development. Come back soon for the full
-            launch — the whole pack is almost ready.
+            Fetch is still in active development. Check back soon, or{' '}
+            <a href="mailto:fetchpawz.inc@gmail.com" className="font-semibold underline underline-offset-2 hover:text-white">
+              write to us
+            </a>{' '}
+            if you'd like an invite when testing expands.
           </p>
           <p className="relative mt-6 text-sm text-white/80">
             Beta tester or team member?{' '}
@@ -230,8 +243,9 @@ function FeatureGrid({ features }: { features: { icon: string; title: string; bo
   );
 }
 
-function AudienceCard({ accent, eyebrow, iconEmoji, title, body }: {
+function AudienceCard({ accent, eyebrow, iconEmoji, title, body, tag, tagTo }: {
   accent: Accent; eyebrow: string; iconEmoji: string; title: string; body: string;
+  tag: string; tagTo?: string;
 }) {
   const a =
     accent === 'brand'
@@ -259,9 +273,18 @@ function AudienceCard({ accent, eyebrow, iconEmoji, title, body }: {
         </div>
       </div>
       <p className="mt-4 text-[15px] text-gray-600 dark:text-gray-400 leading-relaxed">{body}</p>
-      <span className={`mt-5 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${a.tag}`}>
-        Coming soon
-      </span>
+      {tagTo ? (
+        <Link
+          to={tagTo}
+          className={`mt-5 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold hover:underline ${a.tag}`}
+        >
+          {tag} <span aria-hidden>→</span>
+        </Link>
+      ) : (
+        <span className={`mt-5 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${a.tag}`}>
+          {tag}
+        </span>
+      )}
     </article>
   );
 }

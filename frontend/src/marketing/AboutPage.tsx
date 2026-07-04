@@ -10,7 +10,7 @@ export default function AboutPage() {
       <PageHero
         eyebrow="About us"
         title="The people behind Fetch"
-        subtitle="We’re a small team of dog people building the community we always wished existed. Here’s our story."
+        subtitle="A small team, a few heavily photographed dogs, and one idea we couldn't put down."
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-14">
@@ -19,22 +19,20 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold tracking-tight">Our story</h2>
           <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">
             <p>
-              Fetch started the way most dog things do: with a phone full of dog
-              photos and no good place to share them. We were the friends
-              trading shelter listings in the group chat, the people who cross
-              the street to meet a stranger's dog. Somewhere between another
-              round of “look at this good boy” and another adoptable dog sitting
-              unnoticed on a shelter page, it clicked — people will happily
-              swipe through dogs all day for fun. What if all that attention
-              actually went somewhere?
+              Fetch started with a group chat. One of us was forever sending
+              shelter listings. Another kept a camera roll that was mostly dog.
+              All of us crossed streets to meet strangers' dogs. Meanwhile, the
+              dogs who most needed the attention sat on shelter websites nobody
+              was refreshing. People will swipe through dogs all day for fun.
+              We wanted that attention to land somewhere useful.
             </p>
             <p>
               So we're building Fetch: a swipe feed where rating good dogs is
-              the game, and rescue dogs are in the deck from day one. Once we
-              open up, every swipe, follow, and weekly top-dog crown doubles as
-              a spotlight for dogs still waiting on a home — backed by real
-              tools for the rescues working to get them there, and a Lost &
-              Found safety net for the dogs who already have one.
+              the game, and rescue dogs are in the deck from day one. Every
+              follow and weekly crown puts a waiting dog in front of more
+              people. The rescues behind them get proper tools instead of
+              spreadsheets. And Lost & Found looks out for the dogs who already
+              have homes.
             </p>
           </div>
         </section>
@@ -43,9 +41,9 @@ export default function AboutPage() {
         <section>
           <h2 className="text-2xl font-bold tracking-tight">What we care about</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <ValueCard emoji="🐾" title="Dogs first" body="Every decision starts with what's best for the dogs and the people who love them. If a feature doesn't help a dog, it doesn't ship." />
-            <ValueCard emoji="🤝" title="Real community" body="A kind, genuine corner of the internet for dog people — good dogs and the humans who show up for them, not another engagement machine." />
-            <ValueCard emoji="🛟" title="Safety net" body="When a dog goes missing, minutes matter. Lost & Found alerts put the whole neighborhood on watch until they're back home." />
+            <ValueCard emoji="🐾" title="Dogs first" body="The test for every feature is simple: does it help a dog get seen, get found, or get home? If not, it doesn't ship." />
+            <ValueCard emoji="🤝" title="Kind by default" body="There is no downvote on Fetch. The harshest thing you can do to a dog here is pass, and someone else will like them within the hour." />
+            <ValueCard emoji="🛟" title="Safety net" body="When a dog goes missing, minutes matter. An alert goes out to everyone nearby, and sightings go straight to the owner." />
           </div>
         </section>
 
@@ -53,12 +51,9 @@ export default function AboutPage() {
         <section>
           <h2 className="text-2xl font-bold tracking-tight">The team</h2>
           <p className="mt-4 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">
-            Fetch is built by a small team of dog people who'd rather ship
-            something great than grow a headcount. Our own dogs serve as chief
-            product testers, and every feature earns its place by making life
-            better for a dog somewhere. We're keeping the pack tiny while we
-            build — when there's more of us to introduce, you'll meet everyone
-            here first.
+            Right now Fetch is a handful of people and their dogs. The dogs
+            test everything first and are paid in treats. When the team grows,
+            this is where you'll meet them.
           </p>
         </section>
 
