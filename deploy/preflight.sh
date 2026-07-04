@@ -141,11 +141,12 @@ fi
 # SPA hits the relative /api that nginx proxies.
 VITE="$(env_get VITE_API_BASE_URL)"
 if [ -z "$VITE" ]; then
-  ok "VITE_API_BASE_URL empty → SPA uses relative /api (correct for prod)"
+  ok "VITE_API_BASE_URL empty → SPA uses the relative /api/v1 (correct for prod)"
 else
   case "$(lc "$VITE")" in
-    *localhost* | *127.0.0.1*) fail "VITE_API_BASE_URL=$VITE bakes a localhost API into the frontend build — leave it EMPTY for prod (nginx proxies /api)" ;;
-    *) warn "VITE_API_BASE_URL is set ($VITE); prod normally leaves it empty so the SPA calls the relative /api" ;;
+    *localhost* | *127.0.0.1*) fail "VITE_API_BASE_URL=$VITE bakes a localhost API into the frontend build — use a relative /path (or leave EMPTY) for prod; nginx proxies /api" ;;
+    /*) ok "VITE_API_BASE_URL=$VITE is a relative same-origin path (equivalent to empty — nginx proxies it)" ;;
+    *) warn "VITE_API_BASE_URL is an absolute URL ($VITE); prod normally uses a relative /api/v1 so the SPA stays same-origin" ;;
   esac
 fi
 
