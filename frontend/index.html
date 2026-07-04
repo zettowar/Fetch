@@ -16,7 +16,13 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Fetch" />
-    <meta name="twitter:card" content="summary" />
+    <!-- VITE_SITE_URL is the absolute site origin (set in prod); empty in dev
+         leaves a relative path, which most scrapers still resolve. -->
+    <meta property="og:image" content="%VITE_SITE_URL%/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="%VITE_SITE_URL%/og-image.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

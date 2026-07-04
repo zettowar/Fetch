@@ -14,6 +14,8 @@ import MarketingHome from './marketing/MarketingHome';
 import AboutPage from './marketing/AboutPage';
 import MissionPage from './marketing/MissionPage';
 import NewsPage from './marketing/NewsPage';
+import PrivacyPage from './marketing/PrivacyPage';
+import TermsPage from './marketing/TermsPage';
 import AuthLayout from './marketing/AuthLayout';
 
 // Auth screens
@@ -115,6 +117,8 @@ function AppContent() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/mission" element={<MissionPage />} />
           <Route path="/news" element={<NewsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           {/* Unknown public URL — 404 inside the site chrome. */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>

@@ -106,7 +106,11 @@ export default function SignupPage() {
           </Button>
 
           <p className="text-[11px] text-center text-gray-400 dark:text-gray-500 leading-snug">
-            By creating an account you agree to be a good dog person.
+            By creating an account you agree to the{' '}
+            <Link to="/terms" className="underline hover:text-gray-600 dark:hover:text-gray-300">Terms</Link>
+            {' '}and{' '}
+            <Link to="/privacy" className="underline hover:text-gray-600 dark:hover:text-gray-300">Privacy Policy</Link>
+            , and to be a good dog person.
           </p>
         </form>
 

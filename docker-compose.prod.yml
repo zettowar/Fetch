@@ -142,6 +142,7 @@ services:
         VITE_ENABLE_IP_GEOLOCATION: ${VITE_ENABLE_IP_GEOLOCATION:-true}
         VITE_SHOPIFY_DOMAIN: ${VITE_SHOPIFY_DOMAIN:-}
         VITE_SHOPIFY_STOREFRONT_TOKEN: ${VITE_SHOPIFY_STOREFRONT_TOKEN:-}
+        VITE_SITE_URL: ${VITE_SITE_URL:-https://${DOMAIN:-}}
     # Not published — caddy is the only public entry point, so nothing is
     # reachable over cleartext HTTP.
     depends_on:

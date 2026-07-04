@@ -214,8 +214,14 @@ function MarketingFooter() {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-gray-100 dark:border-gray-800 pt-6 text-xs text-gray-400 dark:text-gray-500">
-          © {year} Fetch. All rights reserved.
+        <div className="mt-10 border-t border-gray-100 dark:border-gray-800 pt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-400 dark:text-gray-500">
+          <span>© {year} Fetch. All rights reserved.</span>
+          <Link to="/privacy" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+            Privacy
+          </Link>
+          <Link to="/terms" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+            Terms
+          </Link>
         </div>
       </div>
     </footer>
