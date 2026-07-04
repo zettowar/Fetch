@@ -142,6 +142,14 @@ services:
     # reachable over cleartext HTTP.
     depends_on:
       - backend
+    # Lets `up --wait` gate on the web tier actually serving, not just starting.
+    # busybox wget ships in the nginx-unprivileged alpine image.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
     deploy:
       resources:
@@ -163,7 +171,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - frontend
+      frontend:
+        condition: service_healthy
     restart: unless-stopped
     deploy:
       resources:

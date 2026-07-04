@@ -234,11 +234,24 @@ docker compose logs celery-worker -f  # Tail worker logs
 ## Production Deployment
 
 `docker-compose.yml` is for **local dev only** (bind-mounts, autoreload, dev
-servers, runs as root). For production use `docker-compose.prod.yml`:
+servers, runs as root). Production runs from `docker-compose.prod.yml` — the
+one command to deploy it is:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+make deploy    # full runbook in deploy/DEPLOY.md
 ```
+
+`make deploy` (`deploy/deploy.sh`) is the robust path: it runs pre-flight
+validation of `.env` (`deploy/preflight.sh` — blocks on weak/missing secrets,
+the `DATABASE_URL`↔`POSTGRES_*` mismatch footgun, dev-only flags, a localhost
+`VITE_API_BASE_URL`, etc.), takes a pre-deploy `pg_dump`, builds the images,
+brings the stack up with `--wait` so it **blocks until every container is
+healthy** (migrations run first, so a bad migration fails the deploy instead of
+half-applying), then smoke-tests the public HTTPS edge. `make preflight` runs
+the checks alone; `make prod-ps` / `prod-logs` / `prod-backup` / `prod-restore`
+cover day-2 ops (see `make help`). The raw
+`docker compose -f docker-compose.prod.yml up -d --build` still works but skips
+all the guardrails.
 
 It builds immutable images from `backend/Dockerfile.prod` and
 `frontend/Dockerfile.prod` (non-root users, multi-worker Uvicorn, static build
