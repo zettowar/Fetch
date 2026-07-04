@@ -143,9 +143,11 @@ services:
     depends_on:
       - backend
     # Lets `up --wait` gate on the web tier actually serving, not just starting.
-    # busybox wget ships in the nginx-unprivileged alpine image.
+    # busybox wget ships in the nginx-unprivileged alpine image. Use 127.0.0.1,
+    # not localhost: localhost can resolve to IPv6 ::1, but nginx only listens
+    # on IPv4 (`listen 8080;`), so a localhost probe gets "connection refused".
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
