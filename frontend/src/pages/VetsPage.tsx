@@ -240,13 +240,19 @@ export default function VetsPage() {
                         </div>
                         <div className="text-right flex-shrink-0">
                           {vet.phone && (
-                            <a
-                              href={`tel:${vet.phone}`}
-                              onClick={(e) => e.stopPropagation()}
+                            // Not an <a>: anchors can't nest inside the row Link
+                            // (invalid DOM — browsers split it and taps misfire).
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.location.href = `tel:${vet.phone}`;
+                              }}
                               className="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline"
                             >
                               Call
-                            </a>
+                            </button>
                           )}
                         </div>
                       </div>
