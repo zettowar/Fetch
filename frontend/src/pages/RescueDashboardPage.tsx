@@ -9,7 +9,10 @@ import {
 } from '../api/rescues';
 import { getMyDogs } from '../api/dogs';
 import { listMyInquiries, updateInquiryStatus, type AdoptionInquiry } from '../api/adoption';
+import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
 import Input from '../components/ui/Input';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
@@ -79,7 +82,7 @@ export default function RescueDashboardPage() {
           Our team is reviewing your application. Once approved, you'll be able to
           post adoptable dogs here.
         </p>
-        <div className="rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30 p-4 text-sm text-amber-800 dark:text-amber-200 mb-4">
+        <div className="rounded-xl bg-warning-50 border border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30 p-4 text-sm text-warning-800 dark:text-warning-200 mb-4">
           Reviews typically take 1–3 business days. We'll email you at your signup address.
         </div>
       </div>
@@ -121,12 +124,18 @@ export default function RescueDashboardPage() {
           Adoptable ({unadopted.length})
         </h2>
         {unadopted.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">
-            No adoptable dogs yet —{' '}
-            <Link to="/app/dogs/new" className="text-brand-500 hover:underline">
-              post your first
-            </Link>.
-          </p>
+          <EmptyState
+            illustration="sleeping"
+            title="No adoptable dogs yet"
+            body={
+              <>
+                <Link to="/app/dogs/new" className="text-brand-500 hover:underline">
+                  Post your first
+                </Link>{' '}
+                to get started.
+              </>
+            }
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {unadopted.map((d) => (
@@ -149,9 +158,11 @@ export default function RescueDashboardPage() {
           Inquiries ({inquiries.length})
         </h2>
         {inquiries.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">
-            No adoption inquiries yet. They'll show up here when someone reaches out from your rescue page.
-          </p>
+          <EmptyState
+            illustration="sleeping"
+            title="No adoption inquiries yet"
+            body="They'll show up here when someone reaches out from your rescue page."
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {inquiries.map((q) => (
@@ -225,7 +236,7 @@ function AdoptableDogRow({
   });
 
   return (
-    <div className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl">
+    <Card padding="sm">
       <div className="flex items-center gap-3">
         {dog.primary_photo_url && (
           <img
@@ -306,7 +317,7 @@ function AdoptableDogRow({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -315,10 +326,10 @@ const STATUS_LABEL: Record<AdoptionInquiry['status'], string> = {
   contacted: 'Contacted',
   closed: 'Closed',
 };
-const STATUS_COLOR: Record<AdoptionInquiry['status'], string> = {
-  new: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
-  contacted: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
-  closed: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+const STATUS_VARIANT: Record<AdoptionInquiry['status'], 'warning' | 'info' | 'neutral'> = {
+  new: 'warning',
+  contacted: 'info',
+  closed: 'neutral',
 };
 
 function InquiryRow({
@@ -342,7 +353,7 @@ function InquiryRow({
   const aboutDog = inquiry.dog_id ? dogs.find((d) => d.id === inquiry.dog_id) : undefined;
 
   return (
-    <div className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl">
+    <Card padding="sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-semibold truncate">{inquiry.name}</p>
@@ -350,18 +361,18 @@ function InquiryRow({
             <a href={`mailto:${inquiry.email}`} className="hover:underline">{inquiry.email}</a>
             {inquiry.phone && ` · ${inquiry.phone}`}
           </p>
-          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+          <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
             {new Date(inquiry.created_at).toLocaleString()}
           </p>
         </div>
-        <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_COLOR[inquiry.status]}`}>
+        <Badge variant={STATUS_VARIANT[inquiry.status]} className="flex-shrink-0">
           {STATUS_LABEL[inquiry.status]}
-        </span>
+        </Badge>
       </div>
       {aboutDog && (
         <Link
           to={`/app/dogs/${aboutDog.id}`}
-          className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-300 text-[11px] font-medium hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
+          className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-300 text-2xs font-medium hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
         >
           About {aboutDog.name} ↗
         </Link>
@@ -384,6 +395,6 @@ function InquiryRow({
           </Button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

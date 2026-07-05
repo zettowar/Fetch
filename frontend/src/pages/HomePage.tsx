@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router-dom';
+import {
+  ArrowLeftRight,
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Heart,
+  Hourglass,
+  HousePlus,
+  Siren,
+  Trophy,
+} from 'lucide-react';
+import PawTrail from '../components/flair/PawTrail';
 import { getCurrentWinner } from '../api/rankings';
 import { getMyFollows } from '../api/social';
 import { getMyDogs } from '../api/dogs';
@@ -80,23 +92,31 @@ export default function HomePage() {
             className="absolute inset-0 w-full h-full object-cover opacity-40"
           />
         )}
+        <PawTrail
+          steps={4}
+          direction={-24}
+          size={18}
+          className="absolute top-10 right-4 text-white/15"
+        />
         <div className="relative z-10 flex items-center justify-between text-white px-4 pt-5">
-          <p className="text-xs uppercase tracking-widest opacity-80">🏆 This Week's Top Dog</p>
+          <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-80">
+            <Trophy size={14} aria-hidden /> This Week's Top Dog
+          </p>
           <span className="text-xs font-medium opacity-80 group-hover:opacity-100 transition-opacity">
             Rankings →
           </span>
         </div>
         <div className="relative z-10 mt-auto text-center text-white px-4 pb-4">
           {winner ? (
-            <h2 className="text-3xl font-bold drop-shadow-sm">{winner.dog_name}</h2>
+            <p className="text-3xl font-bold tracking-tight drop-shadow-sm">{winner.dog_name}</p>
           ) : (
             <>
-              <h2 className="text-2xl font-bold opacity-90">No winner yet</h2>
+              <p className="text-2xl font-bold tracking-tight opacity-90">No winner yet</p>
               <div
                 className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium"
                 title={`Winner announced ${nextWeeklyReset().toLocaleString()}`}
               >
-                <span aria-hidden>⏳</span>
+                <Hourglass size={12} aria-hidden />
                 <span>Results in {resetsIn}</span>
               </div>
             </>
@@ -116,7 +136,9 @@ export default function HomePage() {
             className="flex items-center justify-between gap-3 p-3 bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 rounded-2xl shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
           >
             <div className="flex items-center gap-3">
-              <span className="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-white dark:bg-gray-900 text-lg" aria-hidden>🔄</span>
+              <span className="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-white dark:bg-gray-900 text-brand-500" aria-hidden>
+                <ArrowLeftRight size={18} />
+              </span>
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {pendingTransfers.length === 1
@@ -126,7 +148,7 @@ export default function HomePage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400">Review the invitation to take ownership.</p>
               </div>
             </div>
-            <span className="text-gray-300 dark:text-gray-600">›</span>
+            <ChevronRight size={18} aria-hidden className="text-gray-300 dark:text-gray-600" />
           </Link>
         )}
 
@@ -162,7 +184,7 @@ export default function HomePage() {
                       }`}
                       aria-hidden
                     >
-                      {step.done ? '✓' : i + 1}
+                      {step.done ? <Check size={14} strokeWidth={3} /> : i + 1}
                     </span>
                     <span
                       className={`text-sm font-medium ${
@@ -175,7 +197,9 @@ export default function HomePage() {
                     >
                       {step.label}
                     </span>
-                    {isNext && <span className="ml-auto text-brand-500 text-sm">→</span>}
+                    {isNext && (
+                      <ArrowRight size={16} aria-hidden className="ml-auto text-brand-500" />
+                    )}
                   </>
                 );
                 return (
@@ -204,12 +228,14 @@ export default function HomePage() {
         >
           <div className="relative z-10 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-widest opacity-80">Ready to swipe?</p>
+              <p className="text-2xs uppercase tracking-widest opacity-80">Ready to swipe?</p>
               <p className="text-base font-bold mt-0.5">Rate Dogs</p>
               <p className="text-xs opacity-90 mt-0.5 truncate">Fresh pups waiting for your vote</p>
             </div>
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl">
-              <span className="inline-block animate-heartbeat origin-center" aria-hidden>❤️</span>
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <span className="inline-block animate-heartbeat origin-center" aria-hidden>
+                <Heart size={20} fill="currentColor" strokeWidth={0} />
+              </span>
             </div>
           </div>
           <div aria-hidden className="pointer-events-none absolute -right-5 -bottom-5 w-20 h-20 rounded-full bg-white/10 blur-xl" />
@@ -222,14 +248,14 @@ export default function HomePage() {
         >
           <div className="relative z-10 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-widest opacity-80">Find a forever home</p>
+              <p className="text-2xs uppercase tracking-widest opacity-80">Find a forever home</p>
               <p className="text-base font-bold mt-0.5">Rescues</p>
               <p className="text-xs opacity-90 mt-0.5 truncate">
                 Browse adoptable dogs from local rescues
               </p>
             </div>
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl">
-              <span aria-hidden>🏠</span>
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <HousePlus size={20} aria-hidden />
             </div>
           </div>
           <div
@@ -241,18 +267,18 @@ export default function HomePage() {
         {/* Lost & Found — half-size hero panel, red theme */}
         <Link
           to="/app/lost"
-          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 to-red-700 text-white p-3.5 shadow-soft-lg hover:shadow-[0_10px_30px_-8px_rgba(239,68,68,0.5)] hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-danger-500 to-danger-700 text-white p-3.5 shadow-soft-lg hover:shadow-[0_10px_30px_-8px_rgba(239,68,68,0.5)] hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
         >
           <div className="relative z-10 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-widest opacity-80">Help bring them home</p>
+              <p className="text-2xs uppercase tracking-widest opacity-80">Help bring them home</p>
               <p className="text-base font-bold mt-0.5">Lost &amp; Found</p>
               <p className="text-xs opacity-90 mt-0.5 truncate">
                 Help reunite missing dogs with their owners
               </p>
             </div>
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl">
-              <span aria-hidden>🚨</span>
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Siren size={20} aria-hidden />
             </div>
           </div>
           <div
@@ -289,13 +315,13 @@ export default function HomePage() {
                             className="w-12 h-12 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center text-xl">
+                          <div className="w-12 h-12 rounded-full bg-brand-50 dark:bg-brand-500/15 flex items-center justify-center text-xl">
                             🐶
                           </div>
                         )}
                       </div>
                     </div>
-                    <span className="text-[11px] text-gray-700 dark:text-gray-300 font-medium truncate w-full text-center">
+                    <span className="text-2xs text-gray-700 dark:text-gray-300 font-medium truncate w-full text-center">
                       {dog.name}
                     </span>
                   </Link>
@@ -309,7 +335,7 @@ export default function HomePage() {
                   <div className="w-14 h-14 rounded-full border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center">
                     +{followedDogs.length - MAX_STRIP_AVATARS}
                   </div>
-                  <span className="text-[11px] font-medium">More</span>
+                  <span className="text-2xs font-medium">More</span>
                 </Link>
               )}
             </div>
@@ -320,13 +346,13 @@ export default function HomePage() {
             className="flex items-center justify-between gap-3 p-3 bg-white/70 dark:bg-white/5 border border-gray-200/80 dark:border-white/10 backdrop-blur rounded-2xl shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
           >
             <div className="flex items-center gap-3">
-              <span className="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-100 text-lg" aria-hidden>🐾</span>
+              <span className="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-500/15 text-lg" aria-hidden>🐾</span>
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Following</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Follow dogs to see them here</p>
               </div>
             </div>
-            <span className="text-gray-300 dark:text-gray-600">›</span>
+            <ChevronRight size={18} aria-hidden className="text-gray-300 dark:text-gray-600" />
           </Link>
         )}
       </div>

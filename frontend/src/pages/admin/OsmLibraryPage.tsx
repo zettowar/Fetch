@@ -3,7 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import client from '../../api/client';
 import Button from '../../components/ui/Button';
-import { Spinner } from '../../components/ui/Skeleton';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
+import SearchInput from '../../components/ui/SearchInput';
+import { ListSkeleton, Spinner } from '../../components/ui/Skeleton';
 import TimeAgo from '../../components/TimeAgo';
 import { apiErrorMessage } from '../../utils/apiError';
 
@@ -130,7 +133,7 @@ function ImportTab({
   return (
     <>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">{config.importDescription}</p>
-      <section className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+      <Card as="section" className="mb-6">
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Import region</h2>
         <div className="flex flex-wrap gap-1.5 mb-4">
           {config.presets.map((p) => (
@@ -145,7 +148,7 @@ function ImportTab({
             >
               {p.label}
               {p.note && (
-                <span className={`ml-1.5 text-[10px] ${selected === p.key ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
+                <span className={`ml-1.5 text-2xs ${selected === p.key ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
                   ({p.note})
                 </span>
               )}
@@ -175,30 +178,30 @@ function ImportTab({
             Querying Overpass… this can take up to {activePreset.note ?? config.defaultSpinnerNote}.
           </p>
         )}
-      </section>
+      </Card>
 
       <section>
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recent imports</h2>
         {historyLoading ? (
-          <div className="flex justify-center py-4"><Spinner className="h-5 w-5" /></div>
+          <ListSkeleton rows={3} />
         ) : history.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 py-4">No imports yet.</p>
+          <EmptyState className="py-6" title="No imports yet" />
         ) : (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 divide-y">
+          <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
             {history.map((h) => (
               <div key={h.id} className="px-3 py-2.5 flex items-center gap-3 text-sm">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 dark:text-gray-200">{h.bbox ? bboxLabel(config.presets, h.bbox) : 'Worldwide'}</p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500">{h.actor_name ?? 'admin'} · <TimeAgo value={h.created_at} /></p>
+                  <p className="text-2xs text-gray-400 dark:text-gray-500">{h.actor_name ?? 'admin'} · <TimeAgo value={h.created_at} /></p>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 shrink-0">
-                  <span className="text-green-600 dark:text-green-400">+{h.created}</span>
+                  <span className="text-success-600 dark:text-success-400">+{h.created}</span>
                   <span>~{h.updated}</span>
                   <span className="text-gray-400 dark:text-gray-500">of {h.total_fetched}</span>
                 </div>
               </div>
             ))}
-          </div>
+          </Card>
         )}
       </section>
     </>
@@ -302,12 +305,11 @@ function ManualTab({ config }: { config: OsmLibraryConfig }) {
   return (
     <div>
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <input
-          type="text"
+        <SearchInput
           placeholder="Search by name…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 min-w-0 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+          onChange={setSearch}
+          className="flex-1 min-w-0"
         />
         <select
           value={source}
@@ -322,7 +324,7 @@ function ManualTab({ config }: { config: OsmLibraryConfig }) {
       </div>
 
       {(showCreate || editId) && (
-        <div className="mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <Card className="mb-4">
           <h3 className="text-sm font-semibold mb-3">
             {editId ? `Edit ${config.entityLabel}` : `New ${config.entityLabel}`}
           </h3>
@@ -370,20 +372,20 @@ function ManualTab({ config }: { config: OsmLibraryConfig }) {
             </Button>
             <Button size="sm" variant="ghost" onClick={cancel}>Cancel</Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-8"><Spinner className="h-5 w-5" /></div>
+        <ListSkeleton rows={5} />
       ) : records.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500 py-8 text-center">No {config.entityLabel}s found.</p>
+        <EmptyState className="py-6" title={`No ${config.entityLabel}s found`} />
       ) : (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {records.map((r) => (
             <div key={r.id} className="px-3 py-2.5 flex items-center gap-3 text-sm">
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{r.name}</p>
-                <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">
+                <p className="text-2xs text-gray-400 dark:text-gray-500 truncate">
                   {r.address ?? `${r.lat.toFixed(4)}, ${r.lng.toFixed(4)}`}
                   {config.rowExtra?.(r) ?? ''}
                   {' · '}<TimeAgo value={r.created_at} />
@@ -402,7 +404,7 @@ function ManualTab({ config }: { config: OsmLibraryConfig }) {
               </div>
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );

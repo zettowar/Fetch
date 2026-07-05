@@ -31,6 +31,11 @@ class Dog(Base, UUIDPrimaryKey, TimestampMixin):
     )
     traits: Mapped[list[str]] = mapped_column(ARRAY(String(50)), default=list, nullable=False, server_default="{}")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Whether the read-only share page (/dogs/{id} on the public site) exists
+    # for this dog. Owners can turn it off in the dog editor.
+    is_public: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="true"
+    )
 
     adopted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     adopted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(

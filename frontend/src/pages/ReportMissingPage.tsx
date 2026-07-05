@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Siren } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -56,7 +57,7 @@ export default function ReportMissingPage() {
     <div className="p-4">
       <BackButton fallback="/app/lost" />
       <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
-        <span aria-hidden>🚨</span> Report Missing Dog
+        <Siren size={22} aria-hidden className="text-danger-500" /> Report Missing Dog
       </h1>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Please also contact your local animal control and vet clinics.

@@ -3,8 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getInvites, generateInvites } from '../../api/admin';
 import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
 import TimeAgo from '../../components/TimeAgo';
-import { Spinner } from '../../components/ui/Skeleton';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 
 export default function AdminInvitesPage() {
   const [count, setCount] = useState(10);
@@ -57,7 +60,7 @@ export default function AdminInvitesPage() {
       <h1 className="text-2xl font-bold mb-4">Invite Codes</h1>
 
       {/* Generate section */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 mb-4">
+      <Card className="mb-4">
         <div className="flex items-center gap-3">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300 shrink-0">Generate</label>
           <input
@@ -80,7 +83,7 @@ export default function AdminInvitesPage() {
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
           {unusedCount} unused / {usedCount} used / {allInvites.length} total
         </p>
-      </div>
+      </Card>
 
       {/* Filter */}
       <div className="flex gap-1 mb-4">
@@ -98,11 +101,11 @@ export default function AdminInvitesPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-8"><Spinner size="sm" /></div>
+        <ListSkeleton rows={5} />
       ) : invites.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 dark:text-gray-500">No {filter} invite codes.</div>
+        <EmptyState className="py-6" title={`No ${filter} invite codes`} />
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {invites.map((inv) => (
             <div key={inv.id} className="flex items-center gap-3 p-3">
               <button
@@ -114,14 +117,14 @@ export default function AdminInvitesPage() {
               </button>
               <span className="flex-1" />
               {inv.is_used ? (
-                <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full">Used</span>
+                <Badge variant="neutral">Used</Badge>
               ) : (
-                <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 rounded-full">Available</span>
+                <Badge variant="success">Available</Badge>
               )}
               <span className="text-xs text-gray-400 dark:text-gray-500"><TimeAgo value={inv.created_at} /></span>
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );

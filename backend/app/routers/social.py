@@ -14,7 +14,9 @@ from app.models.photo import Photo
 from app.models.post import Post
 from app.models.social import Comment, Follow, Reaction
 from app.models.user import User
+from app.services.blocks import is_blocked_between
 from app.services.dog_serializer import dog_to_out as _dog_to_out
+from app.services.notify import notify
 from app.schemas.social import (
     CommentCreate,
     CommentOut,
@@ -40,16 +42,30 @@ async def follow_dog(
 ):
     # Verify dog exists
     result = await db.execute(select(Dog).where(Dog.id == body.dog_id, Dog.is_active == True))
-    if not result.scalar_one_or_none():
+    dog = result.scalar_one_or_none()
+    if not dog:
+        raise HTTPException(status_code=404, detail="Dog not found")
+    if await is_blocked_between(db, user.id, dog.owner_id):
+        # Indistinguishable from a nonexistent dog on purpose.
         raise HTTPException(status_code=404, detail="Dog not found")
 
     follow = Follow(follower_id=user.id, dog_id=body.dog_id)
     db.add(follow)
+    # Flush BEFORE notify(): its preference lookup would autoflush the row
+    # anyway, and a uq_follow violation must surface here as a clean 409.
     try:
-        await db.commit()
+        await db.flush()
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=409, detail="Already following this dog")
+    if dog.owner_id != user.id:
+        await notify(
+            db, dog.owner_id,
+            type="follow",
+            title=f"{user.display_name} started following {dog.name}",
+            link=f"/app/dogs/{dog.id}",
+        )
+    await db.commit()
     await db.refresh(follow)
     return FollowOut(
         id=follow.id,
@@ -137,6 +153,29 @@ async def _require_target(db: AsyncSession, target_type: str, target_id: UUID) -
         raise HTTPException(status_code=404, detail=f"{target_type} not found")
 
 
+async def _comment_notification_context(
+    db: AsyncSession, target_type: str, target_id: UUID
+) -> tuple[UUID | None, str, str | None]:
+    """Who to tell about a comment, plus display label and in-app link."""
+    if target_type == "dog":
+        dog = (await db.execute(select(Dog).where(Dog.id == target_id))).scalar_one_or_none()
+        if dog:
+            return dog.owner_id, dog.name, f"/app/dogs/{dog.id}"
+    elif target_type == "photo":
+        row = (
+            await db.execute(
+                select(Dog).join(Photo, Photo.dog_id == Dog.id).where(Photo.id == target_id)
+            )
+        ).scalar_one_or_none()
+        if row:
+            return row.owner_id, f"a photo of {row.name}", f"/app/dogs/{row.id}"
+    elif target_type == "post":
+        post = (await db.execute(select(Post).where(Post.id == target_id))).scalar_one_or_none()
+        if post:
+            return post.author_id, f"your post “{post.title[:60]}”", "/app/following"
+    return None, "", None
+
+
 # --- Comments ---
 
 @router.post("/comments", response_model=CommentOut, status_code=status.HTTP_201_CREATED)
@@ -155,6 +194,22 @@ async def create_comment(
         body=body.body,
     )
     db.add(comment)
+
+    owner_id, label, link = await _comment_notification_context(
+        db, body.target_type, body.target_id
+    )
+    if owner_id is not None and await is_blocked_between(db, user.id, owner_id):
+        raise HTTPException(status_code=404, detail=f"{body.target_type} not found")
+    if owner_id is not None and owner_id != user.id:
+        excerpt = body.body if len(body.body) <= 120 else f"{body.body[:117]}..."
+        await notify(
+            db, owner_id,
+            type="comment",
+            title=f"{user.display_name} commented on {label}",
+            body=excerpt,
+            link=link,
+        )
+
     await db.commit()
     await db.refresh(comment)
     return CommentOut(
@@ -177,10 +232,16 @@ async def list_comments(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.services.blocks import blocked_user_ids_subquery
+
     result = await db.execute(
         select(Comment)
         .options(selectinload(Comment.author))
-        .where(Comment.target_type == target_type, Comment.target_id == target_id)
+        .where(
+            Comment.target_type == target_type,
+            Comment.target_id == target_id,
+            Comment.author_id.notin_(blocked_user_ids_subquery(user.id)),
+        )
         .order_by(Comment.created_at.asc())
         .limit(limit)
         .offset(offset)

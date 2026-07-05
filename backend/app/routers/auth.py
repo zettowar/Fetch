@@ -11,10 +11,19 @@ from app.deps import get_current_user
 from app.limiter import limiter
 from app.models.beta import InviteCode
 from app.models.rescue import RescueProfile
-from app.models.user import EmailVerificationToken, PasswordResetToken, RefreshToken, User
+from app.models.user import (
+    EmailChangeToken,
+    EmailVerificationToken,
+    PasswordResetToken,
+    RefreshToken,
+    User,
+)
 from app.config import settings
 from app.schemas.auth import (
     AuthResponse,
+    ChangeEmailRequest,
+    ChangePasswordRequest,
+    ConfirmEmailChangeRequest,
     DetailResponse,
     ForgotPasswordRequest,
     LoginRequest,
@@ -30,7 +39,11 @@ from app.schemas.auth import (
 )
 from app.schemas.rescue import RescueSignupRequest
 from app.schemas.user import UserOut
-from app.services.email import send_password_reset_email, send_verification_email
+from app.services.email import (
+    send_email_change_email,
+    send_password_reset_email,
+    send_verification_email,
+)
 from app.security import (
     DUMMY_PASSWORD_HASH,
     create_access_token,
@@ -260,6 +273,127 @@ async def logout(request: Request, body: LogoutRequest, db: AsyncSession = Depen
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)):
     return user
+
+
+@router.post("/change-password", response_model=TokenResponse)
+@limiter.limit("5/minute")
+async def change_password(
+    request: Request,
+    body: ChangePasswordRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change password while logged in. All existing sessions are revoked and
+    a fresh token pair is returned so this one continues seamlessly."""
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    user.password_hash = hash_password(body.new_password)
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked == False)  # noqa: E712
+        .values(revoked=True)
+    )
+    tokens = await _create_tokens(user, db)
+    logger.info("password_changed", user_id=str(user.id))
+    return tokens
+
+
+@router.post("/change-email")
+@limiter.limit("3/hour")
+async def change_email(
+    request: Request,
+    body: ChangeEmailRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Start an email change: a confirmation link goes to the NEW address, and
+    nothing switches until that address proves it can receive it."""
+    if not verify_password(body.password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Password is incorrect")
+
+    new_email = body.new_email.lower().strip()
+    if new_email == user.email:
+        raise HTTPException(status_code=400, detail="That is already your email address")
+    taken = await db.execute(select(User).where(User.email == new_email))
+    if taken.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    if not settings.RESEND_API_KEY and not settings.DEBUG_VERIFY_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="Email changes are unavailable — email delivery is not configured",
+        )
+
+    # Invalidate any previous pending change.
+    existing = await db.execute(
+        select(EmailChangeToken).where(
+            EmailChangeToken.user_id == user.id,
+            EmailChangeToken.used == False,  # noqa: E712
+        )
+    )
+    for old in existing.scalars().all():
+        old.used = True
+
+    raw_token = generate_reset_token()
+    db.add(EmailChangeToken(
+        user_id=user.id,
+        new_email=new_email,
+        token_hash=hash_reset_token(raw_token),
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
+    ))
+    await db.commit()
+
+    logger.info("email_change_requested", user_id=str(user.id))
+    background_tasks.add_task(send_email_change_email, new_email, raw_token)
+
+    response: dict = {"detail": f"Confirmation link sent to {new_email}"}
+    if settings.DEBUG_VERIFY_TOKEN:
+        response["debug_token"] = raw_token
+    return response
+
+
+@router.post("/confirm-email-change", response_model=DetailResponse)
+@limiter.limit("10/minute")
+async def confirm_email_change(
+    request: Request,
+    body: ConfirmEmailChangeRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    token_hash = hash_reset_token(body.token.strip())
+    result = await db.execute(
+        select(EmailChangeToken).where(
+            EmailChangeToken.token_hash == token_hash,
+            EmailChangeToken.used == False,  # noqa: E712
+            EmailChangeToken.expires_at > datetime.now(timezone.utc),
+        )
+    )
+    token = result.scalar_one_or_none()
+    if not token:
+        raise HTTPException(status_code=400, detail="Invalid or expired confirmation token")
+
+    # The address must still be free — someone may have registered it since.
+    taken = await db.execute(select(User).where(User.email == token.new_email))
+    if taken.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    user_result = await db.execute(
+        select(User).where(User.id == token.user_id, User.is_active == True)  # noqa: E712
+    )
+    target = user_result.scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=400, detail="Invalid or expired confirmation token")
+
+    old_email = target.email
+    target.email = token.new_email
+    target.is_verified = True  # the new address just proved itself
+    token.used = True
+    await db.commit()
+
+    logger.info("email_changed", user_id=str(target.id), old_email=old_email)
+    return {"detail": "Email address updated"}
 
 
 @router.post("/forgot-password")

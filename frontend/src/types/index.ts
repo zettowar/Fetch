@@ -45,6 +45,7 @@ export interface Dog {
   primary_photo_id: string | null;
   primary_photo_url: string | null;
   is_active: boolean;
+  is_public: boolean;
   created_at: string;
   photos: Photo[];
   adoptable: boolean;
@@ -85,6 +86,10 @@ export interface WeeklyWinner {
 export interface DogStats {
   likes: number;
   passes: number;
+  week_score: number | null;
+  week_rank: number | null;
+  week_total: number;
+  crown_weeks: string[];
 }
 
 export interface TokenResponse {

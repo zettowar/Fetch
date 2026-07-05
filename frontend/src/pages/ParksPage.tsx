@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
+import { Check, Trees } from 'lucide-react';
 import { getNearbyParks } from '../api/parks';
 import Map from '../components/Map';
-import { Spinner } from '../components/ui/Skeleton';
+import Badge from '../components/ui/Badge';
+import EmptyState from '../components/ui/EmptyState';
+import SearchInput from '../components/ui/SearchInput';
+import { ListSkeleton } from '../components/ui/Skeleton';
+import PawSpinner from '../components/flair/PawSpinner';
 import { useUserLocation } from '../utils/useUserLocation';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // fallback
@@ -62,19 +67,19 @@ export default function ParksPage() {
         {p.address && <p className="text-xs text-gray-500 dark:text-gray-400">{p.address}</p>}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
           {p.active_dogs_count > 0 && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300 text-[11px] font-medium rounded-full">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500" />
-              </span>
+            <Badge
+              variant="brand"
+              icon={
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-500" />
+                </span>
+              }
+            >
               {p.active_dogs_count} here
-            </span>
+            </Badge>
           )}
-          {p.verified && p.active_dogs_count === 0 && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 text-[11px] font-medium rounded-full">
-              Verified
-            </span>
-          )}
+          {p.verified && p.active_dogs_count === 0 && <Badge variant="success">Verified</Badge>}
           {p.avg_rating != null && (
             <span className="text-xs text-gray-500 dark:text-gray-400">
               {p.avg_rating.toFixed(1)} ★ · {p.review_count} {p.review_count === 1 ? 'review' : 'reviews'}
@@ -111,28 +116,15 @@ export default function ParksPage() {
       {/* ── Compact header ──────────────────────────────────────────── */}
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <span aria-hidden>🌳</span> Dog Parks
+          <Trees size={20} aria-hidden className="text-brand-500" /> Dog Parks
         </h1>
 
-        <div className="relative mt-2.5">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden
-          >
-            <circle cx={11} cy={11} r={7} strokeWidth={2} />
-            <path d="m20 20-3-3" strokeWidth={2} strokeLinecap="round" />
-          </svg>
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search parks by name or address..."
-            className="w-full bg-gray-100 dark:bg-gray-800 rounded-full pl-9 pr-3 py-2 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-brand-300"
-          />
-        </div>
+        <SearchInput
+          className="mt-2.5"
+          value={search}
+          onChange={setSearch}
+          placeholder="Search parks by name or address..."
+        />
 
         <div className="flex gap-1.5 mt-2 overflow-x-auto -mx-4 px-4 pb-0.5">
           {filterOptions.map((opt) => (
@@ -164,14 +156,19 @@ export default function ParksPage() {
             onViewChange={(lat, lng) => setViewCenter([lng, lat])}
             className="h-full w-full"
           />
+          {isLoading && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 glass rounded-full px-4 py-2 shadow-soft-lg">
+              <PawSpinner size="sm" />
+            </div>
+          )}
           {/* Map legend */}
-          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-[11px] text-gray-700 dark:text-gray-200 shadow-md ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
+          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-2xs text-gray-700 dark:text-gray-200 shadow-soft ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-orange-500" />
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-500" />
               Active
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-500" />
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-success-500" />
               Verified
             </span>
             <span className="flex items-center gap-1.5">
@@ -200,36 +197,36 @@ export default function ParksPage() {
 
           <div className="p-3">
             {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Spinner className="h-6 w-6" />
-              </div>
+              <ListSkeleton rows={4} />
             ) : isError ? (
-              <p className="text-red-500 dark:text-red-400 text-sm text-center py-6">
+              <p className="text-danger-500 dark:text-danger-400 text-sm text-center py-6">
                 Failed to load parks. Check your connection.
               </p>
             ) : filteredParks.length === 0 ? (
-              <div className="text-center py-10 text-gray-400 dark:text-gray-500">
-                <p className="text-3xl mb-2">🌳</p>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {parks.length > 0
+              <EmptyState
+                illustration="sniffing"
+                title={
+                  parks.length > 0
                     ? 'No parks match your search or filter.'
-                    : "No parks in your area yet — we're expanding the library."}
-                </p>
-                {parks.length === 0 && (
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-xs mx-auto">
-                    Parks come from{' '}
-                    <a
-                      href="https://wiki.openstreetmap.org/wiki/Tag:leisure%3Ddog_park"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-500 hover:underline"
-                    >
-                      OpenStreetMap
-                    </a>
-                    . Missing one? Add it there and it'll show up on the next sync.
-                  </p>
-                )}
-              </div>
+                    : "No parks in your area yet — we're expanding the library."
+                }
+                body={
+                  parks.length === 0 ? (
+                    <>
+                      Parks come from{' '}
+                      <a
+                        href="https://wiki.openstreetmap.org/wiki/Tag:leisure%3Ddog_park"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        OpenStreetMap
+                      </a>
+                      . Missing one? Add it there and it'll show up on the next sync.
+                    </>
+                  ) : undefined
+                }
+              />
             ) : (
               <div className="flex flex-col gap-2">
                 {filteredParks.map((park) => {
@@ -259,21 +256,22 @@ export default function ParksPage() {
                               {park.name}
                             </h3>
                             {park.verified && (
-                              <span
-                                className="inline-flex items-center text-[10px] font-medium text-green-700 dark:text-green-300 bg-green-100 px-1.5 py-0.5 rounded-full"
-                                title="Verified"
-                              >
-                                ✓
-                              </span>
+                              <Badge variant="success" title="Verified">
+                                <Check size={10} strokeWidth={3} aria-hidden />
+                              </Badge>
                             )}
                             {park.active_dogs_count > 0 && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300 text-[10px] font-medium rounded-full">
-                                <span className="relative flex h-1.5 w-1.5">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500" />
-                                </span>
+                              <Badge
+                                variant="brand"
+                                icon={
+                                  <span className="relative flex h-1.5 w-1.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-500" />
+                                  </span>
+                                }
+                              >
                                 {park.active_dogs_count} here
-                              </span>
+                              </Badge>
                             )}
                           </div>
                           {park.address && (
@@ -289,17 +287,17 @@ export default function ParksPage() {
                                   {'★'.repeat(5 - Math.round(park.avg_rating))}
                                 </span>
                               </p>
-                              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                              <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
                                 {park.avg_rating.toFixed(1)} · {park.review_count}
                               </p>
                             </>
                           ) : (
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500">No reviews</p>
+                            <p className="text-2xs text-gray-400 dark:text-gray-500">No reviews</p>
                           )}
                         </div>
                       </div>
                       {isSelected && (
-                        <p className="text-[11px] text-brand-600 mt-2 font-medium">
+                        <p className="text-2xs text-brand-600 mt-2 font-medium">
                           Tap again to open →
                         </p>
                       )}

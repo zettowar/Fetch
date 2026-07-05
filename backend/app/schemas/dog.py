@@ -102,6 +102,7 @@ class DogUpdate(BaseModel):
     bio: str | None = None
     location_rough: str | None = None
     traits: list[str] | None = None
+    is_public: bool | None = None
 
     @field_validator("mix_type")
     @classmethod
@@ -138,6 +139,7 @@ class DogOut(BaseModel):
     primary_photo_id: UUID | None = None
     primary_photo_url: str | None = None
     is_active: bool
+    is_public: bool = True
     created_at: datetime
     photos: list[PhotoSummary] = []
 

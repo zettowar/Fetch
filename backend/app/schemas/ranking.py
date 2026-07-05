@@ -29,3 +29,7 @@ class WeeklyWinnerOut(BaseModel):
 class DogStats(BaseModel):
     likes: int
     passes: int
+    week_score: int | None = None
+    week_rank: int | None = None
+    week_total: int = 0
+    crown_weeks: list[date] = []

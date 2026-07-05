@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { createFAQ, updateFAQ, deleteFAQ, type FAQEntry } from '../../api/admin';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
-import { Spinner } from '../../components/ui/Skeleton';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 
 // Fetch FAQ via support endpoint (public, but admin can manage)
 import client from '../../api/client';
@@ -78,7 +80,7 @@ export default function AdminFAQPage() {
       </div>
 
       {showForm && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 mb-4 flex flex-col gap-3">
+        <Card className="mb-4 flex flex-col gap-3">
           <Input label="Question" value={question} onChange={(e) => setQuestion(e.target.value)} />
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Answer</label>
@@ -97,15 +99,15 @@ export default function AdminFAQPage() {
           >
             {editId ? 'Update' : 'Create'}
           </Button>
-        </div>
+        </Card>
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-8"><Spinner size="sm" /></div>
+        <ListSkeleton rows={5} />
       ) : faqs.length === 0 ? (
-        <p className="text-gray-400 dark:text-gray-500 text-center py-8">No FAQ entries.</p>
+        <EmptyState className="py-6" title="No FAQ entries" />
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {faqs.map((faq) => (
             <div key={faq.id} className="p-3">
               <div className="flex items-start justify-between gap-2">
@@ -116,12 +118,12 @@ export default function AdminFAQPage() {
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <Button size="sm" variant="ghost" onClick={() => startEdit(faq)}>Edit</Button>
-                  <Button size="sm" variant="ghost" onClick={() => { if (confirm('Delete this FAQ?')) deleteMutation.mutate(faq.id); }}>Del</Button>
+                  <Button size="sm" variant="ghost" loading={deleteMutation.isPending && deleteMutation.variables === faq.id} onClick={() => { if (confirm('Delete this FAQ?')) deleteMutation.mutate(faq.id); }}>Del</Button>
                 </div>
               </div>
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );

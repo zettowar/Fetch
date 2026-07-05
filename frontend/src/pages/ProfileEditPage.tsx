@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { updateMe } from '../api/auth';
+import { changeEmail, changePassword, updateMe } from '../api/auth';
+import { getMyBlocks, unblockUser } from '../api/social';
+import { Ban, Lock, Pencil } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import BackButton from '../components/ui/BackButton';
 import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import PasswordInput from '../components/ui/PasswordInput';
+import TimeAgo from '../components/TimeAgo';
+import { apiErrorMessage } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function ProfileEditPage() {
@@ -60,7 +67,7 @@ export default function ProfileEditPage() {
     <div className="p-4">
       <BackButton fallback={`/app/users/${user.id}`} />
       <h1 className="text-2xl font-bold mt-2 mb-4 flex items-center gap-2">
-        <span aria-hidden>✏️</span> Edit profile
+        <Pencil size={20} aria-hidden className="text-brand-500" /> Edit profile
       </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
@@ -81,7 +88,8 @@ export default function ProfileEditPage() {
             className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5 text-base text-gray-500 dark:text-gray-400 shadow-soft-sm cursor-not-allowed"
           />
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Email changes aren't supported yet. Contact support if you need to change yours.
+            Change it in the Account section below — the new address gets a
+            confirmation link first.
           </p>
         </div>
         <Input
@@ -130,6 +138,152 @@ export default function ProfileEditPage() {
           </Button>
         </div>
       </form>
+
+      <AccountSection />
+      <BlockedUsersSection />
     </div>
+  );
+}
+
+function AccountSection() {
+  const { user, login } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+
+  const passwordMutation = useMutation({
+    mutationFn: () => changePassword(currentPassword, newPassword),
+    onSuccess: (tokens) => {
+      // Every other session was just revoked; adopt the fresh pair so this
+      // one keeps working.
+      if (user) login(tokens.access_token, tokens.refresh_token, user);
+      setCurrentPassword('');
+      setNewPassword('');
+      toast.success('Password changed. Other sessions were signed out.');
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, "Couldn't change password")),
+  });
+
+  const emailMutation = useMutation({
+    mutationFn: () => changeEmail(emailPassword, newEmail.trim()),
+    onSuccess: (res) => {
+      setEmailPassword('');
+      setNewEmail('');
+      toast.success(res.detail, { duration: 6000 });
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, "Couldn't start the email change")),
+  });
+
+  return (
+    <section className="mt-10 max-w-md">
+      <h2 className="text-lg font-bold flex items-center gap-2">
+        <Lock size={18} aria-hidden className="text-brand-500" /> Account
+      </h2>
+
+      <Card
+        as="form"
+        className="mt-3 flex flex-col gap-3"
+        onSubmit={(e) => { e.preventDefault(); passwordMutation.mutate(); }}
+      >
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Change password</p>
+        <PasswordInput
+          label="Current password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+        />
+        <PasswordInput
+          label="New password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          required
+          minLength={8}
+          showStrength
+          autoComplete="new-password"
+        />
+        <Button type="submit" size="sm" loading={passwordMutation.isPending} className="self-start">
+          Update password
+        </Button>
+      </Card>
+
+      <Card
+        as="form"
+        className="mt-4 flex flex-col gap-3"
+        onSubmit={(e) => { e.preventDefault(); emailMutation.mutate(); }}
+      >
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Change email</p>
+        <Input
+          label="New email"
+          type="email"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          required
+          autoComplete="email"
+        />
+        <PasswordInput
+          label="Confirm with your password"
+          value={emailPassword}
+          onChange={(e) => setEmailPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+        />
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          We'll email a confirmation link to the new address. Nothing changes
+          until it's clicked.
+        </p>
+        <Button type="submit" size="sm" loading={emailMutation.isPending} className="self-start">
+          Send confirmation
+        </Button>
+      </Card>
+    </section>
+  );
+}
+
+function BlockedUsersSection() {
+  const queryClient = useQueryClient();
+  const { data: blocks = [], isLoading } = useQuery({
+    queryKey: ['my-blocks'],
+    queryFn: getMyBlocks,
+  });
+  const unblockMutation = useMutation({
+    mutationFn: unblockUser,
+    onSuccess: () => {
+      toast.success('Unblocked');
+      queryClient.invalidateQueries({ queryKey: ['my-blocks'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+    },
+    onError: () => toast.error("Couldn't unblock right now"),
+  });
+
+  if (isLoading || blocks.length === 0) return null;
+
+  return (
+    <section className="mt-8 max-w-md">
+      <h2 className="text-lg font-bold flex items-center gap-2">
+        <Ban size={18} aria-hidden className="text-danger-500" /> Blocked users
+      </h2>
+      <Card as="ul" padding="none" className="mt-3 divide-y divide-gray-100 dark:divide-gray-800">
+        {blocks.map((b) => (
+          <li key={b.user_id} className="flex items-center gap-3 px-4 py-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{b.display_name}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Blocked <TimeAgo value={b.blocked_at} />
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              loading={unblockMutation.isPending && unblockMutation.variables === b.user_id}
+              onClick={() => unblockMutation.mutate(b.user_id)}
+            >
+              Unblock
+            </Button>
+          </li>
+        ))}
+      </Card>
+    </section>
   );
 }

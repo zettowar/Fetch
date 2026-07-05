@@ -22,22 +22,12 @@ export function CardSkeleton() {
   );
 }
 
-export function Spinner({
-  className = '',
-  size = 'md',
-  label = 'Loading',
-}: { className?: string; size?: 'sm' | 'md' | 'lg'; label?: string }) {
-  const sizeClass = size === 'sm' ? 'h-6 w-6' : size === 'lg' ? 'h-10 w-10' : 'h-8 w-8';
-  return (
-    <div
-      role="status"
-      aria-label={label}
-      className={`animate-spin rounded-full border-2 border-brand-200 border-t-brand-500 ${sizeClass} ${className}`}
-    >
-      <span className="sr-only">{label}</span>
-    </div>
-  );
-}
+/**
+ * Loading indicator. Now a paw-print walking trail (see flair/PawSpinner)
+ * — kept here as a re-export so every existing call site upgraded without
+ * churn. New code can import PawSpinner directly.
+ */
+export { default as Spinner } from '../flair/PawSpinner';
 
 export function ListSkeleton({ rows = 5 }: { rows?: number }) {
   return (

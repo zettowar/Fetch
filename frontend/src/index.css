@@ -5,6 +5,12 @@
 @layer base {
   :root {
     --brand: 238 122 16;
+    --success: 16 185 129; /* emerald-500 */
+    --warning: 245 158 11; /* amber-500 */
+    --danger: 239 68 68; /* red-500 */
+    --info: 14 165 233; /* sky-500 */
+    --toast-bg: rgb(17 24 39 / 0.92);
+    --toast-border: rgb(255 255 255 / 0.08);
   }
 
   html {
@@ -109,6 +115,10 @@
 
   .pressable {
     @apply transition-transform duration-150 ease-soft-out active:scale-[0.97];
+  }
+
+  .hover-lift {
+    @apply transition-all duration-200 ease-soft-out hover:-translate-y-0.5 hover:shadow-soft active:translate-y-0;
   }
 
   .text-balance {

@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ShoppingBag } from 'lucide-react';
 import { getProducts, priceLabel, shopConfigured, type ShopProduct } from '../api/shop';
+import Badge from '../components/ui/Badge';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
@@ -34,7 +36,7 @@ function ProductCard({ product, index }: { product: ShopProduct; index: number }
           </div>
         )}
         {!product.available && (
-          <span className="absolute top-2 left-2 inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-gray-900/80 text-white rounded-full">
+          <span className="absolute top-2 left-2 inline-flex items-center px-2 py-0.5 text-2xs font-bold uppercase tracking-wide bg-gray-900/80 text-white rounded-full">
             Sold out
           </span>
         )}
@@ -68,15 +70,16 @@ export default function ShopPage() {
     <div className="p-4 pb-8">
       <div className="flex items-start justify-between gap-3 mb-1">
         <h1 className="text-xl font-bold flex items-center gap-2">
-          <span aria-hidden>🛍️</span> Shop
+          <ShoppingBag size={20} aria-hidden className="text-brand-500" /> Shop
         </h1>
         {!shopConfigured && (
-          <span
-            className="inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 rounded-full"
+          <Badge
+            variant="warning"
+            className="uppercase tracking-wide"
             title="Sample catalog — connect a Shopify store to go live."
           >
             Demo
-          </span>
+          </Badge>
         )}
       </div>
       <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">
@@ -97,7 +100,7 @@ export default function ShopPage() {
 
       {!isLoading && !isError && products.length === 0 && (
         <EmptyState
-          icon="🛍️"
+          illustration="sniffing"
           title="No products yet"
           body="Check back soon — new gear is on the way."
         />

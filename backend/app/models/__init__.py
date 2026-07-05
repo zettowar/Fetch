@@ -1,5 +1,11 @@
 from app.models.base import Base
-from app.models.user import User, RefreshToken, PasswordResetToken, EmailVerificationToken
+from app.models.user import (
+    User,
+    RefreshToken,
+    PasswordResetToken,
+    EmailVerificationToken,
+    EmailChangeToken,
+)
 from app.models.dog import Dog
 from app.models.breed import Breed, dog_breeds
 from app.models.photo import Photo
@@ -13,7 +19,7 @@ from app.models.lost_report import (
     LostReportSighting,
     LostReportSubscription,
 )
-from app.models.social import Follow, Comment, Reaction
+from app.models.social import Block, Follow, Comment, Reaction
 from app.models.park import Park, ParkReview, ParkIncident, ParkCheckin
 from app.models.vet import Vet
 from app.models.playdate import PlayDate, PlayDateRsvp
@@ -23,7 +29,7 @@ from app.models.adoption import AdoptionInquiry
 from app.models.dog_transfer import DogTransfer
 from app.models.support import FAQEntry, SupportTicket
 from app.models.entitlement import Entitlement
-from app.models.notification import PushSubscription, NotificationPreference
+from app.models.notification import Notification, PushSubscription, NotificationPreference
 from app.models.beta import InviteCode, Feedback
 
 __all__ = [
@@ -32,6 +38,7 @@ __all__ = [
     "RefreshToken",
     "PasswordResetToken",
     "EmailVerificationToken",
+    "EmailChangeToken",
     "Dog",
     "Breed",
     "dog_breeds",
@@ -45,6 +52,7 @@ __all__ = [
     "LostReportPhoto",
     "LostReportSighting",
     "LostReportSubscription",
+    "Block",
     "Follow",
     "Comment",
     "Reaction",
@@ -62,6 +70,7 @@ __all__ = [
     "FAQEntry",
     "SupportTicket",
     "Entitlement",
+    "Notification",
     "PushSubscription",
     "NotificationPreference",
     "InviteCode",

@@ -1,35 +1,40 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAuditLog, type AuditLogEntry } from '../../api/admin';
-import { Spinner } from '../../components/ui/Skeleton';
+import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 import ErrorState from '../../components/ui/ErrorState';
 import TimeAgo from '../../components/TimeAgo';
 
-const ACTION_COLORS: Record<string, string> = {
-  'user.suspend': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-  'user.reinstate': 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300',
-  'user.promote': 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300',
-  'user.demote': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
-  'report.review': 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
-  'ticket.update': 'bg-sky-100 text-sky-700',
-  'dog.deactivate': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-  'dog.reactivate': 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300',
-  'lost_report.close': 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
-  'faq.create': 'bg-teal-100 text-teal-700',
-  'faq.update': 'bg-teal-100 text-teal-700',
-  'faq.delete': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+
+const ACTION_VARIANTS: Record<string, BadgeVariant> = {
+  'user.suspend': 'danger',
+  'user.reinstate': 'success',
+  'user.promote': 'info',
+  'user.demote': 'warning',
+  'report.review': 'info',
+  'ticket.update': 'info',
+  'dog.deactivate': 'danger',
+  'dog.reactivate': 'success',
+  'lost_report.close': 'neutral',
+  'faq.create': 'info',
+  'faq.update': 'info',
+  'faq.delete': 'danger',
 };
 
-const KNOWN_ACTIONS = Object.keys(ACTION_COLORS);
+const KNOWN_ACTIONS = Object.keys(ACTION_VARIANTS);
 
-function actionColor(action: string) {
-  return ACTION_COLORS[action] ?? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
+function actionVariant(action: string): BadgeVariant {
+  return ACTION_VARIANTS[action] ?? 'neutral';
 }
 
 function MetadataView({ meta }: { meta: Record<string, unknown> | null }) {
   if (!meta || Object.keys(meta).length === 0) return null;
   return (
-    <div className="mt-1 text-[11px] text-gray-400 dark:text-gray-500 font-mono">
+    <div className="mt-1 text-2xs text-gray-400 dark:text-gray-500 font-mono">
       {Object.entries(meta).map(([k, v]) => (
         <span key={k} className="mr-2">
           {k}: <span className="text-gray-600 dark:text-gray-300">{String(v)}</span>
@@ -111,21 +116,19 @@ export default function AdminAuditPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner className="h-6 w-6" />
-        </div>
+        <ListSkeleton rows={5} />
       ) : isError ? (
         <ErrorState message="Couldn't load the audit log." onRetry={() => refetch()} />
       ) : entries.length === 0 ? (
-        <p className="text-gray-400 dark:text-gray-500 text-center py-12">No audit entries found.</p>
+        <EmptyState className="py-6" title="No audit entries found" />
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {entries.map((entry: AuditLogEntry) => (
             <div key={entry.id} className="px-4 py-3">
               <div className="flex items-start gap-3">
-                <span className={`text-[11px] font-mono px-2 py-0.5 rounded shrink-0 mt-0.5 ${actionColor(entry.action)}`}>
+                <Badge className="font-mono shrink-0 mt-0.5" variant={actionVariant(entry.action)}>
                   {entry.action}
-                </span>
+                </Badge>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     {entry.target_type && (
@@ -143,7 +146,7 @@ export default function AdminAuditPage() {
                     </span>
                   </div>
                   {entry.actor_id && (
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
                       by <span className="font-mono">{entry.actor_id.slice(0, 8)}…</span>
                     </p>
                   )}
@@ -152,7 +155,7 @@ export default function AdminAuditPage() {
               </div>
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );

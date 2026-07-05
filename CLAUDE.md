@@ -2,7 +2,7 @@
 
 ## What is Fetch?
 
-A mobile-first web app where dog owners create profiles for their dogs, rate other dogs via a Tinder-style swipe interface, and compete for the weekly "top dog" crown. Extended with lost & found dogs, dog parks (reviews, check-ins, play dates), vets, rescues + adoption inquiries, dog transfers, social (follows/comments/reactions), community posts, support tickets + FAQ, beta feedback + invite codes, billing entitlements, and a full admin panel. Donations are external links on rescue profiles (no payment backend); the shop is Shopify-only (see below).
+A mobile-first web app where dog owners create profiles for their dogs, rate other dogs via a Tinder-style swipe interface, and compete for the weekly "top dog" crown. Extended with lost & found dogs, dog parks (reviews, check-ins, play dates), vets, rescues + adoption inquiries, dog transfers, social (follows/comments/reactions, user blocks), community posts, a notification inbox, public dog share pages (`/dogs/{id}`, opt-out via `dogs.is_public`), member + admin invite codes, liked-dogs history, crown badges/weekly rank on dog pages, account management (password/email change), support tickets + FAQ, beta feedback, billing entitlements, and a full admin panel. Donations are external links on rescue profiles (no payment backend); the shop is Shopify-only (see below).
 
 ## Quick Start
 
@@ -11,7 +11,7 @@ cp .env.example .env
 make up          # Start all 6 Docker services
 make migrate     # Run database migrations
 make seed        # Create 10 test users + 20 dogs
-make test        # Run all tests (~232 backend + ~63 frontend)
+make test        # Run all tests (~260 backend + ~63 frontend)
 ```
 
 - **Frontend:** http://localhost:3174
@@ -287,8 +287,10 @@ disabled). The Storefront token is a public, client-side token by design.
 These are scaffolded but not fully wired — marked with `PHASEn` comments in code:
 
 - **Push notification delivery** — subscriptions are stored
-  (`routers/notifications.py`) but never dispatched. There is also no
-  notification inbox UI (preferences only).
+  (`routers/notifications.py`) but never dispatched. (The in-app notification
+  inbox IS real: `services/notify.py` emits on follows, comments, sightings,
+  transfers, inquiries, weekly wins, and photo moderation; push would be a
+  second delivery channel for the same events.)
 - **Billing checkout** — entitlements can be granted/revoked by an admin
   (`routers/billing.py`); there is no self-serve payment flow.
 - **S3 storage** (`storage.py`) — only `LocalStorage` is implemented.

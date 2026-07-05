@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # Beta gate: when True, /auth/signup requires an unused invite code
     # (admin-generated). Rescue signups stay open — they are approval-gated.
     INVITE_REQUIRED: bool = False
+    # How many invite codes each member can mint for friends (lifetime).
+    # 0 disables member invites entirely.
+    MEMBER_INVITE_ALLOWANCE: int = 3
 
     # Redis
     REDIS_URL: str = "redis://redis:6379/0"

@@ -1,3 +1,5 @@
+import colors from 'tailwindcss/colors';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -29,6 +31,17 @@ export default {
           800: '#933910',
           900: '#773110',
         },
+        // Semantic tones — aliases of full Tailwind palettes so every shade
+        // exists (danger-500 === red-500). New code uses these names; raw
+        // red/amber/emerald/sky classes migrate only when a file is touched.
+        success: colors.emerald,
+        warning: colors.amber,
+        danger: colors.red,
+        info: colors.sky,
+      },
+      fontSize: {
+        // 11px/14px — replaces arbitrary text-[10px]/text-[11px] micro sizes
+        '2xs': ['0.6875rem', { lineHeight: '0.875rem' }],
       },
       maxWidth: {
         app: '420px',
@@ -67,14 +80,31 @@ export default {
           '25%': { transform: 'scale(1)' },
           '35%': { transform: 'scale(1.15)' },
         },
+        'paw-step': {
+          '0%, 60%, 100%': { opacity: '0.2', transform: 'scale(0.85)' },
+          '20%, 40%': { opacity: '1', transform: 'scale(1)' },
+        },
+        wiggle: {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '25%': { transform: 'rotate(-10deg)' },
+          '60%': { transform: 'rotate(8deg)' },
+        },
+        'float-up': {
+          '0%': { opacity: '0', transform: 'translateY(2px)' },
+          '40%': { opacity: '1' },
+          '100%': { opacity: '0', transform: 'translateY(-6px)' },
+        },
       },
       animation: {
         'slide-up': 'slide-up 0.25s ease-out',
         shimmer: 'shimmer 1.6s linear infinite',
         'fade-in': 'fade-in 0.2s ease-out',
-        'fade-in-up': 'fade-in-up 0.25s ease-out',
+        'fade-in-up': 'fade-in-up 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
         'scale-in': 'scale-in 0.18s ease-out',
         heartbeat: 'heartbeat 1.6s ease-in-out infinite',
+        'paw-step': 'paw-step 1.2s ease-in-out infinite',
+        wiggle: 'wiggle 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
+        'float-up': 'float-up 2.4s ease-in-out infinite',
       },
       transitionTimingFunction: {
         'soft-out': 'cubic-bezier(0.22, 1, 0.36, 1)',

@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
+import { Dog as DogIcon, HousePlus, Map as MapIcon } from 'lucide-react';
 
 export default function RescuesHubPage() {
   return (
     <div className="px-4 pt-5 pb-8 flex flex-col gap-5">
       <div>
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <span aria-hidden>🏠</span> Rescues
+          <HousePlus size={20} aria-hidden className="text-brand-500" /> Rescues
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           Find a forever home — or the rescue that has one.
@@ -18,14 +19,14 @@ export default function RescuesHubPage() {
       >
         <div className="relative z-10 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-widest opacity-80">Adoptables</p>
+            <p className="text-2xs uppercase tracking-widest opacity-80">Adoptables</p>
             <p className="text-base font-bold mt-0.5">Browse rescues</p>
             <p className="text-xs opacity-90 mt-0.5 truncate">
               Verified rescues and their adoptable dogs
             </p>
           </div>
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl">
-            <span aria-hidden>🐶</span>
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <DogIcon size={20} aria-hidden />
           </div>
         </div>
         <div
@@ -40,14 +41,14 @@ export default function RescuesHubPage() {
       >
         <div className="relative z-10 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-widest opacity-80">Nearby</p>
+            <p className="text-2xs uppercase tracking-widest opacity-80">Nearby</p>
             <p className="text-base font-bold mt-0.5">Rescue map</p>
             <p className="text-xs opacity-90 mt-0.5 truncate">
               See rescues plotted near you
             </p>
           </div>
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl">
-            <span aria-hidden>🗺️</span>
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <MapIcon size={20} aria-hidden />
           </div>
         </div>
         <div

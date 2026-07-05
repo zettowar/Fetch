@@ -1,4 +1,5 @@
 import { NavLink, Outlet, Link } from 'react-router-dom';
+import PawMark from './ui/PawMark';
 
 const NAV_ITEMS = [
   { path: '/admin', label: 'Dashboard', end: true },
@@ -22,7 +23,10 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800/50">
       {/* Admin top bar */}
       <div className="bg-gray-900 text-white px-4 py-2.5 flex items-center justify-between">
-        <span className="font-bold text-sm">Fetch Admin</span>
+        <span className="flex items-center gap-2 font-bold text-sm">
+          <PawMark decorative className="h-4 w-4 text-brand-500" />
+          Fetch Admin
+        </span>
         <Link to="/app/home" className="text-xs text-gray-400 dark:text-gray-500 hover:text-white transition-colors">
           Back to app
         </Link>
@@ -40,7 +44,7 @@ export default function AdminLayout() {
                 `px-3 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   isActive
                     ? 'border-brand-500 text-brand-600'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-700'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'
                 }`
               }
             >

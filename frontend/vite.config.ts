@@ -8,7 +8,10 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://backend:8000',
+        // Inside the compose network the backend is "backend:8000"; a dev
+        // server run on the host can point at the published port instead:
+        //   VITE_PROXY_TARGET=http://localhost:9001 npm run dev
+        target: process.env.VITE_PROXY_TARGET || 'http://backend:8000',
         changeOrigin: true,
       },
     },

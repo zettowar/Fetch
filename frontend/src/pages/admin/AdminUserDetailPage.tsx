@@ -21,8 +21,11 @@ import type { RescueProfile } from '../../api/rescues';
 import BackButton from '../../components/ui/BackButton';
 import Button from '../../components/ui/Button';
 import Avatar from '../../components/ui/Avatar';
+import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
-import { Spinner } from '../../components/ui/Skeleton';
+import { ListSkeleton, Spinner } from '../../components/ui/Skeleton';
 import TimeAgo from '../../components/TimeAgo';
 
 type Tab = 'strikes' | 'filed' | 'against' | 'rescue' | 'audit';
@@ -125,13 +128,13 @@ export default function AdminUserDetailPage() {
           <div className="flex items-baseline gap-2 flex-wrap">
             <h1 className="text-2xl font-bold">{user.display_name}</h1>
             {user.role === 'admin' && (
-              <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 rounded font-medium uppercase">Admin</span>
+              <Badge variant="info" className="uppercase">Admin</Badge>
             )}
             {!user.is_active && (
-              <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 rounded font-medium uppercase">Suspended</span>
+              <Badge variant="danger" className="uppercase">Suspended</Badge>
             )}
             {user.strike_count > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 rounded font-medium">{user.strike_count} strike{user.strike_count > 1 ? 's' : ''}</span>
+              <Badge variant="warning">{user.strike_count} strike{user.strike_count > 1 ? 's' : ''}</Badge>
             )}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
@@ -150,11 +153,11 @@ export default function AdminUserDetailPage() {
       {/* Actions */}
       <div className="flex flex-wrap gap-2 mb-4">
         {user.is_active ? (
-          <Button size="sm" variant="danger" onClick={() => {
+          <Button size="sm" variant="danger" loading={suspendMutation.isPending} onClick={() => {
             if (confirm(`Suspend ${user.display_name}?`)) suspendMutation.mutate();
           }}>Suspend</Button>
         ) : (
-          <Button size="sm" onClick={() => reinstateMutation.mutate()}>Reinstate</Button>
+          <Button size="sm" loading={reinstateMutation.isPending} onClick={() => reinstateMutation.mutate()}>Reinstate</Button>
         )}
         {user.role !== 'admin' ? (
           <Button size="sm" variant="secondary" loading={promoteMutation.isPending} onClick={() => {
@@ -181,10 +184,7 @@ export default function AdminUserDetailPage() {
         <div className="mb-4 flex flex-wrap gap-1.5 items-center">
           <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Entitlements:</span>
           {entitlements.map((e) => (
-            <span
-              key={e.id}
-              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 text-xs"
-            >
+            <Badge key={e.id} variant="brand" size="md" className="gap-1.5">
               <span className="font-mono">{e.entitlement_key}</span>
               <button
                 type="button"
@@ -194,11 +194,11 @@ export default function AdminUserDetailPage() {
                   }
                 }}
                 aria-label={`Revoke ${e.entitlement_key}`}
-                className="text-purple-500 hover:text-purple-700 dark:hover:text-purple-200"
+                className="text-brand-500 hover:text-brand-700 dark:hover:text-brand-200"
               >
                 ×
               </button>
-            </span>
+            </Badge>
           ))}
         </div>
       )}
@@ -228,7 +228,7 @@ export default function AdminUserDetailPage() {
             className={`pb-2 text-sm font-medium transition-colors ${
               tab === t.key
                 ? 'border-b-2 border-brand-500 text-brand-600'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             {t.label}
@@ -250,18 +250,18 @@ function StrikesTab({ userId }: { userId: string }) {
     queryKey: ['admin-strikes', userId],
     queryFn: () => getUserStrikes(userId),
   });
-  if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
-  if (!data.length) return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">No strikes on record.</p>;
+  if (isLoading) return <ListSkeleton rows={3} />;
+  if (!data.length) return <EmptyState className="py-6" title="No strikes on record" />;
   return (
-    <ul className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+    <Card as="ul" padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
       {data.map((s) => (
         <li key={s.id} className="p-3 text-sm flex items-center gap-3">
-          <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-danger-400 shrink-0" />
           <span className="flex-1">{s.reason}</span>
           <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={s.created_at} /></span>
         </li>
       ))}
-    </ul>
+    </Card>
   );
 }
 
@@ -270,8 +270,8 @@ function ReportsFiledTab({ userId }: { userId: string }) {
     queryKey: ['admin-reports-filed', userId],
     queryFn: () => getUserReportsFiled(userId),
   });
-  if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
-  if (!data.length) return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">This user hasn't filed any reports.</p>;
+  if (isLoading) return <ListSkeleton rows={3} />;
+  if (!data.length) return <EmptyState className="py-6" title="This user hasn't filed any reports" />;
   return <ReportList items={data} />;
 }
 
@@ -280,29 +280,32 @@ function ReportsAgainstTab({ userId }: { userId: string }) {
     queryKey: ['admin-reports-against', userId],
     queryFn: () => getUserReportsAgainst(userId),
   });
-  if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
-  if (!data.length) return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">No reports filed against this user.</p>;
+  if (isLoading) return <ListSkeleton rows={3} />;
+  if (!data.length) return <EmptyState className="py-6" title="No reports filed against this user" />;
   return <ReportList items={data} />;
 }
 
 function ReportList({ items }: { items: Array<{ id: string; target_type: string; target_id: string; reason: string; status: string; created_at: string }> }) {
   return (
-    <ul className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+    <Card as="ul" padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
       {items.map((r) => (
         <li key={r.id} className="p-3 text-sm">
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase ${
-              r.status === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' :
-              r.status === 'reviewed' ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300' :
-              'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
-            }`}>{r.status}</span>
+            <Badge
+              className="uppercase"
+              variant={
+                r.status === 'pending' ? 'warning' :
+                r.status === 'reviewed' ? 'success' :
+                'neutral'
+              }
+            >{r.status}</Badge>
             <span className="text-xs text-gray-500 dark:text-gray-400">{r.target_type}</span>
             <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto"><TimeAgo value={r.created_at} /></span>
           </div>
           <p className="text-gray-700 dark:text-gray-300 mt-1 break-words">{r.reason}</p>
         </li>
       ))}
-    </ul>
+    </Card>
   );
 }
 
@@ -314,23 +317,22 @@ function RescueProfileTab({ userId }: { userId: string }) {
   });
   if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
   if (!data) {
-    return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">This user isn't a rescue account.</p>;
+    return <EmptyState className="py-6" title="This user isn't a rescue account" />;
   }
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 text-sm">
+    <Card className="text-sm">
       <div className="flex items-center gap-2 mb-2">
         <span className="font-semibold">{data.org_name}</span>
-        <span
-          className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase ${
-            data.status === 'approved'
-              ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
-              : data.status === 'pending'
-              ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
-              : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
-          }`}
+        <Badge
+          className="uppercase"
+          variant={
+            data.status === 'approved' ? 'success' :
+            data.status === 'pending' ? 'warning' :
+            'danger'
+          }
         >
           {data.status}
-        </span>
+        </Badge>
         <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
           <TimeAgo value={data.created_at} />
         </span>
@@ -343,7 +345,7 @@ function RescueProfileTab({ userId }: { userId: string }) {
           {data.review_note}
         </p>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -356,17 +358,17 @@ function AuditTab({ userId }: { userId: string }) {
     queryKey: ['admin-audit-by-target', userId],
     queryFn: () => getAuditLog({ target_id: userId, limit: 100 }),
   });
-  if (loadingActor || loadingTarget) return <Spinner className="h-5 w-5 my-4" />;
+  if (loadingActor || loadingTarget) return <ListSkeleton rows={3} />;
 
   const merged = [...byActor, ...byTarget]
     .filter((e, i, arr) => arr.findIndex((x) => x.id === e.id) === i)
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   if (!merged.length) {
-    return <p className="text-sm text-gray-400 dark:text-gray-500 py-4">No audit entries for this user.</p>;
+    return <EmptyState className="py-6" title="No audit entries for this user" />;
   }
 
   return (
-    <ul className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+    <Card as="ul" padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
       {merged.map((e) => (
         <li key={e.id} className="p-3 text-xs flex items-center gap-2">
           <span className="font-mono text-gray-700 dark:text-gray-300">{e.action}</span>
@@ -374,6 +376,6 @@ function AuditTab({ userId }: { userId: string }) {
           <span className="text-gray-400 dark:text-gray-500 ml-auto"><TimeAgo value={e.created_at} /></span>
         </li>
       ))}
-    </ul>
+    </Card>
   );
 }

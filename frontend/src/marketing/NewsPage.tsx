@@ -76,7 +76,7 @@ export default function NewsPage() {
                   <span className="text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">{post.date}</span>
                 </div>
                 <h2 className="mt-3 text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">{post.title}</h2>
-                <p className="mt-2 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">{post.body}</p>
+                <p className="mt-2 text-base leading-relaxed text-gray-600 dark:text-gray-400">{post.body}</p>
               </li>
             ))}
           </ol>

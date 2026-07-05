@@ -1,8 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { HousePlus } from 'lucide-react';
 import { listRescues, type RescuePublic } from '../api/rescues';
-import { Spinner } from '../components/ui/Skeleton';
+import Badge from '../components/ui/Badge';
+import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
+import SearchInput from '../components/ui/SearchInput';
+import { ListSkeleton } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
 
 function RescueCard({ rescue }: { rescue: RescuePublic }) {
@@ -10,7 +15,7 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
   // Donate/Website anchors rather than their parent — interactive elements
   // must never nest.
   return (
-    <div className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 hover:border-brand-200 dark:hover:border-brand-500/40 transition-colors">
+    <Card className="relative hover:border-brand-200 dark:hover:border-brand-500/40 transition-colors">
       <Link
         to={`/app/rescues/${rescue.id}`}
         aria-label={`View ${rescue.org_name}`}
@@ -18,9 +23,7 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
       />
       <div className="flex items-center gap-2 flex-wrap mb-1">
         <h3 className="font-semibold text-gray-900 dark:text-gray-100">{rescue.org_name}</h3>
-        <span className="text-[10px] bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
-          Verified
-        </span>
+        <Badge variant="success">Verified</Badge>
       </div>
       {rescue.location && (
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{rescue.location}</p>
@@ -50,7 +53,7 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -88,7 +91,7 @@ export default function RescuesPage() {
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="flex items-baseline justify-between gap-3">
           <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <span aria-hidden>🏠</span> Rescues
+            <HousePlus size={20} aria-hidden className="text-brand-500" /> Rescues
           </h1>
           <Link
             to="/signup-rescue"
@@ -98,25 +101,12 @@ export default function RescuesPage() {
           </Link>
         </div>
 
-        <div className="relative mt-2.5">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden
-          >
-            <circle cx={11} cy={11} r={7} strokeWidth={2} />
-            <path d="m20 20-3-3" strokeWidth={2} strokeLinecap="round" />
-          </svg>
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search rescues by name or location..."
-            className="w-full bg-gray-100 dark:bg-gray-800 rounded-full pl-9 pr-3 py-2 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-brand-300"
-          />
-        </div>
+        <SearchInput
+          className="mt-2.5"
+          value={search}
+          onChange={setSearch}
+          placeholder="Search rescues by name or location..."
+        />
 
         <div className="flex gap-1.5 mt-2 overflow-x-auto -mx-4 px-4 pb-0.5">
           {filterOptions.map((opt) => (
@@ -145,24 +135,21 @@ export default function RescuesPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Spinner className="h-6 w-6" />
+          <div className="p-4">
+            <ListSkeleton rows={4} />
           </div>
         ) : isError ? (
           <ErrorState message="Couldn't load rescues." onRetry={() => refetch()} />
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 px-6 text-gray-400 dark:text-gray-500">
+          <div className="p-4">
             {search ? (
-              <>
-                <p className="text-4xl mb-3">🔍</p>
-                <p className="font-medium">No results for "{search}"</p>
-              </>
+              <EmptyState illustration="sniffing" title={`No results for "${search}"`} />
             ) : (
-              <>
-                <p className="text-4xl mb-3">🏠</p>
-                <p className="font-medium">No verified rescues yet</p>
-                <p className="text-sm mt-1">Check back soon.</p>
-              </>
+              <EmptyState
+                illustration="sleeping"
+                title="No verified rescues yet"
+                body="Check back soon."
+              />
             )}
           </div>
         ) : (

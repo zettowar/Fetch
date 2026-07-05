@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { PawPrint } from 'lucide-react';
 import { getExploreDogs } from '../api/dogs';
 import { dogAge, dogHeroPhoto } from '../utils/time';
 import { CardSkeleton } from '../components/ui/Skeleton';
@@ -57,7 +58,7 @@ function ExploreCard({ dog, index }: { dog: Dog; index: number }) {
               {dog.name}
             </Link>
             {age && (
-              <span className="text-[11px] text-gray-400 dark:text-gray-500 flex-shrink-0">
+              <span className="text-2xs text-gray-400 dark:text-gray-500 flex-shrink-0">
                 {age}
               </span>
             )}
@@ -149,7 +150,7 @@ export default function ExplorePage() {
     <div className="p-4 pb-8">
       <div className="flex items-start justify-between gap-3 mb-1">
         <h1 className="text-xl font-bold flex items-center gap-2">
-          <span aria-hidden>🐾</span> Explore the Pack
+          <PawPrint size={20} aria-hidden className="text-brand-500" /> Explore the Pack
         </h1>
         <Button
           variant="secondary"
@@ -179,7 +180,7 @@ export default function ExplorePage() {
 
       {!isLoading && !isError && dogs.length === 0 && (
         <EmptyState
-          icon="🐾"
+          illustration="sniffing"
           title="No dogs to explore yet"
           body="Check back once more dogs join the pack."
           action={

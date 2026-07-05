@@ -29,6 +29,7 @@ from app.services.dog_serializer import (
     dog_to_out as _dog_to_out,
     get_dog_full as _get_dog_full,
 )
+from app.services.notify import notify
 from app.services.geo import bounding_box
 from app.schemas.dog import DogOut
 from app.schemas.dog_transfer import DogTransferCreate, DogTransferOut
@@ -289,6 +290,14 @@ async def transfer_dog(
         expires_at=datetime.now(timezone.utc) + timedelta(days=TRANSFER_TTL_DAYS),
     )
     db.add(transfer)
+    if to_user_id is not None:
+        await notify(
+            db, to_user_id,
+            type="transfer_received",
+            title=f"{dog.name} is waiting for you",
+            body="Review the transfer invitation to take ownership.",
+            link="/app/transfers",
+        )
     db.add(AuditLog(
         actor_id=user.id,
         action="dog.transfer_initiated",

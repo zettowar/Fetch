@@ -105,6 +105,7 @@ def dog_to_out(
         primary_photo_id=dog.primary_photo_id,
         primary_photo_url=primary_url,
         is_active=dog.is_active,
+        is_public=dog.is_public,
         created_at=dog.created_at,
         photos=photos_out,
         adoptable=adoptable,

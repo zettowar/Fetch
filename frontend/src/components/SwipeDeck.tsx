@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Heart, Lock, Undo2 } from 'lucide-react';
 import { getFeed } from '../api/feed';
 import { castVote } from '../api/votes';
 import SwipeCard from './SwipeCard';
@@ -12,6 +13,9 @@ import Button from './ui/Button';
 import PawMark from './ui/PawMark';
 import { CardSkeleton } from './ui/Skeleton';
 import ErrorState from './ui/ErrorState';
+import BoneProgress from './flair/BoneProgress';
+import DogIllustration from './flair/DogIllustration';
+import { usePawBurst } from './flair/PawBurst';
 import { useAuth } from '../store/AuthContext';
 import { useSubscription } from '../utils/useSubscription';
 import { swipeQuota } from '../utils/swipeQuota';
@@ -55,6 +59,7 @@ export default function SwipeDeck() {
   );
   const [adOpen, setAdOpen] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { fire: fireLikeBurst, PawBurstLayer } = usePawBurst();
 
   // Re-read quota when the user resolves (initial load) or changes (logout/login).
   useEffect(() => {
@@ -122,6 +127,7 @@ export default function SwipeDeck() {
 
       const value: 1 | -1 = direction === 'right' ? 1 : -1;
       navigator.vibrate?.(direction === 'right' ? 20 : 10);
+      if (direction === 'right') fireLikeBurst();
       setLastVote({ dogId: dog.id, index: currentIndex });
       setCurrentIndex((i) => i + 1);
       voteMutation.mutate({ dogId: dog.id, value, index: currentIndex });
@@ -161,7 +167,7 @@ export default function SwipeDeck() {
         refetch();
       }
     },
-    [dogs, currentIndex, voteMutation, refetch, user, prompt, isSubscriber, quota.used, quota.cap],
+    [dogs, currentIndex, voteMutation, refetch, user, prompt, isSubscriber, quota.used, quota.cap, fireLikeBurst],
   );
 
   const handleUndo = () => {
@@ -221,13 +227,13 @@ export default function SwipeDeck() {
         }}
       >
         <motion.span
-          className="text-5xl mb-3"
+          className="mb-3"
           variants={{
             hidden: { opacity: 0, scale: 0.6 },
             visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 260, damping: 16 } },
           }}
         >
-          {'\ud83c\udf89'}
+          <DogIllustration name="ball" className="h-32 w-auto text-gray-400 dark:text-gray-500" />
         </motion.span>
         <motion.p
           className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2"
@@ -282,25 +288,12 @@ export default function SwipeDeck() {
                 <span className="text-gray-400 dark:text-gray-500">{ratedCount} rated</span>
               )}
             </div>
-            <div
-              className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={quota.cap}
-              aria-valuenow={remaining}
-              aria-label={`${remaining} of ${quota.cap} daily swipes remaining`}
-            >
-              <div
-                className={`h-full rounded-full transition-all duration-300 ease-soft-out ${
-                  remaining === 0
-                    ? 'bg-red-400'
-                    : remaining <= quota.cap * 0.2
-                      ? 'bg-amber-400'
-                      : 'bg-brand-500'
-                }`}
-                style={{ width: `${quota.cap > 0 ? (remaining / quota.cap) * 100 : 0}%` }}
-              />
-            </div>
+            <BoneProgress
+              value={remaining}
+              max={quota.cap}
+              size="sm"
+              label={`${remaining} of ${quota.cap} daily swipes remaining`}
+            />
           </>
         ) : (
           ratedCount > 0 && (
@@ -324,7 +317,10 @@ export default function SwipeDeck() {
         {quotaBlocked && (
           <div className="absolute inset-0 z-20 flex items-center justify-center px-4">
             <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-soft-lg ring-1 ring-gray-200 dark:ring-gray-800 p-5 text-center">
-              <p className="text-2xl mb-1">🐾</p>
+              <DogIllustration
+                name="sleeping"
+                className="mx-auto mb-2 h-24 w-auto text-gray-400 dark:text-gray-500"
+              />
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 You've used today's free swipes
               </h3>
@@ -355,7 +351,7 @@ export default function SwipeDeck() {
           whileTap={{ scale: 0.88 }}
           whileHover={{ scale: 1.06 }}
           transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-          className="w-[84px] h-[84px] rounded-full bg-red-100 text-red-500 dark:bg-red-500/15 dark:text-red-400 flex items-center justify-center shadow-soft-sm hover:bg-red-200 dark:hover:bg-red-500/25 transition-colors"
+          className="w-[84px] h-[84px] rounded-full bg-danger-100 text-danger-500 dark:bg-danger-500/15 dark:text-danger-400 flex items-center justify-center shadow-soft-sm hover:bg-danger-200 dark:hover:bg-danger-500/25 transition-colors"
           aria-label="Pass"
         >
           <PawMark className="h-[42px] w-[42px] rotate-180" decorative />
@@ -380,7 +376,7 @@ export default function SwipeDeck() {
               title={isSubscriber ? 'Undo last swipe' : 'Rewind is a Pack+ perk'}
               aria-label={isSubscriber ? 'Undo last swipe' : 'Rewind (Pack+ only)'}
             >
-              {isSubscriber ? '\u21a9\ufe0f' : '\ud83d\udd12'}
+              {isSubscriber ? <Undo2 size={18} aria-hidden /> : <Lock size={16} aria-hidden />}
             </motion.button>
           )}
         </AnimatePresence>
@@ -390,10 +386,11 @@ export default function SwipeDeck() {
           whileTap={{ scale: 0.88 }}
           whileHover={{ scale: 1.06 }}
           transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-          className="w-[84px] h-[84px] rounded-full bg-green-100 text-green-500 dark:bg-green-500/15 dark:text-green-400 text-4xl flex items-center justify-center shadow-soft-sm hover:bg-green-200 dark:hover:bg-green-500/25 transition-colors"
+          className="relative w-[84px] h-[84px] rounded-full bg-success-100 text-success-500 dark:bg-success-500/15 dark:text-success-400 flex items-center justify-center shadow-soft-sm hover:bg-success-200 dark:hover:bg-success-500/25 transition-colors"
           aria-label="Like"
         >
-          &#x2764;
+          <Heart size={40} fill="currentColor" strokeWidth={0} aria-hidden />
+          <PawBurstLayer />
         </motion.button>
       </div>
 
@@ -419,7 +416,7 @@ export default function SwipeDeck() {
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 leading-none">
+                <p className="text-2xs uppercase tracking-wide text-gray-400 dark:text-gray-500 leading-none">
                   Ad
                 </p>
                 <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 truncate">

@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
+import { PawPrint, Siren } from 'lucide-react';
 import { getNearbyReports, getMySubscription, type NearbyReport } from '../api/lost';
 import Map from '../components/Map';
-import { Spinner } from '../components/ui/Skeleton';
+import Badge from '../components/ui/Badge';
+import DogIllustration from '../components/flair/DogIllustration';
+import PawSpinner from '../components/flair/PawSpinner';
 import TimeAgo from '../components/TimeAgo';
 import { useUserLocation } from '../utils/useUserLocation';
 
@@ -101,7 +104,7 @@ export default function LostDogsPage() {
       {/* ── Compact header ──────────────────────────────────────────── */}
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <span aria-hidden>🚨</span> Lost &amp; Found
+          <Siren size={20} aria-hidden className="text-danger-500" /> Lost &amp; Found
         </h1>
 
         <div className="flex gap-1.5 mt-2.5 overflow-x-auto -mx-4 px-4 pb-0.5">
@@ -126,26 +129,26 @@ export default function LostDogsPage() {
         <div className="mt-2 grid grid-cols-2 gap-2">
           <Link
             to="/app/lost/report-missing"
-            className="flex items-center justify-center gap-1.5 rounded-full bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-600 active:scale-95 transition-all"
+            className="flex items-center justify-center gap-1.5 rounded-full bg-danger-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-danger-600 active:scale-95 transition-all"
           >
-            <span aria-hidden>🚨</span> Report Missing
+            <Siren size={16} aria-hidden /> Report Missing
           </Link>
           <Link
             to="/app/lost/report-found"
             className="flex items-center justify-center gap-1.5 rounded-full bg-blue-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 active:scale-95 transition-all"
           >
-            <span aria-hidden>🐾</span> Report Found
+            <PawPrint size={16} aria-hidden /> Report Found
           </Link>
         </div>
 
         {newCount > 0 && !bannerDismissed && (
-          <div className="mt-2 flex items-center justify-between bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30 rounded-lg px-3 py-2 text-sm">
-            <span className="text-amber-800 dark:text-amber-200 font-medium">
+          <div className="mt-2 flex items-center justify-between bg-warning-50 border border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30 rounded-lg px-3 py-2 text-sm">
+            <span className="text-warning-800 dark:text-warning-200 font-medium">
               {newCount} new report{newCount !== 1 ? 's' : ''} since your last visit
             </span>
             <button
               onClick={() => setBannerDismissed(true)}
-              className="text-amber-500 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 ml-2 text-xs"
+              className="text-warning-500 dark:text-warning-400 hover:text-warning-700 dark:hover:text-warning-300 ml-2 text-xs"
               aria-label="Dismiss"
             >
               Dismiss
@@ -183,9 +186,9 @@ export default function LostDogsPage() {
         />
 
         {/* Legend */}
-        <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-200 shadow-md ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
+        <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-200 shadow-soft ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
           <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500" />
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-danger-500" />
             Missing
           </span>
           <span className="flex items-center gap-1.5">
@@ -196,15 +199,16 @@ export default function LostDogsPage() {
 
         {/* Empty state — only when not loading and no results for the filter */}
         {!isLoading && reports.length === 0 && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 max-w-[90%] text-center z-10">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-xl shadow-soft ring-1 ring-black/5 dark:ring-white/10 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 max-w-[90%] text-center z-10">
+            <DogIllustration name="digging" className="h-14 w-auto text-gray-400 dark:text-gray-500" />
             {filterMeta[filter].emptyMsg}
           </div>
         )}
 
-        {/* Loading spinner confined to the map area */}
+        {/* Loading indicator confined to the map area */}
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-gray-950/40 backdrop-blur-sm z-20">
-            <Spinner />
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 glass rounded-full px-4 py-2 shadow-soft-lg">
+            <PawSpinner size="sm" />
           </div>
         )}
         </div>
@@ -228,14 +232,14 @@ export default function LostDogsPage() {
                     >
                       <span
                         className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${
-                          isMissing ? 'bg-red-500' : 'bg-blue-500'
+                          isMissing ? 'bg-danger-500' : 'bg-blue-500'
                         }`}
                       />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
                           {r.dog_name || (isMissing ? 'Missing dog' : 'Found dog')}
                         </p>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        <p className="text-2xs text-gray-500 dark:text-gray-400">
                           {isMissing ? 'Missing' : 'Found'} · <TimeAgo value={r.created_at} />
                         </p>
                       </div>
@@ -253,11 +257,11 @@ export default function LostDogsPage() {
         <div className="px-4 py-2 flex items-center justify-around text-xs text-gray-600 dark:text-gray-300">
           <span><span className="font-semibold text-gray-800 dark:text-gray-100">{counts.all}</span> total</span>
           <span aria-hidden className="text-gray-300 dark:text-gray-700">·</span>
-          <span><span className="font-semibold text-red-500 dark:text-red-400">{counts.missing}</span> missing</span>
+          <span><span className="font-semibold text-danger-500 dark:text-danger-400">{counts.missing}</span> missing</span>
           <span aria-hidden className="text-gray-300 dark:text-gray-700">·</span>
           <span><span className="font-semibold text-blue-500 dark:text-blue-400">{counts.found}</span> found</span>
         </div>
-        <p className="px-4 pb-2 text-[11px] text-center text-gray-400 dark:text-gray-500">
+        <p className="px-4 pb-2 text-2xs text-center text-gray-400 dark:text-gray-500">
           A community tool — please also contact your local animal control.
         </p>
       </div>
@@ -296,20 +300,24 @@ function ReportPopup({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span
-              className={`text-[10px] font-bold uppercase tracking-wide ${
-                isMissing ? 'text-red-500 dark:text-red-400' : 'text-blue-500 dark:text-blue-400'
+              className={`text-2xs font-bold uppercase tracking-wide ${
+                isMissing ? 'text-danger-500 dark:text-danger-400' : 'text-blue-500 dark:text-blue-400'
               }`}
             >
               {report.kind}
             </span>
             {isFresh && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 text-[10px] font-medium rounded-full">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
-                </span>
+              <Badge
+                variant="warning"
+                icon={
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-warning-500" />
+                  </span>
+                }
+              >
                 Fresh
-              </span>
+              </Badge>
             )}
           </div>
           <p className="font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">
@@ -318,7 +326,7 @@ function ReportPopup({
           {report.dog_breed && (
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{report.dog_breed}</p>
           )}
-          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+          <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
             <TimeAgo value={report.created_at} />
           </p>
         </div>

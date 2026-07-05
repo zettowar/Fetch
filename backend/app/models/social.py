@@ -28,6 +28,28 @@ class Follow(Base, UUIDPrimaryKey, TimestampMixin):
     dog = relationship("Dog", foreign_keys=[dog_id])
 
 
+class Block(Base, UUIDPrimaryKey, TimestampMixin):
+    """blocker never wants to see or hear from blocked again. Enforced in the
+    feed/explore, comments, follows, and the lost-dog contact relay."""
+
+    __tablename__ = "blocks"
+    __table_args__ = (
+        UniqueConstraint("blocker_id", "blocked_id", name="uq_block"),
+    )
+
+    blocker_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    blocked_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+
+    blocker = relationship("User", foreign_keys=[blocker_id])
+    blocked = relationship("User", foreign_keys=[blocked_id])
+
+
 class Comment(Base, UUIDPrimaryKey, TimestampMixin):
     """One-level-deep comments on photos or posts."""
 

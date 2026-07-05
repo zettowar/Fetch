@@ -8,7 +8,10 @@ import {
   type AdminLostReport,
 } from '../../api/admin';
 import Button from '../../components/ui/Button';
-import { Spinner } from '../../components/ui/Skeleton';
+import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 import PaginationFooter from '../../components/ui/PaginationFooter';
 import TimeAgo from '../../components/TimeAgo';
 
@@ -26,10 +29,10 @@ const KIND_LABELS: Record<string, string> = {
   found: '🟢 Found',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  open: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-  resolved: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300',
-  closed: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300',
+const STATUS_VARIANTS: Record<string, 'danger' | 'success' | 'neutral'> = {
+  open: 'danger',
+  resolved: 'success',
+  closed: 'neutral',
 };
 
 export default function AdminLostReportsPage() {
@@ -71,7 +74,7 @@ export default function AdminLostReportsPage() {
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               statusFilter === tab.value
                 ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             {tab.label}
@@ -88,13 +91,11 @@ export default function AdminLostReportsPage() {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner className="h-6 w-6" />
-        </div>
+        <ListSkeleton rows={5} />
       ) : reports.length === 0 ? (
-        <p className="text-gray-400 dark:text-gray-500 text-center py-12">No reports with status "{statusFilter}".</p>
+        <EmptyState className="py-6" title={`No reports with status "${statusFilter}"`} />
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {reports.map((report: AdminLostReport) => (
             <div key={report.id} className="px-4 py-3">
               <div className="flex items-start gap-3">
@@ -106,16 +107,16 @@ export default function AdminLostReportsPage() {
                         <span className="ml-1 text-gray-700 dark:text-gray-300">— {report.dog_name}</span>
                       )}
                     </span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${STATUS_COLORS[report.status] ?? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+                    <Badge variant={STATUS_VARIANTS[report.status] ?? 'neutral'}>
                       {report.status}
-                    </span>
+                    </Badge>
                   </div>
 
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
                     {report.description}
                   </p>
 
-                  <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400 dark:text-gray-500 flex-wrap">
+                  <div className="flex items-center gap-2 mt-1 text-2xs text-gray-400 dark:text-gray-500 flex-wrap">
                     <span>
                       Reporter:{' '}
                       <Link
@@ -159,7 +160,7 @@ export default function AdminLostReportsPage() {
               </div>
             </div>
           ))}
-        </div>
+        </Card>
       )}
 
       <PaginationFooter

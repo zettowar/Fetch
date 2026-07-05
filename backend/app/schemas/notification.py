@@ -35,3 +35,15 @@ class NotificationPrefsUpdate(BaseModel):
     comments_on_dogs: bool | None = None
     new_followers: bool | None = None
     digest_mode: str | None = None
+
+
+class NotificationOut(BaseModel):
+    id: UUID
+    type: str
+    title: str
+    body: str | None = None
+    link: str | None = None
+    read_at: datetime | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

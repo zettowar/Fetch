@@ -55,6 +55,27 @@ export async function verifyEmail(token: string): Promise<{ detail: string }> {
   return res.data;
 }
 
+export async function changePassword(
+  current_password: string,
+  new_password: string,
+): Promise<{ access_token: string; refresh_token: string }> {
+  const res = await client.post('/auth/change-password', { current_password, new_password });
+  return res.data;
+}
+
+export async function changeEmail(
+  password: string,
+  new_email: string,
+): Promise<{ detail: string; debug_token?: string }> {
+  const res = await client.post('/auth/change-email', { password, new_email });
+  return res.data;
+}
+
+export async function confirmEmailChange(token: string): Promise<{ detail: string }> {
+  const res = await client.post('/auth/confirm-email-change', { token });
+  return res.data;
+}
+
 export interface UpdateMePayload {
   display_name?: string;
   location_rough?: string | null;

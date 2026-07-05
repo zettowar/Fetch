@@ -44,6 +44,7 @@ from app.schemas.park_import import (
 )
 from app.schemas.rescue import RescueProfileOut, RescueReviewRequest
 from app.schemas.support import FAQOut, TicketOut
+from app.services.notify import notify
 from app.services.park_import import import_osm_dog_parks
 from app.services.vet_import import import_osm_vets
 from app.models.vet import Vet
@@ -916,6 +917,16 @@ async def approve_photo(
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
     photo.moderation_status = "approved"
+    dog_result = await db.execute(select(Dog).where(Dog.id == photo.dog_id))
+    dog = dog_result.scalar_one_or_none()
+    if dog:
+        await notify(
+            db, dog.owner_id,
+            type="photo_moderated",
+            title=f"A photo of {dog.name} was approved",
+            body="It's now visible across Fetch.",
+            link=f"/app/dogs/{dog.id}",
+        )
     await _log(db, actor_id=admin.id, action="photo.approve", target_type="photo",
                target_id=photo_id, metadata={"dog_id": str(photo.dog_id)})
     await db.commit()
@@ -937,6 +948,14 @@ async def reject_photo(
     dog = dog_result.scalar_one_or_none()
     if dog and dog.primary_photo_id == photo.id:
         dog.primary_photo_id = None
+    if dog:
+        await notify(
+            db, dog.owner_id,
+            type="photo_moderated",
+            title=f"A photo of {dog.name} was removed",
+            body="It didn't pass review. You can upload a different one any time.",
+            link=f"/app/dogs/{dog.id}",
+        )
 
     key = photo.storage_key
     await db.delete(photo)

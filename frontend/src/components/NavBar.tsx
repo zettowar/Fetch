@@ -1,10 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
+import {
+  Bell,
+  Bone,
+  CirclePlus,
+  Compass,
+  Heart,
+  HousePlus,
+  LayoutDashboard,
+  Moon,
+  ShoppingBag,
+  Siren,
+  Sun,
+  UserRound,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { useTheme } from '../store/ThemeContext';
 import { logout as apiLogout } from '../api/auth';
 import { getRefreshToken } from '../api/client';
+import { getUnreadCount } from '../api/notifications';
 import { useCart } from '../utils/useCart';
 import PawMark from './ui/PawMark';
 import ExploreSheet from './ExploreSheet';
@@ -16,25 +33,53 @@ const EXPLORE_PATHS = ['/app/explore', '/app/parks', '/app/vets'] as const;
 type NavItem = {
   path: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
+  /** Fill the glyph when active — only for shapes that read well solid. */
+  fillActive?: boolean;
   isSheet?: boolean;
 };
 
 const CONSUMER_NAV_ITEMS: readonly NavItem[] = [
-  { path: '/app/home', label: 'Home', icon: '🦴' },
-  { path: '/app/swipe', label: 'Swipe', icon: '❤️' },
-  { path: '/app/rescues', label: 'Rescues', icon: '🏠' },
-  { path: '/app/lost', label: 'Lost', icon: '🚨' },
-  { path: '__explore__', label: 'Explore', icon: '🔍', isSheet: true },
+  { path: '/app/home', label: 'Home', icon: Bone, fillActive: true },
+  { path: '/app/swipe', label: 'Swipe', icon: Heart, fillActive: true },
+  { path: '/app/rescues', label: 'Rescues', icon: HousePlus },
+  { path: '/app/lost', label: 'Lost', icon: Siren },
+  { path: '__explore__', label: 'Explore', icon: Compass, isSheet: true },
 ];
+
+/** Sun/moon with a little sunrise rotation on toggle. */
+function ThemeGlyph({ theme }: { theme: string }) {
+  return (
+    <motion.span
+      key={theme}
+      initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
+      animate={{ rotate: 0, opacity: 1, scale: 1 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      className="inline-flex"
+    >
+      {theme === 'dark' ? (
+        <Sun size={18} aria-hidden className="text-warning-500" />
+      ) : (
+        <Moon size={18} aria-hidden className="text-gray-500 dark:text-gray-300" />
+      )}
+    </motion.span>
+  );
+}
 
 export default function NavBar() {
   const { isAuthenticated, user, logout } = useAuth();
   const { resolved: theme, toggle: toggleTheme } = useTheme();
   const location = useLocation();
+  const reduceMotion = useReducedMotion();
   // Cart badge — consumer accounts only (rescues have a separate nav surface).
   const isShopper = isAuthenticated && user?.role !== 'rescue';
   const { count: cartCount } = useCart(isShopper);
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['inbox-unread'],
+    queryFn: getUnreadCount,
+    enabled: isAuthenticated,
+    refetchInterval: 60_000,
+  });
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
   const showVerifyBanner = isAuthenticated && user && !user.is_verified && !bannerDismissed;
@@ -68,10 +113,10 @@ export default function NavBar() {
   const navItems: readonly NavItem[] =
     user?.role === 'rescue'
       ? [
-          { path: '/app/rescue/dashboard', label: 'Dashboard', icon: '🦴' },
-          { path: '/app/dogs/new', label: 'Post', icon: '➕' },
-          { path: '/app/lost', label: 'Lost', icon: '🚨' },
-          { path: `/app/users/${user.id}`, label: 'Profile', icon: '👤' },
+          { path: '/app/rescue/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { path: '/app/dogs/new', label: 'Post', icon: CirclePlus },
+          { path: '/app/lost', label: 'Lost', icon: Siren },
+          { path: `/app/users/${user.id}`, label: 'Profile', icon: UserRound },
         ]
       : CONSUMER_NAV_ITEMS;
 
@@ -123,11 +168,26 @@ export default function NavBar() {
             {user?.role !== 'rescue' && (
               <Link
                 to={`/app/users/${user?.id}`}
-                className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
+                aria-label="Profile"
+                title="Profile"
+                className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95 text-gray-600 dark:text-gray-300"
               >
-                Profile
+                <UserRound size={18} aria-hidden />
               </Link>
             )}
+            <Link
+              to="/app/notifications"
+              aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+              title="Notifications"
+              className="relative w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95 text-gray-600 dark:text-gray-300"
+            >
+              <Bell size={18} aria-hidden />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 inline-flex items-center justify-center text-2xs font-bold leading-none text-white bg-brand-500 rounded-full">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
             {isShopper && (
               <Link
                 to="/app/cart"
@@ -135,13 +195,9 @@ export default function NavBar() {
                 title="Cart"
                 className="relative w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95 text-gray-600 dark:text-gray-300"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[18px] h-[18px]" aria-hidden>
-                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M3 6h18" strokeWidth={2} strokeLinecap="round" />
-                  <path d="M16 10a4 4 0 0 1-8 0" strokeWidth={2} strokeLinecap="round" />
-                </svg>
+                <ShoppingBag size={18} aria-hidden />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 inline-flex items-center justify-center text-[10px] font-bold leading-none text-white bg-brand-500 rounded-full">
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 inline-flex items-center justify-center text-2xs font-bold leading-none text-white bg-brand-500 rounded-full">
                     {cartCount > 9 ? '9+' : cartCount}
                   </span>
                 )}
@@ -154,11 +210,11 @@ export default function NavBar() {
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               className="text-sm leading-none w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95"
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              <ThemeGlyph theme={theme} />
             </button>
             <button
               onClick={handleLogout}
-              className="text-xs text-gray-500 dark:text-gray-400 transition-colors hover:text-red-500 dark:hover:text-red-400"
+              className="h-8 px-3 inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-500 dark:hover:text-red-400 transition-colors active:scale-95"
             >
               Log out
             </button>
@@ -172,7 +228,7 @@ export default function NavBar() {
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               className="text-sm leading-none w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95"
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              <ThemeGlyph theme={theme} />
             </button>
             {/* Coming-soon gate: the app isn't open to the public yet, so the
                 only entry point is Log in (beta testers + team). Public
@@ -189,11 +245,11 @@ export default function NavBar() {
 
       {/* Email verification banner */}
       {showVerifyBanner && (
-        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/30 text-sm text-amber-800 dark:text-amber-200 animate-fade-in-up">
+        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-warning-50 dark:bg-warning-500/10 border-b border-warning-200 dark:border-warning-500/30 text-sm text-warning-800 dark:text-warning-200 animate-fade-in-up">
           <span>Please verify your email address to unlock all features.</span>
           <button
             onClick={() => setBannerDismissed(true)}
-            className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-bold leading-none flex-shrink-0"
+            className="text-warning-600 dark:text-warning-400 hover:text-warning-800 dark:hover:text-warning-200 font-bold leading-none flex-shrink-0"
             aria-label="Dismiss"
           >
             ×
@@ -206,7 +262,7 @@ export default function NavBar() {
         <div className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gray-200/60 dark:border-gray-800 safe-bottom">
           <div className="mx-auto max-w-app flex py-2">
             {navItems.map((item) => {
-              const { path, label, icon } = item;
+              const { path, label, icon: Icon } = item;
               const isActive = activePath === path;
               const isSheet = 'isSheet' in item && item.isSheet;
               const itemClasses = `relative flex flex-1 flex-col items-center gap-1 px-2 pt-2.5 pb-2 min-h-[53px] transition-colors duration-200 ease-soft-out ${
@@ -221,14 +277,24 @@ export default function NavBar() {
                       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                     />
                   )}
-                  <span
-                    className={`text-[29px] leading-none transition-transform duration-200 ease-soft-out ${
-                      isActive ? 'scale-110' : ''
-                    }`}
+                  {/* tail-wag wiggle when the tab becomes active */}
+                  <motion.span
+                    className="leading-none"
+                    animate={
+                      isActive && !reduceMotion
+                        ? { rotate: [0, -10, 8, -4, 0], scale: [1, 1.15, 1.08, 1.12, 1.1] }
+                        : { rotate: 0, scale: isActive ? 1.1 : 1 }
+                    }
+                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    {icon}
-                  </span>
-                  <span className="text-[13px] font-semibold leading-none tracking-tight">
+                    <Icon
+                      size={26}
+                      strokeWidth={isActive ? 2.5 : 2}
+                      fill={isActive && item.fillActive ? 'currentColor' : 'none'}
+                      aria-hidden
+                    />
+                  </motion.span>
+                  <span className="text-xs font-semibold leading-none tracking-tight">
                     {label}
                   </span>
                 </>

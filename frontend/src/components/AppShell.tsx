@@ -12,6 +12,9 @@ import FeedbackWidget from './FeedbackWidget';
  */
 export default function AppShell() {
   const location = useLocation();
+  // The swipe deck owns its own drag physics — a translating page entrance
+  // would fight the card gestures, so that route gets opacity only.
+  const isSwipe = location.pathname.startsWith('/app/swipe');
 
   return (
     <div className="mx-auto max-w-app min-h-screen bg-white dark:bg-gray-900 pb-20 shadow-soft-lg">
@@ -31,7 +34,7 @@ export default function AppShell() {
         commit the new one mounts, with no exit phase — so two pages never share
         the layout. This is the same approach the marketing pages use.
       */}
-      <div key={location.pathname} className="animate-fade-in">
+      <div key={location.pathname} className={isSwipe ? 'animate-fade-in' : 'animate-fade-in-up'}>
         <Outlet />
       </div>
       {location.pathname === '/app/home' && <FeedbackWidget />}

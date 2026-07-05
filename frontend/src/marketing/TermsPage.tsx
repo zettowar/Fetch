@@ -15,7 +15,7 @@ export default function TermsPage() {
         subtitle={`The deal between you and Fetch, in plain English. Last updated ${LAST_UPDATED}.`}
       />
 
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-10 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-10 text-base leading-relaxed text-gray-600 dark:text-gray-400">
         <section>
           <p>
             By creating an account or using Fetch, you agree to these terms.

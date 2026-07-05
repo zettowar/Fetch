@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import PawMark from '../components/ui/PawMark';
+import PawTrail from '../components/flair/PawTrail';
 
 /**
  * Compact gradient hero shared by the interior marketing pages
@@ -18,8 +19,9 @@ export default function PageHero({
     <section className="relative overflow-hidden bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700 text-white">
       <div aria-hidden className="pointer-events-none absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/15 blur-3xl" />
       <PawMark decorative className="pointer-events-none absolute bottom-6 right-[10%] h-12 w-12 text-white/10 rotate-6" />
+      <PawTrail steps={4} size={16} className="absolute bottom-8 left-[6%] text-white/10" />
       <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 text-center">
-        <p className="text-[11px] uppercase tracking-widest font-semibold text-white/80">{eyebrow}</p>
+        <p className="text-2xs uppercase tracking-widest font-semibold text-white/80">{eyebrow}</p>
         <h1 className="mt-3 text-4xl sm:text-5xl font-extrabold tracking-tight text-balance">{title}</h1>
         {subtitle && (
           <p className="mt-4 mx-auto max-w-2xl text-lg text-white/90 leading-relaxed text-balance">{subtitle}</p>

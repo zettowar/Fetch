@@ -14,8 +14,11 @@ import {
   type FlaggedPhoto,
 } from '../../api/admin';
 import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import { Spinner } from '../../components/ui/Skeleton';
+import SearchInput from '../../components/ui/SearchInput';
+import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 import PaginationFooter from '../../components/ui/PaginationFooter';
 import TimeAgo from '../../components/TimeAgo';
 
@@ -59,27 +62,21 @@ function FlaggedPhotoQueue() {
       <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
         Flagged Photos
         {photos.length > 0 && (
-          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 rounded font-medium">
-            {photos.length} awaiting review
-          </span>
+          <Badge variant="warning">{photos.length} awaiting review</Badge>
         )}
       </h2>
 
       {isLoading ? (
-        <div className="flex justify-center py-6">
-          <Spinner className="h-6 w-6" />
-        </div>
+        <ListSkeleton rows={3} />
       ) : isError ? (
-        <p className="text-sm text-red-500 text-center py-6">
+        <p className="text-sm text-danger-500 text-center py-6">
           Couldn't load the review queue.{' '}
           <button onClick={() => refetch()} className="underline">Retry</button>
         </p>
       ) : photos.length === 0 ? (
-        <p className="text-gray-400 dark:text-gray-500 text-center py-6">
-          No flagged photos — the queue is clear.
-        </p>
+        <EmptyState className="py-6" title="No flagged photos" body="The queue is clear." />
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {photos.map((p: FlaggedPhoto) => (
             <div key={p.id} className="flex items-center gap-3 px-4 py-3">
               <FlaggedPhotoImage photoId={p.id} alt={`Flagged photo of ${p.dog_name ?? 'a dog'}`} />
@@ -92,9 +89,7 @@ function FlaggedPhotoQueue() {
                   >
                     {p.dog_name ?? 'Unknown dog'}
                   </Link>
-                  <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 rounded font-medium">
-                    flagged
-                  </span>
+                  <Badge variant="warning">flagged</Badge>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {p.owner_email ?? 'Unknown owner'}
@@ -126,7 +121,7 @@ function FlaggedPhotoQueue() {
               </div>
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );
@@ -188,13 +183,12 @@ export default function AdminContentPage() {
           className="flex gap-2 mb-3"
           onSubmit={(e) => { e.preventDefault(); setDogSearch(dogQuery); setOffset(0); }}
         >
-          <div className="flex-1">
-            <Input
-              placeholder="Search by name or breed..."
-              value={dogQuery}
-              onChange={(e) => setDogQuery(e.target.value)}
-            />
-          </div>
+          <SearchInput
+            className="flex-1"
+            placeholder="Search by name or breed..."
+            value={dogQuery}
+            onChange={setDogQuery}
+          />
           <Button type="submit" size="sm">Search</Button>
         </form>
 
@@ -209,15 +203,15 @@ export default function AdminContentPage() {
         </label>
 
         {isLoading ? (
-          <div className="flex justify-center py-6">
-            <Spinner className="h-6 w-6" />
-          </div>
+          <ListSkeleton rows={5} />
         ) : dogs.length === 0 ? (
-          <p className="text-gray-400 dark:text-gray-500 text-center py-6">
-            {dogSearch ? `No dogs found for "${dogSearch}".` : 'No dogs found.'}
-          </p>
+          <EmptyState
+            className="py-6"
+            title="No dogs found"
+            body={dogSearch ? `Nothing matches "${dogSearch}".` : undefined}
+          />
         ) : (
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+          <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
             {dogs.map((dog: AdminDog) => (
               <div key={dog.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
@@ -233,11 +227,9 @@ export default function AdminContentPage() {
                       <span className="text-xs text-gray-400 dark:text-gray-500">{dog.breed}</span>
                     )}
                     {!dog.is_active && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 rounded font-medium">
-                        inactive
-                      </span>
+                      <Badge variant="danger">inactive</Badge>
                     )}
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{dog.photo_count} photo{dog.photo_count !== 1 ? 's' : ''}</span>
+                    <span className="text-2xs text-gray-400 dark:text-gray-500">{dog.photo_count} photo{dog.photo_count !== 1 ? 's' : ''}</span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Owner:{' '}
@@ -278,7 +270,7 @@ export default function AdminContentPage() {
                 </div>
               </div>
             ))}
-          </div>
+          </Card>
         )}
 
         <PaginationFooter

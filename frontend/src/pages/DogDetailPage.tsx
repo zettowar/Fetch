@@ -1,18 +1,24 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { Camera, ChevronLeft, ChevronRight, Crown, Star, X } from 'lucide-react';
 import { getDog, setPrimaryPhoto } from '../api/dogs';
 import { deletePhoto } from '../api/photos';
 import { getNearbyParks, checkinPark } from '../api/parks';
+import { getDogStats } from '../api/rankings';
+import { getFollowerCount } from '../api/social';
 import { useAuth } from '../store/AuthContext';
 import FollowButton from '../components/FollowButton';
 import ReactionBar from '../components/ReactionBar';
 import CommentSection from '../components/CommentSection';
 import PhotoUploader from '../components/PhotoUploader';
 import BackButton from '../components/ui/BackButton';
+import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
+import DogIllustration from '../components/flair/DogIllustration';
+import { usePawBurst } from '../components/flair/PawBurst';
 import Linkify from '../components/Linkify';
 import TimeAgo from '../components/TimeAgo';
 import { dogAge, photoUrl, dogHeroPhoto } from '../utils/time';
@@ -30,10 +36,31 @@ export default function DogDetailPage() {
     queryKey: ['dog', id],
     queryFn: () => getDog(id!),
   });
+  const { data: stats } = useQuery({
+    queryKey: ['dog-stats', id],
+    queryFn: () => getDogStats(id!),
+    enabled: !!id,
+  });
 
   useDocumentTitle(dog ? `${dog.name} · Fetch` : null);
 
   const isOwner = user?.id === dog?.owner_id?.toString();
+
+  // Paw-print celebration when a follow lands. FollowButton owns the
+  // mutation, so watch its shared follower-count cache for the flip.
+  const { fire, PawBurstLayer } = usePawBurst();
+  const { data: followerCount } = useQuery({
+    queryKey: ['follower-count', dog?.id],
+    queryFn: () => getFollowerCount(dog!.id),
+    enabled: !!dog && !isOwner,
+  });
+  const wasFollowing = useRef<boolean | null>(null);
+  useEffect(() => {
+    const isFollowing = followerCount?.is_following;
+    if (isFollowing === undefined) return;
+    if (wasFollowing.current === false && isFollowing) fire();
+    wasFollowing.current = isFollowing;
+  }, [followerCount?.is_following, fire]);
 
   // Checkin state (owner only)
   const [showCheckinPicker, setShowCheckinPicker] = useState(false);
@@ -78,7 +105,11 @@ export default function DogDetailPage() {
   });
 
   const handleShare = () => {
-    const url = `${window.location.origin}/app/dogs/${id}`;
+    // Public share page when the owner allows it (viewable by anyone, no
+    // login); otherwise the in-app link for fellow members.
+    const url = dog?.is_public
+      ? `${window.location.origin}/dogs/${id}`
+      : `${window.location.origin}/app/dogs/${id}`;
     shareLink(url, dog?.name ? `${dog.name} on Fetch` : 'Fetch');
   };
 
@@ -160,23 +191,23 @@ export default function DogDetailPage() {
               onClick={() => setFullscreenIndex(null)}
               aria-label="Close"
             >
-              ✕
+              <X size={18} aria-hidden />
             </button>
             {total > 1 && (
               <>
                 <button
-                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 text-white text-2xl flex items-center justify-center hover:bg-black/70 transition-colors"
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
                   onClick={goPrev}
                   aria-label="Previous photo"
                 >
-                  ‹
+                  <ChevronLeft size={22} aria-hidden />
                 </button>
                 <button
-                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 text-white text-2xl flex items-center justify-center hover:bg-black/70 transition-colors"
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
                   onClick={goNext}
                   aria-label="Next photo"
                 >
-                  ›
+                  <ChevronRight size={22} aria-hidden />
                 </button>
                 <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/80 bg-black/40 px-2 py-0.5 rounded-full">
                   {fullscreenIndex + 1} / {total}
@@ -198,14 +229,14 @@ export default function DogDetailPage() {
       ) : isOwner ? (
         <div className="w-full bg-gradient-to-br from-brand-50 to-brand-100 p-6">
           <div className="flex flex-col items-center py-4">
-            <span className="text-4xl mb-2">{'\ud83d\udcf8'}</span>
+            <Camera size={32} aria-hidden className="mb-2 text-brand-400" />
             <p className="text-sm text-brand-600 font-medium mb-3">Add your first photo</p>
             <PhotoUploader dogId={dog.id} onUploaded={handlePhotoUploaded} />
           </div>
         </div>
       ) : (
-        <div className="w-full h-56 bg-gradient-to-br from-brand-50 to-brand-100 flex flex-col items-center justify-center">
-          <span className="text-5xl">{'\ud83d\udc36'}</span>
+        <div className="w-full h-56 bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 flex flex-col items-center justify-center">
+          <DogIllustration name="sleeping" className="h-24 w-auto text-brand-300 dark:text-brand-400/60" />
           <span className="text-sm text-brand-400 mt-2">No photos yet</span>
         </div>
       )}
@@ -217,6 +248,16 @@ export default function DogDetailPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <h1 className="text-2xl font-bold">{dog.name}</h1>
+            {stats && stats.crown_weeks.length > 0 && (
+              <Badge
+                variant="warning"
+                icon={<Crown size={12} />}
+                title={`Top Dog ${stats.crown_weeks.length === 1 ? 'once' : `${stats.crown_weeks.length} times`} — most recently the week of ${stats.crown_weeks[0]}`}
+                aria-label={`Top Dog winner, ${stats.crown_weeks.length} ${stats.crown_weeks.length === 1 ? 'time' : 'times'}`}
+              >
+                {stats.crown_weeks.length > 1 ? `×${stats.crown_weeks.length}` : 'Top Dog'}
+              </Badge>
+            )}
             {age && <span className="text-sm text-gray-400 dark:text-gray-500">{age}</span>}
           </div>
           <div className="flex items-center gap-2">
@@ -227,7 +268,12 @@ export default function DogDetailPage() {
             >
               Share
             </button>
-            {!isOwner && <FollowButton dogId={dog.id} />}
+            {!isOwner && (
+              <span className="relative inline-flex">
+                <FollowButton dogId={dog.id} />
+                <PawBurstLayer />
+              </span>
+            )}
             {isOwner && (
               <Link
                 to={`/app/dogs/${dog.id}/edit`}
@@ -239,6 +285,11 @@ export default function DogDetailPage() {
           </div>
         </div>
         {dog.breed_display && <p className="text-gray-500 dark:text-gray-400">{dog.breed_display}</p>}
+        {stats?.week_rank != null && (
+          <p className="mt-0.5 text-sm font-medium text-brand-600 dark:text-brand-400">
+            #{stats.week_rank} of {stats.week_total} this week · {stats.week_score} ❤️
+          </p>
+        )}
 
         {dog.adoptable && dog.rescue_name && (
           <div className="mt-3 rounded-xl border border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10 px-3 py-2 text-sm">
@@ -268,9 +319,9 @@ export default function DogDetailPage() {
         {dog.traits && dog.traits.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {dog.traits.map((t) => (
-              <span key={t} className="px-2.5 py-0.5 bg-brand-50 text-brand-600 text-xs rounded-full font-medium border border-brand-100">
+              <Badge key={t} variant="brand" size="md">
                 {t}
-              </span>
+              </Badge>
             ))}
           </div>
         )}
@@ -356,10 +407,10 @@ export default function DogDetailPage() {
                             if (!isPrimary) setPrimaryMutation.mutate(photo.id.toString());
                           }}
                         >
-                          ★
+                          <Star size={12} aria-hidden fill={isPrimary ? 'currentColor' : 'none'} />
                         </button>
                         <button
-                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity shadow"
+                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-danger-500 dark:hover:text-danger-400 transition-opacity shadow"
                           title="Delete photo"
                           aria-label="Delete photo"
                           onClick={(e) => {
@@ -367,7 +418,7 @@ export default function DogDetailPage() {
                             if (confirm('Delete this photo?')) deletePhotoMutation.mutate(photo.id.toString());
                           }}
                         >
-                          ✕
+                          <X size={12} aria-hidden />
                         </button>
                       </>
                     )}

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db import get_db
 from app.deps import get_current_user
@@ -9,7 +10,9 @@ from app.limiter import limiter
 from app.models.dog import Dog
 from app.models.user import User
 from app.models.vote import Vote
+from app.schemas.dog import DogOut
 from app.schemas.vote import VoteCreate, VoteOut
+from app.services.dog_serializer import dog_to_out
 from app.services.feed_service import current_week_bucket
 
 router = APIRouter()
@@ -61,3 +64,34 @@ async def my_votes(
         .order_by(Vote.created_at.desc())
     )
     return list(result.scalars().all())
+
+
+@router.get("/liked", response_model=list[DogOut])
+async def liked_dogs(
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Dogs this user has liked (all time), newest like first."""
+    liked_at = func.max(Vote.created_at).label("liked_at")
+    liked_sq = (
+        select(Vote.dog_id, liked_at)
+        .where(Vote.voter_id == user.id, Vote.value == 1)
+        .group_by(Vote.dog_id)
+        .subquery()
+    )
+    result = await db.execute(
+        select(Dog)
+        .join(liked_sq, Dog.id == liked_sq.c.dog_id)
+        .options(
+            selectinload(Dog.photos),
+            selectinload(Dog.breeds),
+            selectinload(Dog.owner).selectinload(User.rescue_profile),
+        )
+        .where(Dog.is_active == True)  # noqa: E712
+        .order_by(liked_sq.c.liked_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return [dog_to_out(d) for d in result.scalars().all()]

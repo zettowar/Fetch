@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { Dog as DogIcon } from 'lucide-react';
 import { getMyDogs } from '../api/dogs';
 import { getCurrentRankings } from '../api/rankings';
 import DogProfileCard from '../components/DogProfileCard';
@@ -27,7 +28,7 @@ export default function MyDogsPage() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <span aria-hidden>🐶</span> My Dogs
+          <DogIcon size={22} aria-hidden className="text-brand-500" /> My Dogs
         </h1>
         <Link to="/app/dogs/new">
           <Button size="sm">+ Add Dog</Button>
@@ -54,7 +55,7 @@ export default function MyDogsPage() {
         </div>
       ) : (
         <EmptyState
-          icon="🐶"
+          illustration="sleeping"
           title="No dogs yet"
           body="Add your pup to start collecting votes and climbing the weekly leaderboard."
           action={

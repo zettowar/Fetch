@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         subtitle={`What we collect, why we collect it, and what we will never do with it. Last updated ${LAST_UPDATED}.`}
       />
 
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-10 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-10 text-base leading-relaxed text-gray-600 dark:text-gray-400">
         <section>
           <p>
             Fetch is a place to show off your dog, not a data business. This

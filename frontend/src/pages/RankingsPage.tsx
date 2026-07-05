@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { Trophy } from 'lucide-react';
 import { getCurrentRankings, getWinnerHistory } from '../api/rankings';
 import { getMyDogs } from '../api/dogs';
 import { ListSkeleton } from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { useAuth } from '../store/AuthContext';
 import { useWeeklyResetCountdown } from '../utils/weeklyReset';
@@ -34,7 +37,9 @@ export default function RankingsPage() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">{'\ud83c\udfc6'} Rankings</h1>
+      <h1 className="text-2xl font-bold tracking-tight mb-4 flex items-center gap-2">
+        <Trophy size={22} aria-hidden className="text-warning-500" /> Rankings
+      </h1>
 
       <div className="flex items-baseline justify-between mb-2">
         <h2 className="text-lg font-semibold">This Week</h2>
@@ -46,7 +51,7 @@ export default function RankingsPage() {
       ) : isError ? (
         <ErrorState message="Couldn't load the rankings." onRetry={() => refetch()} />
       ) : leaderboard && leaderboard.length > 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {leaderboard.map((entry) => {
             const isMine = myDogIds.has(entry.dog_id.toString());
             return (
@@ -72,7 +77,7 @@ export default function RankingsPage() {
                 <div className="flex items-center gap-1.5">
                   <p className="font-medium truncate">{entry.dog_name}</p>
                   {isMine && (
-                    <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide bg-brand-500 text-white px-1.5 py-0.5 rounded-full">
+                    <span className="flex-shrink-0 text-2xs font-semibold uppercase tracking-wide bg-brand-500 text-white px-1.5 py-0.5 rounded-full">
                       You
                     </span>
                   )}
@@ -88,25 +93,26 @@ export default function RankingsPage() {
             </Link>
             );
           })}
-        </div>
+        </Card>
       ) : (
-        <div className="text-center py-8">
-          <span className="text-3xl">{'\ud83d\udcca'}</span>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">No votes yet this week. Be the first to swipe!</p>
-        </div>
+        <EmptyState
+          illustration="sleeping"
+          title="No votes yet this week"
+          body="The leaderboard is still napping \u2014 be the first to swipe!"
+        />
       )}
 
       {history && history.length > 0 && (
         <div className="mt-8">
           <h2 className="text-lg font-semibold mb-2">Past Winners</h2>
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+          <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
             {history.map((winner) => (
               <Link
                 key={winner.id}
                 to={`/app/dogs/${winner.dog_id}`}
                 className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
               >
-                <span className="text-lg">{'\ud83c\udfc6'}</span>
+                <Trophy size={18} aria-hidden className="text-warning-500" />
                 <div className="flex-1">
                   <p className="font-medium">{winner.dog_name || 'Unknown'}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -116,7 +122,7 @@ export default function RankingsPage() {
                 <p className="font-semibold text-brand-600">{winner.score}</p>
               </Link>
             ))}
-          </div>
+          </Card>
         </div>
       )}
     </div>

@@ -1,7 +1,10 @@
 import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { HousePlus } from 'lucide-react';
 import type { Dog } from '../types';
 import { dogAge, dogHeroPhoto } from '../utils/time';
+import Badge from './ui/Badge';
+import DogIllustration from './flair/DogIllustration';
 
 interface SwipeCardProps {
   dog: Dog;
@@ -50,9 +53,9 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
       {photoUrl ? (
         <img src={photoUrl} alt={dog.name} className="w-full h-[70%] object-cover" />
       ) : (
-        <div className="w-full h-[70%] bg-gradient-to-br from-brand-50 to-brand-100 flex flex-col items-center justify-center gap-2">
-          <span className="text-5xl opacity-25">🐾</span>
-          <p className="text-sm text-brand-300 font-medium">No photo yet</p>
+        <div className="w-full h-[70%] bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 flex flex-col items-center justify-center gap-2">
+          <DogIllustration name="sleeping" className="h-24 w-auto text-brand-300 dark:text-brand-400/60" />
+          <p className="text-sm text-brand-300 dark:text-brand-400/80 font-medium">No photo yet</p>
         </div>
       )}
 
@@ -62,10 +65,10 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
           to={`/app/rescues/${dog.rescue_id}`}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
-          className="absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-[11px] font-semibold px-2.5 py-1 shadow-md hover:bg-brand-600 transition-colors"
+          className="absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-2xs font-semibold px-2.5 py-1 shadow-soft-sm hover:bg-brand-600 transition-colors"
           aria-label={`Rescue · ${dog.rescue_name ?? 'View rescue profile'}`}
         >
-          <span aria-hidden>🏠</span>
+          <HousePlus size={12} aria-hidden />
           <span className="max-w-[140px] truncate">
             {dog.rescue_name ?? 'Rescue'}
           </span>
@@ -74,13 +77,13 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
 
       {/* Like/Pass overlays */}
       <motion.div
-        className="absolute top-6 right-6 bg-green-500 text-white px-4 py-2 rounded-xl text-xl font-bold rotate-12 border-4 border-green-500"
+        className="absolute top-6 right-6 bg-success-500 text-white px-4 py-2 rounded-xl text-xl font-bold rotate-12 border-4 border-success-500"
         style={{ opacity: likeOpacity }}
       >
         LIKE
       </motion.div>
       <motion.div
-        className="absolute top-6 left-6 bg-red-400 text-white px-4 py-2 rounded-xl text-xl font-bold -rotate-12 border-4 border-red-400"
+        className="absolute top-6 left-6 bg-danger-400 text-white px-4 py-2 rounded-xl text-xl font-bold -rotate-12 border-4 border-danger-400"
         style={{ opacity: passOpacity }}
       >
         PASS
@@ -97,15 +100,11 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
         {dog.traits && dog.traits.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
             {dog.traits.slice(0, 3).map((t) => (
-              <span key={t} className="px-2 py-0.5 bg-brand-50 text-brand-600 text-[11px] rounded-full font-medium">
+              <Badge key={t} variant="brand">
                 {t}
-              </span>
+              </Badge>
             ))}
-            {dog.traits.length > 3 && (
-              <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-[11px] rounded-full font-medium">
-                +{dog.traits.length - 3}
-              </span>
-            )}
+            {dog.traits.length > 3 && <Badge variant="neutral">+{dog.traits.length - 3}</Badge>}
           </div>
         )}
         {dog.bio && <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{dog.bio}</p>}

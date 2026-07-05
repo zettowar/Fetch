@@ -16,6 +16,7 @@ import MissionPage from './marketing/MissionPage';
 import NewsPage from './marketing/NewsPage';
 import PrivacyPage from './marketing/PrivacyPage';
 import TermsPage from './marketing/TermsPage';
+import PublicDogPage from './marketing/PublicDogPage';
 import AuthLayout from './marketing/AuthLayout';
 
 // Auth screens
@@ -25,6 +26,8 @@ import RescueSignupPage from './pages/RescueSignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import ConfirmEmailChangePage from './pages/ConfirmEmailChangePage';
+import LikedDogsPage from './pages/LikedDogsPage';
 
 // Authenticated app pages
 import RescueDashboardPage from './pages/RescueDashboardPage';
@@ -119,6 +122,8 @@ function AppContent() {
           <Route path="/news" element={<NewsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          {/* Public read-only dog share page — no session required. */}
+          <Route path="/dogs/:dogId" element={<PublicDogPage />} />
           {/* Unknown public URL — 404 inside the site chrome. */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
@@ -131,6 +136,7 @@ function AppContent() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+          <Route path="/confirm-email-change" element={<ConfirmEmailChangePage />} />
         </Route>
 
         {/* ── Authenticated web app — mobile-portrait shell, session required ── */}
@@ -170,6 +176,7 @@ function AppContent() {
           <Route path="rescues/:id" element={<RescueDetailPage />} />
           <Route path="rescue/dashboard" element={<RescueDashboardPage />} />
           <Route path="transfers" element={<TransfersPage />} />
+          <Route path="liked" element={<LikedDogsPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="shop" element={<ShopPage />} />
           <Route path="shop/:handle" element={<ShopProductPage />} />

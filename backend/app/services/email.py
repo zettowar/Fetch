@@ -119,6 +119,22 @@ async def send_verification_email(to: str, raw_token: str) -> bool:
     )
 
 
+async def send_email_change_email(to: str, raw_token: str) -> bool:
+    url = f"{settings.FRONTEND_BASE_URL}/confirm-email-change?token={raw_token}"
+    return await send_email(
+        to,
+        "Confirm your new email for Fetch",
+        _layout(
+            "Confirm this address",
+            "<p>Someone asked to move their Fetch account to this email "
+            "address. Confirm to complete the switch; if this wasn't you, "
+            "ignore this email and nothing changes.</p>",
+            cta_url=url,
+            cta_label="Use this address",
+        ),
+    )
+
+
 async def send_contact_relay_email(
     to: str, *, sender_name: str, sender_email: str, report_title: str, message: str
 ) -> bool:

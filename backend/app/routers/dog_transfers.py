@@ -19,6 +19,7 @@ from app.models.rescue import RescueProfile
 from app.models.user import User
 from app.schemas.dog_transfer import DogTransferOut
 from app.services.dog_serializer import display_photo_url
+from app.services.notify import notify
 
 router = APIRouter()
 
@@ -119,6 +120,12 @@ async def accept_transfer(
     t.to_user_id = user.id
     t.responded_at = now
 
+    await notify(
+        db, t.from_user_id,
+        type="transfer_resolved",
+        title=f"{user.display_name} accepted the transfer of {dog.name}",
+        link="/app/rescue/dashboard",
+    )
     db.add(AuditLog(
         actor_id=user.id,
         action="dog.transfer_accepted",
@@ -142,6 +149,12 @@ async def decline_transfer(
         raise HTTPException(status_code=400, detail=f"Transfer is {t.status}")
     t.status = "declined"
     t.responded_at = datetime.now(timezone.utc)
+    await notify(
+        db, t.from_user_id,
+        type="transfer_resolved",
+        title=f"{user.display_name} declined a dog transfer",
+        link="/app/rescue/dashboard",
+    )
     db.add(AuditLog(
         actor_id=user.id,
         action="dog.transfer_declined",

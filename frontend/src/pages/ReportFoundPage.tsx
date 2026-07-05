@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { PawPrint } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import { createLostReport } from '../api/lost';
 import Button from '../components/ui/Button';
@@ -45,7 +46,7 @@ export default function ReportFoundPage() {
     <div className="p-4">
       <BackButton fallback="/app/lost" />
       <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
-        <span aria-hidden>🐾</span> Report Found Dog
+        <PawPrint size={22} aria-hidden className="text-brand-500" /> Report Found Dog
       </h1>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Help reunite a lost dog with their owner. Your account must be at least 7 days old.

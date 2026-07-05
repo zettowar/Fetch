@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
+import { Map as MapIcon } from 'lucide-react';
 import { getNearbyRescues, type RescuePublic } from '../api/rescues';
 import Map from '../components/Map';
-import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
+import PawSpinner from '../components/flair/PawSpinner';
 import { useUserLocation } from '../utils/useUserLocation';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // San Francisco fallback
@@ -58,7 +59,7 @@ export default function RescuesMapPage() {
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="flex items-baseline justify-between gap-3">
           <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <span aria-hidden>🗺️</span> Rescue map
+            <MapIcon size={20} aria-hidden className="text-brand-500" /> Rescue map
           </h1>
           <Link
             to="/app/rescues/browse"
@@ -87,14 +88,14 @@ export default function RescuesMapPage() {
           />
 
           {!isLoading && !isError && markers.length === 0 && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 max-w-[90%] text-center z-10">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-xl shadow-soft ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 max-w-[90%] text-center z-10">
               No mapped rescues in this area yet.
             </div>
           )}
 
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-gray-950/40 backdrop-blur-sm z-20">
-              <Spinner />
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 glass rounded-full px-4 py-2 shadow-soft-lg">
+              <PawSpinner size="sm" />
             </div>
           )}
         </div>
@@ -124,7 +125,7 @@ export default function RescuesMapPage() {
                         {r.org_name}
                       </p>
                       {r.location && (
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                        <p className="text-2xs text-gray-500 dark:text-gray-400 truncate">
                           {r.location}
                         </p>
                       )}

@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getVet } from '../api/vets';
 import BackButton from '../components/ui/BackButton';
+import Badge from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
 import Map from '../components/Map';
@@ -74,16 +75,8 @@ export default function VetDetailPage() {
 
       <div className="flex items-center gap-2 flex-wrap mt-3 mb-1">
         <h1 className="text-2xl font-bold">{vet.name}</h1>
-        {vet.verified && (
-          <span className="text-[10px] bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
-            Verified
-          </span>
-        )}
-        {isEmergency && (
-          <span className="text-[10px] bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 px-2 py-0.5 rounded-full font-semibold">
-            Emergency
-          </span>
-        )}
+        {vet.verified && <Badge variant="success">Verified</Badge>}
+        {isEmergency && <Badge variant="danger">Emergency</Badge>}
       </div>
 
       {vet.address && (
@@ -138,18 +131,15 @@ export default function VetDetailPage() {
           </h2>
           <div className="flex flex-wrap gap-1.5">
             {activeAttributes.map(([key]) => (
-              <span
-                key={key}
-                className="inline-flex items-center px-2.5 py-1 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 text-xs font-medium rounded-full"
-              >
+              <Badge key={key} variant="brand" size="md">
                 {ATTRIBUTE_LABELS[key] || key}
-              </span>
+              </Badge>
             ))}
           </div>
         </section>
       )}
 
-      <p className="mt-8 text-[11px] text-center text-gray-400 dark:text-gray-500">
+      <p className="mt-8 text-2xs text-center text-gray-400 dark:text-gray-500">
         Vet listings come from OpenStreetMap. Verify hours and emergency
         availability with the clinic before relying on them.
       </p>

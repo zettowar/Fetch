@@ -4,9 +4,12 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getReports, reviewReport } from '../../api/admin';
 import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
 import PaginationFooter from '../../components/ui/PaginationFooter';
 import TimeAgo from '../../components/TimeAgo';
-import { Spinner } from '../../components/ui/Skeleton';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 
 const TABS = ['pending', 'reviewed', 'dismissed', 'all'] as const;
 const PAGE_SIZE = 50;
@@ -83,28 +86,30 @@ export default function AdminReportsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner size="sm" />
-        </div>
+        <ListSkeleton rows={5} />
       ) : reports.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-          <p className="text-lg mb-1">{tab === 'pending' ? 'Queue is clear' : `No ${tab} reports`}</p>
-          {tab === 'pending' && <p className="text-sm">All reports have been reviewed.</p>}
-        </div>
+        <EmptyState
+          className="py-6"
+          title={tab === 'pending' ? 'Queue is clear' : `No ${tab} reports`}
+          body={tab === 'pending' ? 'All reports have been reviewed.' : undefined}
+        />
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {reports.map((r) => (
             <div key={r.id}>
               <button
                 onClick={() => openRow(expanded === r.id ? null : r.id)}
                 className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 text-left"
               >
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                  r.target_type === 'user' ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300' :
-                  r.target_type === 'photo' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300' :
-                  r.target_type === 'dog' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' :
-                  'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                }`}>{r.target_type}</span>
+                <Badge
+                  className="shrink-0"
+                  variant={
+                    r.target_type === 'user' ? 'danger' :
+                    r.target_type === 'photo' ? 'info' :
+                    r.target_type === 'dog' ? 'warning' :
+                    'neutral'
+                  }
+                >{r.target_type}</Badge>
                 <span className="flex-1 text-sm truncate">{r.reason}</span>
                 <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={r.created_at} /></span>
               </button>
@@ -129,7 +134,7 @@ export default function AdminReportsPage() {
                   </div>
 
                   {r.admin_notes && (
-                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-500/10 rounded-lg text-xs text-blue-800 dark:text-blue-200">
+                    <div className="mt-2 p-2 bg-info-50 dark:bg-info-500/10 rounded-lg text-xs text-info-800 dark:text-info-200">
                       <span className="font-medium">Admin notes:</span> {r.admin_notes}
                     </div>
                   )}
@@ -165,13 +170,14 @@ export default function AdminReportsPage() {
                           size="sm"
                           variant="danger"
                           onClick={() => reviewMutation.mutate({ id: r.id, status: 'reviewed' })}
-                          loading={reviewMutation.isPending}
+                          loading={reviewMutation.isPending && reviewMutation.variables?.status === 'reviewed'}
                         >
                           Uphold Report
                         </Button>
                         <Button
                           size="sm"
                           variant="secondary"
+                          loading={reviewMutation.isPending && reviewMutation.variables?.status === 'dismissed'}
                           onClick={() => reviewMutation.mutate({ id: r.id, status: 'dismissed' })}
                         >
                           Dismiss
@@ -183,7 +189,7 @@ export default function AdminReportsPage() {
               )}
             </div>
           ))}
-        </div>
+        </Card>
       )}
 
       <PaginationFooter

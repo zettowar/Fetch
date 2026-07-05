@@ -13,6 +13,7 @@ from app.models.audit_log import AuditLog
 from app.models.dog import Dog
 from app.models.rescue import RescueProfile
 from app.models.user import User
+from app.services.notify import notify
 from app.schemas.adoption import (
     AdoptionInquiryCreate,
     AdoptionInquiryOut,
@@ -63,6 +64,13 @@ async def create_inquiry(
         message=body.message,
     )
     db.add(inquiry)
+    await notify(
+        db, rescue.user_id,
+        type="inquiry_received",
+        title=f"New adoption inquiry from {body.name}",
+        body=body.message[:120] if body.message else None,
+        link="/app/rescue/dashboard",
+    )
     db.add(AuditLog(
         actor_id=user.id,
         action="adoption.inquiry_submitted",
@@ -131,6 +139,13 @@ async def update_inquiry_status(
         raise HTTPException(status_code=404, detail="Inquiry not found")
 
     inquiry.status = body.status
+    if inquiry.inquirer_id is not None:
+        await notify(
+            db, inquiry.inquirer_id,
+            type="inquiry_status",
+            title=f"{profile.org_name} marked your adoption inquiry {body.status}",
+            link=f"/app/rescues/{profile.id}",
+        )
     await db.commit()
     await db.refresh(inquiry)
     return inquiry

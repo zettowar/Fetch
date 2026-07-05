@@ -3,10 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { login } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
+import AuthHero from '../components/AuthHero';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
-import PawMark from '../components/ui/PawMark';
 import { apiErrorMessage } from '../utils/apiError';
 
 export default function LoginPage() {
@@ -40,21 +40,10 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col pb-10">
-      {/* Brand hero */}
-      <section className="relative overflow-hidden rounded-b-3xl bg-gradient-to-br from-brand-400 via-brand-500 to-brand-600 text-white px-6 pt-8 pb-10">
-        <div aria-hidden className="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/10 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-16 -left-12 w-52 h-52 rounded-full bg-brand-700/30 blur-3xl" />
-
-        <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center shadow-soft-lg ring-1 ring-white/20">
-            <PawMark className="h-11 w-11 text-white" />
-          </div>
-          <h1 className="mt-4 text-3xl font-extrabold tracking-tight">Welcome back</h1>
-          <p className="mt-1.5 text-sm text-white/90 max-w-xs">
-            Log in to keep swiping and find this week's top pup.
-          </p>
-        </div>
-      </section>
+      <AuthHero
+        title="Welcome back"
+        subtitle="Log in to keep swiping and find this week's top pup."
+      />
 
       {/* Form card */}
       <div className="px-5 mt-8">

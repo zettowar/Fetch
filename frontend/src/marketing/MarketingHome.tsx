@@ -1,8 +1,13 @@
 import { Link, Navigate } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Heart, HousePlus } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import PawMark from '../components/ui/PawMark';
+import Badge from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Skeleton';
+import DogIllustration from '../components/flair/DogIllustration';
+import PawTrail from '../components/flair/PawTrail';
 
 const OWNER_FEATURES = [
   { icon: '❤️', title: 'Swipe & rate', body: 'A Tinder-style feed of good boys and girls. One tap, one vote.' },
@@ -48,6 +53,7 @@ export default function MarketingHome() {
         <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 w-[28rem] h-[28rem] rounded-full bg-brand-800/40 blur-3xl" />
         <PawMark decorative className="pointer-events-none absolute top-10 left-[8%] h-10 w-10 text-white/10 -rotate-12" />
         <PawMark decorative className="pointer-events-none absolute bottom-16 right-[12%] h-14 w-14 text-white/[0.08] rotate-6" />
+        <PawTrail steps={5} size={20} className="absolute bottom-8 left-8 text-white/10" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
           <div className="grid items-center gap-12 lg:grid-cols-2">
@@ -172,7 +178,7 @@ export default function MarketingHome() {
               className="group rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-soft-sm transition-all duration-200 ease-soft-out hover:-translate-y-1 hover:shadow-soft-lg hover:border-brand-200 dark:hover:border-brand-500/40"
             >
               <span className="text-3xl leading-none" aria-hidden>{t.emoji}</span>
-              <p className="mt-4 text-[11px] uppercase tracking-widest font-semibold text-brand-600 dark:text-brand-400">{t.eyebrow}</p>
+              <p className="mt-4 text-2xs uppercase tracking-widest font-semibold text-brand-600 dark:text-brand-400">{t.eyebrow}</p>
               <h3 className="mt-1 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">{t.title}</h3>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-snug">{t.body}</p>
               <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 dark:text-brand-400">
@@ -220,7 +226,7 @@ function SectionHeading({ eyebrow, title, accent }: { eyebrow: string; title: st
       : 'text-brand-600 dark:text-brand-400';
   return (
     <div className="text-center">
-      <p className={`text-[11px] uppercase tracking-widest font-semibold ${color}`}>{eyebrow}</p>
+      <p className={`text-2xs uppercase tracking-widest font-semibold ${color}`}>{eyebrow}</p>
       <h2 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-balance">{title}</h2>
     </div>
   );
@@ -268,20 +274,20 @@ function AudienceCard({ accent, eyebrow, iconEmoji, title, body, tag, tagTo }: {
           {iconEmoji}
         </span>
         <div className="min-w-0 flex-1">
-          <p className={`text-[11px] uppercase tracking-widest font-semibold ${a.eyebrow}`}>{eyebrow}</p>
+          <p className={`text-2xs uppercase tracking-widest font-semibold ${a.eyebrow}`}>{eyebrow}</p>
           <h3 className="mt-0.5 text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">{title}</h3>
         </div>
       </div>
-      <p className="mt-4 text-[15px] text-gray-600 dark:text-gray-400 leading-relaxed">{body}</p>
+      <p className="mt-4 text-base text-gray-600 dark:text-gray-400 leading-relaxed">{body}</p>
       {tagTo ? (
         <Link
           to={tagTo}
-          className={`mt-5 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold hover:underline ${a.tag}`}
+          className={`mt-5 inline-flex items-center gap-1 rounded-full px-3 py-1 text-2xs font-semibold hover:underline ${a.tag}`}
         >
           {tag} <span aria-hidden>→</span>
         </Link>
       ) : (
-        <span className={`mt-5 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${a.tag}`}>
+        <span className={`mt-5 inline-flex items-center rounded-full px-3 py-1 text-2xs font-semibold ${a.tag}`}>
           {tag}
         </span>
       )}
@@ -309,15 +315,23 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
  * — you never vote a dog down. Non-interactive; a mockup of what's coming.
  */
 function AppPreview() {
+  const reduceMotion = useReducedMotion();
+  // One shared 5s timeline: the card sits still, tilts right with a LIKE
+  // stamp, then springs back — the fake swipe every visitor came to see.
+  const swipeTimes = [0, 0.55, 0.68, 0.82, 0.93, 1];
   return (
     <div className="relative">
       {/* Signals this is a mockup of what's coming, not a live app. */}
-      <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-1 rounded-full bg-brand-700 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-soft-lg ring-1 ring-white/40">
+      <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-1 rounded-full bg-brand-700 px-3 py-1 text-2xs font-bold uppercase tracking-widest text-white shadow-soft-lg ring-1 ring-white/40">
         <span aria-hidden>🚧</span> Sneak peek
       </span>
 
       {/* Phone frame — the app viewport (mobile-portrait). */}
-      <div className="w-[320px] rounded-[2.75rem] bg-gray-900 p-2.5 shadow-soft-lg ring-1 ring-black/10">
+      <motion.div
+        className="w-[320px] rounded-[2.75rem] bg-gray-900 p-2.5 shadow-soft-lg ring-1 ring-black/10"
+        animate={reduceMotion ? undefined : { y: [0, -6, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+      >
         {/* Screen — the app surface; everything below lives on it. */}
         <div className="rounded-[2.25rem] bg-white dark:bg-gray-900 overflow-hidden">
           <div className="px-4 pt-6 pb-5">
@@ -329,15 +343,41 @@ function AppPreview() {
             {/* Card — mirrors SwipeCard */}
             <div className="relative w-full h-[290px]">
               <div aria-hidden className="absolute inset-x-4 top-3 -bottom-1 rounded-2xl bg-black/5 dark:bg-white/5" />
-              <div className="relative h-full w-full rounded-2xl bg-white dark:bg-gray-900 shadow-lg ring-1 ring-black/5 overflow-hidden">
+              <motion.div
+                className="relative h-full w-full rounded-2xl bg-white dark:bg-gray-900 shadow-soft-lg ring-1 ring-black/5 overflow-hidden"
+                animate={
+                  reduceMotion
+                    ? undefined
+                    : { rotate: [0, 0, 8, 8, 0, 0], x: [0, 0, 20, 20, 0, 0] }
+                }
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  times: swipeTimes,
+                  ease: 'easeInOut',
+                }}
+              >
                 <div className="w-full h-[66%] bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center">
-                  <span className="text-[5rem] leading-none" aria-hidden>🐕</span>
+                  <DogIllustration name="ball" className="h-32 w-auto text-brand-300" />
                 </div>
 
                 {/* Rescue badge — a real SwipeCard element; ties into adoption. */}
-                <span className="absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-[10px] font-semibold px-2 py-0.5 shadow-md">
-                  <span aria-hidden>🏠</span> Happy Tails Rescue
+                <span className="absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-2xs font-semibold px-2.5 py-1 shadow-soft-sm">
+                  <HousePlus size={12} aria-hidden /> Happy Tails Rescue
                 </span>
+
+                {/* LIKE stamp — fades in as the fake swipe tilts the card. */}
+                {!reduceMotion && (
+                  <motion.span
+                    aria-hidden
+                    className="absolute top-4 right-4 z-20 bg-success-500 text-white px-3 py-1.5 rounded-xl text-base font-bold rotate-12 border-4 border-success-500"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 0, 1, 1, 0, 0] }}
+                    transition={{ duration: 5, repeat: Infinity, times: swipeTimes }}
+                  >
+                    LIKE
+                  </motion.span>
+                )}
 
                 <div className="p-3">
                   <div className="flex items-baseline gap-2">
@@ -347,33 +387,33 @@ function AppPreview() {
                   <p className="text-sm text-gray-500 dark:text-gray-400">Golden Retriever</p>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {['Playful', 'Gentle', 'Good boy'].map((t) => (
-                      <span key={t} className="px-2 py-0.5 bg-brand-50 text-brand-600 text-[10px] rounded-full font-medium">
+                      <Badge key={t} variant="brand">
                         {t}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             {/* Controls — mirror SwipeDeck: Pass (downward paw) + Like (heart). */}
             <div className="mt-4 flex items-center justify-center gap-4">
               <div
                 aria-hidden
-                className="w-16 h-16 rounded-full bg-red-100 text-red-500 dark:bg-red-500/15 dark:text-red-400 flex items-center justify-center shadow-soft-sm"
+                className="w-16 h-16 rounded-full bg-danger-100 text-danger-500 dark:bg-danger-500/15 dark:text-danger-400 flex items-center justify-center shadow-soft-sm"
               >
                 <PawMark className="h-8 w-8 rotate-180" decorative />
               </div>
               <div
                 aria-hidden
-                className="w-16 h-16 rounded-full bg-green-100 text-green-500 dark:bg-green-500/15 dark:text-green-400 text-3xl flex items-center justify-center shadow-soft-sm"
+                className="w-16 h-16 rounded-full bg-success-100 text-success-500 dark:bg-success-500/15 dark:text-success-400 flex items-center justify-center shadow-soft-sm"
               >
-                &#x2764;
+                <Heart size={30} fill="currentColor" strokeWidth={0} aria-hidden />
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

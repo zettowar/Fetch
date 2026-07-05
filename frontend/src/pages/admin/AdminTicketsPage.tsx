@@ -4,16 +4,19 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getTickets, updateTicket } from '../../api/admin';
 import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
 import TimeAgo from '../../components/TimeAgo';
-import { Spinner } from '../../components/ui/Skeleton';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 
 const TABS = ['open', 'in_progress', 'resolved', 'closed', 'all'] as const;
 
-const STATUS_STYLES: Record<string, string> = {
-  open: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
-  in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
-  resolved: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300',
-  closed: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
+const STATUS_VARIANTS: Record<string, 'warning' | 'info' | 'success' | 'neutral'> = {
+  open: 'warning',
+  in_progress: 'info',
+  resolved: 'success',
+  closed: 'neutral',
 };
 
 export default function AdminTicketsPage() {
@@ -65,15 +68,14 @@ export default function AdminTicketsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner size="sm" />
-        </div>
+        <ListSkeleton rows={5} />
       ) : tickets.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-          {tab === 'open' ? 'No open tickets. Great job!' : `No ${tab.replace('_', ' ')} tickets.`}
-        </div>
+        <EmptyState
+          className="py-6"
+          title={tab === 'open' ? 'No open tickets. Great job!' : `No ${tab.replace('_', ' ')} tickets`}
+        />
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {tickets.map((t) => (
             <div key={t.id}>
               <button
@@ -82,9 +84,9 @@ export default function AdminTicketsPage() {
               >
                 <span className="text-xs font-mono text-gray-400 dark:text-gray-500 shrink-0">{t.ticket_number}</span>
                 <span className="flex-1 text-sm truncate">{t.subject}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_STYLES[t.status] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+                <Badge className="shrink-0" variant={STATUS_VARIANTS[t.status] ?? 'neutral'}>
                   {t.status.replace('_', ' ')}
-                </span>
+                </Badge>
                 <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={t.created_at} /></span>
               </button>
 
@@ -112,16 +114,16 @@ export default function AdminTicketsPage() {
                       />
                       <div className="flex gap-2">
                         {t.status === 'open' && (
-                          <Button size="sm" variant="secondary" onClick={() => updateMutation.mutate({ id: t.id, status: 'in_progress' })}>
+                          <Button size="sm" variant="secondary" loading={updateMutation.isPending && updateMutation.variables?.status === 'in_progress'} onClick={() => updateMutation.mutate({ id: t.id, status: 'in_progress' })}>
                             Start Working
                           </Button>
                         )}
                         {t.status !== 'resolved' && (
-                          <Button size="sm" onClick={() => updateMutation.mutate({ id: t.id, status: 'resolved' })}>
+                          <Button size="sm" loading={updateMutation.isPending && updateMutation.variables?.status === 'resolved'} onClick={() => updateMutation.mutate({ id: t.id, status: 'resolved' })}>
                             Resolve
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => updateMutation.mutate({ id: t.id, status: 'closed' })}>
+                        <Button size="sm" variant="ghost" loading={updateMutation.isPending && updateMutation.variables?.status === 'closed'} onClick={() => updateMutation.mutate({ id: t.id, status: 'closed' })}>
                           Close
                         </Button>
                       </div>
@@ -131,7 +133,7 @@ export default function AdminTicketsPage() {
               )}
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );

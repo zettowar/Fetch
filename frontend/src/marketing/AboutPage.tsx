@@ -17,7 +17,7 @@ export default function AboutPage() {
         {/* Origin story */}
         <section>
           <h2 className="text-2xl font-bold tracking-tight">Our story</h2>
-          <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">
+          <div className="mt-4 space-y-4 text-base leading-relaxed text-gray-600 dark:text-gray-400">
             <p>
               Fetch started with a group chat. One of us was forever sending
               shelter listings. Another kept a camera roll that was mostly dog.
@@ -50,7 +50,7 @@ export default function AboutPage() {
         {/* Team */}
         <section>
           <h2 className="text-2xl font-bold tracking-tight">The team</h2>
-          <p className="mt-4 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">
+          <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-400">
             Right now Fetch is a handful of people and their dogs. The dogs
             test everything first and are paid in treats. When the team grows,
             this is where you'll meet them.

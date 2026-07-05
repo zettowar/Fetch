@@ -46,6 +46,7 @@ from app.config import settings
 from app.services.breed_display import breed_display
 from app.services.email import send_contact_relay_email
 from app.services.lost_service import fuzz_coordinate, get_nearby_reports
+from app.services.notify import notify
 from app.services.moderation import check_image
 from app.storage import generate_storage_key, get_storage
 
@@ -412,6 +413,14 @@ async def add_sighting(
         photo_content_type=photo_content_type,
     )
     db.add(sighting)
+    if report.reporter_id != user.id:
+        await notify(
+            db, report.reporter_id,
+            type="sighting",
+            title="New sighting on your lost-dog report",
+            body=body.note[:120] if body.note else None,
+            link=f"/app/lost/{report_id}",
+        )
     await db.commit()
     await db.refresh(sighting)
     is_owner = report.reporter_id == user.id
@@ -546,6 +555,10 @@ async def contact_reporter(
     )
     reporter = reporter_result.scalar_one_or_none()
     if not reporter:
+        raise HTTPException(status_code=400, detail="Reporter is no longer reachable")
+    from app.services.blocks import is_blocked_between
+    if await is_blocked_between(db, user.id, reporter.id):
+        # Same message as an unreachable reporter — a block is not disclosed.
         raise HTTPException(status_code=400, detail="Reporter is no longer reachable")
 
     # Checked last so validation errors (404/400) stay meaningful even when

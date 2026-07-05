@@ -35,7 +35,7 @@ export default function MissionPage() {
         {/* Commitments — the concrete promises behind the statement */}
         <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-soft-sm">
           <h2 className="text-xl font-bold tracking-tight">What we're committing to</h2>
-          <ul className="mt-4 space-y-3 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">
+          <ul className="mt-4 space-y-3 text-base leading-relaxed text-gray-600 dark:text-gray-400">
             <li>
               <strong className="text-gray-900 dark:text-gray-100">One number matters most:</strong>{' '}
               how many dogs found homes because someone saw them on Fetch.

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Check, Dog as DogIcon, Pencil, X } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { usePawBurst } from '../components/flair/PawBurst';
 import { createDog, getDog, updateDog, deleteDog, DOG_TRAITS, MIX_TYPES, MAX_BREEDS_PER_DOG } from '../api/dogs';
 import { deletePhoto, uploadPhoto } from '../api/photos';
 import PhotoUploader from '../components/PhotoUploader';
@@ -31,9 +33,11 @@ export default function DogEditorPage() {
   const [bio, setBio] = useState('');
   const [birthday, setBirthday] = useState('');
   const [traits, setTraits] = useState<string[]>([]);
+  const [isPublic, setIsPublic] = useState(true);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploadingPhotoIndex, setUploadingPhotoIndex] = useState<number | null>(null);
+  const { fire, PawBurstLayer } = usePawBurst();
 
   const { data: dog, refetch } = useQuery({
     queryKey: ['dog', id],
@@ -49,6 +53,7 @@ export default function DogEditorPage() {
       setBio(dog.bio || '');
       setBirthday(dog.birthday || '');
       setTraits(dog.traits || []);
+      setIsPublic(dog.is_public);
     }
   }, [dog]);
 
@@ -103,6 +108,7 @@ export default function DogEditorPage() {
         bio: bio || undefined,
         birthday: birthday || undefined,
         traits,
+        is_public: isPublic,
       };
       if (isEditing) {
         await updateDog(id!, payload);
@@ -111,6 +117,7 @@ export default function DogEditorPage() {
       } else {
         // Create the dog first, then upload any queued photos in sequence.
         const newDog = await createDog(payload);
+        fire();
         let uploadFailures = 0;
         for (let i = 0; i < pendingPhotos.length; i++) {
           setUploadingPhotoIndex(i);
@@ -171,7 +178,11 @@ export default function DogEditorPage() {
     <div className="p-4">
       <BackButton fallback="/app/dogs" />
       <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
-        <span aria-hidden>{isEditing ? '✏️' : '🐶'}</span>
+        {isEditing ? (
+          <Pencil size={20} aria-hidden className="text-brand-500" />
+        ) : (
+          <DogIcon size={20} aria-hidden className="text-brand-500" />
+        )}
         {isEditing ? 'Edit Dog' : 'Add a Dog'}
       </h1>
 
@@ -260,6 +271,31 @@ export default function DogEditorPage() {
           </div>
         </div>
 
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5">
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Public share page</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              Lets anyone with the link see {name.trim() || 'this dog'}'s page, no account needed.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isPublic}
+            aria-label="Public share page"
+            onClick={() => setIsPublic((v) => !v)}
+            className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${
+              isPublic ? 'bg-brand-500' : 'bg-gray-200 dark:bg-gray-700'
+            }`}
+          >
+            <span
+              className={`absolute top-1 left-1 w-4 h-4 bg-white dark:bg-gray-900 rounded-full shadow transition-transform ${
+                isPublic ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
         {/* Photos — on the initial add page we queue them client-side and
             upload after the dog is created. On the edit page the existing
             section below handles photos against an existing dog id. */}
@@ -282,14 +318,14 @@ export default function DogEditorPage() {
                         className="h-full w-full object-cover rounded-lg"
                       />
                       {idx === 0 && (
-                        <span className="absolute bottom-1 left-1 bg-brand-500 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                        <span className="absolute bottom-1 left-1 bg-brand-500 text-white text-2xs font-semibold px-1.5 py-0.5 rounded">
                           Primary
                         </span>
                       )}
                       {(isUploading || isUploaded) && (
                         <div className="absolute inset-0 rounded-lg bg-black/40 flex items-center justify-center">
                           {isUploaded ? (
-                            <span className="text-white text-lg">✓</span>
+                            <Check size={18} aria-hidden className="text-white" />
                           ) : (
                             <div className="h-5 w-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
                           )}
@@ -299,10 +335,10 @@ export default function DogEditorPage() {
                         <button
                           type="button"
                           onClick={() => removePendingPhoto(p.id)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          className="absolute top-1 right-1 bg-danger-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                           aria-label="Remove photo"
                         >
-                          ×
+                          <X size={12} aria-hidden />
                         </button>
                       )}
                     </div>
@@ -318,20 +354,23 @@ export default function DogEditorPage() {
               />
             )}
             {pendingPhotos.length === 0 && (
-              <p className="text-[11px] text-gray-400 dark:text-gray-500">
+              <p className="text-2xs text-gray-400 dark:text-gray-500">
                 Your first photo becomes the primary. You can add more any time from the profile.
               </p>
             )}
           </div>
         )}
 
-        <Button type="submit" loading={saving} className="w-full">
-          {isEditing
-            ? 'Save Changes'
-            : pendingPhotos.length > 0
-            ? `Create Dog & Upload ${pendingPhotos.length} Photo${pendingPhotos.length > 1 ? 's' : ''}`
-            : 'Create Dog'}
-        </Button>
+        <span className="relative block">
+          <Button type="submit" loading={saving} className="w-full">
+            {isEditing
+              ? 'Save Changes'
+              : pendingPhotos.length > 0
+              ? `Create Dog & Upload ${pendingPhotos.length} Photo${pendingPhotos.length > 1 ? 's' : ''}`
+              : 'Create Dog'}
+          </Button>
+          <PawBurstLayer />
+        </span>
       </form>
 
       {isEditing && dog && (
@@ -350,10 +389,10 @@ export default function DogEditorPage() {
                     />
                     <button
                       onClick={() => handleDeletePhoto(photo.id)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      className="absolute top-1 right-1 bg-danger-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                       aria-label="Delete photo"
                     >
-                      x
+                      <X size={12} aria-hidden />
                     </button>
                   </div>
                 ))}

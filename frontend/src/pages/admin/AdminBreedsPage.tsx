@@ -9,9 +9,12 @@ import {
   type AdminBreed,
 } from '../../api/breeds';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
+import SearchInput from '../../components/ui/SearchInput';
 import { apiErrorMessage } from '../../utils/apiError';
-import { Spinner } from '../../components/ui/Skeleton';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 
 export default function AdminBreedsPage() {
   const queryClient = useQueryClient();
@@ -84,15 +87,15 @@ export default function AdminBreedsPage() {
         <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>Add Breed</Button>
       </div>
 
-      <Input
+      <SearchInput
         placeholder="Search breeds..."
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={setSearch}
         className="mb-4"
       />
 
       {showForm && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 mb-4 flex flex-col gap-3">
+        <Card className="mb-4 flex flex-col gap-3">
           <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />
           <Input label="Group (optional)" value={group} onChange={(e) => setGroup(e.target.value)} placeholder="e.g. Sporting, Hound" />
           <label className="flex items-center gap-2 text-sm">
@@ -109,23 +112,21 @@ export default function AdminBreedsPage() {
             </Button>
             <Button variant="ghost" onClick={resetForm}>Cancel</Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner size="sm" />
-        </div>
+        <ListSkeleton rows={5} />
       ) : breeds.length === 0 ? (
-        <p className="text-gray-400 dark:text-gray-500 text-center py-8">No breeds match.</p>
+        <EmptyState className="py-6" title="No breeds match" />
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {breeds.map((b) => (
             <div key={b.id} className="p-3 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">
                   {b.name}
-                  {!b.is_active && <span className="ml-2 text-xs text-red-500 dark:text-red-400">(inactive)</span>}
+                  {!b.is_active && <span className="ml-2 text-xs text-danger-500 dark:text-danger-400">(inactive)</span>}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   {b.group ? `${b.group} · ` : ''}
@@ -137,6 +138,7 @@ export default function AdminBreedsPage() {
                 <Button
                   size="sm"
                   variant="ghost"
+                  loading={deleteMutation.isPending && deleteMutation.variables === b.id}
                   onClick={() => {
                     if (confirm(`Delete "${b.name}"? This fails if any dog uses it.`)) {
                       deleteMutation.mutate(b.id);
@@ -148,7 +150,7 @@ export default function AdminBreedsPage() {
               </div>
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </div>
   );

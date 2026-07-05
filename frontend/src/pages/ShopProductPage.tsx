@@ -13,6 +13,7 @@ import {
 import { useCart } from '../utils/useCart';
 import Button from '../components/ui/Button';
 import BackButton from '../components/ui/BackButton';
+import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { Spinner } from '../components/ui/Skeleton';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
@@ -76,13 +77,15 @@ export default function ShopProductPage() {
     return (
       <div className="p-4">
         <BackButton fallback="/app/shop" label="Shop" />
-        <div className="text-center py-16 text-gray-400 dark:text-gray-500">
-          <p className="text-4xl mb-2">🤷</p>
-          <p className="text-sm font-medium">This product isn't available.</p>
-          <Link to="/app/shop" className="text-brand-500 text-sm hover:underline mt-2 inline-block">
-            Back to shop
-          </Link>
-        </div>
+        <EmptyState
+          illustration="sniffing"
+          title="This product isn't available."
+          action={
+            <Link to="/app/shop" className="text-brand-500 text-sm hover:underline inline-block">
+              Back to shop
+            </Link>
+          }
+        />
       </div>
     );
   }

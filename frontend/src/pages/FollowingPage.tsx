@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { ChevronRight, PawPrint } from 'lucide-react';
 import { getMyFollows } from '../api/social';
 import { dogAge, dogHeroPhoto } from '../utils/time';
-import Skeleton from '../components/ui/Skeleton';
+import { ListSkeleton } from '../components/ui/Skeleton';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
@@ -13,7 +14,7 @@ function FollowedDogCard({ dog }: { dog: Dog }) {
   const age = dogAge(dog.birthday);
 
   return (
-    <Link to={`/app/dogs/${dog.id}`} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-brand-200 hover:bg-brand-50/30 transition-colors">
+    <Link to={`/app/dogs/${dog.id}`} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-soft-sm hover:border-brand-200 hover:bg-brand-50/30 transition-colors">
       {hero ? (
         <img src={hero} alt={dog.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
       ) : (
@@ -29,7 +30,7 @@ function FollowedDogCard({ dog }: { dog: Dog }) {
         {dog.breed_display && <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{dog.breed_display}</p>}
         {dog.bio && <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{dog.bio}</p>}
       </div>
-      <span className="text-gray-300 dark:text-gray-600 ml-auto flex-shrink-0">›</span>
+      <ChevronRight size={18} aria-hidden className="text-gray-300 dark:text-gray-600 ml-auto flex-shrink-0" />
     </Link>
   );
 }
@@ -45,7 +46,7 @@ export default function FollowingPage() {
   return (
     <div className="p-4 pb-8">
       <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
-        <span aria-hidden>🐾</span> Following
+        <PawPrint size={20} aria-hidden className="text-brand-500" /> Following
       </h1>
       <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">
         {followedDogs.length > 0
@@ -53,11 +54,7 @@ export default function FollowingPage() {
           : 'Dogs you follow will appear here'}
       </p>
 
-      {isLoading && (
-        <div className="flex flex-col gap-3">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}
-        </div>
-      )}
+      {isLoading && <ListSkeleton rows={4} />}
 
       {!isLoading && isError && (
         <ErrorState message="Couldn't load the dogs you follow." onRetry={() => refetch()} />
@@ -65,7 +62,7 @@ export default function FollowingPage() {
 
       {!isLoading && !isError && followedDogs.length === 0 && (
         <EmptyState
-          icon="🐾"
+          illustration="ball"
           title="No dogs followed yet"
           body="Follow dogs from their profile to keep up with their photos and posts."
           action={

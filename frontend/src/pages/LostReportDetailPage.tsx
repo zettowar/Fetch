@@ -3,6 +3,9 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
+import Badge from '../components/ui/Badge';
+import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
 import { isNotFound } from '../utils/apiError';
@@ -118,22 +121,19 @@ export default function LostReportDetailPage() {
       <div className="flex items-center gap-2 mb-4">
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase text-white ${
-            report.kind === 'missing' ? 'bg-red-500' : 'bg-blue-500'
+            report.kind === 'missing' ? 'bg-danger-500' : 'bg-blue-500'
           }`}
         >
           {report.kind}
         </span>
-        <span
-          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-            report.status === 'open'
-              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-200'
-              : report.status === 'resolved'
-              ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
-          }`}
+        <Badge
+          size="md"
+          variant={
+            report.status === 'open' ? 'warning' : report.status === 'resolved' ? 'success' : 'neutral'
+          }
         >
           {report.status === 'open' ? 'Open' : report.status === 'resolved' ? 'Resolved' : 'Closed'}
-        </span>
+        </Badge>
       </div>
 
       {/* Dog info */}
@@ -335,18 +335,19 @@ export default function LostReportDetailPage() {
           Sightings <span className="text-gray-400 dark:text-gray-500 font-normal">({sightings.length})</span>
         </h3>
         {sightings.length === 0 ? (
-          <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 px-4 py-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">No sightings yet</p>
-            {report.status === 'open' && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Seen this dog? Use the sighting form above to help.
-              </p>
-            )}
-          </div>
+          <EmptyState
+            illustration="digging"
+            title="No sightings yet"
+            body={
+              report.status === 'open'
+                ? 'Seen this dog? Use the sighting form above to help.'
+                : undefined
+            }
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {sightings.map((s) => (
-              <div key={s.id} className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl">
+              <Card key={s.id} padding="sm">
                 {s.photo_url && (
                   <a href={s.photo_url} target="_blank" rel="noopener noreferrer">
                     <img
@@ -363,7 +364,7 @@ export default function LostReportDetailPage() {
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   <TimeAgo value={s.created_at} />
                 </p>
-              </div>
+              </Card>
             ))}
           </div>
         )}

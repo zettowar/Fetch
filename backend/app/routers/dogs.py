@@ -12,6 +12,7 @@ from app.models.dog import Dog
 from app.models.user import User
 from app.schemas.dog import DogCreate, DogOut, DogUpdate
 from app.schemas.photo import SetPrimaryPhotoRequest
+from app.services.blocks import blocked_user_ids_subquery
 from app.services.dog_serializer import dog_to_out as _dog_to_out, get_dog_full as _get_dog_full
 
 router = APIRouter()
@@ -105,6 +106,7 @@ async def explore_dogs(
         Dog.is_active == True,  # noqa: E712
         Dog.owner_id != user.id,
         Dog.adopted_at.is_(None),
+        Dog.owner_id.notin_(blocked_user_ids_subquery(user.id)),
     ]
     if excluded_ids:
         where_clauses.append(Dog.id.notin_(excluded_ids))

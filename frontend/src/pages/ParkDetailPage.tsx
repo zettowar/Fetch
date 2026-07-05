@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { MapPin, X } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
+import Badge from '../components/ui/Badge';
+import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { isNotFound } from '../utils/apiError';
 import Avatar from '../components/ui/Avatar';
@@ -143,12 +147,12 @@ export default function ParkDetailPage() {
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 mt-1 text-sm text-brand-500 hover:text-brand-600 hover:underline"
       >
-        <span>📍</span> Open in Maps
+        <MapPin size={16} aria-hidden /> Open in Maps
       </a>
       {park.verified && (
-        <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 text-xs rounded-full font-medium">
+        <Badge variant="success" size="md" className="mt-1">
           Verified
-        </span>
+        </Badge>
       )}
 
       {/* Attributes */}
@@ -156,9 +160,9 @@ export default function ParkDetailPage() {
         <div className="flex flex-wrap gap-2 mt-3">
           {Object.entries(attrs).map(([key, val]) =>
             val ? (
-              <span key={key} className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs rounded-full">
+              <Badge key={key} variant="neutral" size="md">
                 {key.replace(/_/g, ' ')}
-              </span>
+              </Badge>
             ) : null
           )}
         </div>
@@ -248,16 +252,16 @@ export default function ParkDetailPage() {
                   )}
                   <div>
                     <p className="text-sm font-medium leading-none">{ci.dog_name ?? 'Unknown'}</p>
-                    {ci.dog_breed && <p className="text-[11px] text-gray-400 dark:text-gray-500">{ci.dog_breed}</p>}
+                    {ci.dog_breed && <p className="text-2xs text-gray-400 dark:text-gray-500">{ci.dog_breed}</p>}
                   </div>
                   {isMyDog && ci.dog_id && (
                     <button
                       onClick={() => checkoutMutation.mutate(ci.dog_id!)}
-                      className="ml-1 text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400"
+                      className="ml-1 text-2xs text-gray-400 dark:text-gray-500 hover:text-danger-500 dark:hover:text-danger-400"
                       title="Check out"
                       aria-label="Check out of this park"
                     >
-                      ✕
+                      <X size={12} aria-hidden />
                     </button>
                   )}
                 </div>
@@ -317,10 +321,10 @@ export default function ParkDetailPage() {
       {/* Incidents */}
       {incidents.length > 0 && (
         <div className="mt-6">
-          <h2 className="font-semibold mb-2 text-red-600 dark:text-red-400">Active Warnings</h2>
+          <h2 className="font-semibold mb-2 text-danger-600 dark:text-danger-400">Active Warnings</h2>
           {incidents.map((inc) => (
-            <div key={inc.id} className="p-3 bg-red-50 border border-red-100 dark:bg-red-500/10 dark:border-red-500/30 rounded-xl mb-2">
-              <p className="text-sm font-medium text-red-700 dark:text-red-300">{inc.kind.replace(/_/g, ' ')}</p>
+            <div key={inc.id} className="p-3 bg-danger-50 border border-danger-100 dark:bg-danger-500/10 dark:border-danger-500/30 rounded-xl mb-2">
+              <p className="text-sm font-medium text-danger-700 dark:text-danger-300">{inc.kind.replace(/_/g, ' ')}</p>
               <p className="text-sm text-gray-600 dark:text-gray-300">{inc.description}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 Expires {relativeTime(inc.expires_at)}
@@ -335,7 +339,7 @@ export default function ParkDetailPage() {
         <h2 className="font-semibold mb-2">Reviews</h2>
         {reviews.length > 0 ? (
           reviews.map((r) => (
-            <div key={r.id} className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl mb-2">
+            <Card key={r.id} padding="sm" className="mb-2">
               <div className="flex justify-between">
                 <p className="font-medium text-sm">{r.author_name || 'Anonymous'}</p>
                 <p className="text-sm text-yellow-400 tracking-tight">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</p>
@@ -348,10 +352,14 @@ export default function ParkDetailPage() {
               {r.crowd_level && (
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Crowd: {r.crowd_level}</p>
               )}
-            </div>
+            </Card>
           ))
         ) : (
-          <p className="text-sm text-gray-400 dark:text-gray-500">No reviews yet.</p>
+          <EmptyState
+            illustration="sleeping"
+            title="No reviews yet"
+            body="Be the first to rate this park."
+          />
         )}
       </div>
     </div>

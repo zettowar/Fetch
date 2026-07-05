@@ -54,7 +54,7 @@ export default function MarketingLayout() {
                 <PawMark className="h-[24px] w-[24px]" />
               </span>
               <span>Fetch</span>
-              <span className="ml-1 hidden rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-brand-600 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-400 dark:ring-brand-500/30 sm:inline">
+              <span className="ml-1 hidden rounded-full bg-brand-50 px-2 py-0.5 text-2xs font-semibold uppercase tracking-widest text-brand-600 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-400 dark:ring-brand-500/30 sm:inline">
                 Beta
               </span>
             </Link>
@@ -164,14 +164,14 @@ function MarketingFooter() {
               A swipe feed for dog people, with rescue dogs in the deck and a
               Lost & Found for the neighborhood. In development now.
             </p>
-            <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-400 ring-1 ring-brand-200 dark:ring-brand-500/30">
+            <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-500/10 px-3 py-1 text-2xs font-semibold uppercase tracking-widest text-brand-700 dark:text-brand-400 ring-1 ring-brand-200 dark:ring-brand-500/30">
               <span aria-hidden>🚧</span> Available soon
             </p>
           </div>
 
           {/* Site links */}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+            <p className="text-2xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
               Explore
             </p>
             <ul className="mt-3 space-y-2 text-sm">
@@ -190,7 +190,7 @@ function MarketingFooter() {
 
           {/* Contact / access */}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+            <p className="text-2xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
               Get in touch
             </p>
             <ul className="mt-3 space-y-2 text-sm">

@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
+import DogIllustration from '../flair/DogIllustration';
+import type { DogIllustrationName } from '../flair/DogIllustration';
 
 interface EmptyStateProps {
   icon?: ReactNode;
+  illustration?: DogIllustrationName;
   title: string;
   body?: ReactNode;
   action?: ReactNode;
@@ -11,11 +14,16 @@ interface EmptyStateProps {
 /**
  * Consistent empty-state block for list pages and sections.
  * - Centered with soft background card
- * - Optional leading emoji/icon
+ * - Optional dog illustration (preferred) or leading emoji/icon
  * - Optional action (usually a Link wrapping a Button)
+ *
+ * Illustration guide: sleeping = nothing here yet · sniffing = search/
+ * filter found nothing · ball = liked/social · digging = lost & found /
+ * error · howling = alerts.
  */
 export default function EmptyState({
   icon,
+  illustration,
   title,
   body,
   action,
@@ -25,10 +33,17 @@ export default function EmptyState({
     <div
       className={`rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 py-10 px-6 text-center ${className}`}
     >
-      {icon && (
-        <div className="text-4xl mb-3 leading-none" aria-hidden>
-          {icon}
-        </div>
+      {illustration ? (
+        <DogIllustration
+          name={illustration}
+          className="mx-auto mb-4 h-28 w-auto text-gray-400 dark:text-gray-500"
+        />
+      ) : (
+        icon && (
+          <div className="text-4xl mb-3 leading-none" aria-hidden>
+            {icon}
+          </div>
+        )
       )}
       <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{title}</p>
       {body && <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-snug">{body}</div>}

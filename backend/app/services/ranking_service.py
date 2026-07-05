@@ -64,9 +64,43 @@ async def get_dog_stats(dog_id: UUID, db: AsyncSession) -> dict:
     passes = await db.execute(
         select(func.count()).where(Vote.dog_id == dog_id, Vote.value == -1)
     )
+
+    # This week's standing: score, rank among dogs with votes, and field size.
+    week = current_week_bucket()
+    scores_sq = (
+        select(Vote.dog_id, func.sum(Vote.value).label("score"))
+        .where(Vote.week_bucket == week)
+        .group_by(Vote.dog_id)
+        .subquery()
+    )
+    week_total = (
+        await db.execute(select(func.count()).select_from(scores_sq))
+    ).scalar() or 0
+    week_score = (
+        await db.execute(select(scores_sq.c.score).where(scores_sq.c.dog_id == dog_id))
+    ).scalar_one_or_none()
+    week_rank = None
+    if week_score is not None:
+        higher = (
+            await db.execute(
+                select(func.count()).select_from(scores_sq).where(scores_sq.c.score > week_score)
+            )
+        ).scalar() or 0
+        week_rank = higher + 1
+
+    crowns = await db.execute(
+        select(WeeklyWinner.week_bucket)
+        .where(WeeklyWinner.dog_id == dog_id)
+        .order_by(WeeklyWinner.week_bucket.desc())
+    )
+
     return {
         "likes": likes.scalar() or 0,
         "passes": passes.scalar() or 0,
+        "week_score": week_score,
+        "week_rank": week_rank,
+        "week_total": week_total,
+        "crown_weeks": list(crowns.scalars().all()),
     }
 
 
@@ -78,7 +112,7 @@ async def compute_weekly_winner(db: AsyncSession) -> WeeklyWinner | None:
     otherwise never be counted — Monday's run is the authoritative tally.
     """
     last_week = current_week_bucket() - timedelta(days=7)
-    return await _pick_winner_for_week(db, last_week, upsert=True)
+    return await _pick_winner_for_week(db, last_week, upsert=True, notify_win=True)
 
 
 async def pick_current_winner(db: AsyncSession) -> WeeklyWinner | None:
@@ -91,7 +125,7 @@ async def pick_current_winner(db: AsyncSession) -> WeeklyWinner | None:
 
 
 async def _pick_winner_for_week(
-    db: AsyncSession, week: date, *, upsert: bool
+    db: AsyncSession, week: date, *, upsert: bool, notify_win: bool = False
 ) -> WeeklyWinner | None:
     # Ties break deterministically: first dog to enter the race wins, with
     # dog_id as a final absolute tiebreaker.
@@ -131,6 +165,8 @@ async def _pick_winner_for_week(
                 )
             else:
                 logger.info("Winner for week %s unchanged", week)
+            if notify_win:
+                await _notify_winner(db, week, row.dog_id, row.score)
             return existing
 
     winner = WeeklyWinner(
@@ -146,4 +182,38 @@ async def _pick_winner_for_week(
         logger.info("Winner for week %s already exists (race condition handled)", week)
         return None
     logger.info("Winner for week %s: dog %s with score %s", week, row.dog_id, row.score)
+    if notify_win:
+        await _notify_winner(db, week, row.dog_id, row.score)
     return winner
+
+
+async def _notify_winner(db: AsyncSession, week: date, dog_id, score: int) -> None:
+    """Tell the owner their dog took the crown — once per week, however many
+    times the final tally re-runs (the title embeds the week, so a duplicate
+    is detectable)."""
+    from app.models.notification import Notification
+    from app.services.notify import notify
+
+    dog = (await db.execute(select(Dog).where(Dog.id == dog_id))).scalar_one_or_none()
+    if not dog:
+        return
+    title = f"{dog.name} is Top Dog for the week of {week.isoformat()}! 🏆"
+    already = (
+        await db.execute(
+            select(Notification.id).where(
+                Notification.user_id == dog.owner_id,
+                Notification.type == "weekly_winner",
+                Notification.title == title,
+            )
+        )
+    ).scalar_one_or_none()
+    if already:
+        return
+    if await notify(
+        db, dog.owner_id,
+        type="weekly_winner",
+        title=title,
+        body=f"Final score: {score} ❤️",
+        link=f"/app/dogs/{dog.id}",
+    ):
+        await db.commit()

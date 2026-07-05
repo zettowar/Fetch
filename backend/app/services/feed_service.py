@@ -47,6 +47,8 @@ async def get_feed(
     # an exploration boost, but order is not deterministic between sessions so
     # repeat visitors see meaningfully different decks.
     vote_count_expr = func.coalesce(vote_count_subq.c.vote_count, 0)
+    from app.services.blocks import blocked_user_ids_subquery
+
     query = (
         select(Dog)
         .outerjoin(vote_count_subq, Dog.id == vote_count_subq.c.dog_id)
@@ -56,6 +58,7 @@ async def get_feed(
             Dog.id.notin_(voted_subq),
             Dog.id.in_(has_photo_subq),
             Dog.adopted_at.is_(None),
+            Dog.owner_id.notin_(blocked_user_ids_subquery(user_id)),
         )
         .order_by((func.random() * (1 + vote_count_expr)).asc())
         .limit(limit)

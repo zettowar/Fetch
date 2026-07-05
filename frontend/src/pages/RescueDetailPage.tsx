@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { getRescue, getRescueDogs } from '../api/rescues';
 import AdoptionInquiryForm from '../components/AdoptionInquiryForm';
 import BackButton from '../components/ui/BackButton';
+import Badge from '../components/ui/Badge';
+import EmptyState from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
 import Map from '../components/Map';
@@ -66,9 +68,7 @@ export default function RescueDetailPage() {
       )}
       <div className="flex items-center gap-2 flex-wrap mt-3 mb-1">
         <h1 className="text-2xl font-bold">{rescue.org_name}</h1>
-        <span className="text-[10px] bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">
-          Verified
-        </span>
+        <Badge variant="success">Verified</Badge>
       </div>
       {rescue.location && (
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{rescue.location}</p>
@@ -104,9 +104,11 @@ export default function RescueDetailPage() {
         Adoptable dogs ({dogs.length})
       </h2>
       {dogs.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">
-          No dogs available right now — check back soon.
-        </p>
+        <EmptyState
+          illustration="sleeping"
+          title="No dogs available right now"
+          body="Check back soon."
+        />
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {dogs.map((d) => (

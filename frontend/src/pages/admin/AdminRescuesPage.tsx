@@ -7,7 +7,9 @@ import {
   type RescueProfile,
 } from '../../api/rescues';
 import Button from '../../components/ui/Button';
-import { Spinner } from '../../components/ui/Skeleton';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 import TimeAgo from '../../components/TimeAgo';
 import { apiErrorMessage } from '../../utils/apiError';
 
@@ -54,9 +56,9 @@ export default function AdminRescuesPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
+        <ListSkeleton rows={3} />
       ) : profiles.length === 0 ? (
-        <p className="text-gray-400 dark:text-gray-500 text-center py-8">No {tab} applications.</p>
+        <EmptyState className="py-6" title={`No ${tab} applications`} />
       ) : (
         <div className="flex flex-col gap-3">
           {profiles.map((p) => (
@@ -89,14 +91,14 @@ function ReviewCard({
   const [mode, setMode] = useState<'idle' | 'reject'>('idle');
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+    <Card>
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold">{profile.org_name}</h3>
           {profile.location && (
             <p className="text-xs text-gray-400 dark:text-gray-500">{profile.location}</p>
           )}
-          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+          <p className="text-2xs text-gray-400 dark:text-gray-500">
             Submitted <TimeAgo value={profile.created_at} />
           </p>
         </div>
@@ -179,6 +181,6 @@ function ReviewCard({
           </div>
         )
       )}
-    </div>
+    </Card>
   );
 }

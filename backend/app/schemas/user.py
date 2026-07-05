@@ -23,3 +23,9 @@ class UserUpdate(BaseModel):
     location_rough: str | None = None
     date_of_birth: date | None = None
     show_adoption_prompt: bool | None = None
+
+
+class BlockedUserOut(BaseModel):
+    user_id: UUID
+    display_name: str
+    blocked_at: datetime

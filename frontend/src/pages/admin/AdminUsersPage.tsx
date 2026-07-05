@@ -12,9 +12,12 @@ import {
   demoteUser,
 } from '../../api/admin';
 import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
+import SearchInput from '../../components/ui/SearchInput';
 import Avatar from '../../components/ui/Avatar';
-import { Spinner } from '../../components/ui/Skeleton';
+import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
+import EmptyState from '../../components/ui/EmptyState';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 import PaginationFooter from '../../components/ui/PaginationFooter';
 import TimeAgo from '../../components/TimeAgo';
 import { exportCsv } from '../../utils/exportCsv';
@@ -194,13 +197,12 @@ export default function AdminUsersPage() {
       </div>
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search by email or name..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+        <SearchInput
+          className="flex-1"
+          placeholder="Search by email or name..."
+          value={query}
+          onChange={setQuery}
+        />
         <Button type="submit" size="sm">Search</Button>
       </form>
 
@@ -221,28 +223,28 @@ export default function AdminUsersPage() {
               {total > 0 ? `${rangeStart}–${rangeEnd} of ${total}` : `${users.length} results`}
             </span>
             {suspended.length > 0 && (
-              <span className="text-red-500 dark:text-red-400">{suspended.length} suspended</span>
+              <span className="text-danger-500 dark:text-danger-400">{suspended.length} suspended</span>
             )}
             {withStrikes.length > 0 && (
-              <span className="text-amber-500 dark:text-amber-400">{withStrikes.length} with strikes</span>
+              <span className="text-warning-500 dark:text-warning-400">{withStrikes.length} with strikes</span>
             )}
             {admins.length > 0 && (
-              <span className="text-purple-500">{admins.length} admin{admins.length > 1 ? 's' : ''}</span>
+              <span className="text-info-500">{admins.length} admin{admins.length > 1 ? 's' : ''}</span>
             )}
           </div>
         )
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner className="h-6 w-6" />
-        </div>
+        <ListSkeleton rows={5} />
       ) : users.length === 0 ? (
-        <p className="text-gray-400 dark:text-gray-500 text-center py-8">
-          {searchTerm ? `No users found for "${searchTerm}".` : 'No users found.'}
-        </p>
+        <EmptyState
+          className="py-6"
+          title="No users found"
+          body={searchTerm ? `Nothing matches "${searchTerm}".` : undefined}
+        />
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y">
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             <input
               type="checkbox"
@@ -274,10 +276,10 @@ export default function AdminUsersPage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    {u.role === 'admin' && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 rounded font-medium">admin</span>}
-                    {!u.is_active && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 rounded font-medium">suspended</span>}
-                    {u.strike_count > 0 && <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 rounded font-medium">{u.strike_count} strike{u.strike_count > 1 ? 's' : ''}</span>}
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{u.dog_count} dog{u.dog_count !== 1 ? 's' : ''}</span>
+                    {u.role === 'admin' && <Badge variant="info">admin</Badge>}
+                    {!u.is_active && <Badge variant="danger">suspended</Badge>}
+                    {u.strike_count > 0 && <Badge variant="warning">{u.strike_count} strike{u.strike_count > 1 ? 's' : ''}</Badge>}
+                    <span className="text-2xs text-gray-400 dark:text-gray-500">{u.dog_count} dog{u.dog_count !== 1 ? 's' : ''}</span>
                   </div>
                 </button>
               </div>
@@ -299,13 +301,13 @@ export default function AdminUsersPage() {
                       <Button size="sm" variant="secondary">Full details →</Button>
                     </Link>
                     {u.is_active ? (
-                      <Button size="sm" variant="danger" onClick={() => {
+                      <Button size="sm" variant="danger" loading={suspendMutation.isPending} onClick={() => {
                         if (confirm(`Suspend ${u.display_name}?`)) suspendMutation.mutate(u.id);
                       }}>
                         Suspend
                       </Button>
                     ) : (
-                      <Button size="sm" onClick={() => reinstateMutation.mutate(u.id)}>
+                      <Button size="sm" loading={reinstateMutation.isPending} onClick={() => reinstateMutation.mutate(u.id)}>
                         Reinstate
                       </Button>
                     )}
@@ -360,7 +362,7 @@ export default function AdminUsersPage() {
                       <div className="space-y-1">
                         {strikes.map((s) => (
                           <div key={s.id} className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                            <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+                            <span className="w-2 h-2 rounded-full bg-danger-400 shrink-0" />
                             <span className="flex-1">{s.reason}</span>
                             <span className="text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={s.created_at} /></span>
                           </div>
@@ -372,7 +374,7 @@ export default function AdminUsersPage() {
               )}
             </div>
           ))}
-        </div>
+        </Card>
       )}
 
       <PaginationFooter

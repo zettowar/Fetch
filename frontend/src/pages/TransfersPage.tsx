@@ -7,9 +7,11 @@ import {
   declineTransfer,
   type DogTransfer,
 } from '../api/dogTransfers';
+import { ArrowLeftRight } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import Button from '../components/ui/Button';
-import { Spinner } from '../components/ui/Skeleton';
+import EmptyState from '../components/ui/EmptyState';
+import { ListSkeleton } from '../components/ui/Skeleton';
 import { apiErrorMessage } from '../utils/apiError';
 
 export default function TransfersPage() {
@@ -48,7 +50,7 @@ export default function TransfersPage() {
     <div className="p-4 pb-8 max-w-xl mx-auto">
       <BackButton fallback="/app/home" />
       <h1 className="text-2xl font-bold mt-2 mb-1 flex items-center gap-2">
-        <span aria-hidden>🔄</span> Dog transfers
+        <ArrowLeftRight size={20} aria-hidden className="text-brand-500" /> Dog transfers
       </h1>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
         When a rescue adopts one of their dogs to you, you'll see an invitation
@@ -56,15 +58,13 @@ export default function TransfersPage() {
       </p>
 
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner className="h-6 w-6" />
-        </div>
+        <ListSkeleton rows={3} />
       ) : pending.length === 0 && history.length === 0 ? (
-        <div className="text-center py-16 text-gray-400 dark:text-gray-500">
-          <p className="text-4xl mb-3">📨</p>
-          <p className="font-medium">No transfers</p>
-          <p className="text-sm mt-1">You're all caught up.</p>
-        </div>
+        <EmptyState
+          illustration="sleeping"
+          title="No transfers"
+          body="You're all caught up."
+        />
       ) : (
         <>
           {pending.length > 0 && (
@@ -146,7 +146,7 @@ function TransferCard({
           <p className="text-xs text-gray-500 dark:text-gray-400">
             From {transfer.from_rescue_name ?? 'a rescue'}
           </p>
-          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+          <p className="text-2xs text-gray-400 dark:text-gray-500">
             Expires {new Date(transfer.expires_at).toLocaleDateString()}
           </p>
         </div>

@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
+import { Stethoscope } from 'lucide-react';
 import { getNearbyVets } from '../api/vets';
 import Map from '../components/Map';
-import { Spinner } from '../components/ui/Skeleton';
+import Badge from '../components/ui/Badge';
+import EmptyState from '../components/ui/EmptyState';
+import SearchInput from '../components/ui/SearchInput';
+import { ListSkeleton } from '../components/ui/Skeleton';
+import PawSpinner from '../components/flair/PawSpinner';
 import { useUserLocation } from '../utils/useUserLocation';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // SF fallback
@@ -61,21 +66,9 @@ export default function VetsPage() {
         <p className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">{v.name}</p>
         {v.address && <p className="text-xs text-gray-500 dark:text-gray-400">{v.address}</p>}
         <div className="flex flex-wrap items-center gap-1.5 mt-1">
-          {v.attributes?.emergency && (
-            <span className="inline-flex items-center px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 text-[10px] font-semibold rounded-full">
-              Emergency
-            </span>
-          )}
-          {v.attributes?.open_24_7 && (
-            <span className="inline-flex items-center px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 text-[10px] font-semibold rounded-full">
-              24/7
-            </span>
-          )}
-          {v.attributes?.house_calls && (
-            <span className="inline-flex items-center px-1.5 py-0.5 bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300 text-[10px] font-semibold rounded-full">
-              House calls
-            </span>
-          )}
+          {v.attributes?.emergency && <Badge variant="danger">Emergency</Badge>}
+          {v.attributes?.open_24_7 && <Badge variant="warning">24/7</Badge>}
+          {v.attributes?.house_calls && <Badge variant="info">House calls</Badge>}
         </div>
         <button
           type="button"
@@ -104,28 +97,15 @@ export default function VetsPage() {
     <div className="flex flex-col h-[calc(100vh-56px)]">
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <span aria-hidden>🩺</span> Vets
+          <Stethoscope size={20} aria-hidden className="text-brand-500" /> Vets
         </h1>
 
-        <div className="relative mt-2.5">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden
-          >
-            <circle cx={11} cy={11} r={7} strokeWidth={2} />
-            <path d="m20 20-3-3" strokeWidth={2} strokeLinecap="round" />
-          </svg>
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search vets by name or address..."
-            className="w-full bg-gray-100 dark:bg-gray-800 rounded-full pl-9 pr-3 py-2 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-brand-300"
-          />
-        </div>
+        <SearchInput
+          className="mt-2.5"
+          value={search}
+          onChange={setSearch}
+          placeholder="Search vets by name or address..."
+        />
 
         <div className="flex gap-1.5 mt-2 overflow-x-auto -mx-4 px-4 pb-0.5">
           {filterOptions.map((opt) => (
@@ -156,7 +136,12 @@ export default function VetsPage() {
             onViewChange={(lat, lng) => setViewCenter([lng, lat])}
             className="h-full w-full"
           />
-          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-[11px] text-gray-700 dark:text-gray-200 shadow-md ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
+          {isLoading && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 glass rounded-full px-4 py-2 shadow-soft-lg">
+              <PawSpinner size="sm" />
+            </div>
+          )}
+          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-2xs text-gray-700 dark:text-gray-200 shadow-soft ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: VET_PIN_COLOR }} />
               Clinic
@@ -186,36 +171,36 @@ export default function VetsPage() {
 
           <div className="p-3">
             {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Spinner className="h-6 w-6" />
-              </div>
+              <ListSkeleton rows={4} />
             ) : isError ? (
-              <p className="text-red-500 dark:text-red-400 text-sm text-center py-6">
+              <p className="text-danger-500 dark:text-danger-400 text-sm text-center py-6">
                 Failed to load vets. Check your connection.
               </p>
             ) : filteredVets.length === 0 ? (
-              <div className="text-center py-10 text-gray-400 dark:text-gray-500">
-                <p className="text-3xl mb-2">🩺</p>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {vets.length > 0
+              <EmptyState
+                illustration="sniffing"
+                title={
+                  vets.length > 0
                     ? 'No vets match your search or filter.'
-                    : "No clinics in your area yet — we're still importing."}
-                </p>
-                {vets.length === 0 && (
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-xs mx-auto">
-                    Clinics come from{' '}
-                    <a
-                      href="https://wiki.openstreetmap.org/wiki/Tag:amenity%3Dveterinary"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-500 hover:underline"
-                    >
-                      OpenStreetMap
-                    </a>
-                    . Missing one? Add it there and it'll appear after the next sync.
-                  </p>
-                )}
-              </div>
+                    : "No clinics in your area yet — we're still importing."
+                }
+                body={
+                  vets.length === 0 ? (
+                    <>
+                      Clinics come from{' '}
+                      <a
+                        href="https://wiki.openstreetmap.org/wiki/Tag:amenity%3Dveterinary"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-500 hover:underline"
+                      >
+                        OpenStreetMap
+                      </a>
+                      . Missing one? Add it there and it'll appear after the next sync.
+                    </>
+                  ) : undefined
+                }
+              />
             ) : (
               <div className="flex flex-col gap-2">
                 {filteredVets.map((vet) => {
@@ -243,22 +228,14 @@ export default function VetsPage() {
                             <h3 className="font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
                               {vet.name}
                             </h3>
-                            {vet.attributes?.emergency && (
-                              <span className="inline-flex items-center px-1.5 py-0 bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 text-[10px] font-semibold rounded-full">
-                                Emergency
-                              </span>
-                            )}
-                            {vet.attributes?.open_24_7 && (
-                              <span className="inline-flex items-center px-1.5 py-0 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 text-[10px] font-semibold rounded-full">
-                                24/7
-                              </span>
-                            )}
+                            {vet.attributes?.emergency && <Badge variant="danger">Emergency</Badge>}
+                            {vet.attributes?.open_24_7 && <Badge variant="warning">24/7</Badge>}
                           </div>
                           {vet.address && (
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{vet.address}</p>
                           )}
                           {vet.hours && (
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{vet.hours}</p>
+                            <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{vet.hours}</p>
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
@@ -274,7 +251,7 @@ export default function VetsPage() {
                         </div>
                       </div>
                       {isSelected && (
-                        <p className="text-[11px] text-brand-600 mt-2 font-medium">
+                        <p className="text-2xs text-brand-600 mt-2 font-medium">
                           Tap again to open →
                         </p>
                       )}

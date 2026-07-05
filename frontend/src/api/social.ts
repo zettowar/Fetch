@@ -35,6 +35,27 @@ export interface UserProfile {
   follower_count: number;
 }
 
+// --- Blocks ---
+
+export interface BlockedUser {
+  user_id: string;
+  display_name: string;
+  blocked_at: string;
+}
+
+export async function blockUser(userId: string): Promise<void> {
+  await client.post(`/users/${userId}/block`);
+}
+
+export async function unblockUser(userId: string): Promise<void> {
+  await client.delete(`/users/${userId}/block`);
+}
+
+export async function getMyBlocks(): Promise<BlockedUser[]> {
+  const res = await client.get('/users/me/blocks');
+  return res.data;
+}
+
 // --- Follows ---
 
 export async function followDog(dogId: string): Promise<Follow> {

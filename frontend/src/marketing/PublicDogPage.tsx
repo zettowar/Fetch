@@ -1,0 +1,167 @@
+import { Link, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { HousePlus } from 'lucide-react';
+import { getPublicDog } from '../api/publicSite';
+import { isNotFound } from '../utils/apiError';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
+import Badge from '../components/ui/Badge';
+import { Spinner } from '../components/ui/Skeleton';
+import DogIllustration from '../components/flair/DogIllustration';
+import PawTrail from '../components/flair/PawTrail';
+
+function ageLabel(birthday: string | null): string | null {
+  if (!birthday) return null;
+  const b = new Date(birthday);
+  const months = Math.max(0, Math.floor((Date.now() - b.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+  if (months < 12) return `${months} mo`;
+  return `${Math.floor(months / 12)} yrs`;
+}
+
+export default function PublicDogPage() {
+  const { dogId } = useParams();
+  const { data: dog, isLoading, isError, error } = useQuery({
+    queryKey: ['public-dog', dogId],
+    queryFn: () => getPublicDog(dogId!),
+    enabled: !!dogId,
+    retry: (count, err) => !isNotFound(err) && count < 2,
+  });
+  useDocumentTitle(dog ? `${dog.name} · Fetch` : 'Fetch');
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (isError || !dog) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-24 text-center">
+        <DogIllustration
+          name="digging"
+          className="mx-auto h-32 w-auto text-gray-400 dark:text-gray-500"
+        />
+        <h1 className="mt-4 text-2xl font-bold tracking-tight">
+          {isError && !isNotFound(error) ? "Couldn't load this page" : 'This pup is private'}
+        </h1>
+        <p className="mt-2 text-gray-500 dark:text-gray-400">
+          {isError && !isNotFound(error)
+            ? 'Something went wrong on our end. Try again in a moment.'
+            : "Either this dog's page was turned off by their human, or the link is wrong."}
+        </p>
+        <Link
+          to="/"
+          className="mt-6 inline-flex items-center rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
+        >
+          Meet Fetch
+        </Link>
+      </div>
+    );
+  }
+
+  const age = ageLabel(dog.birthday);
+
+  return (
+    <div className="animate-fade-in">
+      <div className="mx-auto max-w-2xl px-4 sm:px-6 py-10 lg:py-14">
+        {/* Hero photo */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 aspect-square sm:aspect-[4/3]">
+          {dog.primary_photo_url ? (
+            <img
+              src={dog.primary_photo_url}
+              alt={`Photo of ${dog.name}`}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            <span className="absolute inset-0 flex items-center justify-center text-8xl" aria-hidden>🐕</span>
+          )}
+          {dog.adoptable && (
+            <span className="absolute top-4 left-4 inline-flex items-center gap-1 rounded-full bg-brand-500 px-3 py-1 text-xs font-semibold text-white shadow-soft-lg">
+              <HousePlus size={12} aria-hidden /> Looking for a home
+            </span>
+          )}
+          {dog.adopted && (
+            <span className="absolute top-4 left-4 inline-flex items-center gap-1 rounded-full bg-success-500 px-3 py-1 text-xs font-semibold text-white shadow-soft-lg">
+              <span aria-hidden>🎉</span> Adopted
+            </span>
+          )}
+        </div>
+
+        {/* Identity */}
+        <div className="mt-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+              {dog.name}
+              {dog.crown_weeks.map((week) => (
+                <span
+                  key={week}
+                  title={`Top Dog, week of ${week}`}
+                  className="text-2xl"
+                  aria-label={`Top Dog, week of ${week}`}
+                >
+                  🏆
+                </span>
+              ))}
+            </h1>
+            <p className="mt-1 text-gray-500 dark:text-gray-400">
+              {[dog.breed_display, age].filter(Boolean).join(' · ')}
+            </p>
+            {dog.rescue_name && (
+              <p className="mt-1 text-sm text-purple-600 dark:text-purple-400 font-medium">
+                Listed by {dog.rescue_name}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {dog.traits.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {dog.traits.map((t) => (
+              <Badge key={t} variant="brand" size="md">
+                {t}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        {dog.bio && (
+          <p className="mt-5 text-base leading-relaxed text-gray-600 dark:text-gray-300">{dog.bio}</p>
+        )}
+
+        {/* Extra photos */}
+        {dog.photo_urls.length > 1 && (
+          <div className="mt-6 grid grid-cols-3 gap-2">
+            {dog.photo_urls.slice(0, 6).map((url, i) => (
+              <img
+                key={url}
+                src={url}
+                alt={`Photo ${i + 1} of ${dog.name}`}
+                loading="lazy"
+                className="aspect-square w-full rounded-xl object-cover"
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Pitch */}
+        <div className="relative mt-10 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-brand-700 px-6 py-10 text-center text-white shadow-soft-lg">
+          <div aria-hidden className="pointer-events-none absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-3xl" />
+          <PawTrail steps={5} size={18} className="absolute bottom-6 left-6 text-white/15" />
+          <p className="relative text-xl font-bold tracking-tight text-balance">
+            {dog.name} lives on Fetch, the dog app that gets rescues adopted.
+          </p>
+          <p className="relative mt-1.5 text-sm text-white/85">
+            Swipe good dogs, crown a weekly champion, and help lost dogs get home.
+          </p>
+          <Link
+            to="/"
+            className="relative mt-5 inline-flex items-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-brand-700 shadow-soft-lg transition-transform duration-200 ease-soft-out hover:scale-[1.02] active:scale-95"
+          >
+            Meet Fetch
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

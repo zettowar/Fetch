@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ShoppingCart } from 'lucide-react';
 import {
   formatMoney,
   shopConfigured,
@@ -72,7 +73,7 @@ function CartRow({
             type="button"
             onClick={() => onRemove(line.id)}
             disabled={busy}
-            className="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors disabled:opacity-40"
+            className="text-xs text-gray-400 dark:text-gray-500 hover:text-danger-500 transition-colors disabled:opacity-40"
           >
             Remove
           </button>
@@ -104,7 +105,7 @@ export default function CartPage() {
     <div className="p-4 pb-8">
       <BackButton fallback="/app/shop" label="Shop" />
       <h1 className="text-xl font-bold tracking-tight mb-4 flex items-center gap-2">
-        <span aria-hidden>🛒</span> Your cart
+        <ShoppingCart size={20} aria-hidden className="text-brand-500" /> Your cart
       </h1>
 
       {isLoading && (
@@ -119,7 +120,7 @@ export default function CartPage() {
 
       {!isLoading && !isError && (!cart || cart.lines.length === 0) && (
         <EmptyState
-          icon="🛒"
+          illustration="sleeping"
           title="Your cart is empty"
           body="Browse the shop and add some gear for you and your pup."
           action={
@@ -164,7 +165,7 @@ export default function CartPage() {
                 <Button size="lg" className="w-full" disabled>
                   Checkout
                 </Button>
-                <p className="mt-2 text-center text-xs text-amber-600 dark:text-amber-400">
+                <p className="mt-2 text-center text-xs text-warning-600 dark:text-warning-400">
                   Checkout goes live once a Shopify store is connected.
                 </p>
               </>

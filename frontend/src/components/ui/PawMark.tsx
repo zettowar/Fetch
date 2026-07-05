@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 /**
  * Fetch brand mark: a paw print inside a ringed circle.
  * Paw and ring render in `currentColor`; the circle interior is transparent
@@ -7,10 +9,12 @@ export default function PawMark({
   className = '',
   title = 'Fetch',
   decorative = false,
+  style,
 }: {
   className?: string;
   title?: string;
   decorative?: boolean;
+  style?: CSSProperties;
 }) {
   const a11y = decorative
     ? ({ 'aria-hidden': true, focusable: false } as const)
@@ -20,6 +24,7 @@ export default function PawMark({
       viewBox="0 0 100 100"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      style={style}
       {...a11y}
     >
       {!decorative && <title>{title}</title>}

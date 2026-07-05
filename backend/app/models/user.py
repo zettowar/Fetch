@@ -74,3 +74,18 @@ class EmailVerificationToken(Base, UUIDPrimaryKey, TimestampMixin):
     token_hash: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class EmailChangeToken(Base, UUIDPrimaryKey, TimestampMixin):
+    """Pending email change: the link is sent to the NEW address, and the
+    switch only happens when that address proves it can receive it."""
+
+    __tablename__ = "email_change_tokens"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    new_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    token_hash: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
