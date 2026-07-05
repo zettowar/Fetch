@@ -9,8 +9,8 @@ export default function AboutPage() {
     <div className="animate-fade-in">
       <PageHero
         eyebrow="About us"
-        title="The people behind Fetch"
-        subtitle="A small team, a few heavily photographed dogs, and one idea we couldn't put down."
+        title="As many dogs as possible"
+        subtitle="Fetch is what happens when one person's deadline meets another person's toolbox."
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-14">
@@ -19,20 +19,26 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold tracking-tight">Our story</h2>
           <div className="mt-4 space-y-4 text-base leading-relaxed text-gray-600 dark:text-gray-400">
             <p>
-              Fetch started with a group chat. One of us was forever sending
-              shelter listings. Another kept a camera roll that was mostly dog.
-              All of us crossed streets to meet strangers' dogs. Meanwhile, the
-              dogs who most needed the attention sat on shelter websites nobody
-              was refreshing. People will swipe through dogs all day for fun.
-              We wanted that attention to land somewhere useful.
+              Fetch begins with a simple piece of math that our founder, Jordan
+              Kelly, refuses to look away from: there are only so many years in
+              a life, and far more dogs who need saving than any one person can
+              reach. His answer wasn't to try harder alone — it was to build
+              something that recruits everyone else's attention. People already
+              swipe through dogs all day for fun. That attention should land
+              somewhere useful.
             </p>
             <p>
-              So we're building Fetch: a swipe feed where rating good dogs is
-              the game, and rescue dogs are in the deck from day one. Every
-              follow and weekly crown puts a waiting dog in front of more
-              people. The rescues behind them get proper tools instead of
-              spreadsheets. And Lost & Found looks out for the dogs who already
-              have homes.
+              Turning that conviction into software took Sean Oosterveen, our
+              CTO. Sean is a software engineer who came up through research and
+              development, where the job is to take an idea that only exists as
+              a sketch — in this case, Jordan's famously rough PowerPoint — and
+              carry it all the way to something real. Under his hands the deck
+              became the app you're looking at: a game about good dogs with a
+              rescue mission running through every feature.
+            </p>
+            <p>
+              One of us counts the dogs. The other builds the machine that
+              raises the number. Welcome to Fetch.
             </p>
           </div>
         </section>
@@ -40,6 +46,9 @@ export default function AboutPage() {
         {/* Values */}
         <section>
           <h2 className="text-2xl font-bold tracking-tight">What we care about</h2>
+          <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
+            The test Jordan set, the way Sean builds it:
+          </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <ValueCard emoji="🐾" title="Dogs first" body="The test for every feature is simple: does it help a dog get seen, get found, or get home? If not, it doesn't ship." />
             <ValueCard emoji="🤝" title="Kind by default" body="There is no downvote on Fetch. The harshest thing you can do to a dog here is pass, and someone else will like them within the hour." />
@@ -50,10 +59,20 @@ export default function AboutPage() {
         {/* Team */}
         <section>
           <h2 className="text-2xl font-bold tracking-tight">The team</h2>
-          <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-400">
-            Right now Fetch is a handful of people and their dogs. The dogs
-            test everything first and are paid in treats. When the team grows,
-            this is where you'll meet them.
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <TeamCard
+              name="Jordan Kelly"
+              role="Founder"
+              body="Keeps score in adoptions. Wants the number as high as one lifetime allows."
+            />
+            <TeamCard
+              name="Sean Oosterveen"
+              role="CTO"
+              body="Engineer and R&D veteran. Turns rough decks into real products, and keeps the machine honest."
+            />
+          </div>
+          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            The dogs test everything first and are paid in treats.
           </p>
         </section>
 
@@ -61,7 +80,8 @@ export default function AboutPage() {
         <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center shadow-soft-sm">
           <h2 className="text-xl font-bold tracking-tight">Say hello</h2>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            Questions, press, or partnership ideas? Reach us at{' '}
+            Every email helps the number go up. Questions, press, or
+            partnership ideas? Reach us at{' '}
             <a href="mailto:fetchpawz.inc@gmail.com" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
               fetchpawz.inc@gmail.com
             </a>
@@ -77,6 +97,18 @@ export default function AboutPage() {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function TeamCard({ name, role, body }: { name: string; role: string; body: string }) {
+  return (
+    <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-soft-sm">
+      <p className="font-bold text-gray-900 dark:text-gray-100">{name}</p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400 mt-0.5">
+        {role}
+      </p>
+      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-snug">{body}</p>
     </div>
   );
 }
