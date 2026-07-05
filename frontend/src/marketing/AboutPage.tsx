@@ -60,7 +60,7 @@ export default function AboutPage() {
             <TeamCard
               name="Jordan Kelly"
               role="Founder"
-              body="The why. Keeps score in adoptions."
+              body="The why. Set the mission and keeps score the only way that matters: in adoptions, not downloads."
             />
             <TeamCard
               name="Sean Oosterveen"
