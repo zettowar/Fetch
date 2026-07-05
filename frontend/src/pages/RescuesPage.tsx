@@ -29,9 +29,16 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{rescue.location}</p>
       )}
       <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{rescue.description}</p>
-      {(rescue.website || rescue.donation_url) && (
+      {(rescue.website || rescue.donation_url || rescue.donations_enabled) && (
         <div className="relative flex items-center gap-2 mt-3">
-          {rescue.donation_url && (
+          {rescue.donations_enabled ? (
+            <Link
+              to={`/app/donate?rescue=${rescue.id}`}
+              className="text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Donate
+            </Link>
+          ) : rescue.donation_url ? (
             <a
               href={rescue.donation_url}
               target="_blank"
@@ -40,7 +47,7 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
             >
               Donate
             </a>
-          )}
+          ) : null}
           {rescue.website && (
             <a
               href={rescue.website}
@@ -73,7 +80,7 @@ export default function RescuesPage() {
       if (q && !(r.org_name.toLowerCase().includes(q) || (r.location ?? '').toLowerCase().includes(q))) {
         return false;
       }
-      if (filter === 'donating' && !r.donation_url) return false;
+      if (filter === 'donating' && !r.donation_url && !r.donations_enabled) return false;
       if (filter === 'has_website' && !r.website) return false;
       return true;
     });

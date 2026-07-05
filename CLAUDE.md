@@ -2,7 +2,7 @@
 
 ## What is Fetch?
 
-A mobile-first web app where dog owners create profiles for their dogs, rate other dogs via a Tinder-style swipe interface, and compete for the weekly "top dog" crown. Extended with lost & found dogs, dog parks (reviews, check-ins, play dates), vets, rescues + adoption inquiries, dog transfers, social (follows/comments/reactions, user blocks), community posts, a notification inbox, public dog share pages (`/dogs/{id}`, opt-out via `dogs.is_public`), member + admin invite codes, liked-dogs history, crown badges/weekly rank on dog pages, account management (password/email change), support tickets + FAQ, beta feedback, billing entitlements, and a full admin panel. Donations are external links on rescue profiles (no payment backend); the shop is Shopify-only (see below).
+A mobile-first web app where dog owners create profiles for their dogs, rate other dogs via a Tinder-style swipe interface, and compete for the weekly "top dog" crown. Extended with lost & found dogs, dog parks (reviews, check-ins, play dates), vets, rescues + adoption inquiries, dog transfers, social (follows/comments/reactions, user blocks), community posts, a notification inbox, public dog share pages (`/dogs/{id}`, opt-out via `dogs.is_public`), member + admin invite codes, liked-dogs history, crown badges/weekly rank on dog pages, account management (password/email change), support tickets + FAQ, beta feedback, billing entitlements, and a full admin panel. Donations are in-app via Stripe Checkout — to the platform and (via Stripe Connect Express) to rescues, with external donation links as the fallback (see Donations below); the shop is Shopify-only (see below).
 
 ## Quick Start
 
@@ -272,6 +272,29 @@ the `db_backups` volume (`deploy/backup.sh`, `BACKUP_KEEP_DAYS`); off-box
 copies are on you (e.g. sync to DO Spaces). CI smoke-builds both prod images
 on every push. Still missing for real production: log shipping and S3
 uploads.
+
+## Donations (Stripe)
+
+In-app donations live in `backend/app/routers/donations.py` (`/api/v1/donations`)
+with the Stripe REST calls in `services/stripe_service.py` (plain httpx — no
+SDK). Two money flows:
+
+- **Platform** ("Support Fetch") — ordinary Checkout to the platform account.
+- **Rescues** — Stripe **Connect Express** destination charges. Rescues onboard
+  from their dashboard (`POST /donations/connect/onboard`); `rescue_profiles`
+  stores `stripe_account_id` + `stripe_charges_enabled` (synced on read and via
+  the optional `account.updated` webhook). Non-onboarded rescues keep their
+  external `donation_url` link everywhere. `DONATION_PLATFORM_FEE_PERCENT`
+  takes an application fee on rescue donations (default 0).
+
+Empty `STRIPE_SECRET_KEY` = feature disabled: endpoints 503, the UI shows
+external links only. The webhook (`POST /donations/webhook`, unauthenticated,
+HMAC-verified, idempotent via the `stripe_events` table) confirms payments and
+emits `donation_thanks` / `donation_received` inbox notifications —
+`STRIPE_WEBHOOK_SECRET` is required in production when the key is set (boot
+guard). Donation rows survive account deletion (SET NULL FKs +
+`recipient_name` snapshot). Local testing:
+`stripe listen --forward-to localhost:9001/api/v1/donations/webhook`.
 
 ## Shop (Shopify-only — no backend)
 

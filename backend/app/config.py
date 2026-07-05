@@ -63,6 +63,25 @@ class Settings(BaseSettings):
     VERIFICATION_TOKEN_TTL_HOURS: int = 48
     DEBUG_VERIFY_TOKEN: bool = False
 
+    # Donations via Stripe Checkout. Empty STRIPE_SECRET_KEY = donations
+    # disabled: /donations endpoints return 503 and the UI shows the rescues'
+    # external donation links only (same degrade-explicitly pattern as email).
+    STRIPE_SECRET_KEY: str = ""
+    # Signing secret for the platform webhook endpoint (whsec_...).
+    STRIPE_WEBHOOK_SECRET: str = ""
+    # Signing secret for the optional Connect (connected-accounts) webhook
+    # endpoint — used for account.updated. Connect status also self-heals via
+    # sync-on-read, so this may stay empty.
+    STRIPE_CONNECT_WEBHOOK_SECRET: str = ""
+    STRIPE_TIMEOUT_S: int = 20
+    # Percent of a rescue donation kept by the platform (0 = pass everything
+    # through). Applied as a Stripe application fee on destination charges.
+    DONATION_PLATFORM_FEE_PERCENT: float = 0.0
+    # Preset amounts offered in the UI, in cents, comma-separated.
+    DONATION_PRESETS: str = "500,1000,2500,5000"
+    DONATION_MIN_CENTS: int = 100
+    DONATION_MAX_CENTS: int = 10_000_00
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @field_validator("JWT_SECRET")
@@ -101,6 +120,23 @@ class Settings(BaseSettings):
                 "DEBUG_RESET_TOKEN / DEBUG_VERIFY_TOKEN must be False in "
                 "production — they leak password-reset/verification tokens in API "
                 "responses."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def stripe_settings_sane(self) -> "Settings":
+        if not 0 <= self.DONATION_PLATFORM_FEE_PERCENT <= 100:
+            raise ValueError("DONATION_PLATFORM_FEE_PERCENT must be between 0 and 100.")
+        if (
+            self.ENVIRONMENT.lower() == "production"
+            and self.STRIPE_SECRET_KEY
+            and not self.STRIPE_WEBHOOK_SECRET
+        ):
+            # Without the webhook, payments would be taken but donations would
+            # never be confirmed — they'd sit "pending" forever.
+            raise ValueError(
+                "STRIPE_WEBHOOK_SECRET is required in production when "
+                "STRIPE_SECRET_KEY is set."
             )
         return self
 

@@ -10,6 +10,7 @@ export interface RescuePublic {
   lng: number | null;
   website: string | null;
   donation_url: string | null;
+  donations_enabled: boolean; // Stripe Connect live → in-app donations
 }
 
 export interface RescueProfile extends RescuePublic {

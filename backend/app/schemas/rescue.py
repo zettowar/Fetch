@@ -87,6 +87,7 @@ class RescueProfileOut(BaseModel):
     review_note: str | None = None
     reviewed_at: datetime | None = None
     created_at: datetime
+    donations_enabled: bool = False  # model property: Connect account live
 
     model_config = {"from_attributes": True}
 
@@ -101,6 +102,7 @@ class RescuePublicOut(BaseModel):
     lng: float | None = None
     website: str | None = None
     donation_url: str | None = None
+    donations_enabled: bool = False  # model property: Connect account live
 
     model_config = {"from_attributes": True}
 

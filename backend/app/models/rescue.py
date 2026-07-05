@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -33,4 +33,18 @@ class RescueProfile(Base, UUIDPrimaryKey, TimestampMixin):
     )
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Stripe Connect (Express) — in-app donations. charges_enabled mirrors the
+    # connected account's state (synced on read + via account.updated webhook).
+    stripe_account_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, nullable=True
+    )
+    stripe_charges_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
     user = relationship("User", back_populates="rescue_profile", foreign_keys=[user_id])
+
+    @property
+    def donations_enabled(self) -> bool:
+        """Can this rescue take in-app donations? Surfaces on public schemas."""
+        return bool(self.stripe_account_id) and self.stripe_charges_enabled

@@ -8,6 +8,7 @@ import {
   Check,
   ChevronRight,
   Heart,
+  HeartHandshake,
   Hourglass,
   HousePlus,
   Siren,
@@ -19,6 +20,7 @@ import { getMyFollows } from '../api/social';
 import { getMyDogs } from '../api/dogs';
 import { listMyTransfers } from '../api/dogTransfers';
 import { getNearbyReports } from '../api/lost';
+import { getDonationConfig } from '../api/donations';
 import { useAuth } from '../store/AuthContext';
 import { dogHeroPhoto } from '../utils/time';
 import { useWeeklyResetCountdown, nextWeeklyReset } from '../utils/weeklyReset';
@@ -83,6 +85,12 @@ export default function HomePage() {
     staleTime: 5 * 60_000,
   });
   const missingNearby = nearbyLost.filter((r) => r.status === 'open').length;
+  const { data: donationConfig } = useQuery({
+    queryKey: ['donation-config'],
+    queryFn: getDonationConfig,
+    enabled: !isRescue,
+    staleTime: 5 * 60_000,
+  });
 
   const followedDogs = follows.map((f) => f.dog).filter((d) => !!d);
   const stripDogs = followedDogs.slice(0, MAX_STRIP_AVATARS);
@@ -332,6 +340,28 @@ export default function HomePage() {
             />
           </Link>
         </div>
+
+        {/* Donations — compact row, only when Stripe is configured */}
+        {donationConfig?.enabled && (
+          <Link
+            to="/app/donate"
+            style={stagger(3)}
+            className="flex items-center justify-between gap-3 p-3 bg-white/70 dark:bg-white/5 border border-gray-200/80 dark:border-white/10 backdrop-blur rounded-2xl shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out animate-fade-in-up"
+          >
+            <div className="flex items-center gap-3">
+              <span className="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white" aria-hidden>
+                <HeartHandshake size={18} />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Donate</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Support rescues and keep Fetch running
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={18} aria-hidden className="text-gray-300 dark:text-gray-600" />
+          </Link>
+        )}
 
         {/* Following — strip when the user follows dogs, prompt row otherwise */}
         {stripDogs.length > 0 ? (

@@ -7,6 +7,7 @@ import {
   Bell,
   ChevronRight,
   Heart,
+  HeartHandshake,
   PawPrint,
   Pencil,
   Share2,
@@ -204,6 +205,7 @@ export default function UserProfilePage() {
           <MenuLink to="/app/following" label="Dogs I follow" icon={<PawPrint size={18} />} />
           <MenuLink to="/app/liked" label="Dogs you liked" icon={<Heart size={18} />} />
           <MenuLink to="/app/transfers" label="Dog transfers" icon={<ArrowLeftRight size={18} />} />
+          <MenuLink to="/app/donations" label="My donations" icon={<HeartHandshake size={18} />} />
           <MenuLink to="/app/notifications" label="Notifications" icon={<Bell size={18} />} />
         </section>
       )}

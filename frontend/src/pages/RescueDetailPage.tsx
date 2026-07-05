@@ -75,9 +75,17 @@ export default function RescueDetailPage() {
       )}
       <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{rescue.description}</p>
 
-      {(rescue.website || rescue.donation_url) && (
+      {(rescue.website || rescue.donation_url || rescue.donations_enabled) && (
         <div className="flex items-center gap-2 mt-4">
-          {rescue.donation_url && (
+          {rescue.donations_enabled ? (
+            // Connect-enabled: in-app Stripe checkout, preselected on Donate.
+            <Link
+              to={`/app/donate?rescue=${rescue.id}`}
+              className="text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 px-4 py-2 rounded-xl transition-colors"
+            >
+              Donate
+            </Link>
+          ) : rescue.donation_url ? (
             <a
               href={rescue.donation_url}
               target="_blank"
@@ -86,7 +94,7 @@ export default function RescueDetailPage() {
             >
               Donate
             </a>
-          )}
+          ) : null}
           {rescue.website && (
             <a
               href={rescue.website}

@@ -26,6 +26,12 @@ const ITEMS: ExploreItem[] = [
     featured: true,
   },
   {
+    label: 'Donate',
+    description: 'Support Fetch and local rescues.',
+    icon: '💖',
+    to: '/app/donate',
+  },
+  {
     label: 'Shop',
     description: 'Branded gear for you and your dog.',
     icon: '🛍️',

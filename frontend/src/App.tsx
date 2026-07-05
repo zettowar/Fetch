@@ -57,6 +57,9 @@ import RescuesHubPage from './pages/RescuesHubPage';
 import RescuesPage from './pages/RescuesPage';
 import RescuesMapPage from './pages/RescuesMapPage';
 import BillingPage from './pages/BillingPage';
+import DonatePage from './pages/DonatePage';
+import DonateReturnPage from './pages/DonateReturnPage';
+import DonationHistoryPage from './pages/DonationHistoryPage';
 import ShopPage from './pages/ShopPage';
 import ShopProductPage from './pages/ShopProductPage';
 import CartPage from './pages/CartPage';
@@ -178,6 +181,9 @@ function AppContent() {
           <Route path="transfers" element={<TransfersPage />} />
           <Route path="liked" element={<LikedDogsPage />} />
           <Route path="billing" element={<BillingPage />} />
+          <Route path="donate" element={<DonatePage />} />
+          <Route path="donate/success" element={<DonateReturnPage />} />
+          <Route path="donations" element={<DonationHistoryPage />} />
           <Route path="shop" element={<ShopPage />} />
           <Route path="shop/:handle" element={<ShopProductPage />} />
           <Route path="cart" element={<CartPage />} />

@@ -12,6 +12,7 @@ from app.models.audit_log import AuditLog
 from app.models.beta import Feedback, InviteCode
 from app.models.breed import Breed, dog_breeds
 from app.models.dog import Dog
+from app.models.donation import Donation
 from app.models.entitlement import Entitlement
 from app.models.lost_report import LostReport
 from app.models.park import Park
@@ -204,6 +205,39 @@ async def list_audit_log(
         query = query.where(AuditLog.target_id == target_id)
     result = await db.execute(query)
     return list(result.scalars().all())
+
+
+# --- Donations ---
+
+@router.get("/donations")
+async def list_donations(
+    status_filter: str | None = Query(None, alias="status"),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Donation oversight: paginated rows + succeeded totals."""
+    from app.schemas.donation import DonationOut
+
+    query = select(Donation).order_by(Donation.created_at.desc())
+    if status_filter:
+        query = query.where(Donation.status == status_filter)
+    rows = (await db.execute(query.offset(offset).limit(limit))).scalars().all()
+
+    totals = (await db.execute(
+        select(
+            func.count(Donation.id),
+            func.coalesce(func.sum(Donation.amount_cents), 0),
+            func.coalesce(func.sum(Donation.application_fee_cents), 0),
+        ).where(Donation.status == "succeeded")
+    )).one()
+    return {
+        "items": [DonationOut.model_validate(r).model_dump(mode="json") for r in rows],
+        "succeeded_count": totals[0],
+        "succeeded_amount_cents": int(totals[1]),
+        "succeeded_fee_cents": int(totals[2]),
+    }
 
 
 # --- User Management ---
