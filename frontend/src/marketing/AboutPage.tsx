@@ -9,8 +9,8 @@ export default function AboutPage() {
     <div className="animate-fade-in">
       <PageHero
         eyebrow="About us"
-        title="As many dogs as possible"
-        subtitle="Fetch is what happens when one person's deadline meets another person's toolbox."
+        title="The why and the how"
+        subtitle="People ask us why Fetch exists and how it got built. Both answers are shorter than you'd expect."
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-14">
@@ -19,26 +19,31 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold tracking-tight">Our story</h2>
           <div className="mt-4 space-y-4 text-base leading-relaxed text-gray-600 dark:text-gray-400">
             <p>
-              Fetch begins with a simple piece of math that our founder, Jordan
-              Kelly, refuses to look away from: there are only so many years in
-              a life, and far more dogs who need saving than any one person can
-              reach. His answer wasn't to try harder alone — it was to build
-              something that recruits everyone else's attention. People already
-              swipe through dogs all day for fun. That attention should land
+              Some ask why. Some ask how. Both answers are shorter than you
+              might expect.
+            </p>
+            <p>
+              The why is our founder, Jordan Kelly. Jordan wants to save as
+              many dogs as possible in the time he has — that's the entire
+              mission statement, and it predates the company. There are far
+              more dogs who need saving than any one person can reach, so
+              instead of trying harder alone, he set out to build something
+              that recruits everyone else's attention. People already swipe
+              through dogs all day for fun. That attention should land
               somewhere useful.
             </p>
             <p>
-              Turning that conviction into software took Sean Oosterveen, our
-              CTO. Sean is a software engineer who came up through research and
-              development, where the job is to take an idea that only exists as
-              a sketch — in this case, Jordan's famously rough PowerPoint — and
-              carry it all the way to something real. Under his hands the deck
-              became the app you're looking at: a game about good dogs with a
-              rescue mission running through every feature.
+              The how is Sean Oosterveen, our CCO. Sean is a software engineer
+              with a history in research and development — a career spent
+              taking ideas that only exist as sketches and carrying them all
+              the way to something real. In this case the sketch was Jordan's
+              very rough PowerPoint, and under Sean's hands it became what you
+              see before you today: a game about good dogs with a rescue
+              mission running through every feature.
             </p>
             <p>
-              One of us counts the dogs. The other builds the machine that
-              raises the number. Welcome to Fetch.
+              The slides were rough. The promise on them wasn't. Welcome to
+              Fetch.
             </p>
           </div>
         </section>
@@ -47,7 +52,7 @@ export default function AboutPage() {
         <section>
           <h2 className="text-2xl font-bold tracking-tight">What we care about</h2>
           <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
-            The test Jordan set, the way Sean builds it:
+            Three rules carried over from that first deck:
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <ValueCard emoji="🐾" title="Dogs first" body="The test for every feature is simple: does it help a dog get seen, get found, or get home? If not, it doesn't ship." />
@@ -62,13 +67,13 @@ export default function AboutPage() {
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <TeamCard
               name="Jordan Kelly"
-              role="Founder"
+              role="Founder · the why"
               body="Keeps score in adoptions. Wants the number as high as one lifetime allows."
             />
             <TeamCard
               name="Sean Oosterveen"
-              role="CTO"
-              body="Engineer and R&D veteran. Turns rough decks into real products, and keeps the machine honest."
+              role="CCO · the how"
+              body="Software engineer and R&D veteran. Turns very rough PowerPoints into shipping products."
             />
           </div>
           <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
@@ -80,7 +85,7 @@ export default function AboutPage() {
         <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center shadow-soft-sm">
           <h2 className="text-xl font-bold tracking-tight">Say hello</h2>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            Every email helps the number go up. Questions, press, or
+            The why and the how read every email. Questions, press, or
             partnership ideas? Reach us at{' '}
             <a href="mailto:fetchpawz.inc@gmail.com" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
               fetchpawz.inc@gmail.com
