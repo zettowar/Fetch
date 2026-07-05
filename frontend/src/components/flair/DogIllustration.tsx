@@ -29,17 +29,24 @@ const POSES: Record<DogIllustrationName, ReactNode> = {
   // Curled up asleep, Zzz drifting off — "nothing here yet"
   sleeping: (
     <>
-      {/* body mound with tail tucked around */}
+      {/* body mound */}
       <path d="M42 118 C 40 92, 66 76, 100 76 C 138 76, 162 92, 160 112 C 159 122, 150 126, 138 126 L 56 126 C 46 126, 43 123, 42 118 Z" {...STROKE} />
-      <path d="M138 126 C 156 124, 164 112, 158 100" {...STROKE} />
+      {/* tail curled against the rump */}
+      <circle cx="146" cy="112" r="10" {...STROKE} strokeWidth={5.5} />
       {/* head resting on paws */}
       <circle cx="70" cy="102" r="19" {...STROKE} />
-      {/* floppy ear */}
-      <path d="M62 86 C 50 88, 46 100, 54 108" {...STROKE} />
+      {/* solid floppy ear draped over the crown */}
+      <path
+        d="M56 90 C 48 72, 70 66, 76 80 C 78 86, 70 92, 56 90 Z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth={3}
+        strokeLinejoin="round"
+      />
       {/* closed eye */}
       <path d="M72 100 q5 4 10 0" {...STROKE} strokeWidth={4} />
       {/* nose */}
-      <circle cx="53" cy="106" r="3.5" fill="currentColor" stroke="none" />
+      <circle cx="53" cy="107" r="4.5" fill="currentColor" stroke="none" />
       {/* front paw peeking out */}
       <path d="M64 126 q10 -6 20 -2" {...STROKE} strokeWidth={5} />
       <g className="text-brand-500">
