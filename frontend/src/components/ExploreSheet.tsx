@@ -94,7 +94,10 @@ export default function ExploreSheet({ open, onClose }: Props) {
             onDragEnd={(_, info) => {
               if (info.offset.y > 100 || info.velocity.y > 600) onClose();
             }}
-            className="fixed left-1/2 -translate-x-1/2 bottom-0 z-50 w-full max-w-app rounded-t-2xl bg-white dark:bg-gray-900 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 pb-[calc(env(safe-area-inset-bottom)+16px)]"
+            // Centered with mx-auto, not left-1/2 -translate-x-1/2: framer-motion
+            // owns this element's inline transform for the slide-up, which would
+            // clobber a class-based translateX and shove the sheet half offscreen.
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-app rounded-t-2xl bg-white dark:bg-gray-900 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 pb-[calc(env(safe-area-inset-bottom)+16px)]"
           >
             {/* Drag handle */}
             <button
