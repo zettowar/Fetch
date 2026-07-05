@@ -3,7 +3,10 @@ name = "fetch-backend"
 version = "0.2.0"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.110,<1",
+    # <0.137: FastAPI >=0.138 registers included routers as lazy _IncludedRouter
+    # entries, which prometheus-fastapi-instrumentator (<=7.1) can't traverse —
+    # every request 500s. Lift the cap only after the instrumentator catches up.
+    "fastapi>=0.110,<0.137",
     "uvicorn[standard]>=0.27,<1",
     "sqlalchemy[asyncio]>=2.0,<3",
     "asyncpg>=0.29,<1",
