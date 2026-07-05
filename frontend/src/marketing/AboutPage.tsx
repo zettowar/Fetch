@@ -40,19 +40,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Values */}
-        <section>
-          <h2 className="text-2xl font-bold tracking-tight">What we care about</h2>
-          <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
-            Three rules carried over from that first deck:
-          </p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <ValueCard emoji="🐾" title="Dogs first" body="The test for every feature is simple: does it help a dog get seen, get found, or get home? If not, it doesn't ship." />
-            <ValueCard emoji="🤝" title="Kind by default" body="There is no downvote on Fetch. The harshest thing you can do to a dog here is pass, and someone else will like them within the hour." />
-            <ValueCard emoji="🛟" title="Safety net" body="When a dog goes missing, minutes matter. An alert goes out to everyone nearby, and sightings go straight to the owner." />
-          </div>
-        </section>
-
         {/* Team */}
         <section>
           <h2 className="text-2xl font-bold tracking-tight">The team</h2>
@@ -71,6 +58,19 @@ export default function AboutPage() {
           <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
             The dogs test everything first and are paid in treats.
           </p>
+        </section>
+
+        {/* Values */}
+        <section>
+          <h2 className="text-2xl font-bold tracking-tight">What we care about</h2>
+          <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
+            Three rules carried over from that first deck:
+          </p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <ValueCard emoji="🐾" title="Dogs first" body="The test for every feature is simple: does it help a dog get seen, get found, or get home? If not, it doesn't ship." />
+            <ValueCard emoji="🤝" title="Kind by default" body="There is no downvote on Fetch. The harshest thing you can do to a dog here is pass, and someone else will like them within the hour." />
+            <ValueCard emoji="🛟" title="Safety net" body="When a dog goes missing, minutes matter. An alert goes out to everyone nearby, and sightings go straight to the owner." />
+          </div>
         </section>
 
         {/* Contact */}
