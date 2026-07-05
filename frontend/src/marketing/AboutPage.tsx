@@ -23,28 +23,20 @@ export default function AboutPage() {
               might expect.
             </p>
             <p>
-              The why is our founder, Jordan Kelly. Jordan wants to save as
-              many dogs as possible in the time he has — that's the entire
-              mission statement, and it predates the company. There are far
-              more dogs who need saving than any one person can reach, so
-              instead of trying harder alone, he set out to build something
-              that recruits everyone else's attention. People already swipe
-              through dogs all day for fun. That attention should land
-              somewhere useful.
+              The why is our founder, Jordan Kelly. He wants to save as many
+              dogs as possible in the time he has — and there are more dogs
+              who need saving than one person can reach. So he built something
+              that turns everyone's attention into help. People already swipe
+              through dogs all day for fun. Here, it counts.
             </p>
             <p>
-              The how is Sean Oosterveen, our CCO. Sean is a software engineer
-              with a history in research and development — a career spent
-              taking ideas that only exist as sketches and carrying them all
-              the way to something real. In this case the sketch was Jordan's
-              very rough PowerPoint, and under Sean's hands it became what you
-              see before you today: a game about good dogs with a rescue
-              mission running through every feature.
+              The how is Sean Oosterveen, our CTO. A software engineer with a
+              background in research and development, Sean took Jordan's very
+              rough PowerPoint and built it into what you see today: a game
+              about good dogs with a rescue mission running through every
+              feature.
             </p>
-            <p>
-              The slides were rough. The promise on them wasn't. Welcome to
-              Fetch.
-            </p>
+            <p>Welcome to Fetch.</p>
           </div>
         </section>
 
@@ -67,13 +59,13 @@ export default function AboutPage() {
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <TeamCard
               name="Jordan Kelly"
-              role="Founder · the why"
-              body="Keeps score in adoptions. Wants the number as high as one lifetime allows."
+              role="Founder"
+              body="The why. Keeps score in adoptions."
             />
             <TeamCard
               name="Sean Oosterveen"
-              role="CCO · the how"
-              body="Software engineer and R&D veteran. Turns very rough PowerPoints into shipping products."
+              role="CTO"
+              body="The how. Software engineer with an R&D background; built Fetch from the first deck onward."
             />
           </div>
           <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
