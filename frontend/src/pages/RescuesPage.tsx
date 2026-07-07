@@ -96,17 +96,9 @@ export default function RescuesPage() {
     <div className="flex flex-col h-[calc(100vh-56px)]">
       {/* ── Compact header ──────────────────────────────────────────── */}
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="flex items-baseline justify-between gap-3">
-          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <HousePlus size={20} aria-hidden className="text-brand-500" /> Rescues
-          </h1>
-          <Link
-            to="/signup-rescue"
-            className="text-xs font-medium text-brand-500 hover:text-brand-600 whitespace-nowrap"
-          >
-            Are you a rescue?
-          </Link>
-        </div>
+        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+          <HousePlus size={20} aria-hidden className="text-brand-500" /> Rescues
+        </h1>
 
         <SearchInput
           className="mt-2.5"
