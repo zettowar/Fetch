@@ -188,6 +188,7 @@ export default function ExplorePage() {
       {!isLoading && !isError && pets.length === 0 && (
         <EmptyState
           illustration="sniffing"
+          species={species}
           title="No pets to explore yet"
           body="Check back once more pets join the pack."
           action={

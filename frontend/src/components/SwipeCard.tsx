@@ -4,7 +4,7 @@ import { HousePlus } from 'lucide-react';
 import type { Pet } from '../types';
 import { petAge, petHeroPhoto } from '../utils/time';
 import Badge from './ui/Badge';
-import DogIllustration from './flair/DogIllustration';
+import PetIllustration from './flair/PetIllustration';
 
 interface SwipeCardProps {
   pet: Pet;
@@ -54,7 +54,7 @@ export default function SwipeCard({ pet, onSwipe, isTop }: SwipeCardProps) {
         <img src={photoUrl} alt={pet.name} className="w-full h-[70%] object-cover" />
       ) : (
         <div className="w-full h-[70%] bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 flex flex-col items-center justify-center gap-2">
-          <DogIllustration name="sleeping" className="h-24 w-auto text-brand-300 dark:text-brand-400/60" />
+          <PetIllustration species={pet.species} name="sleeping" className="h-24 w-auto text-brand-300 dark:text-brand-400/60" />
           <p className="text-sm text-brand-300 dark:text-brand-400/80 font-medium">No photo yet</p>
         </div>
       )}

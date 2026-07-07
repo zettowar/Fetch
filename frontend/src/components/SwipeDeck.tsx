@@ -14,7 +14,7 @@ import PawMark from './ui/PawMark';
 import { CardSkeleton } from './ui/Skeleton';
 import ErrorState from './ui/ErrorState';
 import BoneProgress from './flair/BoneProgress';
-import DogIllustration from './flair/DogIllustration';
+import PetIllustration from './flair/PetIllustration';
 import { usePawBurst } from './flair/PawBurst';
 import { useAuth } from '../store/AuthContext';
 import { useSpeciesFilter, filterToSpecies } from '../hooks/useSpeciesFilter';
@@ -235,7 +235,7 @@ export default function SwipeDeck() {
             visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 260, damping: 16 } },
           }}
         >
-          <DogIllustration name="ball" className="h-32 w-auto text-gray-400 dark:text-gray-500" />
+          <PetIllustration species={filterToSpecies(speciesFilter) ?? 'dog'} name="ball" className="h-32 w-auto text-gray-400 dark:text-gray-500" />
         </motion.span>
         <motion.p
           className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2"
@@ -319,7 +319,8 @@ export default function SwipeDeck() {
         {quotaBlocked && (
           <div className="absolute inset-0 z-20 flex items-center justify-center px-4">
             <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-soft-lg ring-1 ring-gray-200 dark:ring-gray-800 p-5 text-center">
-              <DogIllustration
+              <PetIllustration
+                species={filterToSpecies(speciesFilter) ?? 'dog'}
                 name="sleeping"
                 className="mx-auto mb-2 h-24 w-auto text-gray-400 dark:text-gray-500"
               />

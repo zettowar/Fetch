@@ -6,6 +6,7 @@ import client from './client';
 export interface PublicDog {
   id: string;
   name: string;
+  species: 'dog' | 'cat';
   breed_display: string | null;
   birthday: string | null;
   bio: string | null;

@@ -27,6 +27,7 @@ router = APIRouter()
 class PublicPetOut(BaseModel):
     id: UUID
     name: str
+    species: str = "dog"
     breed_display: str | None = None
     birthday: date | None = None
     bio: str | None = None
@@ -83,6 +84,7 @@ async def public_pet(pet_id: UUID, db: AsyncSession = Depends(get_db)):
     return PublicPetOut(
         id=pet.id,
         name=pet.name,
+        species=pet.species,
         breed_display=breed_display(pet.mix_type, pet.breeds, pet.species),
         birthday=pet.birthday,
         bio=pet.bio,

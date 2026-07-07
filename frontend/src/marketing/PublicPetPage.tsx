@@ -74,7 +74,7 @@ export default function PublicPetPage() {
               className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
-            <span className="absolute inset-0 flex items-center justify-center text-8xl" aria-hidden>🐕</span>
+            <span className="absolute inset-0 flex items-center justify-center text-8xl" aria-hidden>{pet.species === 'cat' ? '🐈' : '🐕'}</span>
           )}
           {pet.adoptable && (
             <span className="absolute top-4 left-4 inline-flex items-center gap-1 rounded-full bg-brand-500 px-3 py-1 text-xs font-semibold text-white shadow-soft-lg">

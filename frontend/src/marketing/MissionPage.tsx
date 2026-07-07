@@ -26,7 +26,7 @@ export default function MissionPage() {
         <section>
           <h2 className="text-center text-2xl font-bold tracking-tight">What that looks like</h2>
           <div className="mt-8 grid gap-5 sm:grid-cols-3">
-            <Pillar emoji="🐶" title="Adoptables in the feed" body="Adoptable pets appear in the main feed, right between the neighborhood regulars. There is no separate tab to forget about." />
+            <Pillar emoji="🐾" title="Adoptables in the feed" body="Adoptable pets appear in the main feed, right between the neighborhood regulars. There is no separate tab to forget about." />
             <Pillar emoji="🤝" title="Tools rescues use" body="Listings, inquiries, and handoffs live in one place, so a volunteer's evening goes to the pets." />
             <Pillar emoji="🏡" title="A faster match" body="The right person sees the right pet sooner. Waits get shorter and kennels get emptier." />
           </div>

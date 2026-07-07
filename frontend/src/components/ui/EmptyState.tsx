@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import DogIllustration from '../flair/DogIllustration';
-import type { DogIllustrationName } from '../flair/DogIllustration';
+import PetIllustration, { type IllustrationName } from '../flair/PetIllustration';
+import type { Species } from '../../types';
 
 interface EmptyStateProps {
   icon?: ReactNode;
-  illustration?: DogIllustrationName;
+  illustration?: IllustrationName;
+  species?: Species;
   title: string;
   body?: ReactNode;
   action?: ReactNode;
@@ -24,6 +25,7 @@ interface EmptyStateProps {
 export default function EmptyState({
   icon,
   illustration,
+  species = 'dog',
   title,
   body,
   action,
@@ -34,8 +36,9 @@ export default function EmptyState({
       className={`rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 py-10 px-6 text-center ${className}`}
     >
       {illustration ? (
-        <DogIllustration
+        <PetIllustration
           name={illustration}
+          species={species}
           className="mx-auto mb-4 h-28 w-auto text-gray-400 dark:text-gray-500"
         />
       ) : (

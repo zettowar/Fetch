@@ -10,7 +10,7 @@ import DogIllustration from '../components/flair/DogIllustration';
 import PawTrail from '../components/flair/PawTrail';
 
 const OWNER_FEATURES = [
-  { icon: '❤️', title: 'Swipe & rate', body: 'A Tinder-style feed of good boys and girls. One tap, one vote.' },
+  { icon: '❤️', title: 'Swipe & rate', body: 'A Tinder-style feed of neighborhood cats and dogs. One tap, one vote.' },
   { icon: '🏆', title: 'Weekly top pet', body: 'Votes reset every Monday, so every pet gets a fresh shot at the crown.' },
   { icon: '🚨', title: 'Lost & Found', body: "If a pet goes missing nearby, you'll know. Sightings go straight to the owner." },
   { icon: '🐾', title: 'Follow your faves', body: 'Some pets you just need to see again. Follow them and you will.' },
@@ -24,7 +24,7 @@ const RESCUE_FEATURES = [
 ];
 
 const SITE_TEASERS = [
-  { to: '/about', emoji: '🐕', eyebrow: 'About us', title: 'The people behind Fetch', body: "Who we are, and why this started in a group chat full of shelter listings." },
+  { to: '/about', emoji: '🐾', eyebrow: 'About us', title: 'The people behind Fetch', body: "Who we are, and why this started in a group chat full of shelter listings." },
   { to: '/mission', emoji: '🎯', eyebrow: 'Our mission', title: 'Why Fetch exists', body: "Shelter pets wait too long for homes. Here's what we're doing about it." },
   { to: '/news', emoji: '📰', eyebrow: 'News', title: 'Latest updates', body: 'Short notes from the team as we get Fetch ready.' },
 ];
@@ -113,12 +113,12 @@ export default function MarketingHome() {
 
       {/* ── Audience split ─────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        <SectionHeading eyebrow="Who it's for" title="Made for the whole pack" />
+        <SectionHeading eyebrow="Who it's for" title="Made for cats, dogs & their people" />
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           <AudienceCard
             accent="brand"
             eyebrow="Pet owners"
-            iconEmoji="🐶"
+            iconEmoji="🐾"
             title="Rate, follow, find."
             body="Swipe the feed, follow your favorites, and vote for a weekly top pet. Lost & Found is built in for the days you hope never come."
             tag="Coming soon"

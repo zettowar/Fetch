@@ -17,7 +17,7 @@ import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
-import DogIllustration from '../components/flair/DogIllustration';
+import PetIllustration from '../components/flair/PetIllustration';
 import { usePawBurst } from '../components/flair/PawBurst';
 import Linkify from '../components/Linkify';
 import TimeAgo from '../components/TimeAgo';
@@ -227,7 +227,7 @@ export default function PetDetailPage() {
           onClick={openHeroLightbox}
         />
       ) : isOwner ? (
-        <div className="w-full bg-gradient-to-br from-brand-50 to-brand-100 p-6">
+        <div className="w-full bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 p-6">
           <div className="flex flex-col items-center py-4">
             <Camera size={32} aria-hidden className="mb-2 text-brand-400" />
             <p className="text-sm text-brand-600 font-medium mb-3">Add your first photo</p>
@@ -236,7 +236,7 @@ export default function PetDetailPage() {
         </div>
       ) : (
         <div className="w-full h-56 bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 flex flex-col items-center justify-center">
-          <DogIllustration name="sleeping" className="h-24 w-auto text-brand-300 dark:text-brand-400/60" />
+          <PetIllustration species={pet.species} name="sleeping" className="h-24 w-auto text-brand-300 dark:text-brand-400/60" />
           <span className="text-sm text-brand-400 mt-2">No photos yet</span>
         </div>
       )}

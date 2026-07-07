@@ -113,6 +113,7 @@ export default function RankingsPage() {
       ) : (
         <EmptyState
           illustration="sleeping"
+          species={species}
           title="No votes yet this week"
           body="The leaderboard is still napping — be the first to swipe!"
         />
