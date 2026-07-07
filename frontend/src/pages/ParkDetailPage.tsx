@@ -22,7 +22,7 @@ import {
   checkinPark,
   checkoutPark,
 } from '../api/parks';
-import { getMyDogs } from '../api/dogs';
+import { getMyPets } from '../api/pets';
 import Button from '../components/ui/Button';
 import Linkify from '../components/Linkify';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
@@ -62,14 +62,14 @@ export default function ParkDetailPage() {
   });
 
   const { data: myDogs = [] } = useQuery({
-    queryKey: ['my-dogs'],
-    queryFn: getMyDogs,
+    queryKey: ['my-pets'],
+    queryFn: getMyPets,
   });
 
   const [showCheckinPicker, setShowCheckinPicker] = useState(false);
 
   const checkinMutation = useMutation({
-    mutationFn: (dogId: string) => checkinPark(id!, dogId),
+    mutationFn: (petId: string) => checkinPark(id!, petId),
     onSuccess: () => {
       toast.success('Checked in!');
       setShowCheckinPicker(false);
@@ -79,7 +79,7 @@ export default function ParkDetailPage() {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: (dogId: string) => checkoutPark(id!, dogId),
+    mutationFn: (petId: string) => checkoutPark(id!, petId),
     onSuccess: () => {
       toast.success('Checked out');
       queryClient.invalidateQueries({ queryKey: ['park-checkins', id] });
@@ -203,27 +203,27 @@ export default function ParkDetailPage() {
         </Button>
       </div>
 
-      {/* Dog picker for check-in */}
+      {/* Pet picker for check-in */}
       {showCheckinPicker && (
         <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Which dog is with you?</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Which pet is with you?</p>
           {myDogs.length === 0 ? (
             <p className="text-sm text-gray-400 dark:text-gray-500">
-              <Link to="/app/dogs/new" className="text-brand-500 hover:underline">Add a dog</Link> first
+              <Link to="/app/pets/new" className="text-brand-500 hover:underline">Add a pet</Link> first
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {myDogs.map((dog) => (
+              {myDogs.map((pet) => (
                 <button
-                  key={dog.id}
-                  onClick={() => checkinMutation.mutate(dog.id)}
+                  key={pet.id}
+                  onClick={() => checkinMutation.mutate(pet.id)}
                   disabled={checkinMutation.isPending}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full text-sm hover:border-brand-400 transition-colors"
                 >
-                  {dog.primary_photo_url && (
-                    <img src={dog.primary_photo_url} alt={dog.name} className="w-5 h-5 rounded-full object-cover" />
+                  {pet.primary_photo_url && (
+                    <img src={pet.primary_photo_url} alt={pet.name} className="w-5 h-5 rounded-full object-cover" />
                   )}
-                  {dog.name}
+                  {pet.name}
                 </button>
               ))}
             </div>
@@ -235,28 +235,28 @@ export default function ParkDetailPage() {
       {checkins.length > 0 && (
         <div className="mt-5">
           <h2 className="font-semibold mb-2 text-sm text-gray-700 dark:text-gray-300">
-            Dogs here now <span className="text-brand-500">({checkins.length})</span>
+            Pets here now <span className="text-brand-500">({checkins.length})</span>
           </h2>
           <div className="flex flex-wrap gap-2">
             {checkins.map((ci) => {
-              const isMyDog = myDogs.some((d) => d.id === ci.dog_id);
+              const isMyDog = myDogs.some((d) => d.id === ci.pet_id);
               return (
                 <div
                   key={ci.id}
                   className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl"
                 >
-                  {ci.dog_photo_url ? (
-                    <img src={ci.dog_photo_url} alt={ci.dog_name ?? 'Checked-in dog'} className="w-8 h-8 rounded-full object-cover" />
+                  {ci.pet_photo_url ? (
+                    <img src={ci.pet_photo_url} alt={ci.pet_name ?? 'Checked-in pet'} className="w-8 h-8 rounded-full object-cover" />
                   ) : (
-                    <Avatar name={ci.dog_name ?? '?'} size="md" />
+                    <Avatar name={ci.pet_name ?? '?'} size="md" />
                   )}
                   <div>
-                    <p className="text-sm font-medium leading-none">{ci.dog_name ?? 'Unknown'}</p>
-                    {ci.dog_breed && <p className="text-2xs text-gray-400 dark:text-gray-500">{ci.dog_breed}</p>}
+                    <p className="text-sm font-medium leading-none">{ci.pet_name ?? 'Unknown'}</p>
+                    {ci.pet_breed && <p className="text-2xs text-gray-400 dark:text-gray-500">{ci.pet_breed}</p>}
                   </div>
-                  {isMyDog && ci.dog_id && (
+                  {isMyDog && ci.pet_id && (
                     <button
-                      onClick={() => checkoutMutation.mutate(ci.dog_id!)}
+                      onClick={() => checkoutMutation.mutate(ci.pet_id!)}
                       className="ml-1 text-2xs text-gray-400 dark:text-gray-500 hover:text-danger-500 dark:hover:text-danger-400"
                       title="Check out"
                       aria-label="Check out of this park"
@@ -303,7 +303,7 @@ export default function ParkDetailPage() {
             <option value="packed">Packed</option>
           </select>
           <textarea
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30"
             rows={3}
             placeholder="Your review..."
             value={reviewBody}

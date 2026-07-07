@@ -15,7 +15,7 @@ vi.mock('react-hot-toast', () => ({
 function makeDog(id: string, overrides: Record<string, unknown> = {}) {
   return {
     id,
-    name: `Dog ${id}`,
+    name: `Pet ${id}`,
     mix_type: 'mystery_mutt',
     breeds: [],
     breed_display: 'Mystery mutt',
@@ -58,8 +58,8 @@ afterEach(() => {
 
 describe('SwipeDeck', () => {
   it('right-swipe casts a +1 vote and advances past the top card', async () => {
-    const dogs = [makeDog('d1'), makeDog('d2'), makeDog('d3')];
-    vi.spyOn(feedApi, 'getFeed').mockResolvedValue(dogs as never);
+    const pets = [makeDog('d1'), makeDog('d2'), makeDog('d3')];
+    vi.spyOn(feedApi, 'getFeed').mockResolvedValue(pets as never);
     const cast = vi.spyOn(votesApi, 'castVote').mockResolvedValue({} as never);
 
     renderDeck();
@@ -71,8 +71,8 @@ describe('SwipeDeck', () => {
   });
 
   it('left-swipe casts a -1 vote', async () => {
-    const dogs = [makeDog('d1'), makeDog('d2')];
-    vi.spyOn(feedApi, 'getFeed').mockResolvedValue(dogs as never);
+    const pets = [makeDog('d1'), makeDog('d2')];
+    vi.spyOn(feedApi, 'getFeed').mockResolvedValue(pets as never);
     const cast = vi.spyOn(votesApi, 'castVote').mockResolvedValue({} as never);
 
     renderDeck();
@@ -82,7 +82,7 @@ describe('SwipeDeck', () => {
     await waitFor(() => expect(cast).toHaveBeenCalledWith('d1', -1));
   });
 
-  it('renders the empty state when the feed has no dogs', async () => {
+  it('renders the empty state when the feed has no pets', async () => {
     vi.spyOn(feedApi, 'getFeed').mockResolvedValue([] as never);
 
     renderDeck();
@@ -93,8 +93,8 @@ describe('SwipeDeck', () => {
   });
 
   it('rolls back the index when the vote mutation rejects', async () => {
-    const dogs = [makeDog('d1'), makeDog('d2')];
-    vi.spyOn(feedApi, 'getFeed').mockResolvedValue(dogs as never);
+    const pets = [makeDog('d1'), makeDog('d2')];
+    vi.spyOn(feedApi, 'getFeed').mockResolvedValue(pets as never);
     vi.spyOn(votesApi, 'castVote').mockRejectedValue(new Error('500'));
 
     renderDeck();
@@ -131,7 +131,7 @@ describe('SwipeDeck', () => {
 
     // The refill returned a brand-new batch: the deck should show its first
     // card instead of the premature end state.
-    expect(await screen.findByText('Dog d4')).toBeInTheDocument();
+    expect(await screen.findByText('Pet d4')).toBeInTheDocument();
     expect(screen.queryByText(/rated everyone this week/i)).toBeNull();
   });
 });

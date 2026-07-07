@@ -8,20 +8,20 @@ async def _make_park_and_dog(
     client: AsyncClient, user_headers: dict, admin_headers: dict,
 ) -> tuple[str, str]:
     """Parks now require admin to create, so we accept both header sets:
-    create the park as admin, the dog as the regular user."""
+    create the park as admin, the pet as the regular user."""
     park = await client.post(
         "/api/v1/parks",
         json={"name": "Meetup Park", "lat": 37.77, "lng": -122.42},
         headers=admin_headers,
     )
     assert park.status_code == 201, park.text
-    dog = await client.post(
-        "/api/v1/dogs",
+    pet = await client.post(
+        "/api/v1/pets",
         json={"name": "Rex"},
         headers=user_headers,
     )
-    assert dog.status_code == 201
-    return park.json()["id"], dog.json()["id"]
+    assert pet.status_code == 201
+    return park.json()["id"], pet.json()["id"]
 
 
 def _future_iso(minutes: int = 60) -> str:
@@ -30,12 +30,12 @@ def _future_iso(minutes: int = 60) -> str:
 
 @pytest.mark.asyncio
 async def test_create_playdate(client: AsyncClient, auth_headers: dict, admin_headers: dict):
-    park_id, dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
+    park_id, pet_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     res = await client.post(
         "/api/v1/playdates",
         json={
             "park_id": park_id,
-            "host_dog_id": dog_id,
+            "host_pet_id": pet_id,
             "scheduled_for": _future_iso(60),
             "title": "Puppy social",
         },
@@ -46,17 +46,17 @@ async def test_create_playdate(client: AsyncClient, auth_headers: dict, admin_he
     assert body["title"] == "Puppy social"
     assert body["going_count"] == 1  # host auto-RSVPed
     assert len(body["rsvps"]) == 1
-    assert body["rsvps"][0]["dog_id"] == dog_id
+    assert body["rsvps"][0]["pet_id"] == pet_id
 
 
 @pytest.mark.asyncio
 async def test_playdate_past_date_rejected(client: AsyncClient, auth_headers: dict, admin_headers: dict):
-    park_id, dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
+    park_id, pet_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     res = await client.post(
         "/api/v1/playdates",
         json={
             "park_id": park_id,
-            "host_dog_id": dog_id,
+            "host_pet_id": pet_id,
             "scheduled_for": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
         },
         headers=auth_headers,
@@ -66,12 +66,12 @@ async def test_playdate_past_date_rejected(client: AsyncClient, auth_headers: di
 
 @pytest.mark.asyncio
 async def test_list_upcoming_by_park(client: AsyncClient, auth_headers: dict, admin_headers: dict):
-    park_id, dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
+    park_id, pet_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     await client.post(
         "/api/v1/playdates",
         json={
             "park_id": park_id,
-            "host_dog_id": dog_id,
+            "host_pet_id": pet_id,
             "scheduled_for": _future_iso(120),
         },
         headers=auth_headers,
@@ -87,27 +87,27 @@ async def test_list_upcoming_by_park(client: AsyncClient, auth_headers: dict, ad
 
 @pytest.mark.asyncio
 async def test_rsvp_flow(client: AsyncClient, auth_headers: dict, admin_headers: dict):
-    park_id, host_dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
+    park_id, host_pet_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     pd = await client.post(
         "/api/v1/playdates",
         json={
             "park_id": park_id,
-            "host_dog_id": host_dog_id,
+            "host_pet_id": host_pet_id,
             "scheduled_for": _future_iso(90),
         },
         headers=auth_headers,
     )
     playdate_id = pd.json()["id"]
 
-    # Admin user creates their own dog and RSVPs
+    # Admin user creates their own pet and RSVPs
     other_dog = await client.post(
-        "/api/v1/dogs", json={"name": "Buddy"}, headers=admin_headers
+        "/api/v1/pets", json={"name": "Buddy"}, headers=admin_headers
     )
-    other_dog_id = other_dog.json()["id"]
+    other_pet_id = other_dog.json()["id"]
 
     rsvp = await client.post(
         f"/api/v1/playdates/{playdate_id}/rsvp",
-        json={"dog_id": other_dog_id, "status": "going"},
+        json={"pet_id": other_pet_id, "status": "going"},
         headers=admin_headers,
     )
     assert rsvp.status_code == 201
@@ -121,7 +121,7 @@ async def test_rsvp_flow(client: AsyncClient, auth_headers: dict, admin_headers:
     # Change RSVP status (upsert)
     rsvp2 = await client.post(
         f"/api/v1/playdates/{playdate_id}/rsvp",
-        json={"dog_id": other_dog_id, "status": "maybe"},
+        json={"pet_id": other_pet_id, "status": "maybe"},
         headers=admin_headers,
     )
     assert rsvp2.status_code == 201
@@ -129,7 +129,7 @@ async def test_rsvp_flow(client: AsyncClient, auth_headers: dict, admin_headers:
 
     # Remove RSVP
     rm = await client.delete(
-        f"/api/v1/playdates/{playdate_id}/rsvp/{other_dog_id}",
+        f"/api/v1/playdates/{playdate_id}/rsvp/{other_pet_id}",
         headers=admin_headers,
     )
     assert rm.status_code == 200
@@ -139,12 +139,12 @@ async def test_rsvp_flow(client: AsyncClient, auth_headers: dict, admin_headers:
 async def test_cancel_playdate_host_only(
     client: AsyncClient, auth_headers: dict, admin_headers: dict
 ):
-    park_id, dog_id = await _make_park_and_dog(client, auth_headers, admin_headers)
+    park_id, pet_id = await _make_park_and_dog(client, auth_headers, admin_headers)
     pd = await client.post(
         "/api/v1/playdates",
         json={
             "park_id": park_id,
-            "host_dog_id": dog_id,
+            "host_pet_id": pet_id,
             "scheduled_for": _future_iso(60),
         },
         headers=auth_headers,

@@ -11,11 +11,11 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKey
 TRANSFER_STATUSES = ("pending", "accepted", "declined", "cancelled", "expired")
 
 
-class DogTransfer(Base, UUIDPrimaryKey, TimestampMixin):
-    __tablename__ = "dog_transfers"
+class PetTransfer(Base, UUIDPrimaryKey, TimestampMixin):
+    __tablename__ = "pet_transfers"
 
-    dog_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dogs.id", ondelete="CASCADE"), nullable=False, index=True,
+    pet_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True,
     )
     from_user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False,
@@ -28,6 +28,6 @@ class DogTransfer(Base, UUIDPrimaryKey, TimestampMixin):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    dog = relationship("Dog")
+    pet = relationship("Pet")
     from_user = relationship("User", foreign_keys=[from_user_id])
     to_user = relationship("User", foreign_keys=[to_user_id])

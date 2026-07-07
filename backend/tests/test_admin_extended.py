@@ -34,7 +34,7 @@ async def test_get_user_detail(client: AsyncClient, admin_headers: dict, auth_he
     res = await client.get(f"/api/v1/admin/users/{user_id}", headers=admin_headers)
     assert res.status_code == 200
     assert res.json()["id"] == user_id
-    assert "dog_count" in res.json()
+    assert "pet_count" in res.json()
     assert "strike_count" in res.json()
 
 
@@ -43,7 +43,7 @@ async def test_faq_crud(client: AsyncClient, admin_headers: dict):
     # Create
     res = await client.post("/api/v1/admin/faq", json={
         "question": "How do I upload a photo?",
-        "answer": "Go to your dog's profile and tap the upload area.",
+        "answer": "Go to your pet's profile and tap the upload area.",
         "category": "getting_started",
     }, headers=admin_headers)
     assert res.status_code == 201

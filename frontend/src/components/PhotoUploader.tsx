@@ -4,16 +4,16 @@ import PhotoEditor from './photoEditor';
 import toast from 'react-hot-toast';
 
 interface PhotoUploaderProps {
-  /** Upload-mode: POST each cropped photo to /dogs/:dogId/photos. */
-  dogId?: string;
+  /** Upload-mode: POST each cropped photo to /pets/:petId/photos. */
+  petId?: string;
   onUploaded?: () => void;
   /** Queue-mode: hand the cropped blob to the parent (no server call).
-   * Used on the "add a dog" page where the dog doesn't exist yet. */
+   * Used on the "add a pet" page where the pet doesn't exist yet. */
   onSelect?: (blob: Blob) => void;
   compact?: boolean;
 }
 
-export default function PhotoUploader({ dogId, onUploaded, onSelect, compact }: PhotoUploaderProps) {
+export default function PhotoUploader({ petId, onUploaded, onSelect, compact }: PhotoUploaderProps) {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -44,17 +44,17 @@ export default function PhotoUploader({ dogId, onUploaded, onSelect, compact }: 
     setCropSrc(null);
 
     if (isQueueMode) {
-      // Parent will hold onto the blob until the dog exists; we just hand it over.
+      // Parent will hold onto the blob until the pet exists; we just hand it over.
       onSelect!(blob);
       return;
     }
 
-    if (!dogId) return;
+    if (!petId) return;
     setUploading(true);
     setProgress(0);
     try {
       const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-      await uploadPhoto(dogId, file, setProgress);
+      await uploadPhoto(petId, file, setProgress);
       toast.success('Photo uploaded!');
       onUploaded?.();
     } catch {
@@ -106,10 +106,10 @@ export default function PhotoUploader({ dogId, onUploaded, onSelect, compact }: 
     <div
       className={`rounded-xl cursor-pointer transition-all ${
         dragOver
-          ? 'border-2 border-brand-500 bg-brand-50'
+          ? 'border-2 border-brand-500 bg-brand-50 dark:bg-brand-500/10'
           : compact
-          ? 'border border-dashed border-gray-300 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50'
-          : 'border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50'
+          ? 'border border-dashed border-gray-300 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10'
+          : 'border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10'
       } ${compact ? 'p-3' : 'p-5'}`}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}

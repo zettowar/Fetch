@@ -28,7 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import async_session
-from app.models import Dog, User
+from app.models import Pet, User
 from app.models.breed import Breed
 from app.models.photo import Photo
 from app.security import hash_password
@@ -193,7 +193,7 @@ def make_dog(
     rng: random.Random,
     breeds_pool: list[Breed],
     used_names: set[str],
-) -> tuple[Dog, list[Breed], str | None]:
+) -> tuple[Pet, list[Breed], str | None]:
     types, weights = zip(*MIX_TYPE_WEIGHTS)
     mix_type = rng.choices(types, weights=weights, k=1)[0]
     if mix_type == "purebred":
@@ -220,7 +220,7 @@ def make_dog(
     if rng.random() < 0.25:
         tag_id = f"FETCH-{rng.randint(1000, 9999)}-{name.upper()[:4]}"
 
-    dog = Dog(
+    dog = Pet(
         id=uuid.uuid4(),
         owner_id=owner.id,
         name=name,
@@ -281,7 +281,7 @@ async def build_dog_photos(
     client: httpx.AsyncClient,
     sem: asyncio.Semaphore,
     storage_dir: Path,
-    dog: Dog,
+    dog: Pet,
     breed_path: str | None,
     photo_count: int,
 ) -> list[Photo]:
@@ -310,7 +310,7 @@ async def build_dog_photos(
         photos.append(
             Photo(
                 id=uuid.uuid4(),
-                dog_id=dog.id,
+                pet_id=dog.id,
                 storage_key=key,
                 width=w,
                 height=h,
@@ -325,8 +325,8 @@ async def build_dog_photos(
 async def reset_fake_data(session: AsyncSession, storage_dir: Path) -> None:
     keys = await session.execute(
         select(Photo.storage_key)
-        .join(Dog, Dog.id == Photo.dog_id)
-        .join(User, User.id == Dog.owner_id)
+        .join(Pet, Pet.id == Photo.pet_id)
+        .join(User, User.id == Pet.owner_id)
         .where(User.email.like(f"{EMAIL_PREFIX}%"))
     )
     storage_keys = [row[0] for row in keys.all()]
@@ -389,14 +389,14 @@ async def main() -> None:
         sem = asyncio.Semaphore(HTTP_CONCURRENCY)
 
         async with httpx.AsyncClient(timeout=timeout, limits=limits, follow_redirects=True) as client:
-            pending_dogs: list[tuple[Dog, str | None, int]] = []
+            pending_dogs: list[tuple[Pet, str | None, int]] = []
             owners_buffered = 0
 
             async def flush_pending() -> None:
                 if not pending_dogs:
                     return
                 # Process this batch of dogs in parallel
-                async def handle(dog: Dog, breed_path: str | None, count: int) -> None:
+                async def handle(dog: Pet, breed_path: str | None, count: int) -> None:
                     photos = await build_dog_photos(client, sem, storage_dir, dog, breed_path, count)
                     if photos:
                         session.add_all(photos)

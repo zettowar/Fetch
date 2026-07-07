@@ -17,6 +17,7 @@ import BoneProgress from './flair/BoneProgress';
 import DogIllustration from './flair/DogIllustration';
 import { usePawBurst } from './flair/PawBurst';
 import { useAuth } from '../store/AuthContext';
+import { useSpeciesFilter, filterToSpecies } from '../hooks/useSpeciesFilter';
 import { useSubscription } from '../utils/useSubscription';
 import { swipeQuota } from '../utils/swipeQuota';
 import { onboarding } from '../utils/onboarding';
@@ -32,10 +33,10 @@ function loadSeenPrompts(): Set<string> {
   }
 }
 
-function markPromptSeen(dogId: string) {
+function markPromptSeen(petId: string) {
   try {
     const seen = loadSeenPrompts();
-    seen.add(dogId);
+    seen.add(petId);
     localStorage.setItem(SEEN_PROMPTS_KEY, JSON.stringify([...seen]));
   } catch {
     // localStorage unavailable — fail silent, prompt will just reappear.
@@ -43,7 +44,7 @@ function markPromptSeen(dogId: string) {
 }
 
 interface PromptState {
-  dogId: string;
+  petId: string;
   dogName: string;
   rescueName: string | null;
 }
@@ -52,7 +53,7 @@ export default function SwipeDeck() {
   const { user } = useAuth();
   const { isSubscriber } = useSubscription();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [lastVote, setLastVote] = useState<{ dogId: string; index: number } | null>(null);
+  const [lastVote, setLastVote] = useState<{ petId: string; index: number } | null>(null);
   const [prompt, setPrompt] = useState<PromptState | null>(null);
   const [quota, setQuota] = useState(() =>
     user ? swipeQuota.get(user.id) : { used: 0, cap: swipeQuota.FREE_DAILY },
@@ -70,22 +71,23 @@ export default function SwipeDeck() {
   const quotaBlocked = !isSubscriber && quota.used >= quota.cap;
   const remaining = Math.max(0, quota.cap - quota.used);
 
-  const { data: dogs = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['feed'],
-    queryFn: () => getFeed(30),
+  const [speciesFilter] = useSpeciesFilter();
+  const { data: pets = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['feed', speciesFilter],
+    queryFn: () => getFeed(30, filterToSpecies(speciesFilter)),
   });
 
-  // A feed refetch returns a fresh re-shuffled batch that excludes dogs the
+  // A feed refetch returns a fresh re-shuffled batch that excludes pets the
   // user already voted on — it replaces the deck wholesale, so any index into
   // the old deck is meaningless. When the data's identity changes, restart
   // from the top of the new batch and drop state tied to the old one. An
   // empty refill keeps the current index so the end state can report the
   // session count (and any adoption prompt) from the deck just finished.
-  const feedIdentity = `${dogs[0]?.id ?? 'none'}:${dogs.length}`;
+  const feedIdentity = `${pets[0]?.id ?? 'none'}:${pets.length}`;
   const [deckIdentity, setDeckIdentity] = useState(feedIdentity);
   if (feedIdentity !== deckIdentity) {
     setDeckIdentity(feedIdentity);
-    if (dogs.length > 0) {
+    if (pets.length > 0) {
       setCurrentIndex(0);
       setLastVote(null);
       setPrompt(null);
@@ -93,8 +95,8 @@ export default function SwipeDeck() {
   }
 
   const voteMutation = useMutation({
-    mutationFn: ({ dogId, value }: { dogId: string; value: 1 | -1; index: number }) =>
-      castVote(dogId, value),
+    mutationFn: ({ petId, value }: { petId: string; value: 1 | -1; index: number }) =>
+      castVote(petId, value),
     onError: (_err, vars) => {
       toast.error('Vote failed');
       // Only rewind when the failed vote is the one the deck just advanced
@@ -102,7 +104,7 @@ export default function SwipeDeck() {
       // user off the card they're currently on.
       setCurrentIndex((i) => (i === vars.index + 1 ? vars.index : i));
       // Undo would re-rewind and re-refund the same failed vote; drop it.
-      setLastVote((lv) => (lv?.dogId === vars.dogId ? null : lv));
+      setLastVote((lv) => (lv?.petId === vars.petId ? null : lv));
       // The vote didn't land server-side — give the swipe back so the user
       // isn't punished for our flaky network.
       if (!isSubscriber && user) {
@@ -112,14 +114,14 @@ export default function SwipeDeck() {
   });
 
   const dismissPrompt = useCallback(() => {
-    if (prompt) markPromptSeen(prompt.dogId);
+    if (prompt) markPromptSeen(prompt.petId);
     setPrompt(null);
   }, [prompt]);
 
   const handleSwipe = useCallback(
     (direction: 'left' | 'right') => {
-      const dog = dogs[currentIndex];
-      if (!dog) return;
+      const pet = pets[currentIndex];
+      if (!pet) return;
       if (!isSubscriber && user && quota.used >= quota.cap) {
         // Quota exhausted — block the swipe; the overlay handles unlock paths.
         return;
@@ -128,9 +130,9 @@ export default function SwipeDeck() {
       const value: 1 | -1 = direction === 'right' ? 1 : -1;
       navigator.vibrate?.(direction === 'right' ? 20 : 10);
       if (direction === 'right') fireLikeBurst();
-      setLastVote({ dogId: dog.id, index: currentIndex });
+      setLastVote({ petId: pet.id, index: currentIndex });
       setCurrentIndex((i) => i + 1);
-      voteMutation.mutate({ dogId: dog.id, value, index: currentIndex });
+      voteMutation.mutate({ petId: pet.id, value, index: currentIndex });
       if (user) onboarding.markSwiped(user.id);
 
       if (!isSubscriber && user) {
@@ -144,30 +146,30 @@ export default function SwipeDeck() {
 
       // Surface an adoption prompt AFTER the vote if:
       //   - user hasn't disabled the prompt globally
-      //   - dog is adoptable
-      //   - user hasn't already seen a prompt for this dog
+      //   - pet is adoptable
+      //   - user hasn't already seen a prompt for this pet
       //   - the swipe was a right-swipe (a thumbs-up). Left-swipes don't prompt.
       if (
         direction === 'right' &&
-        dog.adoptable &&
+        pet.adoptable &&
         user?.show_adoption_prompt !== false &&
-        !loadSeenPrompts().has(dog.id)
+        !loadSeenPrompts().has(pet.id)
       ) {
         setPrompt({
-          dogId: dog.id,
-          dogName: dog.name,
-          rescueName: dog.rescue_name,
+          petId: pet.id,
+          dogName: pet.name,
+          rescueName: pet.rescue_name,
         });
-      } else if (prompt && prompt.dogId !== dog.id) {
+      } else if (prompt && prompt.petId !== pet.id) {
         // Any other swipe dismisses a stale prompt.
         setPrompt(null);
       }
 
-      if (currentIndex >= dogs.length - 3) {
+      if (currentIndex >= pets.length - 3) {
         refetch();
       }
     },
-    [dogs, currentIndex, voteMutation, refetch, user, prompt, isSubscriber, quota.used, quota.cap, fireLikeBurst],
+    [pets, currentIndex, voteMutation, refetch, user, prompt, isSubscriber, quota.used, quota.cap, fireLikeBurst],
   );
 
   const handleUndo = () => {
@@ -212,7 +214,7 @@ export default function SwipeDeck() {
     );
   }
 
-  const remainingDogs = dogs.slice(currentIndex);
+  const remainingDogs = pets.slice(currentIndex);
   const ratedCount = currentIndex;
 
   if (remainingDogs.length === 0) {
@@ -245,13 +247,13 @@ export default function SwipeDeck() {
           className="text-gray-500 dark:text-gray-400 mb-1"
           variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
         >
-          {ratedCount > 0 ? `You rated ${ratedCount} dog${ratedCount > 1 ? 's' : ''} this session.` : ''}
+          {ratedCount > 0 ? `You rated ${ratedCount} pet${ratedCount > 1 ? 's' : ''} this session.` : ''}
         </motion.p>
         <motion.p
           className="text-gray-400 dark:text-gray-500 text-sm mb-6"
           variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
         >
-          Come back Monday for a fresh batch of pups.
+          Come back Monday for a fresh batch of pets.
         </motion.p>
         <motion.div variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}>
           <Link to="/app/home">
@@ -261,7 +263,7 @@ export default function SwipeDeck() {
         {prompt && (
           <div className="w-full max-w-sm mt-4">
             <AdoptionPrompt
-              dogId={prompt.dogId}
+              petId={prompt.petId}
               dogName={prompt.dogName}
               rescueName={prompt.rescueName}
               onDismiss={dismissPrompt}
@@ -305,10 +307,10 @@ export default function SwipeDeck() {
       </div>
 
       <div className="relative w-full h-[480px]">
-        {visibleDogs.map((dog, i) => (
+        {visibleDogs.map((pet, i) => (
           <SwipeCard
-            key={dog.id}
-            dog={dog}
+            key={pet.id}
+            pet={pet}
             isTop={i === 0}
             onSwipe={handleSwipe}
           />
@@ -333,7 +335,7 @@ export default function SwipeDeck() {
                     Watch ad · +{swipeQuota.REWARD_INCREMENT} swipes
                   </Button>
                 ) : (
-                  <p className="text-xs text-gray-500">Daily cap reached. Come back tomorrow.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Daily cap reached. Come back tomorrow.</p>
                 )}
                 <Link to="/app/billing" className="text-sm text-brand-500 hover:underline">
                   Subscribe to Pack+ →
@@ -394,11 +396,11 @@ export default function SwipeDeck() {
         </motion.button>
       </div>
 
-      {/* Adoption prompt (after right-swipe on a rescue dog) */}
+      {/* Adoption prompt (after right-swipe on a rescue pet) */}
       {prompt && (
         <div className="w-full max-w-sm mt-3 px-4">
           <AdoptionPrompt
-            dogId={prompt.dogId}
+            petId={prompt.petId}
             dogName={prompt.dogName}
             rescueName={prompt.rescueName}
             onDismiss={dismissPrompt}

@@ -1,6 +1,6 @@
-"""Import dog parks from OpenStreetMap via the Overpass API.
+"""Import pet parks from OpenStreetMap via the Overpass API.
 
-OSM tag `leisure=dog_park` marks fenced/official dog parks. All the fetching
+OSM tag `leisure=dog_park` marks fenced/official pet parks. All the fetching
 and upsert machinery lives in osm_import.py; this module only supplies the
 park-specific tag mapping.
 """
@@ -27,9 +27,9 @@ def _extract_attributes(tags: dict[str, Any]) -> dict[str, Any]:
     attrs: dict[str, Any] = {}
     if "barrier" in tags or tags.get("fence") == "yes":
         attrs["fenced"] = True
-    if tags.get("dog") == "leashed":
+    if tags.get("pet") == "leashed":
         attrs["off_leash_legal"] = False
-    elif tags.get("dog") == "yes" or tags.get("dog_park") == "yes":
+    elif tags.get("pet") == "yes" or tags.get("dog_park") == "yes":
         attrs["off_leash_legal"] = True
     if tags.get("drinking_water") == "yes" or tags.get("amenity") == "drinking_water":
         attrs["water"] = True

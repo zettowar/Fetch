@@ -10,8 +10,8 @@ from app.db import get_db
 from app.deps import require_admin
 from app.models.audit_log import AuditLog
 from app.models.beta import Feedback, InviteCode
-from app.models.breed import Breed, dog_breeds
-from app.models.dog import Dog
+from app.models.breed import Breed, pet_breeds
+from app.models.pet import Pet
 from app.models.donation import Donation
 from app.models.entitlement import Entitlement
 from app.models.lost_report import LostReport
@@ -22,7 +22,7 @@ from app.models.rescue import RescueProfile
 from app.models.support import FAQEntry, SupportTicket
 from app.models.user import User
 from app.schemas.admin import (
-    AdminDogOut,
+    AdminPetOut,
     AdminLostReportOut,
     AdminUserOut,
     AuditLogOut,
@@ -94,7 +94,7 @@ async def dashboard_stats(
     active_users = (await db.execute(select(func.count()).where(User.is_active == True))).scalar() or 0
     suspended_users = (await db.execute(select(func.count()).where(User.is_active == False))).scalar() or 0
     users_7d = (await db.execute(select(func.count()).where(User.created_at >= week_ago))).scalar() or 0
-    total_dogs = (await db.execute(select(func.count()).select_from(Dog))).scalar() or 0
+    total_pets = (await db.execute(select(func.count()).select_from(Pet))).scalar() or 0
     pending_reports = (await db.execute(select(func.count()).where(Report.status == "pending"))).scalar() or 0
     open_tickets = (await db.execute(select(func.count()).where(SupportTicket.status == "open"))).scalar() or 0
     unverified_rescues = (await db.execute(
@@ -127,7 +127,7 @@ async def dashboard_stats(
         active_users=active_users,
         suspended_users=suspended_users,
         users_last_7d=users_7d,
-        total_dogs=total_dogs,
+        total_pets=total_pets,
         pending_reports=pending_reports,
         open_tickets=open_tickets,
         unverified_rescues=unverified_rescues,
@@ -145,7 +145,7 @@ async def dashboard_timeseries(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Daily counts of new users, reports, and dogs over the last `days` days."""
+    """Daily counts of new users, reports, and pets over the last `days` days."""
     now = datetime.now(timezone.utc)
     today = now.date()
     start = today - timedelta(days=days - 1)
@@ -161,7 +161,7 @@ async def dashboard_timeseries(
 
     users_map = await daily_counts(User.created_at)
     reports_map = await daily_counts(Report.created_at)
-    dogs_map = await daily_counts(Dog.created_at)
+    dogs_map = await daily_counts(Pet.created_at)
 
     dates: list[str] = []
     new_users: list[int] = []
@@ -252,9 +252,9 @@ async def search_users(
     db: AsyncSession = Depends(get_db),
 ):
     # Correlated subqueries avoid the N+1 per-user count lookups.
-    dog_count_sq = (
+    pet_count_sq = (
         select(func.count())
-        .where(Dog.owner_id == User.id)
+        .where(Pet.owner_id == User.id)
         .correlate(User)
         .scalar_subquery()
     )
@@ -280,7 +280,7 @@ async def search_users(
     response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
 
     stmt = (
-        select(User, dog_count_sq.label("dog_count"), strike_count_sq.label("strike_count"))
+        select(User, pet_count_sq.label("pet_count"), strike_count_sq.label("strike_count"))
         .order_by(User.created_at.desc())
         .offset(offset)
         .limit(limit)
@@ -294,9 +294,9 @@ async def search_users(
             id=u.id, email=u.email, display_name=u.display_name,
             location_rough=u.location_rough, is_active=u.is_active,
             is_verified=u.is_verified, role=u.role, created_at=u.created_at,
-            dog_count=dog_count, strike_count=strike_count,
+            pet_count=pet_count, strike_count=strike_count,
         )
-        for u, dog_count, strike_count in result.all()
+        for u, pet_count, strike_count in result.all()
     ]
 
 
@@ -311,32 +311,32 @@ async def get_user_detail(
     if not u:
         raise HTTPException(status_code=404, detail="User not found")
 
-    dog_count = (await db.execute(select(func.count()).where(Dog.owner_id == u.id))).scalar() or 0
+    pet_count = (await db.execute(select(func.count()).where(Pet.owner_id == u.id))).scalar() or 0
     strike_count = (await db.execute(select(func.count()).where(Strike.user_id == u.id))).scalar() or 0
 
     return AdminUserOut(
         id=u.id, email=u.email, display_name=u.display_name,
         location_rough=u.location_rough, is_active=u.is_active,
         is_verified=u.is_verified, role=u.role, created_at=u.created_at,
-        dog_count=dog_count, strike_count=strike_count,
+        pet_count=pet_count, strike_count=strike_count,
     )
 
 
 async def _suspend_with_dogs(user: User, db: AsyncSession) -> list[str]:
-    """Suspend a user and hide their dogs from feed/explore/rankings.
+    """Suspend a user and hide their pets from feed/explore/rankings.
 
-    Returns the ids of dogs this suspension deactivated (as strings, for the
-    audit-log metadata) so reinstatement can revive exactly those — dogs that
+    Returns the ids of pets this suspension deactivated (as strings, for the
+    audit-log metadata) so reinstatement can revive exactly those — pets that
     were already inactive for other reasons stay that way.
     """
     user.is_active = False
     result = await db.execute(
-        update(Dog)
-        .where(Dog.owner_id == user.id, Dog.is_active == True)  # noqa: E712
+        update(Pet)
+        .where(Pet.owner_id == user.id, Pet.is_active == True)  # noqa: E712
         .values(is_active=False)
-        .returning(Dog.id)
+        .returning(Pet.id)
     )
-    return [str(dog_id) for dog_id in result.scalars().all()]
+    return [str(pet_id) for pet_id in result.scalars().all()]
 
 
 @router.post("/users/{user_id}/suspend")
@@ -368,7 +368,7 @@ async def reinstate_user(
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = True
 
-    # Revive only the dogs the suspension itself deactivated.
+    # Revive only the pets the suspension itself deactivated.
     last_suspend = await db.execute(
         select(AuditLog)
         .where(AuditLog.action == "user.suspend", AuditLog.target_id == user_id)
@@ -376,16 +376,16 @@ async def reinstate_user(
         .limit(1)
     )
     entry = last_suspend.scalar_one_or_none()
-    dog_ids = (entry.metadata_ or {}).get("deactivated_dogs", []) if entry else []
-    if dog_ids:
+    pet_ids = (entry.metadata_ or {}).get("deactivated_dogs", []) if entry else []
+    if pet_ids:
         await db.execute(
-            update(Dog)
-            .where(Dog.id.in_([UUID(d) for d in dog_ids]))
+            update(Pet)
+            .where(Pet.id.in_([UUID(d) for d in pet_ids]))
             .values(is_active=True)
         )
 
     await _log(db, actor_id=admin.id, action="user.reinstate", target_type="user", target_id=user_id,
-               metadata={"email": user.email, "reactivated_dogs": dog_ids})
+               metadata={"email": user.email, "reactivated_dogs": pet_ids})
     await db.commit()
     return {"detail": "User reinstated"}
 
@@ -495,7 +495,7 @@ async def review_report(
                 if target_user:
                     deactivated = await _suspend_with_dogs(target_user, db)
                     # Logged as user.suspend so reinstatement can find the
-                    # dog list, same as a manual suspension.
+                    # pet list, same as a manual suspension.
                     await _log(db, actor_id=admin.id, action="user.suspend",
                                target_type="user", target_id=target_user.id,
                                metadata={"email": target_user.email,
@@ -571,18 +571,18 @@ async def get_user_reports_against(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Reports that ultimately target this user (direct, via dog ownership, or via photo->dog->owner)."""
+    """Reports that ultimately target this user (direct, via pet ownership, or via photo->pet->owner)."""
     # Direct reports against the user.
     direct = select(Report).where(
         Report.target_type == "user", Report.target_id == user_id
     )
-    # Reports against any dog owned by this user.
-    owned_dog_ids = select(Dog.id).where(Dog.owner_id == user_id)
+    # Reports against any pet owned by this user.
+    owned_pet_ids = select(Pet.id).where(Pet.owner_id == user_id)
     via_dog = select(Report).where(
-        Report.target_type == "dog", Report.target_id.in_(owned_dog_ids)
+        Report.target_type == "pet", Report.target_id.in_(owned_pet_ids)
     )
-    # Reports against any photo belonging to any dog owned by this user.
-    owned_photo_ids = select(Photo.id).where(Photo.dog_id.in_(owned_dog_ids))
+    # Reports against any photo belonging to any pet owned by this user.
+    owned_photo_ids = select(Photo.id).where(Photo.pet_id.in_(owned_pet_ids))
     via_photo = select(Report).where(
         Report.target_type == "photo", Report.target_id.in_(owned_photo_ids)
     )
@@ -757,9 +757,9 @@ async def review_rescue_profile(
     return profile
 
 
-# --- Content moderation: dogs ---
+# --- Content moderation: pets ---
 
-@router.get("/dogs", response_model=list[AdminDogOut])
+@router.get("/pets", response_model=list[AdminPetOut])
 async def list_dogs_admin(
     response: Response,
     q: str = Query(default=""),
@@ -771,25 +771,25 @@ async def list_dogs_admin(
 ):
     photo_count_sq = (
         select(func.count())
-        .where(Photo.dog_id == Dog.id)
-        .correlate(Dog)
+        .where(Photo.pet_id == Pet.id)
+        .correlate(Pet)
         .scalar_subquery()
     )
 
-    # Search matches dog name OR any joined breed name
+    # Search matches pet name OR any joined breed name
     breed_match_sq = (
-        select(dog_breeds.c.dog_id)
-        .join(Breed, Breed.id == dog_breeds.c.breed_id)
+        select(pet_breeds.c.pet_id)
+        .join(Breed, Breed.id == pet_breeds.c.breed_id)
         .where(Breed.name.ilike(f"%{q}%"))
     ) if q else None
 
-    filter_base = select(Dog.id)
+    filter_base = select(Pet.id)
     if q:
         filter_base = filter_base.where(
-            or_(Dog.name.ilike(f"%{q}%"), Dog.id.in_(breed_match_sq))
+            or_(Pet.name.ilike(f"%{q}%"), Pet.id.in_(breed_match_sq))
         )
     if active_only:
-        filter_base = filter_base.where(Dog.is_active == True)  # noqa: E712
+        filter_base = filter_base.where(Pet.is_active == True)  # noqa: E712
 
     count_result = await db.execute(select(func.count()).select_from(filter_base.subquery()))
     total = count_result.scalar() or 0
@@ -797,25 +797,25 @@ async def list_dogs_admin(
     response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
 
     query = (
-        select(Dog, photo_count_sq.label("photo_count"))
-        .options(selectinload(Dog.owner), selectinload(Dog.breeds))
-        .order_by(Dog.created_at.desc())
+        select(Pet, photo_count_sq.label("photo_count"))
+        .options(selectinload(Pet.owner), selectinload(Pet.breeds))
+        .order_by(Pet.created_at.desc())
         .offset(offset)
         .limit(limit)
     )
     if q:
         query = query.where(
-            or_(Dog.name.ilike(f"%{q}%"), Dog.id.in_(breed_match_sq))
+            or_(Pet.name.ilike(f"%{q}%"), Pet.id.in_(breed_match_sq))
         )
     if active_only:
-        query = query.where(Dog.is_active == True)  # noqa: E712
+        query = query.where(Pet.is_active == True)  # noqa: E712
 
     result = await db.execute(query)
     return [
-        AdminDogOut(
+        AdminPetOut(
             id=d.id,
             name=d.name,
-            breed=breed_display(d.mix_type, d.breeds),
+            breed=breed_display(d.mix_type, d.breeds, d.species),
             is_active=d.is_active,
             owner_id=d.owner_id,
             owner_name=d.owner.display_name if d.owner else None,
@@ -827,38 +827,38 @@ async def list_dogs_admin(
     ]
 
 
-@router.post("/dogs/{dog_id}/deactivate")
+@router.post("/pets/{pet_id}/deactivate")
 async def deactivate_dog(
-    dog_id: UUID,
+    pet_id: UUID,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Dog).where(Dog.id == dog_id))
-    dog = result.scalar_one_or_none()
-    if not dog:
-        raise HTTPException(status_code=404, detail="Dog not found")
-    dog.is_active = False
-    await _log(db, actor_id=admin.id, action="dog.deactivate", target_type="dog", target_id=dog_id,
-               metadata={"name": dog.name, "owner_id": str(dog.owner_id)})
+    result = await db.execute(select(Pet).where(Pet.id == pet_id))
+    pet = result.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet not found")
+    pet.is_active = False
+    await _log(db, actor_id=admin.id, action="pet.deactivate", target_type="pet", target_id=pet_id,
+               metadata={"name": pet.name, "owner_id": str(pet.owner_id)})
     await db.commit()
-    return {"detail": "Dog deactivated"}
+    return {"detail": "Pet deactivated"}
 
 
-@router.post("/dogs/{dog_id}/reactivate")
+@router.post("/pets/{pet_id}/reactivate")
 async def reactivate_dog(
-    dog_id: UUID,
+    pet_id: UUID,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Dog).where(Dog.id == dog_id))
-    dog = result.scalar_one_or_none()
-    if not dog:
-        raise HTTPException(status_code=404, detail="Dog not found")
-    dog.is_active = True
-    await _log(db, actor_id=admin.id, action="dog.reactivate", target_type="dog", target_id=dog_id,
-               metadata={"name": dog.name, "owner_id": str(dog.owner_id)})
+    result = await db.execute(select(Pet).where(Pet.id == pet_id))
+    pet = result.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet not found")
+    pet.is_active = True
+    await _log(db, actor_id=admin.id, action="pet.reactivate", target_type="pet", target_id=pet_id,
+               metadata={"name": pet.name, "owner_id": str(pet.owner_id)})
     await db.commit()
-    return {"detail": "Dog reactivated"}
+    return {"detail": "Pet reactivated"}
 
 
 # --- Flagged photo review queue ---
@@ -889,29 +889,29 @@ async def list_flagged_photos(
     )
     photos = list(result.scalars().all())
 
-    dogs: dict[UUID, Dog] = {}
+    pets: dict[UUID, Pet] = {}
     owners: dict[UUID, User] = {}
     if photos:
-        dog_result = await db.execute(
-            select(Dog).where(Dog.id.in_({p.dog_id for p in photos}))
+        pet_result = await db.execute(
+            select(Pet).where(Pet.id.in_({p.pet_id for p in photos}))
         )
-        dogs = {d.id: d for d in dog_result.scalars().all()}
-    if dogs:
+        pets = {d.id: d for d in pet_result.scalars().all()}
+    if pets:
         owner_result = await db.execute(
-            select(User).where(User.id.in_({d.owner_id for d in dogs.values()}))
+            select(User).where(User.id.in_({d.owner_id for d in pets.values()}))
         )
         owners = {u.id: u for u in owner_result.scalars().all()}
 
     response.headers["X-Total-Count"] = str(total)
     out = []
     for p in photos:
-        dog = dogs.get(p.dog_id)
-        owner = owners.get(dog.owner_id) if dog else None
+        pet = pets.get(p.pet_id)
+        owner = owners.get(pet.owner_id) if pet else None
         out.append(FlaggedPhotoOut(
             id=p.id,
-            dog_id=p.dog_id,
-            dog_name=dog.name if dog else None,
-            owner_id=dog.owner_id if dog else None,
+            pet_id=p.pet_id,
+            pet_name=pet.name if pet else None,
+            owner_id=pet.owner_id if pet else None,
             owner_email=owner.email if owner else None,
             content_type=p.content_type,
             moderation_status=p.moderation_status,
@@ -951,18 +951,18 @@ async def approve_photo(
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
     photo.moderation_status = "approved"
-    dog_result = await db.execute(select(Dog).where(Dog.id == photo.dog_id))
-    dog = dog_result.scalar_one_or_none()
-    if dog:
+    pet_result = await db.execute(select(Pet).where(Pet.id == photo.pet_id))
+    pet = pet_result.scalar_one_or_none()
+    if pet:
         await notify(
-            db, dog.owner_id,
+            db, pet.owner_id,
             type="photo_moderated",
-            title=f"A photo of {dog.name} was approved",
+            title=f"A photo of {pet.name} was approved",
             body="It's now visible across Fetch.",
-            link=f"/app/dogs/{dog.id}",
+            link=f"/app/pets/{pet.id}",
         )
     await _log(db, actor_id=admin.id, action="photo.approve", target_type="photo",
-               target_id=photo_id, metadata={"dog_id": str(photo.dog_id)})
+               target_id=photo_id, metadata={"pet_id": str(photo.pet_id)})
     await db.commit()
     return {"detail": "Photo approved"}
 
@@ -978,23 +978,23 @@ async def reject_photo(
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
 
-    dog_result = await db.execute(select(Dog).where(Dog.id == photo.dog_id))
-    dog = dog_result.scalar_one_or_none()
-    if dog and dog.primary_photo_id == photo.id:
-        dog.primary_photo_id = None
-    if dog:
+    pet_result = await db.execute(select(Pet).where(Pet.id == photo.pet_id))
+    pet = pet_result.scalar_one_or_none()
+    if pet and pet.primary_photo_id == photo.id:
+        pet.primary_photo_id = None
+    if pet:
         await notify(
-            db, dog.owner_id,
+            db, pet.owner_id,
             type="photo_moderated",
-            title=f"A photo of {dog.name} was removed",
+            title=f"A photo of {pet.name} was removed",
             body="It didn't pass review. You can upload a different one any time.",
-            link=f"/app/dogs/{dog.id}",
+            link=f"/app/pets/{pet.id}",
         )
 
     key = photo.storage_key
     await db.delete(photo)
     await _log(db, actor_id=admin.id, action="photo.reject", target_type="photo",
-               target_id=photo_id, metadata={"dog_id": str(photo.dog_id)})
+               target_id=photo_id, metadata={"pet_id": str(photo.pet_id)})
     await db.commit()
 
     storage = get_storage()
@@ -1026,7 +1026,7 @@ async def list_lost_reports_admin(
 
     query = (
         select(LostReport)
-        .options(selectinload(LostReport.reporter), selectinload(LostReport.dog))
+        .options(selectinload(LostReport.reporter), selectinload(LostReport.pet))
         .order_by(LostReport.created_at.desc())
         .offset(offset)
         .limit(limit)
@@ -1044,8 +1044,8 @@ async def list_lost_reports_admin(
             description=r.description,
             reporter_id=r.reporter_id,
             reporter_name=r.reporter.display_name if r.reporter else None,
-            dog_id=r.dog_id,
-            dog_name=r.dog.name if r.dog else None,
+            pet_id=r.pet_id,
+            pet_name=r.pet.name if r.pet else None,
             created_at=r.created_at,
         )
         for r in reports
@@ -1091,16 +1091,16 @@ async def list_breeds_admin(
     response.headers["X-Total-Count"] = str(total)
     response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
 
-    dog_count_sq = (
+    pet_count_sq = (
         select(func.count())
-        .select_from(dog_breeds)
-        .where(dog_breeds.c.breed_id == Breed.id)
+        .select_from(pet_breeds)
+        .where(pet_breeds.c.breed_id == Breed.id)
         .correlate(Breed)
         .scalar_subquery()
     )
 
     query = (
-        select(Breed, dog_count_sq.label("dog_count"))
+        select(Breed, pet_count_sq.label("pet_count"))
         .order_by(Breed.name.asc())
         .offset(offset)
         .limit(limit)
@@ -1118,7 +1118,7 @@ async def list_breeds_admin(
             slug=b.slug,
             group=b.group,
             is_active=b.is_active,
-            dog_count=count,
+            pet_count=count,
             created_at=b.created_at,
         )
         for b, count in result.all()
@@ -1137,7 +1137,7 @@ async def create_breed(
     )
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Breed already exists")
-    breed = Breed(name=body.name, slug=slug, group=body.group, is_active=body.is_active)
+    breed = Breed(name=body.name, slug=slug, group=body.group, species=body.species, is_active=body.is_active)
     db.add(breed)
     await db.flush()
     await _log(db, actor_id=admin.id, action="breed.create", target_type="breed",
@@ -1146,7 +1146,7 @@ async def create_breed(
     await db.refresh(breed)
     return BreedAdminOut(
         id=breed.id, name=breed.name, slug=breed.slug, group=breed.group,
-        is_active=breed.is_active, dog_count=0, created_at=breed.created_at,
+        is_active=breed.is_active, pet_count=0, created_at=breed.created_at,
     )
 
 
@@ -1182,12 +1182,12 @@ async def update_breed(
     await db.commit()
     await db.refresh(breed)
 
-    dog_count = (await db.execute(
-        select(func.count()).select_from(dog_breeds).where(dog_breeds.c.breed_id == breed_id)
+    pet_count = (await db.execute(
+        select(func.count()).select_from(pet_breeds).where(pet_breeds.c.breed_id == breed_id)
     )).scalar() or 0
     return BreedAdminOut(
         id=breed.id, name=breed.name, slug=breed.slug, group=breed.group,
-        is_active=breed.is_active, dog_count=dog_count, created_at=breed.created_at,
+        is_active=breed.is_active, pet_count=pet_count, created_at=breed.created_at,
     )
 
 
@@ -1202,13 +1202,13 @@ async def delete_breed(
     if not breed:
         raise HTTPException(status_code=404, detail="Breed not found")
 
-    dog_count = (await db.execute(
-        select(func.count()).select_from(dog_breeds).where(dog_breeds.c.breed_id == breed_id)
+    pet_count = (await db.execute(
+        select(func.count()).select_from(pet_breeds).where(pet_breeds.c.breed_id == breed_id)
     )).scalar() or 0
-    if dog_count > 0:
+    if pet_count > 0:
         raise HTTPException(
             status_code=409,
-            detail=f"Cannot delete: {dog_count} dog(s) still reference this breed. Deactivate instead.",
+            detail=f"Cannot delete: {pet_count} pet(s) still reference this breed. Deactivate instead.",
         )
 
     await _log(db, actor_id=admin.id, action="breed.delete", target_type="breed",
@@ -1226,7 +1226,7 @@ async def import_parks_from_osm(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Pull dog parks from OpenStreetMap (via Overpass API) and upsert them.
+    """Pull pet parks from OpenStreetMap (via Overpass API) and upsert them.
 
     - Touches only `source='osm'` rows; user-submitted parks are untouched.
     - Optional `bbox` (south, west, north, east) scopes the import to a region.
@@ -1451,15 +1451,15 @@ async def list_vets_admin(
 async def _resolve_target_user(report: Report, db: AsyncSession) -> UUID | None:
     if report.target_type == "user":
         return report.target_id
-    if report.target_type == "dog":
-        result = await db.execute(select(Dog.owner_id).where(Dog.id == report.target_id))
+    if report.target_type == "pet":
+        result = await db.execute(select(Pet.owner_id).where(Pet.id == report.target_id))
         row = result.first()
         return row[0] if row else None
     if report.target_type == "photo":
-        result = await db.execute(select(Photo.dog_id).where(Photo.id == report.target_id))
+        result = await db.execute(select(Photo.pet_id).where(Photo.id == report.target_id))
         row = result.first()
         if row:
-            dog_result = await db.execute(select(Dog.owner_id).where(Dog.id == row[0]))
-            dog_row = dog_result.first()
+            pet_result = await db.execute(select(Pet.owner_id).where(Pet.id == row[0]))
+            dog_row = pet_result.first()
             return dog_row[0] if dog_row else None
     return None

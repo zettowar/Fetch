@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class PhotoOut(BaseModel):
     id: UUID
-    dog_id: UUID
+    pet_id: UUID
     storage_key: str
     width: int
     height: int
@@ -19,7 +19,7 @@ class PhotoOut(BaseModel):
 
 
 class PhotoSummary(BaseModel):
-    """Lightweight photo schema for embedding in dog responses."""
+    """Lightweight photo schema for embedding in pet responses."""
 
     id: UUID
     storage_key: str

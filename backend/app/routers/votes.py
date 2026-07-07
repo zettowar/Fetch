@@ -7,12 +7,12 @@ from sqlalchemy.orm import selectinload
 from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.user import User
 from app.models.vote import Vote
-from app.schemas.dog import DogOut
+from app.schemas.pet import PetOut
 from app.schemas.vote import VoteCreate, VoteOut
-from app.services.dog_serializer import dog_to_out
+from app.services.pet_serializer import pet_to_out
 from app.services.feed_service import current_week_bucket
 
 router = APIRouter()
@@ -26,18 +26,18 @@ async def cast_vote(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Verify dog exists and is active
-    result = await db.execute(select(Dog).where(Dog.id == body.dog_id, Dog.is_active == True))
-    dog = result.scalar_one_or_none()
-    if not dog:
-        raise HTTPException(status_code=404, detail="Dog not found")
-    if dog.owner_id == user.id:
-        raise HTTPException(status_code=400, detail="Cannot vote on your own dog")
+    # Verify pet exists and is active
+    result = await db.execute(select(Pet).where(Pet.id == body.pet_id, Pet.is_active == True))
+    pet = result.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet not found")
+    if pet.owner_id == user.id:
+        raise HTTPException(status_code=400, detail="Cannot vote on your own pet")
 
     week = current_week_bucket()
     vote = Vote(
         voter_id=user.id,
-        dog_id=body.dog_id,
+        pet_id=body.pet_id,
         value=body.value,
         week_bucket=week,
     )
@@ -46,7 +46,7 @@ async def cast_vote(
         await db.commit()
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=409, detail="Already voted on this dog this week")
+        raise HTTPException(status_code=409, detail="Already voted on this pet this week")
 
     await db.refresh(vote)
     return vote
@@ -66,8 +66,8 @@ async def my_votes(
     return list(result.scalars().all())
 
 
-@router.get("/liked", response_model=list[DogOut])
-async def liked_dogs(
+@router.get("/liked", response_model=list[PetOut])
+async def liked_pets(
     limit: int = Query(30, ge=1, le=100),
     offset: int = Query(0, ge=0),
     user: User = Depends(get_current_user),
@@ -76,22 +76,22 @@ async def liked_dogs(
     """Dogs this user has liked (all time), newest like first."""
     liked_at = func.max(Vote.created_at).label("liked_at")
     liked_sq = (
-        select(Vote.dog_id, liked_at)
+        select(Vote.pet_id, liked_at)
         .where(Vote.voter_id == user.id, Vote.value == 1)
-        .group_by(Vote.dog_id)
+        .group_by(Vote.pet_id)
         .subquery()
     )
     result = await db.execute(
-        select(Dog)
-        .join(liked_sq, Dog.id == liked_sq.c.dog_id)
+        select(Pet)
+        .join(liked_sq, Pet.id == liked_sq.c.pet_id)
         .options(
-            selectinload(Dog.photos),
-            selectinload(Dog.breeds),
-            selectinload(Dog.owner).selectinload(User.rescue_profile),
+            selectinload(Pet.photos),
+            selectinload(Pet.breeds),
+            selectinload(Pet.owner).selectinload(User.rescue_profile),
         )
-        .where(Dog.is_active == True)  # noqa: E712
+        .where(Pet.is_active == True)  # noqa: E712
         .order_by(liked_sq.c.liked_at.desc())
         .limit(limit)
         .offset(offset)
     )
-    return [dog_to_out(d) for d in result.scalars().all()]
+    return [pet_to_out(d) for d in result.scalars().all()]

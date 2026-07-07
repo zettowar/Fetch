@@ -79,15 +79,15 @@ function FlaggedPhotoQueue() {
         <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
           {photos.map((p: FlaggedPhoto) => (
             <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-              <FlaggedPhotoImage photoId={p.id} alt={`Flagged photo of ${p.dog_name ?? 'a dog'}`} />
+              <FlaggedPhotoImage photoId={p.id} alt={`Flagged photo of ${p.pet_name ?? 'a pet'}`} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Link
-                    to={`/app/dogs/${p.dog_id}`}
+                    to={`/app/pets/${p.pet_id}`}
                     target="_blank"
                     className="font-medium text-sm text-brand-600 hover:underline"
                   >
-                    {p.dog_name ?? 'Unknown dog'}
+                    {p.pet_name ?? 'Unknown pet'}
                   </Link>
                   <Badge variant="warning">flagged</Badge>
                 </div>
@@ -135,7 +135,7 @@ export default function AdminContentPage() {
   const queryClient = useQueryClient();
 
   const { data: page, isLoading } = useQuery({
-    queryKey: ['admin-dogs', dogSearch, showInactive, offset],
+    queryKey: ['admin-pets', dogSearch, showInactive, offset],
     queryFn: () => getAdminDogs({
       q: dogSearch || undefined,
       active_only: showInactive ? undefined : true,
@@ -144,14 +144,14 @@ export default function AdminContentPage() {
     }),
     staleTime: 60_000,
   });
-  const dogs = page?.items ?? [];
+  const pets = page?.items ?? [];
   const total = page?.total ?? 0;
 
   const deactivateMutation = useMutation({
     mutationFn: deactivateDog,
     onSuccess: () => {
-      toast.success('Dog deactivated');
-      queryClient.invalidateQueries({ queryKey: ['admin-dogs'] });
+      toast.success('Pet deactivated');
+      queryClient.invalidateQueries({ queryKey: ['admin-pets'] });
     },
     onError: () => toast.error('Failed to deactivate'),
   });
@@ -159,8 +159,8 @@ export default function AdminContentPage() {
   const reactivateMutation = useMutation({
     mutationFn: reactivateDog,
     onSuccess: () => {
-      toast.success('Dog reactivated');
-      queryClient.invalidateQueries({ queryKey: ['admin-dogs'] });
+      toast.success('Pet reactivated');
+      queryClient.invalidateQueries({ queryKey: ['admin-pets'] });
     },
     onError: () => toast.error('Failed to reactivate'),
   });
@@ -173,7 +173,7 @@ export default function AdminContentPage() {
 
       <div className="mb-6">
         <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
-          Dog Profiles
+          Pet Profiles
           <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
             ({total} total)
           </span>
@@ -199,59 +199,59 @@ export default function AdminContentPage() {
             checked={showInactive}
             onChange={(e) => { setShowInactive(e.target.checked); setOffset(0); }}
           />
-          Show inactive dogs
+          Show inactive pets
         </label>
 
         {isLoading ? (
           <ListSkeleton rows={5} />
-        ) : dogs.length === 0 ? (
+        ) : pets.length === 0 ? (
           <EmptyState
             className="py-6"
-            title="No dogs found"
+            title="No pets found"
             body={dogSearch ? `Nothing matches "${dogSearch}".` : undefined}
           />
         ) : (
           <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
-            {dogs.map((dog: AdminDog) => (
-              <div key={dog.id} className="flex items-center gap-3 px-4 py-3">
+            {pets.map((pet: AdminDog) => (
+              <div key={pet.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
-                      to={`/app/dogs/${dog.id}`}
+                      to={`/app/pets/${pet.id}`}
                       target="_blank"
                       className="font-medium text-sm text-brand-600 hover:underline"
                     >
-                      {dog.name}
+                      {pet.name}
                     </Link>
-                    {dog.breed && (
-                      <span className="text-xs text-gray-400 dark:text-gray-500">{dog.breed}</span>
+                    {pet.breed && (
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{pet.breed}</span>
                     )}
-                    {!dog.is_active && (
+                    {!pet.is_active && (
                       <Badge variant="danger">inactive</Badge>
                     )}
-                    <span className="text-2xs text-gray-400 dark:text-gray-500">{dog.photo_count} photo{dog.photo_count !== 1 ? 's' : ''}</span>
+                    <span className="text-2xs text-gray-400 dark:text-gray-500">{pet.photo_count} photo{pet.photo_count !== 1 ? 's' : ''}</span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Owner:{' '}
-                    <Link to={`/app/users/${dog.owner_id}`} target="_blank" className="hover:underline">
-                      {dog.owner_name ?? 'Unknown'}
+                    <Link to={`/app/users/${pet.owner_id}`} target="_blank" className="hover:underline">
+                      {pet.owner_name ?? 'Unknown'}
                     </Link>
-                    {dog.owner_email && (
-                      <span className="text-gray-400 dark:text-gray-500 ml-1">({dog.owner_email})</span>
+                    {pet.owner_email && (
+                      <span className="text-gray-400 dark:text-gray-500 ml-1">({pet.owner_email})</span>
                     )}
                     {' · '}
-                    <TimeAgo value={dog.created_at} />
+                    <TimeAgo value={pet.created_at} />
                   </p>
                 </div>
                 <div className="shrink-0">
-                  {dog.is_active ? (
+                  {pet.is_active ? (
                     <Button
                       size="sm"
                       variant="danger"
-                      loading={deactivateMutation.isPending && deactivateMutation.variables === dog.id}
+                      loading={deactivateMutation.isPending && deactivateMutation.variables === pet.id}
                       onClick={() => {
-                        if (confirm(`Deactivate "${dog.name}"? It will be hidden from swipe and search.`)) {
-                          deactivateMutation.mutate(dog.id);
+                        if (confirm(`Deactivate "${pet.name}"? It will be hidden from swipe and search.`)) {
+                          deactivateMutation.mutate(pet.id);
                         }
                       }}
                     >
@@ -261,8 +261,8 @@ export default function AdminContentPage() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      loading={reactivateMutation.isPending && reactivateMutation.variables === dog.id}
-                      onClick={() => reactivateMutation.mutate(dog.id)}
+                      loading={reactivateMutation.isPending && reactivateMutation.variables === pet.id}
+                      onClick={() => reactivateMutation.mutate(pet.id)}
                     >
                       Reactivate
                     </Button>
@@ -276,7 +276,7 @@ export default function AdminContentPage() {
         <PaginationFooter
           offset={offset}
           pageSize={PAGE_SIZE}
-          rendered={dogs.length}
+          rendered={pets.length}
           total={total}
           onChange={setOffset}
         />

@@ -6,14 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.photo import Photo
 from app.models.report import Report
 from app.models.social import Comment
 from app.models.user import User
 from app.schemas.report import ReportCreate, ReportOut
 
-_TARGET_MODELS = {"photo": Photo, "dog": Dog, "user": User, "comment": Comment}
+_TARGET_MODELS = {"photo": Photo, "pet": Pet, "user": User, "comment": Comment}
 
 router = APIRouter()
 

@@ -122,7 +122,7 @@ export default function CartPage() {
         <EmptyState
           illustration="sleeping"
           title="Your cart is empty"
-          body="Browse the shop and add some gear for you and your pup."
+          body="Browse the shop and add some gear for you and your pet."
           action={
             <Link to="/app/shop">
               <Button size="sm">Go to shop</Button>

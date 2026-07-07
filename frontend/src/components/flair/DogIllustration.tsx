@@ -9,8 +9,8 @@ interface DogIllustrationProps {
 }
 
 /*
- * Hand-drawn-style line-art dogs for empty/error/success/search/alert
- * states. The dog renders in `currentColor` (callers pass a muted gray),
+ * Hand-drawn-style line-art pets for empty/error/success/search/alert
+ * states. The pet renders in `currentColor` (callers pass a muted gray),
  * while each pose carries one brand-tinted accent group (ball, dirt,
  * scent, Zzz, sound arcs) so every state gets a spark of orange.
  */

@@ -13,7 +13,7 @@ interface PawSpinnerProps {
 }
 
 /**
- * Dog-walk loading indicator: four paw prints stepping in sequence,
+ * Pet-walk loading indicator: four paw prints stepping in sequence,
  * alternating left/right like a trotting trail. Same a11y contract as
  * the old ring Spinner (role="status" + sr-only label).
  */

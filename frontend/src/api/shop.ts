@@ -441,7 +441,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     handle: 'fetch-classic-tee',
     title: 'Fetch classic tee',
     description:
-      'Soft 100% cotton tee with the Fetch paw mark on the chest. Your everyday dog-park uniform.',
+      'Soft 100% cotton tee with the Fetch paw mark on the chest. Your everyday pet-park uniform.',
     emoji: '👕',
     price: 26,
     tags: ['apparel', 'branded'],
@@ -449,10 +449,10 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     soldOutSizes: ['XXL'],
   }),
   buildMock({
-    handle: 'top-dog-hoodie',
-    title: 'Top Dog hoodie',
+    handle: 'top-pet-hoodie',
+    title: 'Top Pet hoodie',
     description:
-      'Cozy fleece-lined hoodie for cold morning walks. Embroidered "Top Dog" crest on the front.',
+      'Cozy fleece-lined hoodie for cold morning walks. Embroidered "Top Pet" crest on the front.',
     emoji: '🧥',
     price: 48,
     tags: ['apparel', 'branded'],
@@ -462,15 +462,15 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     handle: 'fetch-bandana',
     title: 'Fetch bandana',
     description:
-      'Reversible cotton bandana that snaps onto any collar. Because your dog deserves merch too.',
+      'Reversible cotton bandana that snaps onto any collar. Because your pet deserves merch too.',
     emoji: '🧣',
     price: 16,
-    tags: ['dog', 'accessory'],
+    tags: ['pet', 'accessory'],
     sizes: ['Small', 'Large'],
   }),
   buildMock({
-    handle: 'good-dog-mug',
-    title: 'Good Dog ceramic mug',
+    handle: 'good-pet-mug',
+    title: 'Good Pet ceramic mug',
     description: '12oz stoneware mug for your coffee and their treats. Dishwasher safe.',
     emoji: '☕',
     price: 18,
@@ -488,10 +488,10 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     handle: 'adventure-water-bottle',
     title: 'Adventure water bottle',
     description:
-      'Insulated 24oz bottle with a fold-out dog bowl lid. Keep you both hydrated on the trail.',
+      'Insulated 24oz bottle with a fold-out pet bowl lid. Keep you both hydrated on the trail.',
     emoji: '🍶',
     price: 22,
-    tags: ['gear', 'dog'],
+    tags: ['gear', 'pet'],
   }),
 ];
 

@@ -10,7 +10,7 @@ export interface Park {
   attributes: Record<string, boolean> | null;
   avg_rating: number | null;
   review_count: number;
-  active_dogs_count: number;
+  active_pets_count: number;
   created_at: string;
 }
 
@@ -38,10 +38,10 @@ export interface ParkIncident {
 export interface ParkCheckin {
   id: string;
   park_id: string;
-  dog_id: string | null;
-  dog_name: string | null;
-  dog_breed: string | null;
-  dog_photo_url: string | null;
+  pet_id: string | null;
+  pet_name: string | null;
+  pet_breed: string | null;
+  pet_photo_url: string | null;
   checked_in_at: string;
   checked_out_at: string | null;
 }
@@ -91,11 +91,11 @@ export async function getParkCheckins(parkId: string): Promise<ParkCheckin[]> {
   return res.data;
 }
 
-export async function checkinPark(parkId: string, dogId: string): Promise<ParkCheckin> {
-  const res = await client.post(`/parks/${parkId}/checkin`, { dog_id: dogId });
+export async function checkinPark(parkId: string, petId: string): Promise<ParkCheckin> {
+  const res = await client.post(`/parks/${parkId}/checkin`, { pet_id: petId });
   return res.data;
 }
 
-export async function checkoutPark(parkId: string, dogId: string): Promise<void> {
-  await client.delete(`/parks/${parkId}/checkin/${dogId}`);
+export async function checkoutPark(parkId: string, petId: string): Promise<void> {
+  await client.delete(`/parks/${parkId}/checkin/${petId}`);
 }

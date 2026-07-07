@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.db import get_db
 from app.deps import get_current_user
 from app.models.user import User
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.social import Block, Follow
 from app.schemas.user import BlockedUserOut, UserOut, UserUpdate
 
@@ -80,13 +80,13 @@ async def block_user(
     db.add(Block(blocker_id=user.id, blocked_id=user_id))
     # Sever the follow graph both ways: neither side keeps a feed line into
     # the other.
-    my_dogs = select(Dog.id).where(Dog.owner_id == user.id)
-    their_dogs = select(Dog.id).where(Dog.owner_id == user_id)
+    my_pets = select(Pet.id).where(Pet.owner_id == user.id)
+    their_pets = select(Pet.id).where(Pet.owner_id == user_id)
     await db.execute(
         delete(Follow).where(
             or_(
-                (Follow.follower_id == user.id) & (Follow.dog_id.in_(their_dogs)),
-                (Follow.follower_id == user_id) & (Follow.dog_id.in_(my_dogs)),
+                (Follow.follower_id == user.id) & (Follow.pet_id.in_(their_pets)),
+                (Follow.follower_id == user_id) & (Follow.pet_id.in_(my_pets)),
             )
         )
     )
@@ -120,9 +120,9 @@ async def delete_me(
     db: AsyncSession = Depends(get_db),
 ):
     user.is_active = False
-    # Deactivate all dogs
-    result = await db.execute(select(Dog).where(Dog.owner_id == user.id))
-    for dog in result.scalars():
-        dog.is_active = False
+    # Deactivate all pets
+    result = await db.execute(select(Pet).where(Pet.owner_id == user.id))
+    for pet in result.scalars():
+        pet.is_active = False
     await db.commit()
     return {"detail": "Account deactivated"}

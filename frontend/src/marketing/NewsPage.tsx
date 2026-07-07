@@ -23,7 +23,7 @@ const POSTS: NewsPost[] = [
     title: 'Fetch enters private beta',
     body: (
       <>
-        The first invites went out. A small group of dog owners and rescue
+        The first invites went out. A small group of pet owners and rescue
         partners is using Fetch daily now, and their feedback has already
         changed how the feed works. A public launch date comes next.
       </>
@@ -37,7 +37,7 @@ const POSTS: NewsPost[] = [
       <>
         Adoption is the whole point of Fetch, so rescues got the first look.
         Our earliest partners are setting up their profiles now, and their
-        adoptable dogs will be in the feed on day one. If you run a rescue and
+        adoptable pets will be in the feed on day one. If you run a rescue and
         want in,{' '}
         <Link to="/signup-rescue" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
           applications are open

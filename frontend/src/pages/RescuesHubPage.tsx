@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Dog as DogIcon, HousePlus, Map as MapIcon } from 'lucide-react';
+import { PawPrint as DogIcon, HousePlus, Map as MapIcon } from 'lucide-react';
 
 export default function RescuesHubPage() {
   return (
@@ -22,7 +22,7 @@ export default function RescuesHubPage() {
             <p className="text-2xs uppercase tracking-widest opacity-80">Adoptables</p>
             <p className="text-base font-bold mt-0.5">Browse rescues</p>
             <p className="text-xs opacity-90 mt-0.5 truncate">
-              Verified rescues and their adoptable dogs
+              Verified rescues and their adoptable pets
             </p>
           </div>
           <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">

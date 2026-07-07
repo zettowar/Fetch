@@ -6,8 +6,9 @@ from pydantic import BaseModel
 
 class LeaderboardEntry(BaseModel):
     rank: int
-    dog_id: str
-    dog_name: str
+    pet_id: str
+    pet_name: str
+    species: str = "dog"
     breed: str | None = None
     score: int
     total_votes: int
@@ -16,8 +17,9 @@ class LeaderboardEntry(BaseModel):
 class WeeklyWinnerOut(BaseModel):
     id: UUID
     week_bucket: date
-    dog_id: UUID
-    dog_name: str | None = None
+    species: str = "dog"
+    pet_id: UUID
+    pet_name: str | None = None
     breed: str | None = None
     score: int
     primary_photo_url: str | None = None
@@ -26,7 +28,7 @@ class WeeklyWinnerOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class DogStats(BaseModel):
+class PetStats(BaseModel):
     likes: int
     passes: int
     week_score: int | None = None

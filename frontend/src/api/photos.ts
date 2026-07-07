@@ -2,13 +2,13 @@ import client from './client';
 import type { Photo } from '../types';
 
 export async function uploadPhoto(
-  dogId: string,
+  petId: string,
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<Photo> {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await client.post(`/dogs/${dogId}/photos`, formData, {
+  const res = await client.post(`/pets/${petId}/photos`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: (e) => {
       if (e.total && onProgress) {

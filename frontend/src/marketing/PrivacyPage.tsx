@@ -18,7 +18,7 @@ export default function PrivacyPage() {
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-10 text-base leading-relaxed text-gray-600 dark:text-gray-400">
         <section>
           <p>
-            Fetch is a place to show off your dog, not a data business. This
+            Fetch is a place to show off your pet, not a data business. This
             page explains what information the app and this website handle.
             We've tried to write it the way we'd want to read it. If anything
             is unclear, email us at{' '}
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
               a cryptographic hash; we cannot read it.
             </li>
             <li>
-              <strong className="text-gray-900 dark:text-gray-100">Your dogs.</strong>{' '}
+              <strong className="text-gray-900 dark:text-gray-100">Your pets.</strong>{' '}
               Photos, names, breeds, birthdays, bios, and traits you add.
             </li>
             <li>
@@ -67,10 +67,10 @@ export default function PrivacyPage() {
 
         <LegalSection title="What we use it for">
           <p>
-            Running Fetch: showing dogs in the feed, counting votes, sending
+            Running Fetch: showing pets in the feed, counting votes, sending
             the emails you'd expect (password resets, email verification,
-            lost-dog alerts you subscribed to, messages relayed from other
-            users about your lost-dog report), and keeping the community safe
+            lost-pet alerts you subscribed to, messages relayed from other
+            users about your lost-pet report), and keeping the community safe
             through content moderation.
           </p>
         </LegalSection>
@@ -94,14 +94,14 @@ export default function PrivacyPage() {
           <p>
             We don't sell your data. We don't run ad targeting. We don't show
             your email address to other users, including when Fetch relays a
-            message about your lost-dog report.
+            message about your lost-pet report.
           </p>
         </LegalSection>
 
         <LegalSection title="Deleting your data">
           <p>
             You can delete your account from inside the app, which deactivates
-            your profile and your dogs immediately. Uploaded photos you remove
+            your profile and your pets immediately. Uploaded photos you remove
             are deleted from storage. Copies in our database backups age out
             on a rolling basis, currently within 14 days.
           </p>

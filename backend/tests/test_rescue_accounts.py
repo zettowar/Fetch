@@ -11,7 +11,7 @@ async def _signup_rescue(client: AsyncClient, *, approved: bool, admin_headers: 
         "email": email,
         "password": "password123",
         "org_name": f"Test Rescue {email[:10]}",
-        "description": "We rescue dogs.",
+        "description": "We rescue pets.",
     })
     assert res.status_code == 201, res.text
     data = res.json()
@@ -31,27 +31,27 @@ async def _signup_rescue(client: AsyncClient, *, approved: bool, admin_headers: 
 async def test_rescue_signup_pending_cannot_post_dog(client: AsyncClient, admin_headers: dict):
     """A rescue that's still pending can sign up + log in, but is blocked from rescue-only actions."""
     headers, _profile_id, _email = await _signup_rescue(client, approved=False, admin_headers=admin_headers)
-    # Create a dog is a regular action; rescues can post like any user — that's not blocked.
+    # Create a pet is a regular action; rescues can post like any user — that's not blocked.
     # But rescue-only actions (mark-adopted / transfer) should return 403 until approved.
-    dog_res = await client.post(
-        "/api/v1/dogs", json={"name": "Pending Pup"}, headers=headers,
+    pet_res = await client.post(
+        "/api/v1/pets", json={"name": "Pending Pup"}, headers=headers,
     )
-    assert dog_res.status_code == 201
-    dog_id = dog_res.json()["id"]
-    resp = await client.post(f"/api/v1/rescues/dogs/{dog_id}/mark-adopted", headers=headers)
+    assert pet_res.status_code == 201
+    pet_id = pet_res.json()["id"]
+    resp = await client.post(f"/api/v1/rescues/pets/{pet_id}/mark-adopted", headers=headers)
     assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_approved_rescue_dog_shows_adoptable(client: AsyncClient, admin_headers: dict):
     headers, _profile_id, _email = await _signup_rescue(client, approved=True, admin_headers=admin_headers)
-    dog_res = await client.post(
-        "/api/v1/dogs",
+    pet_res = await client.post(
+        "/api/v1/pets",
         json={"name": "Rescue Buddy"},
         headers=headers,
     )
-    assert dog_res.status_code == 201
-    body = dog_res.json()
+    assert pet_res.status_code == 201
+    body = pet_res.json()
     assert body["adoptable"] is True
     assert body["rescue_name"]
     assert body["adopted_at"] is None
@@ -64,13 +64,13 @@ async def test_mark_adopted_flips_adoptable_and_excludes_from_feed(
     rescue_headers, _profile_id, _email = await _signup_rescue(
         client, approved=True, admin_headers=admin_headers,
     )
-    dog_res = await client.post(
-        "/api/v1/dogs", json={"name": "Flippy"}, headers=rescue_headers,
+    pet_res = await client.post(
+        "/api/v1/pets", json={"name": "Flippy"}, headers=rescue_headers,
     )
-    dog_id = dog_res.json()["id"]
+    pet_id = pet_res.json()["id"]
 
     mark = await client.post(
-        f"/api/v1/rescues/dogs/{dog_id}/mark-adopted", headers=rescue_headers,
+        f"/api/v1/rescues/pets/{pet_id}/mark-adopted", headers=rescue_headers,
     )
     assert mark.status_code == 200, mark.text
     assert mark.json()["adopted_at"] is not None
@@ -96,13 +96,13 @@ async def test_transfer_flow_changes_ownership(
     rescue_headers, _profile_id, _rescue_email = await _signup_rescue(
         client, approved=True, admin_headers=admin_headers,
     )
-    dog_res = await client.post(
-        "/api/v1/dogs", json={"name": "Transfer Pup"}, headers=rescue_headers,
+    pet_res = await client.post(
+        "/api/v1/pets", json={"name": "Transfer Pup"}, headers=rescue_headers,
     )
-    dog_id = dog_res.json()["id"]
+    pet_id = pet_res.json()["id"]
 
     initiate = await client.post(
-        f"/api/v1/rescues/dogs/{dog_id}/transfer",
+        f"/api/v1/rescues/pets/{pet_id}/transfer",
         json={"invited_email": recipient_email},
         headers=rescue_headers,
     )
@@ -110,19 +110,19 @@ async def test_transfer_flow_changes_ownership(
     transfer_id = initiate.json()["id"]
 
     # Recipient sees it.
-    listing = await client.get("/api/v1/dog-transfers/mine", headers=recipient_headers)
+    listing = await client.get("/api/v1/pet-transfers/mine", headers=recipient_headers)
     assert listing.status_code == 200
     ids = [t["id"] for t in listing.json()]
     assert transfer_id in ids
 
     # Accept → ownership transferred.
     accept = await client.post(
-        f"/api/v1/dog-transfers/{transfer_id}/accept", headers=recipient_headers,
+        f"/api/v1/pet-transfers/{transfer_id}/accept", headers=recipient_headers,
     )
     assert accept.status_code == 200, accept.text
     assert accept.json()["status"] == "accepted"
 
-    dog_view = await client.get(f"/api/v1/dogs/{dog_id}", headers=recipient_headers)
+    dog_view = await client.get(f"/api/v1/pets/{pet_id}", headers=recipient_headers)
     assert dog_view.status_code == 200
     body = dog_view.json()
     assert body["owner_id"] == recipient_id
@@ -145,26 +145,26 @@ async def test_transfer_decline_keeps_ownership(
     rescue_headers, _profile_id, _rescue_email = await _signup_rescue(
         client, approved=True, admin_headers=admin_headers,
     )
-    dog_res = await client.post(
-        "/api/v1/dogs", json={"name": "Staying Put"}, headers=rescue_headers,
+    pet_res = await client.post(
+        "/api/v1/pets", json={"name": "Staying Put"}, headers=rescue_headers,
     )
-    dog_id = dog_res.json()["id"]
+    pet_id = pet_res.json()["id"]
 
     initiate = await client.post(
-        f"/api/v1/rescues/dogs/{dog_id}/transfer",
+        f"/api/v1/rescues/pets/{pet_id}/transfer",
         json={"invited_email": recipient_email},
         headers=rescue_headers,
     )
     transfer_id = initiate.json()["id"]
 
     decline = await client.post(
-        f"/api/v1/dog-transfers/{transfer_id}/decline", headers=recipient_headers,
+        f"/api/v1/pet-transfers/{transfer_id}/decline", headers=recipient_headers,
     )
     assert decline.status_code == 200
     assert decline.json()["status"] == "declined"
 
-    # Dog still belongs to the rescue, not adopted.
-    dog_view = await client.get(f"/api/v1/dogs/{dog_id}", headers=rescue_headers)
+    # Pet still belongs to the rescue, not adopted.
+    dog_view = await client.get(f"/api/v1/pets/{pet_id}", headers=rescue_headers)
     assert dog_view.status_code == 200
     assert dog_view.json()["adopted_at"] is None
 
@@ -227,11 +227,11 @@ async def test_patch_my_rescue_profile_when_approved(
     )
     res = await client.patch(
         "/api/v1/rescues/me",
-        json={"description": "We rescue all the dogs."},
+        json={"description": "We rescue all the pets."},
         headers=headers,
     )
     assert res.status_code == 200
-    assert res.json()["description"] == "We rescue all the dogs."
+    assert res.json()["description"] == "We rescue all the pets."
 
 
 @pytest.mark.asyncio
@@ -253,14 +253,14 @@ async def test_transfer_to_email_with_no_existing_user_creates_pending(
     rescue_headers, _, _ = await _signup_rescue(
         client, approved=True, admin_headers=admin_headers,
     )
-    dog_res = await client.post(
-        "/api/v1/dogs", json={"name": "Pending Email Pup"}, headers=rescue_headers,
+    pet_res = await client.post(
+        "/api/v1/pets", json={"name": "Pending Email Pup"}, headers=rescue_headers,
     )
-    dog_id = dog_res.json()["id"]
+    pet_id = pet_res.json()["id"]
 
     invited = f"future-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     initiate = await client.post(
-        f"/api/v1/rescues/dogs/{dog_id}/transfer",
+        f"/api/v1/rescues/pets/{pet_id}/transfer",
         json={"invited_email": invited},
         headers=rescue_headers,
     )
@@ -273,7 +273,7 @@ async def test_transfer_to_email_with_no_existing_user_creates_pending(
 
     # Re-issuing cancels the prior pending row → only one pending exists.
     again = await client.post(
-        f"/api/v1/rescues/dogs/{dog_id}/transfer",
+        f"/api/v1/rescues/pets/{pet_id}/transfer",
         json={"invited_email": invited},
         headers=rescue_headers,
     )

@@ -12,7 +12,7 @@ export interface DashboardStats {
   active_users: number;
   suspended_users: number;
   users_last_7d: number;
-  total_dogs: number;
+  total_pets: number;
   pending_reports: number;
   open_tickets: number;
   unverified_rescues: number;
@@ -32,7 +32,7 @@ export interface AdminUser {
   is_verified: boolean;
   role: string;
   created_at: string;
-  dog_count: number;
+  pet_count: number;
   strike_count: number;
 }
 
@@ -223,7 +223,7 @@ export const getUserReportsFiled = async (userId: string): Promise<Report[]> =>
 export const getUserReportsAgainst = async (userId: string): Promise<Report[]> =>
   (await client.get(`/admin/users/${userId}/reports-against`)).data;
 
-// --- Content moderation: dogs ---
+// --- Content moderation: pets ---
 
 export interface AdminDog {
   id: string;
@@ -240,22 +240,22 @@ export interface AdminDog {
 export const getAdminDogs = async (
   params: { q?: string; active_only?: boolean; offset?: number; limit?: number } = {},
 ): Promise<Paginated<AdminDog>> => {
-  const res = await client.get('/admin/dogs', { params });
+  const res = await client.get('/admin/pets', { params });
   return { items: res.data, total: readTotal(res.headers, res.data.length) };
 };
 
 export const deactivateDog = async (id: string) =>
-  (await client.post(`/admin/dogs/${id}/deactivate`)).data;
+  (await client.post(`/admin/pets/${id}/deactivate`)).data;
 
 export const reactivateDog = async (id: string) =>
-  (await client.post(`/admin/dogs/${id}/reactivate`)).data;
+  (await client.post(`/admin/pets/${id}/reactivate`)).data;
 
 // --- Flagged photo review queue ---
 
 export interface FlaggedPhoto {
   id: string;
-  dog_id: string;
-  dog_name: string | null;
+  pet_id: string;
+  pet_name: string | null;
   owner_id: string | null;
   owner_email: string | null;
   content_type: string;
@@ -286,8 +286,8 @@ export interface AdminLostReport {
   description: string;
   reporter_id: string;
   reporter_name: string | null;
-  dog_id: string | null;
-  dog_name: string | null;
+  pet_id: string | null;
+  pet_name: string | null;
   created_at: string;
 }
 

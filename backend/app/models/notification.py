@@ -11,7 +11,7 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKey
 class Notification(Base, UUIDPrimaryKey, TimestampMixin):
     """One inbox entry. Title/body/link are rendered at emission time so the
     list endpoint and the client stay dumb; no FKs to the subject entities,
-    so deleting a dog or comment never orphans or cascades the inbox."""
+    so deleting a pet or comment never orphans or cascades the inbox."""
 
     __tablename__ = "notifications"
     __table_args__ = (

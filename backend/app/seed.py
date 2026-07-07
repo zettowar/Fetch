@@ -1,4 +1,4 @@
-"""Seed script: creates 10 users, 20 dogs, parks, votes, posts, rescues, and follows."""
+"""Seed script: creates 10 users, 20 pets, parks, votes, posts, rescues, and follows."""
 import asyncio
 import uuid
 from datetime import date, datetime, timezone, timedelta
@@ -8,7 +8,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import settings
-from app.models import User, Dog
+from app.models import User, Pet
 from app.models.breed import Breed
 from app.models.park import Park, ParkReview
 from app.models.post import Post
@@ -42,21 +42,31 @@ DOGS_DATA: list[tuple[str, str, list[str]]] = [
     ("Lola", "cross", ["French Bulldog", "Boston Terrier"]),
 ]
 
+# A few cats so dev has both species (full parity). Cat breed names must match
+# entries in CAT_BREED_SEED.
+CATS_DATA: list[tuple[str, str, list[str]]] = [
+    ("Mittens", "purebred", ["Maine Coon"]),
+    ("Simba", "purebred", ["Bengal"]),
+    ("Cleo", "purebred", ["Siamese"]),
+    ("Shadow", "mystery_mutt", []),
+    ("Pumpkin", "mixed", ["Domestic Shorthair"]),
+]
+
 PARKS_DATA = [
     {
-        "name": "Central Park Dog Run",
+        "name": "Central Park Pet Run",
         "address": "Central Park, New York, NY",
         "lat": 40.7812, "lng": -73.9665,
         "attributes": {"off_leash": True, "water": True, "fenced": True, "size": "large"},
     },
     {
-        "name": "Prospect Park Dog Beach",
+        "name": "Prospect Park Pet Beach",
         "address": "Prospect Park, Brooklyn, NY",
         "lat": 40.6602, "lng": -73.9690,
         "attributes": {"off_leash": True, "water": True, "fenced": False, "size": "medium"},
     },
     {
-        "name": "Battery Park Dog Run",
+        "name": "Battery Park Pet Run",
         "address": "Battery Park City, New York, NY",
         "lat": 40.7069, "lng": -74.0160,
         "attributes": {"off_leash": True, "water": False, "fenced": True, "size": "small"},
@@ -68,7 +78,7 @@ PARKS_DATA = [
         "attributes": {"off_leash": True, "water": True, "fenced": False, "size": "medium"},
     },
     {
-        "name": "Golden Gate Park Dog Play Area",
+        "name": "Golden Gate Park Pet Play Area",
         "address": "Golden Gate Park, San Francisco, CA",
         "lat": 37.7694, "lng": -122.4862,
         "attributes": {"off_leash": True, "water": True, "fenced": True, "size": "large"},
@@ -84,15 +94,15 @@ PARKS_DATA = [
 POSTS_DATA = [
     {
         "kind": "community",
-        "title": "Tips for socializing a shy rescue dog",
+        "title": "Tips for socializing a shy rescue pet",
         "body": "Just adopted a 2-year-old rescue who's terrified of strangers. Here are the techniques that have worked for us over the past 3 months...",
         "tags": ["rescue", "socialization", "tips"],
     },
     {
         "kind": "community",
-        "title": "Best dog-friendly restaurants in NYC?",
-        "body": "Looking for places in Manhattan and Brooklyn that welcome dogs on their patios. Drop your favorites below!",
-        "tags": ["nyc", "dog-friendly", "restaurants"],
+        "title": "Best pet-friendly restaurants in NYC?",
+        "body": "Looking for places in Manhattan and Brooklyn that welcome pets on their patios. Drop your favorites below!",
+        "tags": ["nyc", "pet-friendly", "restaurants"],
     },
     {
         "kind": "community",
@@ -110,12 +120,12 @@ POSTS_DATA = [
     {
         "kind": "rescue_spotlight",
         "title": "Spotlight: NYC Bully Rescue needs fosters this weekend",
-        "body": "NYC Bully Rescue has 12 dogs that need emergency fosters this weekend due to shelter overcrowding. No experience needed — they provide all supplies and support.",
+        "body": "NYC Bully Rescue has 12 pets that need emergency fosters this weekend due to shelter overcrowding. No experience needed — they provide all supplies and support.",
         "tags": ["foster", "rescue", "urgent", "nyc"],
     },
     {
         "kind": "community",
-        "title": "My dog passed his Canine Good Citizen test!",
+        "title": "My pet passed his Canine Good Citizen test!",
         "body": "Six months of training and Buddy finally passed his CGC test today. So proud of this boy. Happy to share the training routine we used if anyone's interested!",
         "tags": ["training", "cgc", "milestone"],
     },
@@ -126,12 +136,12 @@ RESCUE_ACCOUNTS = [
     {
         "email": "bullyrescue@fetchapp.dev",
         "org_name": "NYC Bully Rescue",
-        "description": "Rescuing and rehoming bully breed dogs in NYC.",
+        "description": "Rescuing and rehoming bully breed pets in NYC.",
         "location": "New York, NY",
         "lat": 40.7128,
         "lng": -74.0060,
         "status": "approved",
-        "dogs": [
+        "pets": [
             ("Titan", "purebred", ["American Pit Bull Terrier"]),
             ("Nala", "mixed", ["American Staffordshire Terrier", "Boxer"]),
         ],
@@ -139,12 +149,12 @@ RESCUE_ACCOUNTS = [
     {
         "email": "secondchance@fetchapp.dev",
         "org_name": "Second Chance Hounds",
-        "description": "Senior dogs and medical cases — every dog deserves a second chance.",
+        "description": "Senior pets and medical cases — every pet deserves a second chance.",
         "location": "Austin, TX",
         "lat": 30.2672,
         "lng": -97.7431,
         "status": "pending",
-        "dogs": [],
+        "pets": [],
     },
 ]
 
@@ -173,7 +183,7 @@ async def seed():
                 id=uuid.uuid4(),
                 email=f"user{i}@fetchapp.dev",
                 password_hash=pwd_ctx.hash("password123"),
-                display_name=f"Dog Lover {i}",
+                display_name=f"Pet Lover {i}",
                 location_rough="New York, NY" if i % 2 == 0 else "San Francisco, CA",
                 date_of_birth=date(1990, 1, 1),
                 is_active=True,
@@ -183,11 +193,11 @@ async def seed():
             users.append(user)
             session.add(user)
 
-        dogs = []
+        pets = []
         for idx, (name, mix_type, breed_names) in enumerate(DOGS_DATA):
             owner = users[idx % len(users)]
             bio_desc = ", ".join(breed_names) if breed_names else "mystery mutt"
-            dog = Dog(
+            pet = Pet(
                 id=uuid.uuid4(),
                 owner_id=owner.id,
                 name=name,
@@ -201,9 +211,32 @@ async def seed():
                 br_result = await session.execute(
                     select(Breed).where(Breed.name.in_(breed_names))
                 )
-                dog.breeds = list(br_result.scalars().all())
-            dogs.append(dog)
-            session.add(dog)
+                pet.breeds = list(br_result.scalars().all())
+            pets.append(pet)
+            session.add(pet)
+
+        for idx, (name, mix_type, breed_names) in enumerate(CATS_DATA):
+            owner = users[idx % len(users)]
+            bio_desc = ", ".join(breed_names) if breed_names else "moggie"
+            pet = Pet(
+                id=uuid.uuid4(),
+                owner_id=owner.id,
+                name=name,
+                species="cat",
+                mix_type=mix_type,
+                bio=f"{name} is a wonderful {bio_desc}!",
+                location_rough=owner.location_rough,
+                is_active=True,
+            )
+            if breed_names:
+                br_result = await session.execute(
+                    select(Breed).where(
+                        Breed.name.in_(breed_names), Breed.species == "cat"
+                    )
+                )
+                pet.breeds = list(br_result.scalars().all())
+            pets.append(pet)
+            session.add(pet)
 
         # Flush to get IDs
         await session.flush()
@@ -212,19 +245,19 @@ async def seed():
         week = _week_bucket()
         vote_pairs_added = set()
         for voter in users:
-            voter_dog_ids = {d.id for d in dogs if d.owner_id == voter.id}
+            voter_pet_ids = {d.id for d in pets if d.owner_id == voter.id}
             voted = 0
-            for dog in dogs:
-                if dog.id in voter_dog_ids:
-                    continue  # can't vote own dog
-                pair = (voter.id, dog.id)
+            for pet in pets:
+                if pet.id in voter_pet_ids:
+                    continue  # can't vote own pet
+                pair = (voter.id, pet.id)
                 if pair in vote_pairs_added:
                     continue
                 vote_pairs_added.add(pair)
                 session.add(Vote(
                     id=uuid.uuid4(),
                     voter_id=voter.id,
-                    dog_id=dog.id,
+                    pet_id=pet.id,
                     value=1,
                     week_bucket=week,
                 ))
@@ -253,8 +286,8 @@ async def seed():
 
         # Park reviews
         review_texts = [
-            "Great spot! Lots of space and the dogs love it.",
-            "Well maintained, friendly dog owners.",
+            "Great spot! Lots of space and the pets love it.",
+            "Well maintained, friendly pet owners.",
             "Gets crowded on weekends but still a great place.",
         ]
         for i, park in enumerate(parks[:3]):
@@ -311,11 +344,11 @@ async def seed():
             session.add(profile)
             rescue_count += 1
 
-            # Attach demo adoptable dogs to approved rescues.
-            if rdata["status"] == "approved" and rdata["dogs"]:
+            # Attach demo adoptable pets to approved rescues.
+            if rdata["status"] == "approved" and rdata["pets"]:
                 await session.flush()
-                for name, mix_type, breed_names in rdata["dogs"]:
-                    rd = Dog(
+                for name, mix_type, breed_names in rdata["pets"]:
+                    rd = Pet(
                         id=uuid.uuid4(),
                         owner_id=rescue_user.id,
                         name=name,
@@ -333,15 +366,15 @@ async def seed():
 
         # --- Follows ---
         for i, user in enumerate(users):
-            # Each user follows 3 dogs they don't own
+            # Each user follows 3 pets they don't own
             followed = 0
-            for dog in dogs:
-                if dog.owner_id == user.id:
+            for pet in pets:
+                if pet.owner_id == user.id:
                     continue
                 session.add(Follow(
                     id=uuid.uuid4(),
                     follower_id=user.id,
-                    dog_id=dog.id,
+                    pet_id=pet.id,
                 ))
                 followed += 1
                 if followed >= 3:
@@ -349,7 +382,7 @@ async def seed():
 
         await session.commit()
         print(
-            f"Seeded {len(users)} users, {len(dogs)} dogs, "
+            f"Seeded {len(users)} users, {len(pets)} pets, "
             f"{len(parks)} parks, {len(POSTS_DATA)} posts, "
             f"{rescue_count} rescue accounts, votes, follows, and park reviews."
         )

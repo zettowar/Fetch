@@ -15,7 +15,7 @@ const LAST_VISITED_KEY = 'lost-last-visited';
 
 type Kind = 'all' | 'missing' | 'found';
 
-export default function LostDogsPage() {
+export default function LostPetsPage() {
   const initialCenter = useUserLocation(DEFAULT_CENTER);
   const [viewCenter, setViewCenter] = useState<[number, number]>(initialCenter);
   const [selectedReport, setSelectedReport] = useState<NearbyReport | null>(null);
@@ -83,7 +83,7 @@ export default function LostDogsPage() {
     lat: r.fuzzed_lat,
     lng: r.fuzzed_lng,
     color: r.kind === 'missing' ? '#ef4444' : '#3b82f6',
-    label: `${r.kind === 'missing' ? 'Missing' : 'Found'}: ${r.dog_name || 'Unknown dog'}`,
+    label: `${r.kind === 'missing' ? 'Missing' : 'Found'}: ${r.pet_name || 'Unknown pet'}`,
     onClick: () => setSelectedReport(r),
     popup: (
       <ReportPopup
@@ -95,8 +95,8 @@ export default function LostDogsPage() {
 
   const filterMeta: Record<Kind, { label: string; emptyMsg: string }> = {
     all: { label: 'All', emptyMsg: 'No reports in this area yet.' },
-    missing: { label: 'Missing', emptyMsg: 'No missing dogs reported here — good news.' },
-    found: { label: 'Found', emptyMsg: 'No found dogs reported here yet.' },
+    missing: { label: 'Missing', emptyMsg: 'No missing pets reported here — good news.' },
+    found: { label: 'Found', emptyMsg: 'No found pets reported here yet.' },
   };
 
   return (
@@ -237,7 +237,7 @@ export default function LostDogsPage() {
                       />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
-                          {r.dog_name || (isMissing ? 'Missing dog' : 'Found dog')}
+                          {r.pet_name || (isMissing ? 'Missing pet' : 'Found pet')}
                         </p>
                         <p className="text-2xs text-gray-500 dark:text-gray-400">
                           {isMissing ? 'Missing' : 'Found'} · <TimeAgo value={r.created_at} />
@@ -286,10 +286,10 @@ function ReportPopup({
     <div className="flex flex-col">
       {/* Header strip: photo (if any) + title block */}
       <div className="flex gap-3">
-        {report.dog_photo_url ? (
+        {report.pet_photo_url ? (
           <img
-            src={report.dog_photo_url}
-            alt={report.dog_name ?? 'Dog'}
+            src={report.pet_photo_url}
+            alt={report.pet_name ?? 'Pet'}
             className="h-14 w-14 flex-shrink-0 rounded-lg object-cover"
           />
         ) : (
@@ -321,10 +321,10 @@ function ReportPopup({
             )}
           </div>
           <p className="font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">
-            {report.dog_name || 'Unknown dog'}
+            {report.pet_name || 'Unknown pet'}
           </p>
-          {report.dog_breed && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{report.dog_breed}</p>
+          {report.pet_breed && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{report.pet_breed}</p>
           )}
           <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
             <TimeAgo value={report.created_at} />

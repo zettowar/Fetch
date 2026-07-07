@@ -9,13 +9,13 @@ from sqlalchemy.orm import selectinload
 from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.photo import Photo
 from app.models.post import Post
 from app.models.social import Comment, Follow, Reaction
 from app.models.user import User
 from app.services.blocks import is_blocked_between
-from app.services.dog_serializer import dog_to_out as _dog_to_out
+from app.services.pet_serializer import pet_to_out as _pet_to_out
 from app.services.notify import notify
 from app.schemas.social import (
     CommentCreate,
@@ -34,22 +34,22 @@ router = APIRouter()
 
 @router.post("/follows", response_model=FollowOut, status_code=status.HTTP_201_CREATED)
 @limiter.limit("60/minute")
-async def follow_dog(
+async def follow_pet(
     request: Request,
     body: FollowToggle,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Verify dog exists
-    result = await db.execute(select(Dog).where(Dog.id == body.dog_id, Dog.is_active == True))
-    dog = result.scalar_one_or_none()
-    if not dog:
-        raise HTTPException(status_code=404, detail="Dog not found")
-    if await is_blocked_between(db, user.id, dog.owner_id):
-        # Indistinguishable from a nonexistent dog on purpose.
-        raise HTTPException(status_code=404, detail="Dog not found")
+    # Verify pet exists
+    result = await db.execute(select(Pet).where(Pet.id == body.pet_id, Pet.is_active == True))
+    pet = result.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet not found")
+    if await is_blocked_between(db, user.id, pet.owner_id):
+        # Indistinguishable from a nonexistent pet on purpose.
+        raise HTTPException(status_code=404, detail="Pet not found")
 
-    follow = Follow(follower_id=user.id, dog_id=body.dog_id)
+    follow = Follow(follower_id=user.id, pet_id=body.pet_id)
     db.add(follow)
     # Flush BEFORE notify(): its preference lookup would autoflush the row
     # anyway, and a uq_follow violation must surface here as a clean 409.
@@ -57,37 +57,37 @@ async def follow_dog(
         await db.flush()
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=409, detail="Already following this dog")
-    if dog.owner_id != user.id:
+        raise HTTPException(status_code=409, detail="Already following this pet")
+    if pet.owner_id != user.id:
         await notify(
-            db, dog.owner_id,
+            db, pet.owner_id,
             type="follow",
-            title=f"{user.display_name} started following {dog.name}",
-            link=f"/app/dogs/{dog.id}",
+            title=f"{user.display_name} started following {pet.name}",
+            link=f"/app/pets/{pet.id}",
         )
     await db.commit()
     await db.refresh(follow)
     return FollowOut(
         id=follow.id,
         follower_id=follow.follower_id,
-        dog_id=follow.dog_id,
+        pet_id=follow.pet_id,
         created_at=follow.created_at,
-        dog=None,
+        pet=None,
     )
 
 
-@router.delete("/follows/{dog_id}")
-async def unfollow_dog(
-    dog_id: UUID,
+@router.delete("/follows/{pet_id}")
+async def unfollow_pet(
+    pet_id: UUID,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Follow).where(Follow.follower_id == user.id, Follow.dog_id == dog_id)
+        select(Follow).where(Follow.follower_id == user.id, Follow.pet_id == pet_id)
     )
     follow = result.scalar_one_or_none()
     if not follow:
-        raise HTTPException(status_code=404, detail="Not following this dog")
+        raise HTTPException(status_code=404, detail="Not following this pet")
     await db.delete(follow)
     await db.commit()
     return {"detail": "Unfollowed"}
@@ -101,9 +101,9 @@ async def my_follows(
     result = await db.execute(
         select(Follow)
         .options(
-            selectinload(Follow.dog).selectinload(Dog.photos),
-            selectinload(Follow.dog).selectinload(Dog.breeds),
-            selectinload(Follow.dog).selectinload(Dog.owner).selectinload(User.rescue_profile),
+            selectinload(Follow.pet).selectinload(Pet.photos),
+            selectinload(Follow.pet).selectinload(Pet.breeds),
+            selectinload(Follow.pet).selectinload(Pet.owner).selectinload(User.rescue_profile),
         )
         .where(Follow.follower_id == user.id)
         .order_by(Follow.created_at.desc())
@@ -113,35 +113,35 @@ async def my_follows(
         FollowOut(
             id=f.id,
             follower_id=f.follower_id,
-            dog_id=f.dog_id,
+            pet_id=f.pet_id,
             created_at=f.created_at,
-            dog=_dog_to_out(f.dog) if f.dog and f.dog.is_active else None,
+            pet=_pet_to_out(f.pet) if f.pet and f.pet.is_active else None,
         )
         for f in follows
     ]
 
 
-@router.get("/dogs/{dog_id}/followers/count")
+@router.get("/pets/{pet_id}/followers/count")
 async def follower_count(
-    dog_id: UUID,
+    pet_id: UUID,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     count_result = await db.execute(
-        select(func.count()).where(Follow.dog_id == dog_id)
+        select(func.count()).where(Follow.pet_id == pet_id)
     )
     count = count_result.scalar() or 0
 
     # Check if current user follows
     is_following_result = await db.execute(
-        select(Follow).where(Follow.follower_id == user.id, Follow.dog_id == dog_id)
+        select(Follow).where(Follow.follower_id == user.id, Follow.pet_id == pet_id)
     )
     is_following = is_following_result.scalar_one_or_none() is not None
 
     return {"count": count, "is_following": is_following}
 
 
-_TARGET_MODELS = {"photo": Photo, "post": Post, "dog": Dog}
+_TARGET_MODELS = {"photo": Photo, "post": Post, "pet": Pet}
 
 
 async def _require_target(db: AsyncSession, target_type: str, target_id: UUID) -> None:
@@ -157,18 +157,18 @@ async def _comment_notification_context(
     db: AsyncSession, target_type: str, target_id: UUID
 ) -> tuple[UUID | None, str, str | None]:
     """Who to tell about a comment, plus display label and in-app link."""
-    if target_type == "dog":
-        dog = (await db.execute(select(Dog).where(Dog.id == target_id))).scalar_one_or_none()
-        if dog:
-            return dog.owner_id, dog.name, f"/app/dogs/{dog.id}"
+    if target_type == "pet":
+        pet = (await db.execute(select(Pet).where(Pet.id == target_id))).scalar_one_or_none()
+        if pet:
+            return pet.owner_id, pet.name, f"/app/pets/{pet.id}"
     elif target_type == "photo":
         row = (
             await db.execute(
-                select(Dog).join(Photo, Photo.dog_id == Dog.id).where(Photo.id == target_id)
+                select(Pet).join(Photo, Photo.pet_id == Pet.id).where(Photo.id == target_id)
             )
         ).scalar_one_or_none()
         if row:
-            return row.owner_id, f"a photo of {row.name}", f"/app/dogs/{row.id}"
+            return row.owner_id, f"a photo of {row.name}", f"/app/pets/{row.id}"
     elif target_type == "post":
         post = (await db.execute(select(Post).where(Post.id == target_id))).scalar_one_or_none()
         if post:
@@ -374,16 +374,16 @@ async def get_user_profile(
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Dog count
-    dog_count_result = await db.execute(
-        select(func.count()).where(Dog.owner_id == user_id, Dog.is_active == True)
+    # Pet count
+    pet_count_result = await db.execute(
+        select(func.count()).where(Pet.owner_id == user_id, Pet.is_active == True)
     )
-    dog_count = dog_count_result.scalar() or 0
+    pet_count = pet_count_result.scalar() or 0
 
-    # Follower count (total followers across all their dogs)
+    # Follower count (total followers across all their pets)
     follower_count_result = await db.execute(
         select(func.count(func.distinct(Follow.follower_id))).where(
-            Follow.dog_id.in_(select(Dog.id).where(Dog.owner_id == user_id))
+            Follow.pet_id.in_(select(Pet.id).where(Pet.owner_id == user_id))
         )
     )
     follower_count = follower_count_result.scalar() or 0
@@ -393,6 +393,6 @@ async def get_user_profile(
         display_name=target_user.display_name,
         location_rough=target_user.location_rough,
         created_at=target_user.created_at,
-        dog_count=dog_count,
+        pet_count=pet_count,
         follower_count=follower_count,
     )

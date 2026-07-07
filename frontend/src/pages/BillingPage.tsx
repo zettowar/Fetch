@@ -10,7 +10,7 @@ const PERKS: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Undo2, title: 'Unlimited rewinds', body: 'Undo any swipe — no time limit, no daily cap.' },
   { icon: PawPrint, title: 'Unlimited daily swipes', body: 'Free users get 50/day. Pack+ removes the limit.' },
   { icon: Ban, title: 'No ads', body: 'No banners, no rewarded videos, no interruptions.' },
-  { icon: Trophy, title: 'Priority winners', body: 'Earlier visibility on the weekly top-dog feed.' },
+  { icon: Trophy, title: 'Priority winners', body: 'Earlier visibility on the weekly top-pet feed.' },
 ];
 
 export default function BillingPage() {

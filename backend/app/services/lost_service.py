@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.lost_report import (
     LostReport,
     LostReportSubscription,
@@ -60,8 +60,8 @@ async def get_nearby_reports(
         select(LostReport)
         .options(
             selectinload(LostReport.photos),
-            selectinload(LostReport.dog).selectinload(Dog.photos),
-            selectinload(LostReport.dog).selectinload(Dog.breeds),
+            selectinload(LostReport.pet).selectinload(Pet.photos),
+            selectinload(LostReport.pet).selectinload(Pet.breeds),
         )
         .where(
             LostReport.status == "open",

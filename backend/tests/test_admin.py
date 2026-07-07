@@ -50,9 +50,9 @@ async def test_admin_reinstate_user(client: AsyncClient, admin_headers: dict):
 
 @pytest.mark.asyncio
 async def test_admin_review_report(client: AsyncClient, admin_headers: dict, auth_headers: dict):
-    # Create a dog to report
-    dog_res = await client.post("/api/v1/dogs", json={"name": "ReportedDog"}, headers=auth_headers)
-    dog_id = dog_res.json()["id"]
+    # Create a pet to report
+    pet_res = await client.post("/api/v1/pets", json={"name": "ReportedDog"}, headers=auth_headers)
+    pet_id = pet_res.json()["id"]
 
     # Create a reporter
     email = f"reviewer-{uuid.uuid4().hex[:8]}@fetchapp.dev"
@@ -63,7 +63,7 @@ async def test_admin_review_report(client: AsyncClient, admin_headers: dict, aut
 
     # File a report
     report_res = await client.post("/api/v1/reports", json={
-        "target_type": "dog", "target_id": dog_id, "reason": "test report"
+        "target_type": "pet", "target_id": pet_id, "reason": "test report"
     }, headers=reporter_headers)
     report_id = report_res.json()["id"]
 
@@ -80,7 +80,7 @@ async def test_admin_review_report(client: AsyncClient, admin_headers: dict, aut
 
 @pytest.mark.asyncio
 async def test_suspension_cascades_to_dogs(client: AsyncClient, admin_headers: dict):
-    """Suspending hides the user's dogs; reinstating revives exactly those."""
+    """Suspending hides the user's pets; reinstating revives exactly those."""
     email = f"cascade-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     signup_res = await client.post("/api/v1/auth/signup", json={
         "email": email, "password": "password123", "display_name": "Cascade"
@@ -89,23 +89,23 @@ async def test_suspension_cascades_to_dogs(client: AsyncClient, admin_headers: d
     headers = {"Authorization": f"Bearer {signup_res.json()['tokens']['access_token']}"}
 
     active_dog = (await client.post(
-        "/api/v1/dogs", json={"name": "ActivePup"}, headers=headers
+        "/api/v1/pets", json={"name": "ActivePup"}, headers=headers
     )).json()["id"]
-    # A dog the admin deactivated separately must NOT revive on reinstate.
+    # A pet the admin deactivated separately must NOT revive on reinstate.
     pre_deactivated = (await client.post(
-        "/api/v1/dogs", json={"name": "AlreadyHidden"}, headers=headers
+        "/api/v1/pets", json={"name": "AlreadyHidden"}, headers=headers
     )).json()["id"]
-    await client.post(f"/api/v1/admin/dogs/{pre_deactivated}/deactivate", headers=admin_headers)
+    await client.post(f"/api/v1/admin/pets/{pre_deactivated}/deactivate", headers=admin_headers)
 
     await client.post(f"/api/v1/admin/users/{user_id}/suspend", headers=admin_headers)
-    res = await client.get(f"/api/v1/dogs/{active_dog}", headers=admin_headers)
-    assert res.status_code == 404, "suspended user's dog must be hidden"
+    res = await client.get(f"/api/v1/pets/{active_dog}", headers=admin_headers)
+    assert res.status_code == 404, "suspended user's pet must be hidden"
 
     await client.post(f"/api/v1/admin/users/{user_id}/reinstate", headers=admin_headers)
-    res = await client.get(f"/api/v1/dogs/{active_dog}", headers=admin_headers)
-    assert res.status_code == 200, "reinstatement must revive the cascaded dog"
-    res = await client.get(f"/api/v1/dogs/{pre_deactivated}", headers=admin_headers)
-    assert res.status_code == 404, "separately-deactivated dog must stay hidden"
+    res = await client.get(f"/api/v1/pets/{active_dog}", headers=admin_headers)
+    assert res.status_code == 200, "reinstatement must revive the cascaded pet"
+    res = await client.get(f"/api/v1/pets/{pre_deactivated}", headers=admin_headers)
+    assert res.status_code == 404, "separately-deactivated pet must stay hidden"
 
 
 @pytest.mark.asyncio
@@ -117,8 +117,8 @@ async def test_strike_suspension_at_exactly_three(client: AsyncClient, admin_hea
     })
     target_id = signup_res.json()["user"]["id"]
     target_headers = {"Authorization": f"Bearer {signup_res.json()['tokens']['access_token']}"}
-    dog_res = await client.post("/api/v1/dogs", json={"name": "StrikeDog"}, headers=target_headers)
-    dog_id = dog_res.json()["id"]
+    pet_res = await client.post("/api/v1/pets", json={"name": "StrikeDog"}, headers=target_headers)
+    pet_id = pet_res.json()["id"]
 
     async def strike_once() -> None:
         reporter_email = f"striker-{uuid.uuid4().hex[:8]}@fetchapp.dev"
@@ -127,7 +127,7 @@ async def test_strike_suspension_at_exactly_three(client: AsyncClient, admin_hea
         })
         reporter_headers = {"Authorization": f"Bearer {r.json()['tokens']['access_token']}"}
         report_res = await client.post("/api/v1/reports", json={
-            "target_type": "dog", "target_id": dog_id, "reason": "strike test"
+            "target_type": "pet", "target_id": pet_id, "reason": "strike test"
         }, headers=reporter_headers)
         assert report_res.status_code == 201, report_res.text
         review_res = await client.post(
@@ -149,9 +149,9 @@ async def test_strike_suspension_at_exactly_three(client: AsyncClient, admin_hea
     await strike_once()
     assert not await target_is_active(), "3rd strike must suspend"
 
-    # Auto-suspension cascades to the user's dogs like a manual one.
-    dog_res = await client.get(f"/api/v1/dogs/{dog_id}", headers=admin_headers)
-    assert dog_res.status_code == 404
+    # Auto-suspension cascades to the user's pets like a manual one.
+    pet_res = await client.get(f"/api/v1/pets/{pet_id}", headers=admin_headers)
+    assert pet_res.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -200,11 +200,11 @@ async def test_admin_user_reports_filed(client: AsyncClient, admin_headers: dict
     a_headers = {"Authorization": f"Bearer {a.json()['tokens']['access_token']}"}
     b_headers = {"Authorization": f"Bearer {b.json()['tokens']['access_token']}"}
 
-    # B creates a dog, A reports it.
-    dog = await client.post("/api/v1/dogs", json={"name": "SubjectDog"}, headers=b_headers)
-    dog_id = dog.json()["id"]
+    # B creates a pet, A reports it.
+    pet = await client.post("/api/v1/pets", json={"name": "SubjectDog"}, headers=b_headers)
+    pet_id = pet.json()["id"]
     await client.post("/api/v1/reports", json={
-        "target_type": "dog", "target_id": dog_id, "reason": "test"
+        "target_type": "pet", "target_id": pet_id, "reason": "test"
     }, headers=a_headers)
 
     # A's reports-filed should contain the report; B's should not.
@@ -220,8 +220,8 @@ async def test_admin_user_reports_filed(client: AsyncClient, admin_headers: dict
 
 @pytest.mark.asyncio
 async def test_admin_user_reports_against(client: AsyncClient, admin_headers: dict):
-    """Reports-against endpoint resolves target via direct + dog-ownership paths."""
-    # Owner creates a dog. Reporter files a report against the dog.
+    """Reports-against endpoint resolves target via direct + pet-ownership paths."""
+    # Owner creates a pet. Reporter files a report against the pet.
     owner = await client.post("/api/v1/auth/signup", json={
         "email": f"owner-{uuid.uuid4().hex[:8]}@fetchapp.dev",
         "password": "password123", "display_name": "Owner",
@@ -235,17 +235,17 @@ async def test_admin_user_reports_against(client: AsyncClient, admin_headers: di
     })
     reporter_headers = {"Authorization": f"Bearer {reporter.json()['tokens']['access_token']}"}
 
-    dog = await client.post("/api/v1/dogs", json={"name": "TargetDog"}, headers=owner_headers)
-    dog_id = dog.json()["id"]
+    pet = await client.post("/api/v1/pets", json={"name": "TargetDog"}, headers=owner_headers)
+    pet_id = pet.json()["id"]
     await client.post("/api/v1/reports", json={
-        "target_type": "dog", "target_id": dog_id, "reason": "bad"
+        "target_type": "pet", "target_id": pet_id, "reason": "bad"
     }, headers=reporter_headers)
 
     res = await client.get(f"/api/v1/admin/users/{owner_id}/reports-against", headers=admin_headers)
     assert res.status_code == 200
     body = res.json()
     assert len(body) >= 1
-    assert any(r["target_type"] == "dog" and r["target_id"] == dog_id for r in body)
+    assert any(r["target_type"] == "pet" and r["target_id"] == pet_id for r in body)
 
 
 @pytest.mark.asyncio

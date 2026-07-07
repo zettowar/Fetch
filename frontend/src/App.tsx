@@ -16,7 +16,7 @@ import MissionPage from './marketing/MissionPage';
 import NewsPage from './marketing/NewsPage';
 import PrivacyPage from './marketing/PrivacyPage';
 import TermsPage from './marketing/TermsPage';
-import PublicDogPage from './marketing/PublicDogPage';
+import PublicPetPage from './marketing/PublicPetPage';
 import AuthLayout from './marketing/AuthLayout';
 
 // Auth screens
@@ -27,7 +27,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ConfirmEmailChangePage from './pages/ConfirmEmailChangePage';
-import LikedDogsPage from './pages/LikedDogsPage';
+import LikedPetsPage from './pages/LikedPetsPage';
 
 // Authenticated app pages
 import RescueDashboardPage from './pages/RescueDashboardPage';
@@ -35,11 +35,11 @@ import RescueDetailPage from './pages/RescueDetailPage';
 import TransfersPage from './pages/TransfersPage';
 import HomePage from './pages/HomePage';
 import SwipePage from './pages/SwipePage';
-import MyDogsPage from './pages/MyDogsPage';
-import DogEditorPage from './pages/DogEditorPage';
-import DogDetailPage from './pages/DogDetailPage';
+import MyPetsPage from './pages/MyPetsPage';
+import PetEditorPage from './pages/PetEditorPage';
+import PetDetailPage from './pages/PetDetailPage';
 import RankingsPage from './pages/RankingsPage';
-import LostDogsPage from './pages/LostDogsPage';
+import LostPetsPage from './pages/LostPetsPage';
 import ReportMissingPage from './pages/ReportMissingPage';
 import ReportFoundPage from './pages/ReportFoundPage';
 import LostReportDetailPage from './pages/LostReportDetailPage';
@@ -125,8 +125,8 @@ function AppContent() {
           <Route path="/news" element={<NewsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
-          {/* Public read-only dog share page — no session required. */}
-          <Route path="/dogs/:dogId" element={<PublicDogPage />} />
+          {/* Public read-only pet share page — no session required. */}
+          <Route path="/pets/:petId" element={<PublicPetPage />} />
           {/* Unknown public URL — 404 inside the site chrome. */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
@@ -154,12 +154,12 @@ function AppContent() {
           <Route path="profile/edit" element={<ProfileEditPage />} />
           <Route path="home" element={<HomePage />} />
           <Route path="swipe" element={<SwipePage />} />
-          <Route path="dogs" element={<MyDogsPage />} />
-          <Route path="dogs/new" element={<DogEditorPage />} />
-          <Route path="dogs/:id" element={<DogDetailPage />} />
-          <Route path="dogs/:id/edit" element={<DogEditorPage />} />
+          <Route path="pets" element={<MyPetsPage />} />
+          <Route path="pets/new" element={<PetEditorPage />} />
+          <Route path="pets/:id" element={<PetDetailPage />} />
+          <Route path="pets/:id/edit" element={<PetEditorPage />} />
           <Route path="rankings" element={<RankingsPage />} />
-          <Route path="lost" element={<LostDogsPage />} />
+          <Route path="lost" element={<LostPetsPage />} />
           <Route path="lost/report-missing" element={<ReportMissingPage />} />
           <Route path="lost/report-found" element={<ReportFoundPage />} />
           <Route path="lost/:id" element={<LostReportDetailPage />} />
@@ -179,7 +179,7 @@ function AppContent() {
           <Route path="rescues/:id" element={<RescueDetailPage />} />
           <Route path="rescue/dashboard" element={<RescueDashboardPage />} />
           <Route path="transfers" element={<TransfersPage />} />
-          <Route path="liked" element={<LikedDogsPage />} />
+          <Route path="liked" element={<LikedPetsPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="donate" element={<DonatePage />} />
           <Route path="donate/success" element={<DonateReturnPage />} />

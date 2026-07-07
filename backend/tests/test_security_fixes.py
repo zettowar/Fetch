@@ -1,7 +1,7 @@
 """Regression tests for the Phase 1 security fixes.
 
 Covers: path-traversal in LocalStorage, lost-report status mass-assignment,
-and lost-dog sighting coordinate privacy fuzzing.
+and lost-pet sighting coordinate privacy fuzzing.
 """
 import pytest
 from httpx import AsyncClient
@@ -89,7 +89,7 @@ async def test_sighting_coords_fuzzed_for_non_owner(
 
     add = await client.post(
         f"/api/v1/lost/reports/{report['id']}/sightings",
-        data={"lat": str(exact_lat), "lng": str(exact_lng), "note": "saw the dog"},
+        data={"lat": str(exact_lat), "lng": str(exact_lng), "note": "saw the pet"},
         headers=auth_headers,
     )
     assert add.status_code == 201, add.text

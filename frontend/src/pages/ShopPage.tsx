@@ -83,7 +83,7 @@ export default function ShopPage() {
         )}
       </div>
       <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">
-        Branded gear for you and your dog. Every order ships carbon-neutral.
+        Branded gear for you and your pet. Every order ships carbon-neutral.
       </p>
 
       {isLoading && (

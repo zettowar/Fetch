@@ -1,4 +1,4 @@
-"""Coverage for the lost-dog proximity-alert Celery task.
+"""Coverage for the lost-pet proximity-alert Celery task.
 
 We exercise the underlying async helper `_send_alerts` directly — the Celery
 wrapper is a 1-line `asyncio.run()` shim. The helper takes an injectable

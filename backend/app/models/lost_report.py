@@ -22,8 +22,8 @@ class LostReport(Base, UUIDPrimaryKey, TimestampMixin):
     reporter_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    dog_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dogs.id", ondelete="SET NULL"), nullable=True
+    pet_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pets.id", ondelete="SET NULL"), nullable=True
     )
     kind: Mapped[str] = mapped_column(String(20), nullable=False, index=True)  # missing | found
     status: Mapped[str] = mapped_column(
@@ -43,7 +43,7 @@ class LostReport(Base, UUIDPrimaryKey, TimestampMixin):
 
     # Relationships
     reporter = relationship("User", foreign_keys=[reporter_id])
-    dog = relationship("Dog", foreign_keys=[dog_id])
+    pet = relationship("Pet", foreign_keys=[pet_id])
     photos = relationship("LostReportPhoto", back_populates="report", cascade="all, delete-orphan")
     sightings = relationship(
         "LostReportSighting", back_populates="report", cascade="all, delete-orphan"

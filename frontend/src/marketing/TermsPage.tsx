@@ -41,19 +41,19 @@ export default function TermsPage() {
           <p>
             Your photos and words stay yours. By posting them you give us
             permission to host, resize, and display them so the app works
-            (that's what a feed is). Only post dogs you own, or, for rescue
-            accounts, dogs your organization is authorized to list. Delete
+            (that's what a feed is). Only post pets you own, or, for rescue
+            accounts, pets your organization is authorized to list. Delete
             your content or account whenever you like.
           </p>
         </LegalSection>
 
         <LegalSection title="Behavior">
           <p>
-            Be the person your dog thinks you are. Specifically, don't:
+            Be the person your pet thinks you are. Specifically, don't:
           </p>
           <ul className="list-disc pl-5 space-y-2 mt-3">
             <li>harass other users or post content that's hateful, explicit, or illegal;</li>
-            <li>file false lost-dog reports or fake sightings;</li>
+            <li>file false lost-pet reports or fake sightings;</li>
             <li>pose as a rescue you don't represent;</li>
             <li>scrape the service or use it to spam people.</li>
           </ul>
@@ -67,7 +67,7 @@ export default function TermsPage() {
         <LegalSection title="Rescue accounts">
           <p>
             Rescue accounts are reviewed and approved by hand before listing
-            dogs. Keep listings accurate, mark dogs adopted promptly, and
+            pets. Keep listings accurate, mark pets adopted promptly, and
             treat adopter inquiries with care. We can revoke approval if a
             rescue account is misused.
           </p>
@@ -76,9 +76,9 @@ export default function TermsPage() {
         <LegalSection title="Lost & Found">
           <p>
             Lost & Found runs on community reports. We can't guarantee a
-            sighting is accurate or that a lost dog will be found, and Fetch
-            shouldn't be your only channel when a dog is missing. Use normal
-            caution when arranging to meet anyone about a dog.
+            sighting is accurate or that a lost pet will be found, and Fetch
+            shouldn't be your only channel when a pet is missing. Use normal
+            caution when arranging to meet anyone about a pet.
           </p>
         </LegalSection>
 

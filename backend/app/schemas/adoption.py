@@ -12,7 +12,7 @@ class AdoptionInquiryCreate(BaseModel):
     email: EmailStr
     phone: str | None = None
     message: str
-    dog_id: UUID | None = None
+    pet_id: UUID | None = None
 
     @field_validator("name", "message")
     @classmethod
@@ -52,7 +52,7 @@ class AdoptionInquiryStatusUpdate(BaseModel):
 class AdoptionInquiryOut(BaseModel):
     id: UUID
     rescue_id: UUID
-    dog_id: UUID | None = None
+    pet_id: UUID | None = None
     inquirer_id: UUID
     name: str
     email: str

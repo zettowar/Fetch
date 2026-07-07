@@ -11,27 +11,27 @@ import PawTrail from '../components/flair/PawTrail';
 
 const OWNER_FEATURES = [
   { icon: '❤️', title: 'Swipe & rate', body: 'A Tinder-style feed of good boys and girls. One tap, one vote.' },
-  { icon: '🏆', title: 'Weekly top dog', body: 'Votes reset every Monday, so every dog gets a fresh shot at the crown.' },
-  { icon: '🚨', title: 'Lost & Found', body: "If a dog goes missing nearby, you'll know. Sightings go straight to the owner." },
-  { icon: '🐾', title: 'Follow your faves', body: 'Some dogs you just need to see again. Follow them and you will.' },
+  { icon: '🏆', title: 'Weekly top pet', body: 'Votes reset every Monday, so every pet gets a fresh shot at the crown.' },
+  { icon: '🚨', title: 'Lost & Found', body: "If a pet goes missing nearby, you'll know. Sightings go straight to the owner." },
+  { icon: '🐾', title: 'Follow your faves', body: 'Some pets you just need to see again. Follow them and you will.' },
 ];
 
 const RESCUE_FEATURES = [
-  { icon: '🏠', title: 'List adoptables', body: 'Give each dog photos, traits, and a story. They appear in the same feed as everyone else.' },
+  { icon: '🏠', title: 'List adoptables', body: 'Give each pet photos, traits, and a story. They appear in the same feed as everyone else.' },
   { icon: '💬', title: 'Manage inquiries', body: 'Inbound interest, organized. Status, notes, and history in one place.' },
   { icon: '🗺️', title: 'Map presence', body: 'Your organization shows up on the rescue map, so nearby adopters can find you.' },
-  { icon: '🤝', title: 'Smooth handoff', body: 'Mark adoptions complete or transfer a dog to its new family on Fetch.' },
+  { icon: '🤝', title: 'Smooth handoff', body: 'Mark adoptions complete or transfer a pet to its new family on Fetch.' },
 ];
 
 const SITE_TEASERS = [
   { to: '/about', emoji: '🐕', eyebrow: 'About us', title: 'The people behind Fetch', body: "Who we are, and why this started in a group chat full of shelter listings." },
-  { to: '/mission', emoji: '🎯', eyebrow: 'Our mission', title: 'Why Fetch exists', body: "Shelter dogs wait too long for homes. Here's what we're doing about it." },
+  { to: '/mission', emoji: '🎯', eyebrow: 'Our mission', title: 'Why Fetch exists', body: "Shelter pets wait too long for homes. Here's what we're doing about it." },
   { to: '/news', emoji: '📰', eyebrow: 'News', title: 'Latest updates', body: 'Short notes from the team as we get Fetch ready.' },
 ];
 
 export default function MarketingHome() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  useDocumentTitle('Fetch · The dog app that gets rescues adopted');
+  useDocumentTitle('Fetch · The app that gets cats and dogs adopted');
 
   if (isLoading) {
     return (
@@ -70,12 +70,12 @@ export default function MarketingHome() {
               </h1>
 
               <p className="mt-5 text-xl sm:text-2xl font-bold text-white/85 text-balance">
-                Rate good dogs. Crown the top pup.
+                Rate good cats and dogs. Crown the weekly top pet.
               </p>
 
               <p className="mt-4 mx-auto lg:mx-0 max-w-xl text-base sm:text-lg text-white/85 leading-relaxed text-balance">
-                Swipe through the neighborhood's dogs and crown a weekly
-                champion. Adoptable rescue dogs are in the deck, and if a dog
+                Swipe through the neighborhood's cats and dogs and crown a weekly
+                champion. Adoptable rescue pets are in the deck, and if a pet
                 goes missing nearby, the whole neighborhood hears about it.
                 We're putting the final touches on it now.
               </p>
@@ -117,10 +117,10 @@ export default function MarketingHome() {
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           <AudienceCard
             accent="brand"
-            eyebrow="Dog owners"
+            eyebrow="Pet owners"
             iconEmoji="🐶"
             title="Rate, follow, find."
-            body="Swipe the feed, follow your favorites, and vote for a weekly top dog. Lost & Found is built in for the days you hope never come."
+            body="Swipe the feed, follow your favorites, and vote for a weekly top pet. Lost & Found is built in for the days you hope never come."
             tag="Coming soon"
           />
           <AudienceCard
@@ -128,7 +128,7 @@ export default function MarketingHome() {
             eyebrow="Rescues & partners"
             iconEmoji="🏠"
             title="Reach adopters where they swipe."
-            body="List adoptable dogs in the feed people actually open, and keep every inquiry out of your spreadsheet."
+            body="List adoptable pets in the feed people actually open, and keep every inquiry out of your spreadsheet."
             tag="Applications open"
             tagTo="/signup-rescue"
           />
@@ -138,7 +138,7 @@ export default function MarketingHome() {
       {/* ── Owner features ─────────────────────────────────────── */}
       <section className="bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-          <SectionHeading accent="brand" eyebrow="For dog owners" title="The daily dog fix" />
+          <SectionHeading accent="brand" eyebrow="For pet owners" title="The daily pet fix" />
           <FeatureGrid features={OWNER_FEATURES} />
         </div>
       </section>
@@ -308,11 +308,11 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
 }
 
 /**
- * Faithful static preview of the real "Rate My Dog" swipe screen, shown inside
+ * Faithful static preview of the real "Rate My Pet" swipe screen, shown inside
  * a phone frame so the whole screen — card AND controls — is contained, the way
  * it is in the app. Mirrors SwipeCard + the SwipeDeck controls verbatim: Pass is
  * a downward-rotated paw, Like is a heart. There is deliberately no thumbs-down
- * — you never vote a dog down. Non-interactive; a mockup of what's coming.
+ * — you never vote a pet down. Non-interactive; a mockup of what's coming.
  */
 function AppPreview() {
   const reduceMotion = useReducedMotion();
@@ -337,7 +337,7 @@ function AppPreview() {
           <div className="px-4 pt-6 pb-5">
             {/* SwipePage heading */}
             <h4 className="text-center text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Rate My Dog
+              Rate My Pet
             </h4>
 
             {/* Card — mirrors SwipeCard */}

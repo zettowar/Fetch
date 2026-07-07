@@ -114,7 +114,7 @@ export default function NavBar() {
     user?.role === 'rescue'
       ? [
           { path: '/app/rescue/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { path: '/app/dogs/new', label: 'Post', icon: CirclePlus },
+          { path: '/app/pets/new', label: 'Post', icon: CirclePlus },
           { path: '/app/lost', label: 'Lost', icon: Siren },
           { path: `/app/users/${user.id}`, label: 'Profile', icon: UserRound },
         ]

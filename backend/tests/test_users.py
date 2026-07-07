@@ -65,20 +65,20 @@ async def test_delete_account_deactivates_user(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_account_deactivates_dogs(client: AsyncClient, auth_headers: dict):
-    """Deleting an account also deactivates their dogs (inactive dogs return 404 to others)."""
+    """Deleting an account also deactivates their pets (inactive pets return 404 to others)."""
     headers = await _fresh_user(client)
 
-    # Create a dog under the fresh user
-    dog_res = await client.post("/api/v1/dogs", json={"name": "Doomed Dog"}, headers=headers)
-    assert dog_res.status_code == 201
-    dog_id = dog_res.json()["id"]
+    # Create a pet under the fresh user
+    pet_res = await client.post("/api/v1/pets", json={"name": "Doomed Pet"}, headers=headers)
+    assert pet_res.status_code == 201
+    pet_id = pet_res.json()["id"]
 
     # Delete the fresh user's account
     del_res = await client.delete("/api/v1/users/me", headers=headers)
     assert del_res.status_code == 200
 
-    # A different authenticated user should now get 404 for the inactive dog
-    get_res = await client.get(f"/api/v1/dogs/{dog_id}", headers=auth_headers)
+    # A different authenticated user should now get 404 for the inactive pet
+    get_res = await client.get(f"/api/v1/pets/{pet_id}", headers=auth_headers)
     assert get_res.status_code == 404
 
 

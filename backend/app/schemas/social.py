@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
-from app.schemas.dog import DogOut
+from app.schemas.pet import PetOut
 
 
 # --- Follows ---
@@ -11,15 +11,15 @@ from app.schemas.dog import DogOut
 class FollowOut(BaseModel):
     id: UUID
     follower_id: UUID
-    dog_id: UUID
+    pet_id: UUID
     created_at: datetime
-    dog: DogOut | None = None
+    pet: PetOut | None = None
 
     model_config = {"from_attributes": True}
 
 
 class FollowToggle(BaseModel):
-    dog_id: UUID
+    pet_id: UUID
 
 
 # --- Comments ---
@@ -32,8 +32,8 @@ class CommentCreate(BaseModel):
     @field_validator("target_type")
     @classmethod
     def valid_target(cls, v: str) -> str:
-        if v not in ("photo", "post", "dog"):
-            raise ValueError("target_type must be 'photo', 'post', or 'dog'")
+        if v not in ("photo", "post", "pet"):
+            raise ValueError("target_type must be 'photo', 'post', or 'pet'")
         return v
 
     @field_validator("body")
@@ -68,8 +68,8 @@ class ReactionToggle(BaseModel):
     @field_validator("target_type")
     @classmethod
     def valid_target(cls, v: str) -> str:
-        if v not in ("photo", "post", "dog"):
-            raise ValueError("target_type must be 'photo', 'post', or 'dog'")
+        if v not in ("photo", "post", "pet"):
+            raise ValueError("target_type must be 'photo', 'post', or 'pet'")
         return v
 
     @field_validator("kind")
@@ -94,7 +94,7 @@ class UserProfileOut(BaseModel):
     display_name: str
     location_rough: str | None = None
     created_at: datetime
-    dog_count: int = 0
+    pet_count: int = 0
     follower_count: int = 0
 
     model_config = {"from_attributes": True}

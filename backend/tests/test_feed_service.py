@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import pytest
 from httpx import AsyncClient
 
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.photo import Photo
 from app.models.vote import Vote
 from app.services.feed_service import current_week_bucket, get_feed
@@ -36,18 +36,18 @@ async def _signup(client: AsyncClient) -> tuple[uuid.UUID, dict]:
 async def _create_dog_with_photo(
     client: AsyncClient, headers: dict, name: str, *, db_session_factory
 ) -> uuid.UUID:
-    res = await client.post("/api/v1/dogs", json={"name": name}, headers=headers)
-    dog_id = uuid.UUID(res.json()["id"])
-    # Attach an approved photo so the dog passes the has_photo filter.
+    res = await client.post("/api/v1/pets", json={"name": name}, headers=headers)
+    pet_id = uuid.UUID(res.json()["id"])
+    # Attach an approved photo so the pet passes the has_photo filter.
     async with db_session_factory() as db:
         db.add(Photo(
-            dog_id=dog_id,
-            storage_key=f"feedtest/{dog_id}.jpg",
+            pet_id=pet_id,
+            storage_key=f"feedtest/{pet_id}.jpg",
             width=100, height=100, content_type="image/jpeg",
             moderation_status="approved",
         ))
         await db.commit()
-    return dog_id
+    return pet_id
 
 
 @pytest.mark.asyncio
@@ -76,15 +76,15 @@ async def test_get_feed_excludes_own_inactive_adopted_and_voted(client: AsyncCli
     week = current_week_bucket()
     async with test_session_factory() as db:
         # Mark inactive + adopted directly.
-        d1 = await db.get(Dog, inactive_dog)
+        d1 = await db.get(Pet, inactive_dog)
         d1.is_active = False
-        d2 = await db.get(Dog, adopted_dog)
+        d2 = await db.get(Pet, adopted_dog)
         d2.adopted_at = datetime.now(timezone.utc)
         # Record a vote so `voted_dog` is excluded for this viewer this week.
-        db.add(Vote(voter_id=viewer_id, dog_id=voted_dog, value=1, week_bucket=week))
+        db.add(Vote(voter_id=viewer_id, pet_id=voted_dog, value=1, week_bucket=week))
         await db.commit()
 
-        # Query a generous limit since the DB carries dogs from earlier tests.
+        # Query a generous limit since the DB carries pets from earlier tests.
         feed = await get_feed(viewer_id, db, limit=10_000)
 
     feed_ids = {d.id for d in feed}

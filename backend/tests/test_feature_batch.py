@@ -1,4 +1,4 @@
-"""Public share pages, member invites, liked list, dog stats, blocks, and
+"""Public share pages, member invites, liked list, pet stats, blocks, and
 account (password/email change) endpoints."""
 import uuid
 
@@ -20,7 +20,7 @@ async def _make_user(client: AsyncClient, name: str = "Batch User") -> tuple[str
 
 
 async def _make_dog(client: AsyncClient, headers: dict, name: str = "BatchPup") -> str:
-    res = await client.post("/api/v1/dogs", json={"name": name}, headers=headers)
+    res = await client.post("/api/v1/pets", json={"name": name}, headers=headers)
     assert res.status_code == 201, res.text
     return res.json()["id"]
 
@@ -30,9 +30,9 @@ async def _make_dog(client: AsyncClient, headers: dict, name: str = "BatchPup") 
 @pytest.mark.asyncio
 async def test_public_dog_page(client: AsyncClient):
     _, headers, _ = await _make_user(client, "Owner")
-    dog_id = await _make_dog(client, headers, "ShareMe")
+    pet_id = await _make_dog(client, headers, "ShareMe")
 
-    res = await client.get(f"/api/v1/public/dogs/{dog_id}")  # no auth header
+    res = await client.get(f"/api/v1/public/pets/{pet_id}")  # no auth header
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["name"] == "ShareMe"
@@ -44,36 +44,36 @@ async def test_public_dog_page(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_public_dog_respects_is_public_toggle(client: AsyncClient):
     _, headers, _ = await _make_user(client, "Owner")
-    dog_id = await _make_dog(client, headers, "Hidden")
+    pet_id = await _make_dog(client, headers, "Hidden")
 
     off = await client.patch(
-        f"/api/v1/dogs/{dog_id}", json={"is_public": False}, headers=headers
+        f"/api/v1/pets/{pet_id}", json={"is_public": False}, headers=headers
     )
     assert off.status_code == 200
     assert off.json()["is_public"] is False
 
-    res = await client.get(f"/api/v1/public/dogs/{dog_id}")
+    res = await client.get(f"/api/v1/public/pets/{pet_id}")
     assert res.status_code == 404
 
-    await client.patch(f"/api/v1/dogs/{dog_id}", json={"is_public": True}, headers=headers)
-    assert (await client.get(f"/api/v1/public/dogs/{dog_id}")).status_code == 200
+    await client.patch(f"/api/v1/pets/{pet_id}", json={"is_public": True}, headers=headers)
+    assert (await client.get(f"/api/v1/public/pets/{pet_id}")).status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_public_top_dog(client: AsyncClient):
+async def test_public_top_pet(client: AsyncClient):
     from tests.conftest import test_session_factory
     from app.services.ranking_service import pick_current_winner
 
     _, owner_headers, _ = await _make_user(client, "Owner")
-    dog_id = await _make_dog(client, owner_headers, "CrownPub")
+    pet_id = await _make_dog(client, owner_headers, "CrownPub")
     _, voter_headers, _ = await _make_user(client, "Voter")
-    vote = await client.post("/api/v1/votes", json={"dog_id": dog_id, "value": 1}, headers=voter_headers)
+    vote = await client.post("/api/v1/votes", json={"pet_id": pet_id, "value": 1}, headers=voter_headers)
     assert vote.status_code == 201
 
     async with test_session_factory() as db:
         await pick_current_winner(db)
 
-    res = await client.get("/api/v1/public/top-dog")
+    res = await client.get("/api/v1/public/top-pet")
     assert res.status_code == 200
     body = res.json()
     assert body is not None
@@ -114,17 +114,17 @@ async def test_member_invites_allowance_and_consumption(client: AsyncClient, mon
     assert used["is_used"] is True
 
 
-# --- Liked dogs ---
+# --- Liked pets ---
 
 @pytest.mark.asyncio
-async def test_liked_dogs_list(client: AsyncClient):
+async def test_liked_pets_list(client: AsyncClient):
     _, owner_headers, _ = await _make_user(client, "Owner")
     liked_id = await _make_dog(client, owner_headers, "LikedPup")
     passed_id = await _make_dog(client, owner_headers, "PassedPup")
 
     _, voter_headers, _ = await _make_user(client, "Voter")
-    await client.post("/api/v1/votes", json={"dog_id": liked_id, "value": 1}, headers=voter_headers)
-    await client.post("/api/v1/votes", json={"dog_id": passed_id, "value": -1}, headers=voter_headers)
+    await client.post("/api/v1/votes", json={"pet_id": liked_id, "value": 1}, headers=voter_headers)
+    await client.post("/api/v1/votes", json={"pet_id": passed_id, "value": -1}, headers=voter_headers)
 
     res = await client.get("/api/v1/votes/liked", headers=voter_headers)
     assert res.status_code == 200
@@ -133,16 +133,16 @@ async def test_liked_dogs_list(client: AsyncClient):
     assert passed_id not in ids
 
 
-# --- Dog stats (rank + crowns) ---
+# --- Pet stats (rank + crowns) ---
 
 @pytest.mark.asyncio
-async def test_dog_stats_rank_and_crowns(client: AsyncClient):
+async def test_pet_stats_rank_and_crowns(client: AsyncClient):
     _, owner_headers, _ = await _make_user(client, "Owner")
-    dog_id = await _make_dog(client, owner_headers, "StatPup")
+    pet_id = await _make_dog(client, owner_headers, "StatPup")
     _, voter_headers, _ = await _make_user(client, "Voter")
-    await client.post("/api/v1/votes", json={"dog_id": dog_id, "value": 1}, headers=voter_headers)
+    await client.post("/api/v1/votes", json={"pet_id": pet_id, "value": 1}, headers=voter_headers)
 
-    res = await client.get(f"/api/v1/rankings/dogs/{dog_id}/stats", headers=owner_headers)
+    res = await client.get(f"/api/v1/rankings/pets/{pet_id}/stats", headers=owner_headers)
     assert res.status_code == 200
     stats = res.json()
     assert stats["likes"] == 1
@@ -161,9 +161,9 @@ async def test_block_enforcement(client: AsyncClient):
     blocked_id, blocked_headers, _ = await _make_user(client, "Nuisance")
     blocked_dog = await _make_dog(client, blocked_headers, "NuisancePup")
 
-    # Pre-block: the nuisance follows the blocker's dog.
+    # Pre-block: the nuisance follows the blocker's pet.
     follow = await client.post(
-        "/api/v1/social/follows", json={"dog_id": blocker_dog}, headers=blocked_headers
+        "/api/v1/social/follows", json={"pet_id": blocker_dog}, headers=blocked_headers
     )
     assert follow.status_code == 201
 
@@ -172,19 +172,19 @@ async def test_block_enforcement(client: AsyncClient):
 
     # The follow was severed.
     follows = await client.get("/api/v1/social/follows/mine", headers=blocked_headers)
-    assert all(f["dog_id"] != blocker_dog for f in follows.json())
+    assert all(f["pet_id"] != blocker_dog for f in follows.json())
 
     # Neither commenting nor re-following works, and the block isn't disclosed.
     comment = await client.post("/api/v1/social/comments", json={
-        "target_type": "dog", "target_id": blocker_dog, "body": "hi",
+        "target_type": "pet", "target_id": blocker_dog, "body": "hi",
     }, headers=blocked_headers)
     assert comment.status_code == 404
     refollow = await client.post(
-        "/api/v1/social/follows", json={"dog_id": blocker_dog}, headers=blocked_headers
+        "/api/v1/social/follows", json={"pet_id": blocker_dog}, headers=blocked_headers
     )
     assert refollow.status_code == 404
 
-    # The blocker's feed never serves the blocked user's dog.
+    # The blocker's feed never serves the blocked user's pet.
     feed = await client.get("/api/v1/feed/next", headers=blocker_headers)
     assert feed.status_code == 200
     assert all(d["id"] != blocked_dog for d in feed.json())
@@ -194,7 +194,7 @@ async def test_block_enforcement(client: AsyncClient):
     assert any(b["user_id"] == blocked_id for b in blocks.json())
     await client.delete(f"/api/v1/users/{blocked_id}/block", headers=blocker_headers)
     comment = await client.post("/api/v1/social/comments", json={
-        "target_type": "dog", "target_id": blocker_dog, "body": "sorry",
+        "target_type": "pet", "target_id": blocker_dog, "body": "sorry",
     }, headers=blocked_headers)
     assert comment.status_code == 201
 

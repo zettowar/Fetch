@@ -13,14 +13,26 @@ def _not_future_date(v: date | None) -> date | None:
     return v
 
 
-VALID_TRAITS = {
-    "Playful", "Calm", "Energetic", "Good with kids", "Good with dogs",
-    "Loves fetch", "Couch potato", "Swimmer", "Cuddly", "Independent", "Senior",
+# Trait vocabularies are species-aware: a shared core plus species-specific
+# extras. The frontend shows only the subset for the pet's species; the schema
+# validates against the union.
+# Keep in sync with frontend/src/api/pets.ts (DOG_TRAITS / CAT_TRAITS).
+_SHARED_TRAITS = {
+    "Playful", "Calm", "Energetic", "Good with kids", "Cuddly",
+    "Independent", "Senior", "Couch potato", "House trained",
 }
-# Keep in sync with frontend/src/api/dogs.ts DOG_TRAITS
+DOG_TRAITS = _SHARED_TRAITS | {
+    "Good with dogs", "Good with cats", "Loves fetch", "Swimmer", "Leash trained",
+}
+CAT_TRAITS = _SHARED_TRAITS | {
+    "Good with cats", "Good with dogs", "Lap cat", "Mouser", "Indoor only",
+}
+TRAITS_BY_SPECIES = {"dog": DOG_TRAITS, "cat": CAT_TRAITS}
+VALID_TRAITS = DOG_TRAITS | CAT_TRAITS
 
+VALID_SPECIES = {"dog", "cat"}
 VALID_MIX_TYPES = {"purebred", "cross", "mixed", "mystery_mutt"}
-MAX_BREEDS_PER_DOG = 3
+MAX_BREEDS_PER_PET = 3
 
 
 def _validate_traits(v: list[str]) -> list[str]:
@@ -36,9 +48,15 @@ def _validate_mix_type(v: str) -> str:
     return v
 
 
+def _validate_species(v: str) -> str:
+    if v not in VALID_SPECIES:
+        raise ValueError(f"species must be one of {sorted(VALID_SPECIES)}")
+    return v
+
+
 def _validate_breed_ids(v: list[UUID]) -> list[UUID]:
-    if len(v) > MAX_BREEDS_PER_DOG:
-        raise ValueError(f"At most {MAX_BREEDS_PER_DOG} breeds allowed")
+    if len(v) > MAX_BREEDS_PER_PET:
+        raise ValueError(f"At most {MAX_BREEDS_PER_PET} breeds allowed")
     # deduplicate, preserve order
     seen: set[UUID] = set()
     out: list[UUID] = []
@@ -50,14 +68,20 @@ def _validate_breed_ids(v: list[UUID]) -> list[UUID]:
     return out
 
 
-class DogCreate(BaseModel):
+class PetCreate(BaseModel):
     name: str
+    species: str = "dog"
     mix_type: str = "mystery_mutt"
     breed_ids: list[UUID] = []
     birthday: date | None = None
     bio: str | None = None
     location_rough: str | None = None
     traits: list[str] = []
+
+    @field_validator("species")
+    @classmethod
+    def valid_species(cls, v: str) -> str:
+        return _validate_species(v)
 
     @field_validator("mix_type")
     @classmethod
@@ -94,7 +118,7 @@ class DogCreate(BaseModel):
         return _not_future_date(v)
 
 
-class DogUpdate(BaseModel):
+class PetUpdate(BaseModel):
     name: str | None = None
     mix_type: str | None = None
     breed_ids: list[UUID] | None = None
@@ -125,10 +149,11 @@ class DogUpdate(BaseModel):
         return _not_future_date(v)
 
 
-class DogOut(BaseModel):
+class PetOut(BaseModel):
     id: UUID
     owner_id: UUID
     name: str
+    species: str
     mix_type: str
     breeds: list[BreedSummary] = []
     breed_display: str
@@ -144,7 +169,7 @@ class DogOut(BaseModel):
     photos: list[PhotoSummary] = []
 
     # Adoption signals. `adoptable` is True iff the owner is an approved
-    # rescue account and the dog has not yet been marked adopted.
+    # rescue account and the pet has not yet been marked adopted.
     adoptable: bool = False
     adopted_at: datetime | None = None
     rescue_name: str | None = None

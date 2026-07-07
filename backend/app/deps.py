@@ -35,7 +35,7 @@ async def require_approved_rescue(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Gatekeeper for rescue-only actions. Requires role='rescue' AND an
-    approved rescue profile. Pending rescues cannot post dogs yet."""
+    approved rescue profile. Pending rescues cannot post pets yet."""
     from app.models.rescue import RescueProfile
 
     if user.role != "rescue":

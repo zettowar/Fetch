@@ -36,7 +36,7 @@ export default function ParksPage() {
 
   const searchLower = search.trim().toLowerCase();
   const filteredParks = parks.filter((p) => {
-    if (filter === 'active' && p.active_dogs_count <= 0) return false;
+    if (filter === 'active' && p.active_pets_count <= 0) return false;
     if (filter === 'verified' && !p.verified) return false;
     if (searchLower) {
       const name = p.name.toLowerCase();
@@ -58,7 +58,7 @@ export default function ParksPage() {
     id: p.id,
     lat: p.lat,
     lng: p.lng,
-    color: p.active_dogs_count > 0 ? '#f97316' : p.verified ? '#22c55e' : '#9ca3af',
+    color: p.active_pets_count > 0 ? '#f97316' : p.verified ? '#22c55e' : '#9ca3af',
     label: p.name,
     onClick: () => setSelectedParkId(p.id),
     popup: (
@@ -66,7 +66,7 @@ export default function ParksPage() {
         <p className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">{p.name}</p>
         {p.address && <p className="text-xs text-gray-500 dark:text-gray-400">{p.address}</p>}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-          {p.active_dogs_count > 0 && (
+          {p.active_pets_count > 0 && (
             <Badge
               variant="brand"
               icon={
@@ -76,10 +76,10 @@ export default function ParksPage() {
                 </span>
               }
             >
-              {p.active_dogs_count} here
+              {p.active_pets_count} here
             </Badge>
           )}
-          {p.verified && p.active_dogs_count === 0 && <Badge variant="success">Verified</Badge>}
+          {p.verified && p.active_pets_count === 0 && <Badge variant="success">Verified</Badge>}
           {p.avg_rating != null && (
             <span className="text-xs text-gray-500 dark:text-gray-400">
               {p.avg_rating.toFixed(1)} ★ · {p.review_count} {p.review_count === 1 ? 'review' : 'reviews'}
@@ -116,7 +116,7 @@ export default function ParksPage() {
       {/* ── Compact header ──────────────────────────────────────────── */}
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <Trees size={20} aria-hidden className="text-brand-500" /> Dog Parks
+          <Trees size={20} aria-hidden className="text-brand-500" /> Pet Parks
         </h1>
 
         <SearchInput
@@ -245,7 +245,7 @@ export default function ParksPage() {
                       }}
                       className={`block p-3 rounded-xl border transition-all ${
                         isSelected
-                          ? 'bg-white dark:bg-gray-900 border-brand-300 ring-2 ring-brand-200 shadow-sm'
+                          ? 'bg-white dark:bg-gray-900 border-brand-300 dark:border-brand-500/50 ring-2 ring-brand-200 dark:ring-brand-500/30 shadow-sm'
                           : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-brand-200'
                       }`}
                     >
@@ -260,7 +260,7 @@ export default function ParksPage() {
                                 <Check size={10} strokeWidth={3} aria-hidden />
                               </Badge>
                             )}
-                            {park.active_dogs_count > 0 && (
+                            {park.active_pets_count > 0 && (
                               <Badge
                                 variant="brand"
                                 icon={
@@ -270,7 +270,7 @@ export default function ParksPage() {
                                   </span>
                                 }
                               >
-                                {park.active_dogs_count} here
+                                {park.active_pets_count} here
                               </Badge>
                             )}
                           </div>

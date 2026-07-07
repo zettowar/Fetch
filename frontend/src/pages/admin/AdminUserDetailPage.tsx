@@ -139,7 +139,7 @@ export default function AdminUserDetailPage() {
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Joined <TimeAgo value={user.created_at} /> · {user.dog_count} dog{user.dog_count !== 1 ? 's' : ''}
+            Joined <TimeAgo value={user.created_at} /> · {user.pet_count} pet{user.pet_count !== 1 ? 's' : ''}
             {user.location_rough ? ` · ${user.location_rough}` : ''}
           </p>
           <div className="mt-1">

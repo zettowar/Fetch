@@ -4,9 +4,9 @@ export function photoUrl(photo: { url?: string; storage_key: string }): string {
   return photo.url || `${API_BASE}/photos/file/${photo.storage_key}`;
 }
 
-export function dogHeroPhoto(dog: { primary_photo_url?: string | null; photos: Array<{ url?: string; storage_key: string }> }): string | null {
-  if (dog.primary_photo_url) return dog.primary_photo_url;
-  if (dog.photos[0]) return photoUrl(dog.photos[0]);
+export function petHeroPhoto(pet: { primary_photo_url?: string | null; photos: Array<{ url?: string; storage_key: string }> }): string | null {
+  if (pet.primary_photo_url) return pet.primary_photo_url;
+  if (pet.photos[0]) return photoUrl(pet.photos[0]);
   return null;
 }
 
@@ -28,7 +28,7 @@ export function relativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
-export function dogAge(birthdayStr: string | null): string | null {
+export function petAge(birthdayStr: string | null): string | null {
   if (!birthdayStr) return null;
   const birth = new Date(birthdayStr);
   const now = new Date();

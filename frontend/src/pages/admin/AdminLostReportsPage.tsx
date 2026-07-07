@@ -103,8 +103,8 @@ export default function AdminLostReportsPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">
                       {KIND_LABELS[report.kind] ?? report.kind}
-                      {report.dog_name && (
-                        <span className="ml-1 text-gray-700 dark:text-gray-300">— {report.dog_name}</span>
+                      {report.pet_name && (
+                        <span className="ml-1 text-gray-700 dark:text-gray-300">— {report.pet_name}</span>
                       )}
                     </span>
                     <Badge variant={STATUS_VARIANTS[report.status] ?? 'neutral'}>
@@ -127,15 +127,15 @@ export default function AdminLostReportsPage() {
                         {report.reporter_name ?? 'Unknown'}
                       </Link>
                     </span>
-                    {report.dog_id && (
+                    {report.pet_id && (
                       <span>
-                        Dog:{' '}
+                        Pet:{' '}
                         <Link
-                          to={`/app/dogs/${report.dog_id}`}
+                          to={`/app/pets/${report.pet_id}`}
                           target="_blank"
                           className="text-brand-500 hover:underline"
                         >
-                          {report.dog_name ?? report.dog_id.slice(0, 8)}
+                          {report.pet_name ?? report.pet_id.slice(0, 8)}
                         </Link>
                       </span>
                     )}

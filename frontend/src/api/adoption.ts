@@ -3,7 +3,7 @@ import client from './client';
 export interface AdoptionInquiry {
   id: string;
   rescue_id: string;
-  dog_id: string | null;
+  pet_id: string | null;
   inquirer_id: string;
   name: string;
   email: string;
@@ -18,7 +18,7 @@ export interface AdoptionInquiryPayload {
   email: string;
   phone?: string | null;
   message: string;
-  dog_id?: string | null;
+  pet_id?: string | null;
 }
 
 export async function submitAdoptionInquiry(

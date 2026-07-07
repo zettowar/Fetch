@@ -6,14 +6,18 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKey
-from app.models.breed import dog_breeds
+from app.models.breed import pet_breeds
 
 
 MIX_TYPES = ("purebred", "cross", "mixed", "mystery_mutt")
 
+# Supported pet species. The data model is N-species-ready — add a value here
+# (and seed its breeds) to extend — while the product surfaces dog + cat only.
+SPECIES = ("dog", "cat")
 
-class Dog(Base, UUIDPrimaryKey, TimestampMixin):
-    __tablename__ = "dogs"
+
+class Pet(Base, UUIDPrimaryKey, TimestampMixin):
+    __tablename__ = "pets"
 
     owner_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
@@ -21,6 +25,11 @@ class Dog(Base, UUIDPrimaryKey, TimestampMixin):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     mix_type: Mapped[str] = mapped_column(
         String(20), nullable=False, default="mystery_mutt", server_default="mystery_mutt"
+    )
+    # Discriminator: "dog" | "cat" (see SPECIES). Indexed — the swipe feed and
+    # per-species leaderboards filter on it.
+    species: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="dog", server_default="dog", index=True
     )
     birthday: Mapped[date | None] = mapped_column(Date, nullable=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -31,8 +40,8 @@ class Dog(Base, UUIDPrimaryKey, TimestampMixin):
     )
     traits: Mapped[list[str]] = mapped_column(ARRAY(String(50)), default=list, nullable=False, server_default="{}")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    # Whether the read-only share page (/dogs/{id} on the public site) exists
-    # for this dog. Owners can turn it off in the dog editor.
+    # Whether the read-only share page (/pets/{id} on the public site) exists
+    # for this pet. Owners can turn it off in the pet editor.
     is_public: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, server_default="true"
     )
@@ -42,6 +51,6 @@ class Dog(Base, UUIDPrimaryKey, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
     )
 
-    owner = relationship("User", back_populates="dogs", foreign_keys=[owner_id])
-    photos = relationship("Photo", back_populates="dog", cascade="all, delete-orphan")
-    breeds = relationship("Breed", secondary=dog_breeds, back_populates="dogs", order_by="Breed.name")
+    owner = relationship("User", back_populates="pets", foreign_keys=[owner_id])
+    photos = relationship("Photo", back_populates="pet", cascade="all, delete-orphan")
+    breeds = relationship("Breed", secondary=pet_breeds, back_populates="pets", order_by="Breed.name")

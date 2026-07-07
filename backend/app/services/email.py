@@ -5,7 +5,7 @@ it works on hosts that block outbound SMTP — DigitalOcean droplets included.
 
 With no RESEND_API_KEY configured, sends are logged and skipped so dev and
 tests never depend on the network. Failures never raise: a broken email
-provider must not break signup, password reset, or a lost-dog report.
+provider must not break signup, password reset, or a lost-pet report.
 """
 import html
 
@@ -112,7 +112,7 @@ async def send_verification_email(to: str, raw_token: str) -> bool:
         _layout(
             "Confirm your email",
             "<p>Verifying unlocks everything in Fetch — lost &amp; found reports, "
-            "dog transfers, the works.</p>",
+            "pet transfers, the works.</p>",
             cta_url=url,
             cta_label="Verify my email",
         ),
@@ -138,14 +138,14 @@ async def send_email_change_email(to: str, raw_token: str) -> bool:
 async def send_contact_relay_email(
     to: str, *, sender_name: str, sender_email: str, report_title: str, message: str
 ) -> bool:
-    """Relay a message about a lost-dog report to its reporter.
+    """Relay a message about a lost-pet report to its reporter.
 
     The reporter's address is never shown to the sender; replies go straight
     to the sender via Reply-To.
     """
     return await send_email(
         to,
-        "Someone reached out about your lost-dog report",
+        "Someone reached out about your lost-pet report",
         _layout(
             "A message about your report",
             f"<p><strong>{html.escape(sender_name)}</strong> sent you a message "
@@ -166,9 +166,9 @@ async def send_lost_alert_email(
     where = f" near {html.escape(area_hint)}" if area_hint else " in your area"
     return await send_email(
         to,
-        "A dog was reported lost near you",
+        "A pet was reported lost near you",
         _layout(
-            f"Lost dog reported{where}",
+            f"Lost pet reported{where}",
             f"<p>{html.escape(description[:300])}</p>"
             "<p>If you spot them, add a sighting — it goes straight to the owner.</p>",
             cta_url=url,

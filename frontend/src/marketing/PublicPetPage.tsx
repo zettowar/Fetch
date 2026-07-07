@@ -17,15 +17,15 @@ function ageLabel(birthday: string | null): string | null {
   return `${Math.floor(months / 12)} yrs`;
 }
 
-export default function PublicDogPage() {
-  const { dogId } = useParams();
-  const { data: dog, isLoading, isError, error } = useQuery({
-    queryKey: ['public-dog', dogId],
-    queryFn: () => getPublicDog(dogId!),
-    enabled: !!dogId,
+export default function PublicPetPage() {
+  const { petId } = useParams();
+  const { data: pet, isLoading, isError, error } = useQuery({
+    queryKey: ['public-pet', petId],
+    queryFn: () => getPublicDog(petId!),
+    enabled: !!petId,
     retry: (count, err) => !isNotFound(err) && count < 2,
   });
-  useDocumentTitle(dog ? `${dog.name} · Fetch` : 'Fetch');
+  useDocumentTitle(pet ? `${pet.name} · Fetch` : 'Fetch');
 
   if (isLoading) {
     return (
@@ -35,7 +35,7 @@ export default function PublicDogPage() {
     );
   }
 
-  if (isError || !dog) {
+  if (isError || !pet) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-24 text-center">
         <DogIllustration
@@ -48,7 +48,7 @@ export default function PublicDogPage() {
         <p className="mt-2 text-gray-500 dark:text-gray-400">
           {isError && !isNotFound(error)
             ? 'Something went wrong on our end. Try again in a moment.'
-            : "Either this dog's page was turned off by their human, or the link is wrong."}
+            : "Either this pet's page was turned off by their human, or the link is wrong."}
         </p>
         <Link
           to="/"
@@ -60,28 +60,28 @@ export default function PublicDogPage() {
     );
   }
 
-  const age = ageLabel(dog.birthday);
+  const age = ageLabel(pet.birthday);
 
   return (
     <div className="animate-fade-in">
       <div className="mx-auto max-w-2xl px-4 sm:px-6 py-10 lg:py-14">
         {/* Hero photo */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 aspect-square sm:aspect-[4/3]">
-          {dog.primary_photo_url ? (
+          {pet.primary_photo_url ? (
             <img
-              src={dog.primary_photo_url}
-              alt={`Photo of ${dog.name}`}
+              src={pet.primary_photo_url}
+              alt={`Photo of ${pet.name}`}
               className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
             <span className="absolute inset-0 flex items-center justify-center text-8xl" aria-hidden>🐕</span>
           )}
-          {dog.adoptable && (
+          {pet.adoptable && (
             <span className="absolute top-4 left-4 inline-flex items-center gap-1 rounded-full bg-brand-500 px-3 py-1 text-xs font-semibold text-white shadow-soft-lg">
               <HousePlus size={12} aria-hidden /> Looking for a home
             </span>
           )}
-          {dog.adopted && (
+          {pet.adopted && (
             <span className="absolute top-4 left-4 inline-flex items-center gap-1 rounded-full bg-success-500 px-3 py-1 text-xs font-semibold text-white shadow-soft-lg">
               <span aria-hidden>🎉</span> Adopted
             </span>
@@ -92,32 +92,32 @@ export default function PublicDogPage() {
         <div className="mt-6 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
-              {dog.name}
-              {dog.crown_weeks.map((week) => (
+              {pet.name}
+              {pet.crown_weeks.map((week) => (
                 <span
                   key={week}
-                  title={`Top Dog, week of ${week}`}
+                  title={`Top Pet, week of ${week}`}
                   className="text-2xl"
-                  aria-label={`Top Dog, week of ${week}`}
+                  aria-label={`Top Pet, week of ${week}`}
                 >
                   🏆
                 </span>
               ))}
             </h1>
             <p className="mt-1 text-gray-500 dark:text-gray-400">
-              {[dog.breed_display, age].filter(Boolean).join(' · ')}
+              {[pet.breed_display, age].filter(Boolean).join(' · ')}
             </p>
-            {dog.rescue_name && (
+            {pet.rescue_name && (
               <p className="mt-1 text-sm text-purple-600 dark:text-purple-400 font-medium">
-                Listed by {dog.rescue_name}
+                Listed by {pet.rescue_name}
               </p>
             )}
           </div>
         </div>
 
-        {dog.traits.length > 0 && (
+        {pet.traits.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-1.5">
-            {dog.traits.map((t) => (
+            {pet.traits.map((t) => (
               <Badge key={t} variant="brand" size="md">
                 {t}
               </Badge>
@@ -125,18 +125,18 @@ export default function PublicDogPage() {
           </div>
         )}
 
-        {dog.bio && (
-          <p className="mt-5 text-base leading-relaxed text-gray-600 dark:text-gray-300">{dog.bio}</p>
+        {pet.bio && (
+          <p className="mt-5 text-base leading-relaxed text-gray-600 dark:text-gray-300">{pet.bio}</p>
         )}
 
         {/* Extra photos */}
-        {dog.photo_urls.length > 1 && (
+        {pet.photo_urls.length > 1 && (
           <div className="mt-6 grid grid-cols-3 gap-2">
-            {dog.photo_urls.slice(0, 6).map((url, i) => (
+            {pet.photo_urls.slice(0, 6).map((url, i) => (
               <img
                 key={url}
                 src={url}
-                alt={`Photo ${i + 1} of ${dog.name}`}
+                alt={`Photo ${i + 1} of ${pet.name}`}
                 loading="lazy"
                 className="aspect-square w-full rounded-xl object-cover"
               />
@@ -149,10 +149,10 @@ export default function PublicDogPage() {
           <div aria-hidden className="pointer-events-none absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-3xl" />
           <PawTrail steps={5} size={18} className="absolute bottom-6 left-6 text-white/15" />
           <p className="relative text-xl font-bold tracking-tight text-balance">
-            {dog.name} lives on Fetch, the dog app that gets rescues adopted.
+            {pet.name} lives on Fetch, the pet app that gets rescues adopted.
           </p>
           <p className="relative mt-1.5 text-sm text-white/85">
-            Swipe good dogs, crown a weekly champion, and help lost dogs get home.
+            Swipe good pets, crown a weekly champion, and help lost pets get home.
           </p>
           <Link
             to="/"

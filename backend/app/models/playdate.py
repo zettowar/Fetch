@@ -38,11 +38,11 @@ class PlayDate(Base, UUIDPrimaryKey, TimestampMixin):
 
 
 class PlayDateRsvp(Base, UUIDPrimaryKey, TimestampMixin):
-    """One RSVP per dog per play date."""
+    """One RSVP per pet per play date."""
 
     __tablename__ = "play_date_rsvps"
     __table_args__ = (
-        UniqueConstraint("playdate_id", "dog_id", name="uq_playdate_rsvp"),
+        UniqueConstraint("playdate_id", "pet_id", name="uq_playdate_rsvp"),
     )
 
     playdate_id: Mapped[uuid.UUID] = mapped_column(
@@ -53,8 +53,8 @@ class PlayDateRsvp(Base, UUIDPrimaryKey, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False, index=True,
     )
-    dog_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dogs.id", ondelete="CASCADE"),
+    pet_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pets.id", ondelete="CASCADE"),
         nullable=False, index=True,
     )
     status: Mapped[str] = mapped_column(
@@ -63,4 +63,4 @@ class PlayDateRsvp(Base, UUIDPrimaryKey, TimestampMixin):
 
     playdate = relationship("PlayDate", back_populates="rsvps")
     user = relationship("User", foreign_keys=[user_id])
-    dog = relationship("Dog", foreign_keys=[dog_id])
+    pet = relationship("Pet", foreign_keys=[pet_id])

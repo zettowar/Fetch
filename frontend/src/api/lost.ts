@@ -13,7 +13,7 @@ export interface LostReportPhoto {
 export interface LostReport {
   id: string;
   reporter_id: string;
-  dog_id: string | null;
+  pet_id: string | null;
   kind: 'missing' | 'found';
   status: 'open' | 'resolved' | 'closed';
   last_seen_at: string | null;
@@ -26,9 +26,9 @@ export interface LostReport {
   created_at: string;
   photos: LostReportPhoto[];
   sighting_count: number;
-  dog_name: string | null;
-  dog_breed: string | null;
-  dog_photo_url: string | null;
+  pet_name: string | null;
+  pet_breed: string | null;
+  pet_photo_url: string | null;
 }
 
 export interface NearbyReport {
@@ -38,9 +38,9 @@ export interface NearbyReport {
   fuzzed_lat: number;
   fuzzed_lng: number;
   location_fuzz_m: number;
-  dog_name: string | null;
-  dog_breed: string | null;
-  dog_photo_url: string | null;
+  pet_name: string | null;
+  pet_breed: string | null;
+  pet_photo_url: string | null;
   description: string;
   created_at: string;
 }
@@ -69,7 +69,7 @@ export interface Subscription {
 // --- Reports ---
 
 export async function createLostReport(data: {
-  dog_id?: string;
+  pet_id?: string;
   kind: 'missing' | 'found';
   last_seen_at?: string;
   last_seen_lat?: number;

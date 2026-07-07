@@ -120,7 +120,7 @@ export default function ProfileEditPage() {
                 Show adoption prompts
               </span>
               <span className="text-xs text-gray-400 dark:text-gray-500">
-                When you like a dog from a rescue, we'll let you know they're up
+                When you like a pet from a rescue, we'll let you know they're up
                 for adoption. Turn this off if you'd rather not see it.
               </span>
             </span>

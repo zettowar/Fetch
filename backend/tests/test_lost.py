@@ -21,7 +21,7 @@ async def test_create_missing_report(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.asyncio
 async def test_create_found_report_new_account_blocked(client: AsyncClient):
-    """New accounts (< 7 days old) cannot report found dogs."""
+    """New accounts (< 7 days old) cannot report found pets."""
     email = f"newuser-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     signup_res = await client.post("/api/v1/auth/signup", json={
         "email": email, "password": "password123", "display_name": "New User"
@@ -31,7 +31,7 @@ async def test_create_found_report_new_account_blocked(client: AsyncClient):
 
     res = await client.post("/api/v1/lost/reports", json={
         "kind": "found",
-        "description": "Found a small brown dog",
+        "description": "Found a small brown pet",
         "last_seen_lat": 37.77,
         "last_seen_lng": -122.42,
     }, headers=headers)
@@ -43,7 +43,7 @@ async def test_get_report(client: AsyncClient, auth_headers: dict):
     # Create
     create_res = await client.post("/api/v1/lost/reports", json={
         "kind": "missing",
-        "description": "Test dog missing",
+        "description": "Test pet missing",
     }, headers=auth_headers)
     report_id = create_res.json()["id"]
 
@@ -70,7 +70,7 @@ async def test_resolve_report(client: AsyncClient, auth_headers: dict):
 async def test_add_sighting(client: AsyncClient, auth_headers: dict):
     create_res = await client.post("/api/v1/lost/reports", json={
         "kind": "missing",
-        "description": "Missing dog with sighting",
+        "description": "Missing pet with sighting",
     }, headers=auth_headers)
     report_id = create_res.json()["id"]
 
@@ -86,12 +86,12 @@ async def test_add_sighting(client: AsyncClient, auth_headers: dict):
         data={
             "lat": "37.78",
             "lng": "-122.41",
-            "note": "Saw this dog near the coffee shop",
+            "note": "Saw this pet near the coffee shop",
         },
         headers=sighter_headers,
     )
     assert res.status_code == 201
-    assert res.json()["note"] == "Saw this dog near the coffee shop"
+    assert res.json()["note"] == "Saw this pet near the coffee shop"
     assert res.json()["photo_url"] is None
 
 
@@ -165,13 +165,13 @@ async def test_contact_reporter_relays_email(client: AsyncClient, auth_headers: 
     monkeypatch.setattr(lost_router, "send_contact_relay_email", fake_relay)
 
     res = await client.post(f"/api/v1/lost/reports/{report_id}/contact", json={
-        "message": "I think I saw your dog!"
+        "message": "I think I saw your pet!"
     }, headers=other_headers)
     assert res.status_code == 200
 
     assert len(sent) == 1
     assert sent[0]["sender_email"] == email
-    assert sent[0]["message"] == "I think I saw your dog!"
+    assert sent[0]["message"] == "I think I saw your pet!"
     # The reporter's address is the recipient, never surfaced to the sender.
     assert sent[0]["to"] != email
 
@@ -193,7 +193,7 @@ async def test_contact_reporter_503_when_email_unconfigured(
     other_headers = {"Authorization": f"Bearer {signup_res.json()['tokens']['access_token']}"}
 
     res = await client.post(f"/api/v1/lost/reports/{report_id}/contact", json={
-        "message": "I think I saw your dog!"
+        "message": "I think I saw your pet!"
     }, headers=other_headers)
     assert res.status_code == 503
 

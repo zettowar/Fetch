@@ -160,7 +160,7 @@ export default function AdminUsersPage() {
       { header: 'role', get: (u: typeof users[number]) => u.role },
       { header: 'is_active', get: (u: typeof users[number]) => u.is_active },
       { header: 'is_verified', get: (u: typeof users[number]) => u.is_verified },
-      { header: 'dog_count', get: (u: typeof users[number]) => u.dog_count },
+      { header: 'pet_count', get: (u: typeof users[number]) => u.pet_count },
       { header: 'strike_count', get: (u: typeof users[number]) => u.strike_count },
       { header: 'created_at', get: (u: typeof users[number]) => u.created_at },
     ],
@@ -208,7 +208,7 @@ export default function AdminUsersPage() {
 
       {/* Bulk action bar (visible when any row is selected) */}
       {selectedCount > 0 ? (
-        <div className="flex items-center gap-2 mb-3 p-2 bg-brand-50 border border-brand-200 rounded-lg text-sm">
+        <div className="flex items-center gap-2 mb-3 p-2 bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 rounded-lg text-sm">
           <span className="font-medium text-brand-700">{selectedCount} selected</span>
           <div className="flex-1" />
           <Button size="sm" variant="danger" onClick={handleBulkSuspend}>Suspend</Button>
@@ -279,7 +279,7 @@ export default function AdminUsersPage() {
                     {u.role === 'admin' && <Badge variant="info">admin</Badge>}
                     {!u.is_active && <Badge variant="danger">suspended</Badge>}
                     {u.strike_count > 0 && <Badge variant="warning">{u.strike_count} strike{u.strike_count > 1 ? 's' : ''}</Badge>}
-                    <span className="text-2xs text-gray-400 dark:text-gray-500">{u.dog_count} dog{u.dog_count !== 1 ? 's' : ''}</span>
+                    <span className="text-2xs text-gray-400 dark:text-gray-500">{u.pet_count} pet{u.pet_count !== 1 ? 's' : ''}</span>
                   </div>
                 </button>
               </div>

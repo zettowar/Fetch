@@ -13,7 +13,7 @@ async def _first_breed_id(client: AsyncClient, auth_headers: dict) -> str:
 @pytest.mark.asyncio
 async def test_create_dog_purebred(client: AsyncClient, auth_headers: dict):
     breed_id = await _first_breed_id(client, auth_headers)
-    res = await client.post("/api/v1/dogs", json={
+    res = await client.post("/api/v1/pets", json={
         "name": "Buddy",
         "mix_type": "purebred",
         "breed_ids": [breed_id],
@@ -30,7 +30,7 @@ async def test_create_dog_purebred(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.asyncio
 async def test_create_dog_mystery_mutt(client: AsyncClient, auth_headers: dict):
-    res = await client.post("/api/v1/dogs", json={"name": "NoBreed"}, headers=auth_headers)
+    res = await client.post("/api/v1/pets", json={"name": "NoBreed"}, headers=auth_headers)
     assert res.status_code == 201
     data = res.json()
     assert data["mix_type"] == "mystery_mutt"
@@ -43,7 +43,7 @@ async def test_create_dog_cross(client: AsyncClient, auth_headers: dict):
     res = await client.get("/api/v1/breeds", headers=auth_headers)
     ids = [b["id"] for b in res.json()[:2]]
     assert len(ids) == 2
-    res = await client.post("/api/v1/dogs", json={
+    res = await client.post("/api/v1/pets", json={
         "name": "Crosspup",
         "mix_type": "cross",
         "breed_ids": ids,
@@ -56,15 +56,15 @@ async def test_create_dog_cross(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_update_dog_breeds(client: AsyncClient, auth_headers: dict):
-    create_res = await client.post("/api/v1/dogs", json={"name": "Flexi"}, headers=auth_headers)
-    dog_id = create_res.json()["id"]
+async def test_update_pet_breeds(client: AsyncClient, auth_headers: dict):
+    create_res = await client.post("/api/v1/pets", json={"name": "Flexi"}, headers=auth_headers)
+    pet_id = create_res.json()["id"]
 
     res = await client.get("/api/v1/breeds", headers=auth_headers)
     ids = [b["id"] for b in res.json()[:2]]
 
     res = await client.patch(
-        f"/api/v1/dogs/{dog_id}",
+        f"/api/v1/pets/{pet_id}",
         json={"mix_type": "mixed", "breed_ids": ids},
         headers=auth_headers,
     )
@@ -76,7 +76,7 @@ async def test_update_dog_breeds(client: AsyncClient, auth_headers: dict):
 
     # Clearing to mystery_mutt
     res = await client.patch(
-        f"/api/v1/dogs/{dog_id}",
+        f"/api/v1/pets/{pet_id}",
         json={"mix_type": "mystery_mutt", "breed_ids": []},
         headers=auth_headers,
     )
@@ -87,7 +87,7 @@ async def test_update_dog_breeds(client: AsyncClient, auth_headers: dict):
 @pytest.mark.asyncio
 async def test_reject_invalid_mix_type(client: AsyncClient, auth_headers: dict):
     res = await client.post(
-        "/api/v1/dogs",
+        "/api/v1/pets",
         json={"name": "Bad", "mix_type": "banana"},
         headers=auth_headers,
     )
@@ -99,7 +99,7 @@ async def test_reject_too_many_breeds(client: AsyncClient, auth_headers: dict):
     res = await client.get("/api/v1/breeds", headers=auth_headers)
     ids = [b["id"] for b in res.json()[:4]]
     res = await client.post(
-        "/api/v1/dogs",
+        "/api/v1/pets",
         json={"name": "Many", "mix_type": "mixed", "breed_ids": ids},
         headers=auth_headers,
     )
@@ -109,7 +109,7 @@ async def test_reject_too_many_breeds(client: AsyncClient, auth_headers: dict):
 @pytest.mark.asyncio
 async def test_reject_unknown_breed_id(client: AsyncClient, auth_headers: dict):
     res = await client.post(
-        "/api/v1/dogs",
+        "/api/v1/pets",
         json={
             "name": "Ghost",
             "mix_type": "purebred",
@@ -121,46 +121,46 @@ async def test_reject_unknown_breed_id(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_list_my_dogs(client: AsyncClient, auth_headers: dict):
-    await client.post("/api/v1/dogs", json={"name": "Dog1"}, headers=auth_headers)
-    await client.post("/api/v1/dogs", json={"name": "Dog2"}, headers=auth_headers)
-    res = await client.get("/api/v1/dogs/mine", headers=auth_headers)
+async def test_list_my_pets(client: AsyncClient, auth_headers: dict):
+    await client.post("/api/v1/pets", json={"name": "Dog1"}, headers=auth_headers)
+    await client.post("/api/v1/pets", json={"name": "Dog2"}, headers=auth_headers)
+    res = await client.get("/api/v1/pets/mine", headers=auth_headers)
     assert res.status_code == 200
     assert len(res.json()) >= 2
 
 
 @pytest.mark.asyncio
-async def test_get_dog(client: AsyncClient, auth_headers: dict):
-    create_res = await client.post("/api/v1/dogs", json={"name": "Viewable"}, headers=auth_headers)
-    dog_id = create_res.json()["id"]
-    res = await client.get(f"/api/v1/dogs/{dog_id}", headers=auth_headers)
+async def test_get_pet(client: AsyncClient, auth_headers: dict):
+    create_res = await client.post("/api/v1/pets", json={"name": "Viewable"}, headers=auth_headers)
+    pet_id = create_res.json()["id"]
+    res = await client.get(f"/api/v1/pets/{pet_id}", headers=auth_headers)
     assert res.status_code == 200
     assert res.json()["name"] == "Viewable"
 
 
 @pytest.mark.asyncio
-async def test_update_dog(client: AsyncClient, auth_headers: dict):
-    create_res = await client.post("/api/v1/dogs", json={"name": "OldName"}, headers=auth_headers)
-    dog_id = create_res.json()["id"]
-    res = await client.patch(f"/api/v1/dogs/{dog_id}", json={"name": "NewName"}, headers=auth_headers)
+async def test_update_pet(client: AsyncClient, auth_headers: dict):
+    create_res = await client.post("/api/v1/pets", json={"name": "OldName"}, headers=auth_headers)
+    pet_id = create_res.json()["id"]
+    res = await client.patch(f"/api/v1/pets/{pet_id}", json={"name": "NewName"}, headers=auth_headers)
     assert res.status_code == 200
     assert res.json()["name"] == "NewName"
 
 
 @pytest.mark.asyncio
-async def test_delete_dog(client: AsyncClient, auth_headers: dict):
-    create_res = await client.post("/api/v1/dogs", json={"name": "ToDelete"}, headers=auth_headers)
-    dog_id = create_res.json()["id"]
-    res = await client.delete(f"/api/v1/dogs/{dog_id}", headers=auth_headers)
+async def test_delete_pet(client: AsyncClient, auth_headers: dict):
+    create_res = await client.post("/api/v1/pets", json={"name": "ToDelete"}, headers=auth_headers)
+    pet_id = create_res.json()["id"]
+    res = await client.delete(f"/api/v1/pets/{pet_id}", headers=auth_headers)
     assert res.status_code == 200
 
-    get_res = await client.get(f"/api/v1/dogs/{dog_id}", headers=auth_headers)
+    get_res = await client.get(f"/api/v1/pets/{pet_id}", headers=auth_headers)
     assert get_res.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_dog_requires_auth(client: AsyncClient):
-    res = await client.post("/api/v1/dogs", json={"name": "NoAuth"})
+    res = await client.post("/api/v1/pets", json={"name": "NoAuth"})
     assert res.status_code in (401, 403)
 
 
@@ -178,17 +178,17 @@ def _tiny_jpeg() -> bytes:
 
 @pytest.mark.asyncio
 async def test_set_primary_photo_happy_path(client: AsyncClient, auth_headers: dict):
-    create = await client.post("/api/v1/dogs", json={"name": "Primary"}, headers=auth_headers)
-    dog_id = create.json()["id"]
+    create = await client.post("/api/v1/pets", json={"name": "Primary"}, headers=auth_headers)
+    pet_id = create.json()["id"]
     upload = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("p.jpg", _tiny_jpeg(), "image/jpeg")},
         headers=auth_headers,
     )
     photo_id = upload.json()["id"]
 
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/primary-photo",
+        f"/api/v1/pets/{pet_id}/primary-photo",
         json={"photo_id": photo_id},
         headers=auth_headers,
     )
@@ -201,19 +201,19 @@ async def test_set_primary_photo_happy_path(client: AsyncClient, auth_headers: d
 async def test_set_primary_photo_rejects_unrelated_photo(
     client: AsyncClient, auth_headers: dict
 ):
-    # Two dogs, photo on dog A, attempt to set as primary on dog B.
-    a = await client.post("/api/v1/dogs", json={"name": "DogA"}, headers=auth_headers)
-    b = await client.post("/api/v1/dogs", json={"name": "DogB"}, headers=auth_headers)
+    # Two pets, photo on pet A, attempt to set as primary on pet B.
+    a = await client.post("/api/v1/pets", json={"name": "DogA"}, headers=auth_headers)
+    b = await client.post("/api/v1/pets", json={"name": "DogB"}, headers=auth_headers)
     dog_a_id, dog_b_id = a.json()["id"], b.json()["id"]
     upload = await client.post(
-        f"/api/v1/dogs/{dog_a_id}/photos",
+        f"/api/v1/pets/{dog_a_id}/photos",
         files={"file": ("p.jpg", _tiny_jpeg(), "image/jpeg")},
         headers=auth_headers,
     )
     foreign_photo_id = upload.json()["id"]
 
     res = await client.post(
-        f"/api/v1/dogs/{dog_b_id}/primary-photo",
+        f"/api/v1/pets/{dog_b_id}/primary-photo",
         json={"photo_id": foreign_photo_id},
         headers=auth_headers,
     )
@@ -223,10 +223,10 @@ async def test_set_primary_photo_rejects_unrelated_photo(
 @pytest.mark.asyncio
 async def test_set_primary_photo_requires_owner(client: AsyncClient, auth_headers: dict):
     import uuid
-    create = await client.post("/api/v1/dogs", json={"name": "Owned"}, headers=auth_headers)
-    dog_id = create.json()["id"]
+    create = await client.post("/api/v1/pets", json={"name": "Owned"}, headers=auth_headers)
+    pet_id = create.json()["id"]
     upload = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("p.jpg", _tiny_jpeg(), "image/jpeg")},
         headers=auth_headers,
     )
@@ -240,7 +240,7 @@ async def test_set_primary_photo_requires_owner(client: AsyncClient, auth_header
     other_headers = {"Authorization": f"Bearer {s.json()['tokens']['access_token']}"}
 
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/primary-photo",
+        f"/api/v1/pets/{pet_id}/primary-photo",
         json={"photo_id": photo_id},
         headers=other_headers,
     )

@@ -1,7 +1,7 @@
 """Block-list helpers shared by the feed, social, and relay paths.
 
-A block is symmetric in effect: neither side sees the other's dogs in
-feeds, can follow or comment, or can reach the other through the lost-dog
+A block is symmetric in effect: neither side sees the other's pets in
+feeds, can follow or comment, or can reach the other through the lost-pet
 contact relay.
 """
 from uuid import UUID
@@ -14,7 +14,7 @@ from app.models.social import Block
 
 def blocked_user_ids_subquery(viewer_id: UUID):
     """Subquery of user ids blocked by, or blocking, the viewer — usable in
-    `Dog.owner_id.notin_(...)` filters without an extra round trip."""
+    `Pet.owner_id.notin_(...)` filters without an extra round trip."""
     return (
         select(Block.blocked_id)
         .where(Block.blocker_id == viewer_id)

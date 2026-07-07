@@ -10,15 +10,15 @@ export default function MissionPage() {
       <PageHero
         eyebrow="Our mission"
         title="Why Fetch exists"
-        subtitle="Put adoptable dogs in front of people who are already here looking at dogs, and shorten the wait for a home."
+        subtitle="Put adoptable pets in front of people who are already here looking at pets, and shorten the wait for a home."
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-14">
         {/* Statement */}
         <section className="text-center">
           <p className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-balance text-gray-900 dark:text-gray-100">
-            Too many good dogs wait too long in shelters. Fetch exists to put
-            every adoptable dog in front of the person who will take them home.
+            Too many good pets wait too long in shelters. Fetch exists to put
+            every adoptable pet in front of the person who will take them home.
           </p>
         </section>
 
@@ -26,9 +26,9 @@ export default function MissionPage() {
         <section>
           <h2 className="text-center text-2xl font-bold tracking-tight">What that looks like</h2>
           <div className="mt-8 grid gap-5 sm:grid-cols-3">
-            <Pillar emoji="🐶" title="Adoptables in the feed" body="Adoptable dogs appear in the main feed, right between the neighborhood regulars. There is no separate tab to forget about." />
-            <Pillar emoji="🤝" title="Tools rescues use" body="Listings, inquiries, and handoffs live in one place, so a volunteer's evening goes to the dogs." />
-            <Pillar emoji="🏡" title="A faster match" body="The right person sees the right dog sooner. Waits get shorter and kennels get emptier." />
+            <Pillar emoji="🐶" title="Adoptables in the feed" body="Adoptable pets appear in the main feed, right between the neighborhood regulars. There is no separate tab to forget about." />
+            <Pillar emoji="🤝" title="Tools rescues use" body="Listings, inquiries, and handoffs live in one place, so a volunteer's evening goes to the pets." />
+            <Pillar emoji="🏡" title="A faster match" body="The right person sees the right pet sooner. Waits get shorter and kennels get emptier." />
           </div>
         </section>
 
@@ -38,7 +38,7 @@ export default function MissionPage() {
           <ul className="mt-4 space-y-3 text-base leading-relaxed text-gray-600 dark:text-gray-400">
             <li>
               <strong className="text-gray-900 dark:text-gray-100">One number matters most:</strong>{' '}
-              how many dogs found homes because someone saw them on Fetch.
+              how many pets found homes because someone saw them on Fetch.
               Once we're live, we'll publish it.
             </li>
             <li>
@@ -48,7 +48,7 @@ export default function MissionPage() {
             </li>
             <li>
               <strong className="text-gray-900 dark:text-gray-100">Listing is free for rescues.</strong>{' '}
-              Adoptable-dog listings and inquiry tools don't cost rescues
+              Adoptable-pet listings and inquiry tools don't cost rescues
               anything. That part is the mission, not the business.
             </li>
           </ul>

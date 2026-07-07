@@ -10,8 +10,8 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKey
 class Photo(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "photos"
 
-    dog_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dogs.id", ondelete="CASCADE"), nullable=False, index=True
+    pet_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pets.id", ondelete="CASCADE"), nullable=False, index=True
     )
     # Unique-indexed: the public file endpoint looks photos up by key on
     # every image request.
@@ -24,4 +24,4 @@ class Photo(Base, UUIDPrimaryKey, TimestampMixin):
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    dog = relationship("Dog", back_populates="photos")
+    pet = relationship("Pet", back_populates="photos")

@@ -17,8 +17,8 @@ const ACTION_VARIANTS: Record<string, BadgeVariant> = {
   'user.demote': 'warning',
   'report.review': 'info',
   'ticket.update': 'info',
-  'dog.deactivate': 'danger',
-  'dog.reactivate': 'success',
+  'pet.deactivate': 'danger',
+  'pet.reactivate': 'success',
   'lost_report.close': 'neutral',
   'faq.create': 'info',
   'faq.update': 'info',
@@ -96,7 +96,7 @@ export default function AdminAuditPage() {
         >
           <option value="">All targets</option>
           <option value="user">user</option>
-          <option value="dog">dog</option>
+          <option value="pet">pet</option>
           <option value="report">report</option>
           <option value="ticket">ticket</option>
           <option value="lost_report">lost_report</option>

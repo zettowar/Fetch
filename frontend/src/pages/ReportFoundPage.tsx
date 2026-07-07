@@ -21,7 +21,7 @@ export default function ReportFoundPage() {
       return;
     }
     if (!location) {
-      toast.error('Pin where you found the dog on the map');
+      toast.error('Pin where you found the pet on the map');
       return;
     }
     setSaving(true);
@@ -33,7 +33,7 @@ export default function ReportFoundPage() {
         last_seen_lng: location.lng,
         last_seen_at: new Date().toISOString(),
       });
-      toast.success('Found dog report created');
+      toast.success('Found pet report created');
       navigate(`/app/lost/${report.id}`);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Failed to create report'));
@@ -46,19 +46,19 @@ export default function ReportFoundPage() {
     <div className="p-4">
       <BackButton fallback="/app/lost" />
       <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
-        <PawPrint size={22} aria-hidden className="text-brand-500" /> Report Found Dog
+        <PawPrint size={22} aria-hidden className="text-brand-500" /> Report Found Pet
       </h1>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Help reunite a lost dog with their owner. Your account must be at least 7 days old.
+        Help reunite a lost pet with their owner. Your account must be at least 7 days old.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
           <textarea
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
             rows={4}
-            placeholder="Describe the dog, breed, color, size, any collar or tags, where you found them..."
+            placeholder="Describe the pet, breed, color, size, any collar or tags, where you found them..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
@@ -71,7 +71,7 @@ export default function ReportFoundPage() {
         </div>
 
         <Button type="submit" loading={saving} className="w-full">
-          Report Found Dog
+          Report Found Pet
         </Button>
       </form>
     </div>

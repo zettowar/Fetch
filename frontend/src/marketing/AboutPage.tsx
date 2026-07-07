@@ -24,16 +24,16 @@ export default function AboutPage() {
             </p>
             <p>
               The why is our founder, Jordan Kelly. He wants to save as many
-              dogs as possible in the time he has — and there are more dogs
+              pets as possible in the time he has — and there are more pets
               who need saving than one person can reach. So he built something
               that turns everyone's attention into help. People already swipe
-              through dogs all day for fun. Here, it counts.
+              through pets all day for fun. Here, it counts.
             </p>
             <p>
               The how is Sean Oosterveen, our CTO. A software engineer with a
               background in research and development, Sean took Jordan's very
               rough PowerPoint and built it into what you see today: a game
-              about good dogs with a rescue mission running through every
+              about good pets with a rescue mission running through every
               feature.
             </p>
             <p>Welcome to Fetch.</p>
@@ -56,7 +56,7 @@ export default function AboutPage() {
             />
           </div>
           <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            The dogs test everything first and are paid in treats.
+            The pets test everything first and are paid in treats.
           </p>
         </section>
 
@@ -67,9 +67,9 @@ export default function AboutPage() {
             Three rules carried over from that first deck:
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <ValueCard emoji="🐾" title="Dogs first" body="The test for every feature is simple: does it help a dog get seen, get found, or get home? If not, it doesn't ship." />
-            <ValueCard emoji="🤝" title="Kind by default" body="There is no downvote on Fetch. The harshest thing you can do to a dog here is pass, and someone else will like them within the hour." />
-            <ValueCard emoji="🛟" title="Safety net" body="When a dog goes missing, minutes matter. An alert goes out to everyone nearby, and sightings go straight to the owner." />
+            <ValueCard emoji="🐾" title="Pets first" body="The test for every feature is simple: does it help a pet get seen, get found, or get home? If not, it doesn't ship." />
+            <ValueCard emoji="🤝" title="Kind by default" body="There is no downvote on Fetch. The harshest thing you can do to a pet here is pass, and someone else will like them within the hour." />
+            <ValueCard emoji="🛟" title="Safety net" body="When a pet goes missing, minutes matter. An alert goes out to everyone nearby, and sightings go straight to the owner." />
           </div>
         </section>
 

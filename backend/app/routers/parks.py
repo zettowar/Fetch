@@ -9,12 +9,12 @@ from sqlalchemy.orm import selectinload
 from app.db import get_db
 from app.deps import get_current_user, require_admin
 from app.limiter import limiter
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.park import Park, ParkCheckin, ParkIncident, ParkReview
 from app.models.user import User
 from app.services.breed_display import breed_display
 from app.services.geo import bounding_box
-from app.services.dog_serializer import display_photo_url
+from app.services.pet_serializer import display_photo_url
 from app.schemas.park import (
     CheckinCreate,
     ParkCheckinOut,
@@ -67,7 +67,7 @@ async def _park_to_out(park: Park, db: AsyncSession) -> ParkOut:
         attributes=park.attributes,
         avg_rating=round(float(avg), 1) if avg else None,
         review_count=count,
-        active_dogs_count=active,
+        active_pets_count=active,
         created_at=park.created_at,
     )
 
@@ -136,7 +136,7 @@ async def nearby_parks(
             attributes=park.attributes,
             avg_rating=round(float(avg_rating), 1) if avg_rating is not None else None,
             review_count=review_count or 0,
-            active_dogs_count=active_count or 0,
+            active_pets_count=active_count or 0,
             created_at=park.created_at,
         )
         for park, avg_rating, review_count, active_count in rows
@@ -334,15 +334,15 @@ async def list_incidents(
 # --- Check-ins ---
 
 def _checkin_to_out(ci: ParkCheckin) -> ParkCheckinOut:
-    photo_url = display_photo_url(ci.dog)
+    photo_url = display_photo_url(ci.pet)
 
     return ParkCheckinOut(
         id=ci.id,
         park_id=ci.park_id,
-        dog_id=ci.dog_id,
-        dog_name=ci.dog.name if ci.dog else None,
-        dog_breed=breed_display(ci.dog.mix_type, ci.dog.breeds) if ci.dog else None,
-        dog_photo_url=photo_url,
+        pet_id=ci.pet_id,
+        pet_name=ci.pet.name if ci.pet else None,
+        pet_breed=breed_display(ci.pet.mix_type, ci.pet.breeds, ci.pet.species) if ci.pet else None,
+        pet_photo_url=photo_url,
         checked_in_at=ci.created_at,
         checked_out_at=ci.checked_out_at,
     )
@@ -359,45 +359,45 @@ async def checkin(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Park not found")
 
-    # Verify user owns the dog
-    dog_result = await db.execute(
-        select(Dog)
-        .options(selectinload(Dog.photos), selectinload(Dog.breeds))
-        .where(Dog.id == body.dog_id, Dog.owner_id == user.id, Dog.is_active == True)
+    # Verify user owns the pet
+    pet_result = await db.execute(
+        select(Pet)
+        .options(selectinload(Pet.photos), selectinload(Pet.breeds))
+        .where(Pet.id == body.pet_id, Pet.owner_id == user.id, Pet.is_active == True)
     )
-    dog = dog_result.scalar_one_or_none()
-    if not dog:
-        raise HTTPException(status_code=404, detail="Dog not found or not yours")
+    pet = pet_result.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet not found or not yours")
 
-    # End any existing active checkin for this dog at this park
+    # End any existing active checkin for this pet at this park
     existing = await db.execute(
         select(ParkCheckin).where(
-            ParkCheckin.dog_id == body.dog_id,
+            ParkCheckin.pet_id == body.pet_id,
             ParkCheckin.checked_out_at == None,  # noqa: E711
         )
     )
     for old_ci in existing.scalars().all():
         old_ci.checked_out_at = datetime.now(timezone.utc)
 
-    ci = ParkCheckin(park_id=park_id, user_id=user.id, dog_id=body.dog_id)
+    ci = ParkCheckin(park_id=park_id, user_id=user.id, pet_id=body.pet_id)
     db.add(ci)
     await db.commit()
     await db.refresh(ci)
-    ci.dog = dog
+    ci.pet = pet
     return _checkin_to_out(ci)
 
 
-@router.delete("/{park_id}/checkin/{dog_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{park_id}/checkin/{pet_id}", status_code=status.HTTP_200_OK)
 async def checkout(
     park_id: UUID,
-    dog_id: UUID,
+    pet_id: UUID,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(ParkCheckin).where(
             ParkCheckin.park_id == park_id,
-            ParkCheckin.dog_id == dog_id,
+            ParkCheckin.pet_id == pet_id,
             ParkCheckin.user_id == user.id,
             ParkCheckin.checked_out_at == None,  # noqa: E711
         )
@@ -419,8 +419,8 @@ async def list_checkins(
     result = await db.execute(
         select(ParkCheckin)
         .options(
-            selectinload(ParkCheckin.dog).selectinload(Dog.photos),
-            selectinload(ParkCheckin.dog).selectinload(Dog.breeds),
+            selectinload(ParkCheckin.pet).selectinload(Pet.photos),
+            selectinload(ParkCheckin.pet).selectinload(Pet.breeds),
         )
         .where(
             ParkCheckin.park_id == park_id,

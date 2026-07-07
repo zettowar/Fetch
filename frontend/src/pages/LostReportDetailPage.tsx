@@ -39,7 +39,7 @@ export default function LostReportDetailPage() {
 
   useDocumentTitle(
     report
-      ? `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.dog_name || 'Dog'} · Fetch`
+      ? `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.pet_name || 'Pet'} · Fetch`
       : null,
   );
 
@@ -136,19 +136,19 @@ export default function LostReportDetailPage() {
         </Badge>
       </div>
 
-      {/* Dog info */}
+      {/* Pet info */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          {report.dog_name && (
-            <h1 className="text-2xl font-bold">{report.dog_name}</h1>
+          {report.pet_name && (
+            <h1 className="text-2xl font-bold">{report.pet_name}</h1>
           )}
-          {report.dog_breed && <p className="text-gray-500 dark:text-gray-400">{report.dog_breed}</p>}
+          {report.pet_breed && <p className="text-gray-500 dark:text-gray-400">{report.pet_breed}</p>}
         </div>
         <button
           onClick={() =>
             shareLink(
               `${window.location.origin}/app/lost/${id}`,
-              `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.dog_name || 'Dog'}`,
+              `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.pet_name || 'Pet'}`,
             )
           }
           className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors flex-shrink-0"
@@ -165,7 +165,7 @@ export default function LostReportDetailPage() {
             <img
               key={p.id}
               src={photoUrl(p)}
-              alt={`Photo ${idx + 1} of ${report.dog_name || 'the dog'}`}
+              alt={`Photo ${idx + 1} of ${report.pet_name || 'the pet'}`}
               loading="lazy"
               className="w-full h-48 sm:h-32 object-cover rounded-lg"
             />
@@ -299,7 +299,7 @@ export default function LostReportDetailPage() {
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={(e) => setSightPhoto(e.target.files?.[0] ?? null)}
-                className="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
+                className="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 dark:file:bg-brand-500/15 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-500/20"
               />
               {sightPhoto && (
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">{sightPhoto.name}</p>
@@ -317,7 +317,7 @@ export default function LostReportDetailPage() {
         <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
           <h3 className="font-semibold mb-2">Contact Reporter</h3>
           <textarea
-            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
             rows={3}
             placeholder="Your message..."
             value={contactMessage}
@@ -340,7 +340,7 @@ export default function LostReportDetailPage() {
             title="No sightings yet"
             body={
               report.status === 'open'
-                ? 'Seen this dog? Use the sighting form above to help.'
+                ? 'Seen this pet? Use the sighting form above to help.'
                 : undefined
             }
           />

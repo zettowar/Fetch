@@ -164,7 +164,7 @@ async def signup_rescue(
     request: Request, body: RescueSignupRequest, db: AsyncSession = Depends(get_db),
 ):
     """Create a rescue account. The user can log in immediately but cannot
-    post dogs or run adoption flows until an admin approves their profile."""
+    post pets or run adoption flows until an admin approves their profile."""
     existing = await db.execute(select(User).where(User.email == body.email.lower()))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered")

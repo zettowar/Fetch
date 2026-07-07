@@ -13,7 +13,7 @@ class Report(Base, UUIDPrimaryKey, TimestampMixin):
     reporter_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    target_type: Mapped[str] = mapped_column(String(50), nullable=False)  # photo|dog|user|comment
+    target_type: Mapped[str] = mapped_column(String(50), nullable=False)  # photo|pet|user|comment
     target_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(

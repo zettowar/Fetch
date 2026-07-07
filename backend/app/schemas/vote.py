@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_validator
 
 
 class VoteCreate(BaseModel):
-    dog_id: UUID
+    pet_id: UUID
     value: int
 
     @field_validator("value")
@@ -19,7 +19,7 @@ class VoteCreate(BaseModel):
 class VoteOut(BaseModel):
     id: UUID
     voter_id: UUID
-    dog_id: UUID
+    pet_id: UUID
     value: int
     week_bucket: date
     created_at: datetime

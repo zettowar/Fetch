@@ -14,7 +14,7 @@ interface EmptyStateProps {
 /**
  * Consistent empty-state block for list pages and sections.
  * - Centered with soft background card
- * - Optional dog illustration (preferred) or leading emoji/icon
+ * - Optional pet illustration (preferred) or leading emoji/icon
  * - Optional action (usually a Link wrapping a Button)
  *
  * Illustration guide: sleeping = nothing here yet · sniffing = search/

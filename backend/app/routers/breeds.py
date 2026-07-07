@@ -14,13 +14,16 @@ router = APIRouter()
 @router.get("", response_model=list[BreedOut])
 async def list_breeds(
     q: str = Query(default=""),
+    species: str | None = Query(None),
     include_inactive: bool = Query(False),
     limit: int = Query(500, ge=1, le=1000),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List breeds alphabetically. Supports case-insensitive prefix/contains search via ?q="""
+    """List breeds alphabetically. Filter by ?species=dog|cat; search via ?q="""
     query = select(Breed).order_by(Breed.name.asc()).limit(limit)
+    if species in ("dog", "cat"):
+        query = query.where(Breed.species == species)
     if not include_inactive:
         query = query.where(Breed.is_active == True)  # noqa: E712
     if q:

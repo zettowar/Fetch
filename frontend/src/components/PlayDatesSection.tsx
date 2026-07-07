@@ -9,7 +9,7 @@ import {
   removeRsvp,
   type PlayDate,
 } from '../api/playdates';
-import { getMyDogs } from '../api/dogs';
+import { getMyPets } from '../api/pets';
 import Button from './ui/Button';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../store/AuthContext';
@@ -37,8 +37,8 @@ interface PlayDateCardProps {
   playdate: PlayDate;
   currentUserId: string | undefined;
   myDogIds: Set<string>;
-  onRsvp: (id: string, dogId: string) => void;
-  onRemoveRsvp: (id: string, dogId: string) => void;
+  onRsvp: (id: string, petId: string) => void;
+  onRemoveRsvp: (id: string, petId: string) => void;
   onCancel: (id: string) => void;
   dogPickerOpen: boolean;
   onToggleDogPicker: () => void;
@@ -58,7 +58,7 @@ function PlayDateCard({
 }: PlayDateCardProps) {
   const isHost = currentUserId === playdate.host_id;
   const goingRsvps = playdate.rsvps.filter((r) => r.status === 'going');
-  const myRsvp = playdate.rsvps.find((r) => myDogIds.has(r.dog_id));
+  const myRsvp = playdate.rsvps.find((r) => myDogIds.has(r.pet_id));
 
   return (
     <div className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl">
@@ -90,12 +90,12 @@ function PlayDateCard({
               key={r.id}
               className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-gray-50 dark:bg-gray-800/50 rounded-full text-xs"
             >
-              {r.dog_photo_url ? (
-                <img src={r.dog_photo_url} alt={r.dog_name ?? 'Attending dog'} className="w-5 h-5 rounded-full object-cover" />
+              {r.pet_photo_url ? (
+                <img src={r.pet_photo_url} alt={r.pet_name ?? 'Attending pet'} className="w-5 h-5 rounded-full object-cover" />
               ) : (
-                <Avatar name={r.dog_name || '?'} size="sm" />
+                <Avatar name={r.pet_name || '?'} size="sm" />
               )}
-              <span>{r.dog_name}</span>
+              <span>{r.pet_name}</span>
             </div>
           ))}
         </div>
@@ -107,7 +107,7 @@ function PlayDateCard({
         </span>
         {myRsvp ? (
           <button
-            onClick={() => onRemoveRsvp(playdate.id, myRsvp.dog_id)}
+            onClick={() => onRemoveRsvp(playdate.id, myRsvp.pet_id)}
             className="ml-auto text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             Leave
@@ -125,23 +125,23 @@ function PlayDateCard({
       {dogPickerOpen && !myRsvp && (
         <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
           {myDogsForPicker.length === 0 ? (
-            <p className="text-xs text-gray-400 dark:text-gray-500">Add a dog first to RSVP.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Add a pet first to RSVP.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
-              {myDogsForPicker.map((dog) => (
+              {myDogsForPicker.map((pet) => (
                 <button
-                  key={dog.id}
-                  onClick={() => onRsvp(playdate.id, dog.id)}
+                  key={pet.id}
+                  onClick={() => onRsvp(playdate.id, pet.id)}
                   className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full text-xs hover:border-brand-400"
                 >
-                  {dog.primary_photo_url && (
+                  {pet.primary_photo_url && (
                     <img
-                      src={dog.primary_photo_url}
-                      alt={dog.name}
+                      src={pet.primary_photo_url}
+                      alt={pet.name}
                       className="w-4 h-4 rounded-full object-cover"
                     />
                   )}
-                  {dog.name}
+                  {pet.name}
                 </button>
               ))}
             </div>
@@ -170,8 +170,8 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
   });
 
   const { data: myDogs = [] } = useQuery({
-    queryKey: ['my-dogs'],
-    queryFn: getMyDogs,
+    queryKey: ['my-pets'],
+    queryFn: getMyPets,
   });
 
   const myDogIds = new Set(myDogs.map((d) => d.id));
@@ -184,7 +184,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       createPlayDate({
         park_id: parkId,
         scheduled_for: new Date(when).toISOString(),
-        host_dog_id: hostDogId,
+        host_pet_id: hostDogId,
         title: title || undefined,
         notes: notes || undefined,
       }),
@@ -208,7 +208,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
   });
 
   const rsvpMutation = useMutation({
-    mutationFn: ({ id, dogId }: { id: string; dogId: string }) => rsvpPlayDate(id, dogId, 'going'),
+    mutationFn: ({ id, petId }: { id: string; petId: string }) => rsvpPlayDate(id, petId, 'going'),
     onSuccess: () => {
       toast.success('RSVP saved');
       setDogPickerOpenFor(null);
@@ -218,7 +218,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
   });
 
   const removeRsvpMutation = useMutation({
-    mutationFn: ({ id, dogId }: { id: string; dogId: string }) => removeRsvp(id, dogId),
+    mutationFn: ({ id, petId }: { id: string; petId: string }) => removeRsvp(id, petId),
     onSuccess: invalidate,
     onError: () => toast.error('Failed to leave'),
   });
@@ -239,7 +239,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
           variant={showCreate ? 'ghost' : 'secondary'}
           onClick={() => {
             if (!canCreate) {
-              toast.error('Add a dog first to host a meetup');
+              toast.error('Add a pet first to host a meetup');
               return;
             }
             setShowCreate((v) => !v);
@@ -268,7 +268,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
             onChange={(e) => setTitle(e.target.value)}
           />
           <textarea
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30"
             rows={2}
             placeholder="Notes (optional)"
             value={notes}
@@ -276,26 +276,26 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
             onChange={(e) => setNotes(e.target.value)}
           />
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Hosting dog:</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Hosting pet:</p>
             <div className="flex flex-wrap gap-1.5">
-              {myDogs.map((dog) => (
+              {myDogs.map((pet) => (
                 <button
-                  key={dog.id}
-                  onClick={() => setHostDogId(dog.id)}
+                  key={pet.id}
+                  onClick={() => setHostDogId(pet.id)}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                    hostDogId === dog.id
+                    hostDogId === pet.id
                       ? 'bg-brand-500 text-white border-brand-500'
                       : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-brand-400'
                   }`}
                 >
-                  {dog.primary_photo_url && (
+                  {pet.primary_photo_url && (
                     <img
-                      src={dog.primary_photo_url}
-                      alt={dog.name}
+                      src={pet.primary_photo_url}
+                      alt={pet.name}
                       className="w-4 h-4 rounded-full object-cover"
                     />
                   )}
-                  {dog.name}
+                  {pet.name}
                 </button>
               ))}
             </div>
@@ -314,7 +314,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
         <p className="text-sm text-gray-400 dark:text-gray-500">Loading...</p>
       ) : playdates.length === 0 ? (
         <p className="text-sm text-gray-400 dark:text-gray-500">
-          No upcoming meetups yet. {canCreate ? 'Be the first to host!' : 'Add a dog to host one.'}
+          No upcoming meetups yet. {canCreate ? 'Be the first to host!' : 'Add a pet to host one.'}
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -324,8 +324,8 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
               playdate={pd}
               currentUserId={user?.id}
               myDogIds={myDogIds}
-              onRsvp={(id, dogId) => rsvpMutation.mutate({ id, dogId })}
-              onRemoveRsvp={(id, dogId) => removeRsvpMutation.mutate({ id, dogId })}
+              onRsvp={(id, petId) => rsvpMutation.mutate({ id, petId })}
+              onRemoveRsvp={(id, petId) => removeRsvpMutation.mutate({ id, petId })}
               onCancel={(id) => cancelMutation.mutate(id)}
               dogPickerOpen={dogPickerOpenFor === pd.id}
               onToggleDogPicker={() =>

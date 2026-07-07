@@ -38,7 +38,7 @@ WINNIPEG_RESCUES = [
     "Forks Animal Aid",
     "Prairie Paws Winnipeg",
     "Red River Rescue",
-    "Winnipeg Lost Dog Alert",
+    "Winnipeg Lost Pet Alert",
 ]
 
 EDMONTON_RESCUES = [
@@ -48,7 +48,7 @@ EDMONTON_RESCUES = [
     "Pawsitive Match Rescue",
     "Last Chance Animal Rescue",
     "Mountain View Animal Rescue",
-    "River Valley Dog Rescue",
+    "River Valley Pet Rescue",
     "Alberta Canine Connection",
     "YEG Pets Rescue",
     "Wildrose Animal Rescue",
@@ -60,7 +60,7 @@ SCATTERED_RESCUES = [
     ("Vancouver Animal Rescue",    "Vancouver, BC",     49.2827, -123.1207),
     ("Calgary Humane Society",     "Calgary, AB",       51.0447, -114.0719),
     ("Montreal SPCA",              "Montreal, QC",      45.5017,  -73.5673),
-    ("Ottawa Dog Rescue",          "Ottawa, ON",        45.4215,  -75.6972),
+    ("Ottawa Pet Rescue",          "Ottawa, ON",        45.4215,  -75.6972),
     ("Halifax Tails Rescue",       "Halifax, NS",       44.6488,  -63.5752),
     ("Seattle Humane",             "Seattle, WA",       47.6062, -122.3321),
     ("Chicago Canine Rescue",      "Chicago, IL",       41.8781,  -87.6298),
@@ -185,7 +185,7 @@ async def run() -> None:
                 session,
                 email=_email_for(org, "yeg"),
                 org_name=org,
-                description=f"{org} — Alberta rescue rehoming dogs across the Edmonton region.",
+                description=f"{org} — Alberta rescue rehoming pets across the Edmonton region.",
                 location="Edmonton, AB",
                 lat=lat,
                 lng=lng,

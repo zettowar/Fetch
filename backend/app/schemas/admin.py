@@ -17,7 +17,7 @@ class AuditLogOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class AdminDogOut(BaseModel):
+class AdminPetOut(BaseModel):
     id: UUID
     name: str
     breed: str | None = None
@@ -33,8 +33,8 @@ class AdminDogOut(BaseModel):
 
 class FlaggedPhotoOut(BaseModel):
     id: UUID
-    dog_id: UUID
-    dog_name: str | None = None
+    pet_id: UUID
+    pet_name: str | None = None
     owner_id: UUID | None = None
     owner_email: str | None = None
     content_type: str
@@ -49,8 +49,8 @@ class AdminLostReportOut(BaseModel):
     description: str
     reporter_id: UUID
     reporter_name: str | None = None
-    dog_id: UUID | None = None
-    dog_name: str | None = None
+    pet_id: UUID | None = None
+    pet_name: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -68,7 +68,7 @@ class DashboardStats(BaseModel):
     active_users: int = 0
     suspended_users: int = 0
     users_last_7d: int = 0
-    total_dogs: int = 0
+    total_pets: int = 0
     pending_reports: int = 0
     open_tickets: int = 0
     unverified_rescues: int = 0
@@ -88,7 +88,7 @@ class AdminUserOut(BaseModel):
     is_verified: bool
     role: str
     created_at: datetime
-    dog_count: int = 0
+    pet_count: int = 0
     strike_count: int = 0
 
     model_config = {"from_attributes": True}

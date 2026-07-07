@@ -96,7 +96,7 @@ export default function ParkEditorPage() {
     <div className="p-4">
       <BackButton fallback={isEditing ? `/app/parks/${parkId}` : '/app/parks'} />
       <h1 className="text-2xl font-bold mb-4">
-        {isEditing ? 'Edit Park' : 'Add a Dog Park'}
+        {isEditing ? 'Edit Park' : 'Add a Pet Park'}
       </h1>
       {!isEditing && (
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">

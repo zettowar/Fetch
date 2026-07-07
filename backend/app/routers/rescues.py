@@ -1,12 +1,12 @@
-"""Rescue account self-service + public directory + dog-transfer actions.
+"""Rescue account self-service + public directory + pet-transfer actions.
 
 - `/api/v1/rescues`                          public directory (approved only)
 - `/api/v1/rescues/:id`                      public detail
 - `/api/v1/rescues/me`                       current rescue's own profile
 - `/api/v1/rescues/me` (PATCH)               update own profile (approved only)
-- `/api/v1/rescues/:id/dogs`                 public list of this rescue's active, unadopted dogs
-- `/api/v1/rescues/dogs/:dog_id/mark-adopted` rescue flags dog as adopted (no transfer)
-- `/api/v1/rescues/dogs/:dog_id/transfer`    rescue initiates a transfer to a Fetch user
+- `/api/v1/rescues/:id/pets`                 public list of this rescue's active, unadopted pets
+- `/api/v1/rescues/pets/:pet_id/mark-adopted` rescue flags pet as adopted (no transfer)
+- `/api/v1/rescues/pets/:pet_id/transfer`    rescue initiates a transfer to a Fetch user
 """
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
@@ -20,19 +20,19 @@ from app.db import get_db
 from app.deps import get_current_user, require_approved_rescue
 from app.limiter import limiter
 from app.models.audit_log import AuditLog
-from app.models.dog import Dog
-from app.models.dog_transfer import DogTransfer
+from app.models.pet import Pet
+from app.models.pet_transfer import PetTransfer
 from app.models.rescue import RescueProfile
 from app.models.user import User
-from app.services.dog_serializer import (
+from app.services.pet_serializer import (
     display_photo_url,
-    dog_to_out as _dog_to_out,
-    get_dog_full as _get_dog_full,
+    pet_to_out as _pet_to_out,
+    get_pet_full as _get_pet_full,
 )
 from app.services.notify import notify
 from app.services.geo import bounding_box
-from app.schemas.dog import DogOut
-from app.schemas.dog_transfer import DogTransferCreate, DogTransferOut
+from app.schemas.pet import PetOut
+from app.schemas.pet_transfer import PetTransferCreate, PetTransferOut
 from app.schemas.rescue import (
     RescueProfileOut,
     RescueProfileUpdate,
@@ -162,7 +162,7 @@ async def get_rescue(
     return profile
 
 
-@router.get("/{rescue_id}/dogs", response_model=list[DogOut])
+@router.get("/{rescue_id}/pets", response_model=list[PetOut])
 async def list_rescue_dogs(
     rescue_id: UUID,
     include_adopted: bool = Query(False),
@@ -180,75 +180,75 @@ async def list_rescue_dogs(
         raise HTTPException(status_code=404, detail="Rescue not found")
 
     query = (
-        select(Dog)
-        .options(selectinload(Dog.photos), selectinload(Dog.breeds))
-        .where(Dog.owner_id == profile.user_id, Dog.is_active == True)  # noqa: E712
-        .order_by(Dog.created_at.desc())
+        select(Pet)
+        .options(selectinload(Pet.photos), selectinload(Pet.breeds))
+        .where(Pet.owner_id == profile.user_id, Pet.is_active == True)  # noqa: E712
+        .order_by(Pet.created_at.desc())
     )
     if not include_adopted:
-        query = query.where(Dog.adopted_at.is_(None))
+        query = query.where(Pet.adopted_at.is_(None))
     result = await db.execute(query)
-    dogs = result.scalars().all()
-    return [_dog_to_out(d, rescue_name=profile.org_name, rescue_id=profile.id) for d in dogs]
+    pets = result.scalars().all()
+    return [_pet_to_out(d, rescue_name=profile.org_name, rescue_id=profile.id) for d in pets]
 
 
 # --- Adoption actions (rescue-only) ---
 
-@router.post("/dogs/{dog_id}/mark-adopted", response_model=DogOut)
+@router.post("/pets/{pet_id}/mark-adopted", response_model=PetOut)
 @limiter.limit("60/hour")
 async def mark_adopted(
     request: Request,
-    dog_id: UUID,
+    pet_id: UUID,
     user: User = Depends(require_approved_rescue),
     db: AsyncSession = Depends(get_db),
 ):
-    """Flag a dog as adopted without transferring to a Fetch user."""
-    dog = await _get_dog_full(dog_id, db)
-    if dog.owner_id != user.id:
-        raise HTTPException(status_code=403, detail="Not your dog")
-    if dog.adopted_at is not None:
-        raise HTTPException(status_code=400, detail="Dog is already marked adopted")
+    """Flag a pet as adopted without transferring to a Fetch user."""
+    pet = await _get_pet_full(pet_id, db)
+    if pet.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your pet")
+    if pet.adopted_at is not None:
+        raise HTTPException(status_code=400, detail="Pet is already marked adopted")
 
-    dog.adopted_at = datetime.now(timezone.utc)
+    pet.adopted_at = datetime.now(timezone.utc)
     db.add(AuditLog(
         actor_id=user.id,
-        action="dog.mark_adopted",
-        target_type="dog",
-        target_id=dog.id,
+        action="pet.mark_adopted",
+        target_type="pet",
+        target_id=pet.id,
     ))
     await db.commit()
-    dog = await _get_dog_full(dog_id, db)
+    pet = await _get_pet_full(pet_id, db)
     rescue_name = await _rescue_name_for_user(user.id, db)
-    return _dog_to_out(dog, rescue_name=rescue_name)
+    return _pet_to_out(pet, rescue_name=rescue_name)
 
 
 @router.post(
-    "/dogs/{dog_id}/transfer",
-    response_model=DogTransferOut,
+    "/pets/{pet_id}/transfer",
+    response_model=PetTransferOut,
     status_code=status.HTTP_201_CREATED,
 )
 @limiter.limit("60/hour")
 async def transfer_dog(
     request: Request,
-    dog_id: UUID,
-    body: DogTransferCreate,
+    pet_id: UUID,
+    body: PetTransferCreate,
     user: User = Depends(require_approved_rescue),
     db: AsyncSession = Depends(get_db),
 ):
     """Start a transfer to a Fetch user. Ownership flips only once the
     recipient accepts. If they don't have Fetch yet, invite by email —
     they'll see the pending transfer when they sign up with that email."""
-    dog = await _get_dog_full(dog_id, db)
-    if dog.owner_id != user.id:
-        raise HTTPException(status_code=403, detail="Not your dog")
-    if dog.adopted_at is not None:
-        raise HTTPException(status_code=400, detail="Dog is already marked adopted")
+    pet = await _get_pet_full(pet_id, db)
+    if pet.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your pet")
+    if pet.adopted_at is not None:
+        raise HTTPException(status_code=400, detail="Pet is already marked adopted")
 
-    # Cancel any in-flight pending transfer for this dog.
+    # Cancel any in-flight pending transfer for this pet.
     existing = await db.execute(
-        select(DogTransfer).where(
-            DogTransfer.dog_id == dog_id,
-            DogTransfer.status == "pending",
+        select(PetTransfer).where(
+            PetTransfer.pet_id == pet_id,
+            PetTransfer.status == "pending",
         )
     )
     for t in existing.scalars().all():
@@ -281,8 +281,8 @@ async def transfer_dog(
             to_user_id = target.id
             invited_email = None
 
-    transfer = DogTransfer(
-        dog_id=dog.id,
+    transfer = PetTransfer(
+        pet_id=pet.id,
         from_user_id=user.id,
         to_user_id=to_user_id,
         invited_email=invited_email,
@@ -294,15 +294,15 @@ async def transfer_dog(
         await notify(
             db, to_user_id,
             type="transfer_received",
-            title=f"{dog.name} is waiting for you",
+            title=f"{pet.name} is waiting for you",
             body="Review the transfer invitation to take ownership.",
             link="/app/transfers",
         )
     db.add(AuditLog(
         actor_id=user.id,
-        action="dog.transfer_initiated",
-        target_type="dog",
-        target_id=dog.id,
+        action="pet.transfer_initiated",
+        target_type="pet",
+        target_id=pet.id,
         metadata_={
             "to_user_id": str(to_user_id) if to_user_id else None,
             "invited_email": invited_email,
@@ -313,19 +313,19 @@ async def transfer_dog(
     return await _transfer_to_out(transfer, db)
 
 
-async def _transfer_to_out(t: DogTransfer, db: AsyncSession) -> DogTransferOut:
-    dog_res = await db.execute(
-        select(Dog).options(selectinload(Dog.photos)).where(Dog.id == t.dog_id)
+async def _transfer_to_out(t: PetTransfer, db: AsyncSession) -> PetTransferOut:
+    pet_res = await db.execute(
+        select(Pet).options(selectinload(Pet.photos)).where(Pet.id == t.pet_id)
     )
-    dog = dog_res.scalar_one_or_none()
-    photo_url = display_photo_url(dog)
-    dog_name = dog.name if dog else None
+    pet = pet_res.scalar_one_or_none()
+    photo_url = display_photo_url(pet)
+    pet_name = pet.name if pet else None
     rescue_name = await _rescue_name_for_user(t.from_user_id, db)
-    return DogTransferOut(
+    return PetTransferOut(
         id=t.id,
-        dog_id=t.dog_id,
-        dog_name=dog_name,
-        dog_photo_url=photo_url,
+        pet_id=t.pet_id,
+        pet_name=pet_name,
+        pet_photo_url=photo_url,
         from_user_id=t.from_user_id,
         from_rescue_name=rescue_name,
         to_user_id=t.to_user_id,

@@ -6,9 +6,9 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_create_report(client: AsyncClient, auth_headers: dict):
-    # First create a dog to report
-    dog_res = await client.post("/api/v1/dogs", json={"name": "BadDog"}, headers=auth_headers)
-    dog_id = dog_res.json()["id"]
+    # First create a pet to report
+    pet_res = await client.post("/api/v1/pets", json={"name": "BadDog"}, headers=auth_headers)
+    pet_id = pet_res.json()["id"]
 
     # Create a second user to file the report
     email2 = f"reporter-{uuid.uuid4().hex[:8]}@fetchapp.dev"
@@ -19,8 +19,8 @@ async def test_create_report(client: AsyncClient, auth_headers: dict):
     reporter_headers = {"Authorization": f"Bearer {reporter_token}"}
 
     res = await client.post("/api/v1/reports", json={
-        "target_type": "dog",
-        "target_id": dog_id,
+        "target_type": "pet",
+        "target_id": pet_id,
         "reason": "Inappropriate content",
     }, headers=reporter_headers)
     assert res.status_code == 201
@@ -30,7 +30,7 @@ async def test_create_report(client: AsyncClient, auth_headers: dict):
 @pytest.mark.asyncio
 async def test_create_report_requires_auth(client: AsyncClient):
     res = await client.post("/api/v1/reports", json={
-        "target_type": "dog",
+        "target_type": "pet",
         "target_id": str(uuid.uuid4()),
         "reason": "test",
     })
@@ -53,8 +53,8 @@ async def test_cannot_self_report(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.asyncio
 async def test_duplicate_report_rejected(client: AsyncClient, auth_headers: dict):
-    dog_res = await client.post("/api/v1/dogs", json={"name": "DupReport"}, headers=auth_headers)
-    dog_id = dog_res.json()["id"]
+    pet_res = await client.post("/api/v1/pets", json={"name": "DupReport"}, headers=auth_headers)
+    pet_id = pet_res.json()["id"]
 
     email2 = f"dupreporter-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     signup_res = await client.post("/api/v1/auth/signup", json={
@@ -63,11 +63,11 @@ async def test_duplicate_report_rejected(client: AsyncClient, auth_headers: dict
     reporter_headers = {"Authorization": f"Bearer {signup_res.json()['tokens']['access_token']}"}
 
     await client.post("/api/v1/reports", json={
-        "target_type": "dog", "target_id": dog_id, "reason": "first report"
+        "target_type": "pet", "target_id": pet_id, "reason": "first report"
     }, headers=reporter_headers)
 
     res = await client.post("/api/v1/reports", json={
-        "target_type": "dog", "target_id": dog_id, "reason": "second report"
+        "target_type": "pet", "target_id": pet_id, "reason": "second report"
     }, headers=reporter_headers)
     assert res.status_code == 409
 

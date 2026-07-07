@@ -6,8 +6,8 @@ from app.models.user import (
     EmailVerificationToken,
     EmailChangeToken,
 )
-from app.models.dog import Dog
-from app.models.breed import Breed, dog_breeds
+from app.models.pet import Pet
+from app.models.breed import Breed, pet_breeds
 from app.models.photo import Photo
 from app.models.vote import Vote
 from app.models.weekly_winner import WeeklyWinner
@@ -26,7 +26,7 @@ from app.models.playdate import PlayDate, PlayDateRsvp
 from app.models.post import Post
 from app.models.rescue import RescueProfile
 from app.models.adoption import AdoptionInquiry
-from app.models.dog_transfer import DogTransfer
+from app.models.pet_transfer import PetTransfer
 from app.models.support import FAQEntry, SupportTicket
 from app.models.entitlement import Entitlement
 from app.models.donation import Donation, StripeEvent
@@ -40,9 +40,9 @@ __all__ = [
     "PasswordResetToken",
     "EmailVerificationToken",
     "EmailChangeToken",
-    "Dog",
+    "Pet",
     "Breed",
-    "dog_breeds",
+    "pet_breeds",
     "Photo",
     "Vote",
     "WeeklyWinner",
@@ -67,7 +67,7 @@ __all__ = [
     "Post",
     "RescueProfile",
     "AdoptionInquiry",
-    "DogTransfer",
+    "PetTransfer",
     "FAQEntry",
     "SupportTicket",
     "Entitlement",

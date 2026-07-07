@@ -26,10 +26,10 @@ async def _upload_flagged(client: AsyncClient, auth_headers: dict, monkeypatch) 
 
     monkeypatch.setattr(photos_router, "check_image", fake_check_image)
 
-    dog_res = await client.post("/api/v1/dogs", json={"name": "FlagPup"}, headers=auth_headers)
-    dog_id = dog_res.json()["id"]
+    pet_res = await client.post("/api/v1/pets", json={"name": "FlagPup"}, headers=auth_headers)
+    pet_id = pet_res.json()["id"]
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("pup.jpg", _jpeg(), "image/jpeg")},
         headers=auth_headers,
     )
@@ -50,7 +50,7 @@ async def test_flagged_photo_hidden_from_dog_payload(
     client: AsyncClient, auth_headers: dict, monkeypatch
 ):
     photo = await _upload_flagged(client, auth_headers, monkeypatch)
-    res = await client.get(f"/api/v1/dogs/{photo['dog_id']}", headers=auth_headers)
+    res = await client.get(f"/api/v1/pets/{photo['pet_id']}", headers=auth_headers)
     assert res.status_code == 200
     assert all(p["id"] != photo["id"] for p in res.json()["photos"])
 
@@ -65,7 +65,7 @@ async def test_admin_queue_lists_and_serves_flagged_photo(
     assert listing.status_code == 200
     assert any(p["id"] == photo["id"] for p in listing.json())
     entry = next(p for p in listing.json() if p["id"] == photo["id"])
-    assert entry["dog_name"] == "FlagPup"
+    assert entry["pet_name"] == "FlagPup"
 
     # Reviewers can see the image even though the public endpoint withholds it.
     file_res = await client.get(
@@ -88,8 +88,8 @@ async def test_approve_publishes_photo(
 
     file_res = await client.get(f"/api/v1/photos/file/{photo['storage_key']}")
     assert file_res.status_code == 200
-    dog_res = await client.get(f"/api/v1/dogs/{photo['dog_id']}", headers=auth_headers)
-    assert any(p["id"] == photo["id"] for p in dog_res.json()["photos"])
+    pet_res = await client.get(f"/api/v1/pets/{photo['pet_id']}", headers=auth_headers)
+    assert any(p["id"] == photo["id"] for p in pet_res.json()["photos"])
 
 
 @pytest.mark.asyncio

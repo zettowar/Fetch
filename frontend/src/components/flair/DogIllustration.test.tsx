@@ -14,9 +14,9 @@ describe('DogIllustration', () => {
   });
 
   it('becomes a labeled image when given a title', () => {
-    const { container } = render(<DogIllustration name="ball" title="Happy dog with ball" />);
+    const { container } = render(<DogIllustration name="ball" title="Happy pet with ball" />);
     const svg = container.querySelector('svg');
     expect(svg).toHaveAttribute('role', 'img');
-    expect(svg).toHaveAttribute('aria-label', 'Happy dog with ball');
+    expect(svg).toHaveAttribute('aria-label', 'Happy pet with ball');
   });
 });

@@ -13,7 +13,7 @@ import {
   getConnectStatus,
   getDonationConfig,
 } from '../api/donations';
-import { getMyDogs } from '../api/dogs';
+import { getMyPets } from '../api/pets';
 import { listMyInquiries, updateInquiryStatus, type AdoptionInquiry } from '../api/adoption';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -25,7 +25,7 @@ import ErrorState from '../components/ui/ErrorState';
 import BackButton from '../components/ui/BackButton';
 import { useAuth } from '../store/AuthContext';
 import { apiErrorMessage } from '../utils/apiError';
-import type { Dog } from '../types';
+import type { Pet } from '../types';
 
 export default function RescueDashboardPage() {
   const { user } = useAuth();
@@ -41,9 +41,9 @@ export default function RescueDashboardPage() {
 
   const approved = profile?.status === 'approved';
 
-  const { data: dogs = [], refetch: refetchDogs } = useQuery<Dog[]>({
-    queryKey: ['rescue-my-dogs'],
-    queryFn: getMyDogs,
+  const { data: pets = [], refetch: refetchDogs } = useQuery<Pet[]>({
+    queryKey: ['rescue-my-pets'],
+    queryFn: getMyPets,
     enabled: approved,
   });
 
@@ -86,7 +86,7 @@ export default function RescueDashboardPage() {
         <p className="text-gray-600 dark:text-gray-300 mb-4">
           Thanks for applying, <span className="font-semibold">{profile.org_name}</span>.
           Our team is reviewing your application. Once approved, you'll be able to
-          post adoptable dogs here.
+          post adoptable pets here.
         </p>
         <div className="rounded-xl bg-warning-50 border border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30 p-4 text-sm text-warning-800 dark:text-warning-200 mb-4">
           Reviews typically take 1–3 business days. We'll email you at your signup address.
@@ -107,22 +107,22 @@ export default function RescueDashboardPage() {
     );
   }
 
-  const unadopted = dogs.filter((d) => !d.adopted_at && d.is_active);
-  const adopted = dogs.filter((d) => d.adopted_at);
+  const unadopted = pets.filter((d) => !d.adopted_at && d.is_active);
+  const adopted = pets.filter((d) => d.adopted_at);
 
   return (
     <div className="p-4 pb-8 max-w-xl mx-auto">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-2xl font-bold">{profile.org_name}</h1>
         <Link
-          to="/app/dogs/new"
+          to="/app/pets/new"
           className="text-sm font-medium text-brand-500 hover:text-brand-600"
         >
-          + Post a dog
+          + Post a pet
         </Link>
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Dogs you post here appear in the swipe feed and the adoption directory.
+        Pets you post here appear in the swipe feed and the adoption directory.
       </p>
 
       <ConnectDonationsCard externalDonationUrl={profile.donation_url} />
@@ -134,10 +134,10 @@ export default function RescueDashboardPage() {
         {unadopted.length === 0 ? (
           <EmptyState
             illustration="sleeping"
-            title="No adoptable dogs yet"
+            title="No adoptable pets yet"
             body={
               <>
-                <Link to="/app/dogs/new" className="text-brand-500 hover:underline">
+                <Link to="/app/pets/new" className="text-brand-500 hover:underline">
                   Post your first
                 </Link>{' '}
                 to get started.
@@ -149,12 +149,12 @@ export default function RescueDashboardPage() {
             {unadopted.map((d) => (
               <AdoptableDogRow
                 key={d.id}
-                dog={d}
+                pet={d}
                 onChanged={() => {
                   refetchDogs();
-                  queryClient.invalidateQueries({ queryKey: ['dog', d.id] });
+                  queryClient.invalidateQueries({ queryKey: ['pet', d.id] });
                 }}
-                onView={() => navigate(`/app/dogs/${d.id}`)}
+                onView={() => navigate(`/app/pets/${d.id}`)}
               />
             ))}
           </div>
@@ -174,7 +174,7 @@ export default function RescueDashboardPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {inquiries.map((q) => (
-              <InquiryRow key={q.id} inquiry={q} dogs={dogs} onChanged={refetchInquiries} />
+              <InquiryRow key={q.id} inquiry={q} pets={pets} onChanged={refetchInquiries} />
             ))}
           </div>
         )}
@@ -214,26 +214,26 @@ export default function RescueDashboardPage() {
 }
 
 function AdoptableDogRow({
-  dog,
+  pet,
   onChanged,
   onView,
 }: {
-  dog: Dog;
+  pet: Pet;
   onChanged: () => void;
   onView: () => void;
 }) {
   const [mode, setMode] = useState<'idle' | 'transfer'>('idle');
   const [email, setEmail] = useState('');
   const markAdopted = useMutation({
-    mutationFn: () => markDogAdopted(dog.id),
+    mutationFn: () => markDogAdopted(pet.id),
     onSuccess: () => {
-      toast.success(`${dog.name} marked adopted`);
+      toast.success(`${pet.name} marked adopted`);
       onChanged();
     },
     onError: (err) => toast.error(apiErrorMessage(err, 'Failed to mark adopted')),
   });
   const transfer = useMutation({
-    mutationFn: () => transferDog(dog.id, { invited_email: email.trim().toLowerCase() }),
+    mutationFn: () => transferDog(pet.id, { invited_email: email.trim().toLowerCase() }),
     onSuccess: () => {
       toast.success(`Transfer sent to ${email}`);
       setMode('idle');
@@ -246,18 +246,18 @@ function AdoptableDogRow({
   return (
     <Card padding="sm">
       <div className="flex items-center gap-3">
-        {dog.primary_photo_url && (
+        {pet.primary_photo_url && (
           <img
-            src={dog.primary_photo_url}
-            alt={dog.name}
+            src={pet.primary_photo_url}
+            alt={pet.name}
             className="w-12 h-12 rounded-full object-cover cursor-pointer"
             onClick={onView}
           />
         )}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold truncate">{dog.name}</p>
-          {dog.breed_display && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{dog.breed_display}</p>
+          <p className="font-semibold truncate">{pet.name}</p>
+          {pet.breed_display && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{pet.breed_display}</p>
           )}
         </div>
         <Button size="sm" variant="ghost" onClick={onView}>
@@ -279,7 +279,7 @@ function AdoptableDogRow({
             variant="ghost"
             className="flex-1"
             onClick={() => {
-              if (confirm(`Mark ${dog.name} as adopted? They'll stop appearing in the swipe feed.`)) {
+              if (confirm(`Mark ${pet.name} as adopted? They'll stop appearing in the swipe feed.`)) {
                 markAdopted.mutate();
               }
             }}
@@ -342,11 +342,11 @@ const STATUS_VARIANT: Record<AdoptionInquiry['status'], 'warning' | 'info' | 'ne
 
 function InquiryRow({
   inquiry,
-  dogs,
+  pets,
   onChanged,
 }: {
   inquiry: AdoptionInquiry;
-  dogs: Dog[];
+  pets: Pet[];
   onChanged: () => void;
 }) {
   const mutation = useMutation({
@@ -358,7 +358,7 @@ function InquiryRow({
     onError: (err) => toast.error(apiErrorMessage(err, 'Failed to update inquiry')),
   });
 
-  const aboutDog = inquiry.dog_id ? dogs.find((d) => d.id === inquiry.dog_id) : undefined;
+  const aboutDog = inquiry.pet_id ? pets.find((d) => d.id === inquiry.pet_id) : undefined;
 
   return (
     <Card padding="sm">
@@ -379,7 +379,7 @@ function InquiryRow({
       </div>
       {aboutDog && (
         <Link
-          to={`/app/dogs/${aboutDog.id}`}
+          to={`/app/pets/${aboutDog.id}`}
           className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-300 text-2xs font-medium hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
         >
           About {aboutDog.name} ↗

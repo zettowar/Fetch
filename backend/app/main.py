@@ -13,7 +13,7 @@ from app.config import settings
 from app.limiter import limiter
 from app.logging import setup_logging
 from app.middleware import RequestIDMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
-from app.routers import auth, users, dogs, breeds, photos, feed, votes, rankings, reports, admin, lost, social, parks, vets, playdates, posts, rescues, dog_transfers, support, billing, donations, notifications, feedback, adoption, public
+from app.routers import auth, users, pets, breeds, photos, feed, votes, rankings, reports, admin, lost, social, parks, vets, playdates, posts, rescues, pet_transfers, support, billing, donations, notifications, feedback, adoption, public
 
 logger = structlog.stdlib.get_logger()
 
@@ -69,7 +69,7 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 # Routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
-app.include_router(dogs.router, prefix="/api/v1/dogs", tags=["dogs"])
+app.include_router(pets.router, prefix="/api/v1/pets", tags=["pets"])
 app.include_router(breeds.router, prefix="/api/v1/breeds", tags=["breeds"])
 app.include_router(photos.router, prefix="/api/v1", tags=["photos"])
 app.include_router(feed.router, prefix="/api/v1/feed", tags=["feed"])
@@ -86,7 +86,7 @@ app.include_router(posts.router, prefix="/api/v1/posts", tags=["posts"])
 app.include_router(rescues.router, prefix="/api/v1/rescues", tags=["rescues"])
 app.include_router(adoption.router, prefix="/api/v1", tags=["adoption"])
 app.include_router(public.router, prefix="/api/v1/public", tags=["public"])
-app.include_router(dog_transfers.router, prefix="/api/v1/dog-transfers", tags=["dog-transfers"])
+app.include_router(pet_transfers.router, prefix="/api/v1/pet-transfers", tags=["pet-transfers"])
 app.include_router(support.router, prefix="/api/v1/support", tags=["support"])
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
 app.include_router(donations.router, prefix="/api/v1/donations", tags=["donations"])

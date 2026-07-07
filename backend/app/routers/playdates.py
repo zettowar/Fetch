@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.park import Park
 from app.models.playdate import PlayDate, PlayDateRsvp
 from app.models.user import User
@@ -20,21 +20,21 @@ from app.schemas.playdate import (
     PlayDateRsvpCreate,
     PlayDateRsvpOut,
 )
-from app.services.dog_serializer import display_photo_url
+from app.services.pet_serializer import display_photo_url
 
 router = APIRouter()
 
 
 def _rsvp_to_out(rsvp: PlayDateRsvp) -> PlayDateRsvpOut:
-    photo_url = display_photo_url(rsvp.dog)
+    photo_url = display_photo_url(rsvp.pet)
 
     return PlayDateRsvpOut(
         id=rsvp.id,
         playdate_id=rsvp.playdate_id,
         user_id=rsvp.user_id,
-        dog_id=rsvp.dog_id,
-        dog_name=rsvp.dog.name if rsvp.dog else None,
-        dog_photo_url=photo_url,
+        pet_id=rsvp.pet_id,
+        pet_name=rsvp.pet.name if rsvp.pet else None,
+        pet_photo_url=photo_url,
         status=rsvp.status,
         created_at=rsvp.created_at,
     )
@@ -67,8 +67,8 @@ async def _load_playdate(playdate_id: UUID, db: AsyncSession) -> PlayDate:
             selectinload(PlayDate.host),
             selectinload(PlayDate.park),
             selectinload(PlayDate.rsvps)
-            .selectinload(PlayDateRsvp.dog)
-            .selectinload(Dog.photos),
+            .selectinload(PlayDateRsvp.pet)
+            .selectinload(Pet.photos),
         )
         .where(PlayDate.id == playdate_id)
     )
@@ -98,16 +98,16 @@ async def create_playdate(
     if not park_result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Park not found")
 
-    # Verify host owns the dog
-    dog_result = await db.execute(
-        select(Dog).where(
-            Dog.id == body.host_dog_id,
-            Dog.owner_id == user.id,
-            Dog.is_active == True,
+    # Verify host owns the pet
+    pet_result = await db.execute(
+        select(Pet).where(
+            Pet.id == body.host_pet_id,
+            Pet.owner_id == user.id,
+            Pet.is_active == True,
         )
     )
-    if not dog_result.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Dog not found or not yours")
+    if not pet_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Pet not found or not yours")
 
     pd = PlayDate(
         host_id=user.id,
@@ -123,7 +123,7 @@ async def create_playdate(
     rsvp = PlayDateRsvp(
         playdate_id=pd.id,
         user_id=user.id,
-        dog_id=body.host_dog_id,
+        pet_id=body.host_pet_id,
         status="going",
     )
     db.add(rsvp)
@@ -148,8 +148,8 @@ async def list_upcoming(
             selectinload(PlayDate.host),
             selectinload(PlayDate.park),
             selectinload(PlayDate.rsvps)
-            .selectinload(PlayDateRsvp.dog)
-            .selectinload(Dog.photos),
+            .selectinload(PlayDateRsvp.pet)
+            .selectinload(Pet.photos),
         )
         .where(PlayDate.scheduled_for > now, PlayDate.status == "scheduled")
         .order_by(PlayDate.scheduled_for.asc())
@@ -213,46 +213,46 @@ async def rsvp_playdate(
     if pd.status != "scheduled":
         raise HTTPException(status_code=400, detail="Play date is not open for RSVPs")
 
-    # Verify user owns the dog
-    dog_result = await db.execute(
-        select(Dog)
-        .options(selectinload(Dog.photos))
+    # Verify user owns the pet
+    pet_result = await db.execute(
+        select(Pet)
+        .options(selectinload(Pet.photos))
         .where(
-            Dog.id == body.dog_id,
-            Dog.owner_id == user.id,
-            Dog.is_active == True,
+            Pet.id == body.pet_id,
+            Pet.owner_id == user.id,
+            Pet.is_active == True,
         )
     )
-    dog = dog_result.scalar_one_or_none()
-    if not dog:
-        raise HTTPException(status_code=404, detail="Dog not found or not yours")
+    pet = pet_result.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet not found or not yours")
 
     # Upsert: update if exists, else create
     existing_result = await db.execute(
         select(PlayDateRsvp).where(
             PlayDateRsvp.playdate_id == playdate_id,
-            PlayDateRsvp.dog_id == body.dog_id,
+            PlayDateRsvp.pet_id == body.pet_id,
         )
     )
     existing = existing_result.scalar_one_or_none()
     if existing:
-        # The RSVP row is keyed by dog only. If it belongs to a different
-        # account (e.g. the dog changed owners), don't silently take it over.
+        # The RSVP row is keyed by pet only. If it belongs to a different
+        # account (e.g. the pet changed owners), don't silently take it over.
         if existing.user_id != user.id:
             raise HTTPException(
                 status_code=403,
-                detail="This dog already has an RSVP from another account",
+                detail="This pet already has an RSVP from another account",
             )
         existing.status = body.status
         await db.commit()
         await db.refresh(existing)
-        existing.dog = dog
+        existing.pet = pet
         return _rsvp_to_out(existing)
 
     rsvp = PlayDateRsvp(
         playdate_id=playdate_id,
         user_id=user.id,
-        dog_id=body.dog_id,
+        pet_id=body.pet_id,
         status=body.status,
     )
     db.add(rsvp)
@@ -260,23 +260,23 @@ async def rsvp_playdate(
         await db.commit()
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=409, detail="Already RSVPed with this dog")
+        raise HTTPException(status_code=409, detail="Already RSVPed with this pet")
     await db.refresh(rsvp)
-    rsvp.dog = dog
+    rsvp.pet = pet
     return _rsvp_to_out(rsvp)
 
 
-@router.delete("/{playdate_id}/rsvp/{dog_id}")
+@router.delete("/{playdate_id}/rsvp/{pet_id}")
 async def remove_rsvp(
     playdate_id: UUID,
-    dog_id: UUID,
+    pet_id: UUID,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(PlayDateRsvp).where(
             PlayDateRsvp.playdate_id == playdate_id,
-            PlayDateRsvp.dog_id == dog_id,
+            PlayDateRsvp.pet_id == pet_id,
             PlayDateRsvp.user_id == user.id,
         )
     )

@@ -5,12 +5,12 @@ import Button from './ui/Button';
 import Input from './ui/Input';
 import { submitAdoptionInquiry } from '../api/adoption';
 import { useAuth } from '../store/AuthContext';
-import type { Dog } from '../types';
+import type { Pet } from '../types';
 
 interface Props {
   rescueId: string;
   rescueName: string;
-  dogs?: Dog[];
+  pets?: Pet[];
   initialDogId?: string;
   onSubmitted?: () => void;
 }
@@ -18,7 +18,7 @@ interface Props {
 export default function AdoptionInquiryForm({
   rescueId,
   rescueName,
-  dogs = [],
+  pets = [],
   initialDogId,
   onSubmitted,
 }: Props) {
@@ -27,7 +27,7 @@ export default function AdoptionInquiryForm({
   const [email, setEmail] = useState(user?.email ?? '');
   const [phone, setPhone] = useState('');
   const [selectedDogId, setSelectedDogId] = useState<string>(initialDogId ?? '');
-  const initialDog = initialDogId ? dogs.find((d) => d.id === initialDogId) : undefined;
+  const initialDog = initialDogId ? pets.find((d) => d.id === initialDogId) : undefined;
   const [message, setMessage] = useState(
     initialDog ? `Hi! I'm interested in adopting ${initialDog.name}.` : '',
   );
@@ -39,7 +39,7 @@ export default function AdoptionInquiryForm({
         email: email.trim(),
         phone: phone.trim() || null,
         message: message.trim(),
-        dog_id: selectedDogId || null,
+        pet_id: selectedDogId || null,
       }),
     onSuccess: () => {
       toast.success(`Inquiry sent to ${rescueName}`);
@@ -77,18 +77,18 @@ export default function AdoptionInquiryForm({
       </p>
 
       <div className="space-y-3">
-        {dogs.length > 0 && (
+        {pets.length > 0 && (
           <label className="block">
             <span className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-              Which dog?
+              Which pet?
             </span>
             <select
               value={selectedDogId}
               onChange={(e) => setSelectedDogId(e.target.value)}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             >
-              <option value="">Any dog / general question</option>
-              {dogs.map((d) => (
+              <option value="">Any pet / general question</option>
+              {pets.map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>

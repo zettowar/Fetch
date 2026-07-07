@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <TrendCard label="New Users" color="#2563eb" values={series.new_users} />
           <TrendCard label="New Reports" color="#dc2626" values={series.new_reports} />
-          <TrendCard label="New Dogs" color="#16a34a" values={series.new_dogs} />
+          <TrendCard label="New Pets" color="#16a34a" values={series.new_dogs} />
         </div>
       )}
 
@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
         <StatCard label="Active" value={stats.active_users} color="text-success-600 dark:text-success-400" />
         <StatCard label="Suspended" value={stats.suspended_users} color={stats.suspended_users > 0 ? 'text-danger-600 dark:text-danger-400' : 'text-gray-400 dark:text-gray-500'} />
         <StatCard label="New (7d)" value={stats.users_last_7d} color="text-blue-600 dark:text-blue-400" />
-        <StatCard label="Total Dogs" value={stats.total_dogs} />
+        <StatCard label="Total Pets" value={stats.total_pets} />
         <StatCard label="Reports (7d)" value={stats.reports_last_7d} />
       </div>
 

@@ -12,7 +12,7 @@ class PlayDateCreate(BaseModel):
     scheduled_for: datetime
     title: str | None = None
     notes: str | None = None
-    host_dog_id: UUID  # host auto-RSVPs with this dog
+    host_pet_id: UUID  # host auto-RSVPs with this pet
 
     @field_validator("title")
     @classmethod
@@ -40,7 +40,7 @@ class PlayDateCreate(BaseModel):
 
 
 class PlayDateRsvpCreate(BaseModel):
-    dog_id: UUID
+    pet_id: UUID
     status: str = "going"
 
     @field_validator("status")
@@ -55,9 +55,9 @@ class PlayDateRsvpOut(BaseModel):
     id: UUID
     playdate_id: UUID
     user_id: UUID
-    dog_id: UUID
-    dog_name: str | None = None
-    dog_photo_url: str | None = None
+    pet_id: UUID
+    pet_name: str | None = None
+    pet_photo_url: str | None = None
     status: str
     created_at: datetime
 

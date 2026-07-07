@@ -251,26 +251,26 @@ function SettingsTab() {
 
       <Card padding="none" className="px-4 mb-5">
         <ToggleRow
-          label="Lost dog alerts"
-          description="Notifications when dogs go missing near you"
+          label="Lost pet alerts"
+          description="Notifications when pets go missing near you"
           checked={prefs.lost_dog_alerts}
           onChange={(val) => update({ lost_dog_alerts: val })}
         />
         <ToggleRow
           label="Weekly winner"
-          description="Announce the top dog each week"
+          description="Announce the top pet each week"
           checked={prefs.weekly_winner}
           onChange={(val) => update({ weekly_winner: val })}
         />
         <ToggleRow
-          label="Comments on your dogs"
-          description="When someone leaves a comment on your dog's profile"
+          label="Comments on your pets"
+          description="When someone leaves a comment on your pet's profile"
           checked={prefs.comments_on_dogs}
           onChange={(val) => update({ comments_on_dogs: val })}
         />
         <ToggleRow
           label="New followers"
-          description="When someone starts following one of your dogs"
+          description="When someone starts following one of your pets"
           checked={prefs.new_followers}
           onChange={(val) => update({ new_followers: val })}
         />

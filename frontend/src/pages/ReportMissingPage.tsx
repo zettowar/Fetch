@@ -5,7 +5,7 @@ import BackButton from '../components/ui/BackButton';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { createLostReport } from '../api/lost';
-import { getMyDogs } from '../api/dogs';
+import { getMyPets } from '../api/pets';
 import Button from '../components/ui/Button';
 import LocationPicker from '../components/LocationPicker';
 import { apiErrorMessage } from '../utils/apiError';
@@ -13,11 +13,11 @@ import { apiErrorMessage } from '../utils/apiError';
 export default function ReportMissingPage() {
   const navigate = useNavigate();
   const { data: myDogs = [], isLoading: myDogsLoading } = useQuery({
-    queryKey: ['my-dogs'],
-    queryFn: getMyDogs,
+    queryKey: ['my-pets'],
+    queryFn: getMyPets,
   });
 
-  const [dogId, setDogId] = useState('');
+  const [petId, setDogId] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [radius, setRadius] = useState(500); // meters
@@ -36,7 +36,7 @@ export default function ReportMissingPage() {
     setSaving(true);
     try {
       const report = await createLostReport({
-        dog_id: dogId || undefined,
+        pet_id: petId || undefined,
         kind: 'missing',
         description,
         last_seen_lat: location.lat,
@@ -44,7 +44,7 @@ export default function ReportMissingPage() {
         last_seen_at: new Date().toISOString(),
         location_fuzz_m: radius,
       });
-      toast.success('Missing dog report created');
+      toast.success('Missing pet report created');
       navigate(`/app/lost/${report.id}`);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Failed to create report'));
@@ -57,7 +57,7 @@ export default function ReportMissingPage() {
     <div className="p-4">
       <BackButton fallback="/app/lost" />
       <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
-        <Siren size={22} aria-hidden className="text-danger-500" /> Report Missing Dog
+        <Siren size={22} aria-hidden className="text-danger-500" /> Report Missing Pet
       </h1>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Please also contact your local animal control and vet clinics.
@@ -65,18 +65,18 @@ export default function ReportMissingPage() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Which dog?</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Which pet?</label>
           {myDogsLoading ? (
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50">
-              Loading your dogs…
+              Loading your pets…
             </div>
           ) : myDogs.length > 0 ? (
             <select
               className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base"
-              value={dogId}
+              value={petId}
               onChange={(e) => setDogId(e.target.value)}
             >
-              <option value="">Select a dog (optional)</option>
+              <option value="">Select a pet (optional)</option>
               {myDogs.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name} {d.breed_display ? `(${d.breed_display})` : ''}
@@ -85,7 +85,7 @@ export default function ReportMissingPage() {
             </select>
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              You haven't added a dog yet — you can still file this report without linking one.
+              You haven't added a pet yet — you can still file this report without linking one.
             </p>
           )}
         </div>
@@ -93,9 +93,9 @@ export default function ReportMissingPage() {
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
           <textarea
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
             rows={4}
-            placeholder="Describe the dog, when and where last seen, any distinguishing features..."
+            placeholder="Describe the pet, when and where last seen, any distinguishing features..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required

@@ -15,8 +15,8 @@ const TABS = ['pending', 'reviewed', 'dismissed', 'all'] as const;
 const PAGE_SIZE = 50;
 
 function targetLink(type: string, id: string): string {
-  if (type === 'dog') return `/app/dogs/${id}`;
-  if (type === 'photo') return `/app/dogs/${id}`;
+  if (type === 'pet') return `/app/pets/${id}`;
+  if (type === 'photo') return `/app/pets/${id}`;
   if (type === 'user') return `/app/users/${id}`;
   return '#';
 }
@@ -106,7 +106,7 @@ export default function AdminReportsPage() {
                   variant={
                     r.target_type === 'user' ? 'danger' :
                     r.target_type === 'photo' ? 'info' :
-                    r.target_type === 'dog' ? 'warning' :
+                    r.target_type === 'pet' ? 'warning' :
                     'neutral'
                   }
                 >{r.target_type}</Badge>

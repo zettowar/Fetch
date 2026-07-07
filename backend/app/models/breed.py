@@ -5,13 +5,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKey
 
 
-dog_breeds = Table(
-    "dog_breeds",
+pet_breeds = Table(
+    "pet_breeds",
     Base.metadata,
     Column(
-        "dog_id",
+        "pet_id",
         UUID(as_uuid=True),
-        ForeignKey("dogs.id", ondelete="CASCADE"),
+        ForeignKey("pets.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
@@ -20,7 +20,7 @@ dog_breeds = Table(
         ForeignKey("breeds.id", ondelete="RESTRICT"),
         primary_key=True,
     ),
-    Index("ix_dog_breeds_breed_id", "breed_id"),
+    Index("ix_pet_breeds_breed_id", "breed_id"),
 )
 
 
@@ -36,6 +36,11 @@ class Breed(Base, UUIDPrimaryKey, TimestampMixin):
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     slug: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
     group: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # Which species this breed belongs to ("dog" | "cat"). Breed lists are
+    # filtered by species, and a pet's breeds must match its own species.
+    species: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="dog", server_default="dog", index=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    dogs = relationship("Dog", secondary=dog_breeds, back_populates="breeds")
+    pets = relationship("Pet", secondary=pet_breeds, back_populates="breeds")

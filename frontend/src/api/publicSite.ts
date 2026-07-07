@@ -19,19 +19,19 @@ export interface PublicDog {
 }
 
 export interface PublicTopDog {
-  dog_id: string;
-  dog_name: string;
+  pet_id: string;
+  pet_name: string;
   week_bucket: string;
   score: number;
   photo_url: string | null;
 }
 
-export async function getPublicDog(dogId: string): Promise<PublicDog> {
-  const res = await client.get(`/public/dogs/${dogId}`);
+export async function getPublicDog(petId: string): Promise<PublicDog> {
+  const res = await client.get(`/public/pets/${petId}`);
   return res.data;
 }
 
 export async function getPublicTopDog(): Promise<PublicTopDog | null> {
-  const res = await client.get('/public/top-dog');
+  const res = await client.get('/public/top-pet');
   return res.data;
 }

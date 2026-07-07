@@ -21,9 +21,9 @@ import EmptyState from '../components/ui/EmptyState';
 import Avatar from '../components/ui/Avatar';
 import TimeAgo from '../components/TimeAgo';
 import { Spinner } from '../components/ui/Skeleton';
-import DogProfileCard from '../components/DogProfileCard';
+import PetProfileCard from '../components/PetProfileCard';
 import { blockUser, getMyBlocks, getUserProfile, unblockUser } from '../api/social';
-import { getDogsByUser } from '../api/dogs';
+import { getPetsByUser } from '../api/pets';
 import { generateMyInvites, getMyInvites } from '../api/invites';
 import { resendVerification } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
@@ -45,9 +45,9 @@ export default function UserProfilePage() {
     enabled: !!id,
   });
 
-  const { data: dogs = [], isLoading: dogsLoading } = useQuery({
-    queryKey: ['user-dogs', id],
-    queryFn: () => getDogsByUser(id!),
+  const { data: pets = [], isLoading: dogsLoading } = useQuery({
+    queryKey: ['user-pets', id],
+    queryFn: () => getPetsByUser(id!),
     enabled: !!id,
   });
 
@@ -122,9 +122,9 @@ export default function UserProfilePage() {
       {/* Stats strip */}
       <section className="mx-4 mb-5 grid grid-cols-2 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 divide-x divide-gray-100 dark:divide-gray-800 overflow-hidden">
         <div className="py-3 text-center">
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{profile.dog_count}</p>
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{profile.pet_count}</p>
           <p className="text-2xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">
-            {profile.dog_count === 1 ? 'Dog' : 'Dogs'}
+            {profile.pet_count === 1 ? 'Pet' : 'Pets'}
           </p>
         </div>
         <div className="py-3 text-center">
@@ -183,7 +183,7 @@ export default function UserProfilePage() {
             </Button>
           </div>
           {debugToken && (
-            <div className="mt-2 p-2 bg-white dark:bg-gray-900 border border-warning-200 rounded-lg">
+            <div className="mt-2 p-2 bg-white dark:bg-gray-900 border border-warning-200 dark:border-warning-500/30 rounded-lg">
               <p className="text-2xs text-warning-700 dark:text-warning-300 mb-1">
                 Dev mode: no SMTP configured. Use this link to verify:
               </p>
@@ -202,9 +202,9 @@ export default function UserProfilePage() {
       {isMe && (
         <section className="mx-4 mb-6 flex flex-col gap-2">
           <MenuLink to="/app/profile/edit" label="Edit profile" icon={<Pencil size={18} />} />
-          <MenuLink to="/app/following" label="Dogs I follow" icon={<PawPrint size={18} />} />
-          <MenuLink to="/app/liked" label="Dogs you liked" icon={<Heart size={18} />} />
-          <MenuLink to="/app/transfers" label="Dog transfers" icon={<ArrowLeftRight size={18} />} />
+          <MenuLink to="/app/following" label="Pets I follow" icon={<PawPrint size={18} />} />
+          <MenuLink to="/app/liked" label="Pets you liked" icon={<Heart size={18} />} />
+          <MenuLink to="/app/transfers" label="Pet transfers" icon={<ArrowLeftRight size={18} />} />
           <MenuLink to="/app/donations" label="My donations" icon={<HeartHandshake size={18} />} />
           <MenuLink to="/app/notifications" label="Notifications" icon={<Bell size={18} />} />
         </section>
@@ -216,18 +216,18 @@ export default function UserProfilePage() {
       {/* Block control (someone else's profile) */}
       {!isMe && currentUser && <BlockControl userId={profile.id} displayName={profile.display_name} />}
 
-      {/* Dogs grid */}
+      {/* Pets grid */}
       <section className="mx-4">
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-base font-bold tracking-tight">
-            {isMe ? 'My dogs' : `${profile.display_name.split(' ')[0]}'s dogs`}
+            {isMe ? 'My pets' : `${profile.display_name.split(' ')[0]}'s pets`}
           </h2>
           {isMe && (
             <Link
-              to="/app/dogs/new"
+              to="/app/pets/new"
               className="text-xs font-medium text-brand-600 hover:text-brand-700"
             >
-              + Add dog
+              + Add pet
             </Link>
           )}
         </div>
@@ -236,25 +236,25 @@ export default function UserProfilePage() {
           <div className="flex justify-center py-8">
             <Spinner size="sm" />
           </div>
-        ) : dogs.length === 0 ? (
+        ) : pets.length === 0 ? (
           <EmptyState
             illustration="sleeping"
-            title={isMe ? 'No dogs yet' : "Hasn't added any dogs yet"}
+            title={isMe ? 'No pets yet' : "Hasn't added any pets yet"}
             action={
               isMe ? (
                 <Link
-                  to="/app/dogs/new"
+                  to="/app/pets/new"
                   className="inline-block text-sm font-medium text-brand-600 hover:text-brand-700"
                 >
-                  Add your first dog →
+                  Add your first pet →
                 </Link>
               ) : undefined
             }
           />
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {dogs.map((dog) => (
-              <DogProfileCard key={dog.id} dog={dog} showEdit={isMe} />
+            {pets.map((pet) => (
+              <PetProfileCard key={pet.id} pet={pet} showEdit={isMe} />
             ))}
           </div>
         )}
@@ -379,7 +379,7 @@ function BlockControl({ userId, displayName }: { userId: string; displayName: st
       ) : (
         <button
           onClick={() => {
-            if (confirm(`Block ${displayName}? Neither of you will see the other's dogs, comments, or messages.`)) {
+            if (confirm(`Block ${displayName}? Neither of you will see the other's pets, comments, or messages.`)) {
               blockMutation.mutate();
             }
           }}

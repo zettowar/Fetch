@@ -1,13 +1,13 @@
 import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { HousePlus } from 'lucide-react';
-import type { Dog } from '../types';
-import { dogAge, dogHeroPhoto } from '../utils/time';
+import type { Pet } from '../types';
+import { petAge, petHeroPhoto } from '../utils/time';
 import Badge from './ui/Badge';
 import DogIllustration from './flair/DogIllustration';
 
 interface SwipeCardProps {
-  dog: Dog;
+  pet: Pet;
   onSwipe: (direction: 'left' | 'right') => void;
   isTop: boolean;
 }
@@ -15,13 +15,13 @@ interface SwipeCardProps {
 const SWIPE_THRESHOLD = 120;
 const EXIT_X = 500;
 
-export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
+export default function SwipeCard({ pet, onSwipe, isTop }: SwipeCardProps) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const likeOpacity = useTransform(x, [0, 100], [0, 1]);
   const passOpacity = useTransform(x, [-100, 0], [1, 0]);
 
-  const photoUrl = dogHeroPhoto(dog);
+  const photoUrl = petHeroPhoto(pet);
 
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const velocityBoost = Math.min(Math.abs(info.velocity.x) / 4, 300);
@@ -51,7 +51,7 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
     >
       {photoUrl ? (
-        <img src={photoUrl} alt={dog.name} className="w-full h-[70%] object-cover" />
+        <img src={photoUrl} alt={pet.name} className="w-full h-[70%] object-cover" />
       ) : (
         <div className="w-full h-[70%] bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 flex flex-col items-center justify-center gap-2">
           <DogIllustration name="sleeping" className="h-24 w-auto text-brand-300 dark:text-brand-400/60" />
@@ -60,20 +60,29 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
       )}
 
       {/* Rescue badge — links to the rescue's profile, on top of the photo */}
-      {dog.rescue_id && (
+      {pet.rescue_id && (
         <Link
-          to={`/app/rescues/${dog.rescue_id}`}
+          to={`/app/rescues/${pet.rescue_id}`}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           className="absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-2xs font-semibold px-2.5 py-1 shadow-soft-sm hover:bg-brand-600 transition-colors"
-          aria-label={`Rescue · ${dog.rescue_name ?? 'View rescue profile'}`}
+          aria-label={`Rescue · ${pet.rescue_name ?? 'View rescue profile'}`}
         >
           <HousePlus size={12} aria-hidden />
           <span className="max-w-[140px] truncate">
-            {dog.rescue_name ?? 'Rescue'}
+            {pet.rescue_name ?? 'Rescue'}
           </span>
         </Link>
       )}
+
+      {/* Species chip */}
+      <span
+        className="absolute top-3 right-3 z-20 inline-flex items-center justify-center rounded-full bg-black/45 text-white text-base w-7 h-7 shadow-soft-sm"
+        aria-label={pet.species === 'cat' ? 'Cat' : 'Dog'}
+        title={pet.species === 'cat' ? 'Cat' : 'Dog'}
+      >
+        {pet.species === 'cat' ? '🐈' : '🐕'}
+      </span>
 
       {/* Like/Pass overlays */}
       <motion.div
@@ -91,23 +100,23 @@ export default function SwipeCard({ dog, onSwipe, isTop }: SwipeCardProps) {
 
       <div className="p-4">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold">{dog.name}</h2>
-          {dog.birthday && (
-            <span className="text-sm text-gray-400 dark:text-gray-500">{dogAge(dog.birthday)}</span>
+          <h2 className="text-xl font-bold">{pet.name}</h2>
+          {pet.birthday && (
+            <span className="text-sm text-gray-400 dark:text-gray-500">{petAge(pet.birthday)}</span>
           )}
         </div>
-        {dog.breed_display && <p className="text-gray-500 dark:text-gray-400">{dog.breed_display}</p>}
-        {dog.traits && dog.traits.length > 0 && (
+        {pet.breed_display && <p className="text-gray-500 dark:text-gray-400">{pet.breed_display}</p>}
+        {pet.traits && pet.traits.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
-            {dog.traits.slice(0, 3).map((t) => (
+            {pet.traits.slice(0, 3).map((t) => (
               <Badge key={t} variant="brand">
                 {t}
               </Badge>
             ))}
-            {dog.traits.length > 3 && <Badge variant="neutral">+{dog.traits.length - 3}</Badge>}
+            {pet.traits.length > 3 && <Badge variant="neutral">+{pet.traits.length - 3}</Badge>}
           </div>
         )}
-        {dog.bio && <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{dog.bio}</p>}
+        {pet.bio && <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{pet.bio}</p>}
       </div>
     </motion.div>
   );

@@ -1,5 +1,5 @@
 // Tracks first-run actions we can't cheaply derive from the server.
-// Dog ownership and follows come straight from their queries; "has swiped"
+// Pet ownership and follows come straight from their queries; "has swiped"
 // has no dedicated endpoint, so we record it client-side per user.
 
 const swipedKey = (userId: string) => `fetch.onboarding.swiped.${userId}`;

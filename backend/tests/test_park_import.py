@@ -19,9 +19,9 @@ SAMPLE_OVERPASS = {
             "lon": -122.4323,
             "tags": {
                 "leisure": "dog_park",
-                "name": "Mission Dolores Dog Park",
+                "name": "Mission Dolores Pet Park",
                 "fence": "yes",
-                "dog": "yes",
+                "pet": "yes",
                 "addr:city": "San Francisco",
                 "addr:state": "CA",
             },
@@ -32,7 +32,7 @@ SAMPLE_OVERPASS = {
             "center": {"lat": 40.7128, "lon": -74.0060},
             "tags": {
                 "leisure": "dog_park",
-                "name": "Madison Square Dog Run",
+                "name": "Madison Square Pet Run",
                 "addr:city": "New York",
             },
         },

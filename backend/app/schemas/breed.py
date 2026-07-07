@@ -9,6 +9,7 @@ class BreedOut(BaseModel):
     name: str
     slug: str
     group: str | None = None
+    species: str = "dog"
     is_active: bool = True
 
     model_config = {"from_attributes": True}
@@ -25,6 +26,7 @@ class BreedSummary(BaseModel):
 class BreedCreate(BaseModel):
     name: str
     group: str | None = None
+    species: str = "dog"
     is_active: bool = True
 
     @field_validator("name")
@@ -35,6 +37,13 @@ class BreedCreate(BaseModel):
             raise ValueError("Name is required")
         if len(v) > 100:
             raise ValueError("Name too long")
+        return v
+
+    @field_validator("species")
+    @classmethod
+    def valid_species(cls, v: str) -> str:
+        if v not in ("dog", "cat"):
+            raise ValueError("species must be 'dog' or 'cat'")
         return v
 
 
@@ -55,7 +64,7 @@ class BreedUpdate(BaseModel):
 
 
 class BreedAdminOut(BreedOut):
-    dog_count: int = 0
+    pet_count: int = 0
     created_at: datetime
 
     model_config = {"from_attributes": True}

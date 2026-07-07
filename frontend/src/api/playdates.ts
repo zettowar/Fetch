@@ -4,9 +4,9 @@ export interface PlayDateRsvp {
   id: string;
   playdate_id: string;
   user_id: string;
-  dog_id: string;
-  dog_name: string | null;
-  dog_photo_url: string | null;
+  pet_id: string;
+  pet_name: string | null;
+  pet_photo_url: string | null;
   status: 'going' | 'maybe' | 'declined';
   created_at: string;
 }
@@ -50,7 +50,7 @@ export async function getPlayDate(id: string): Promise<PlayDate> {
 export async function createPlayDate(data: {
   park_id: string;
   scheduled_for: string;
-  host_dog_id: string;
+  host_pet_id: string;
   title?: string;
   notes?: string;
 }): Promise<PlayDate> {
@@ -64,13 +64,13 @@ export async function cancelPlayDate(id: string): Promise<void> {
 
 export async function rsvpPlayDate(
   id: string,
-  dog_id: string,
+  pet_id: string,
   status: 'going' | 'maybe' | 'declined' = 'going',
 ): Promise<PlayDateRsvp> {
-  const res = await client.post(`/playdates/${id}/rsvp`, { dog_id, status });
+  const res = await client.post(`/playdates/${id}/rsvp`, { pet_id, status });
   return res.data;
 }
 
-export async function removeRsvp(id: string, dog_id: string): Promise<void> {
-  await client.delete(`/playdates/${id}/rsvp/${dog_id}`);
+export async function removeRsvp(id: string, pet_id: string): Promise<void> {
+  await client.delete(`/playdates/${id}/rsvp/${pet_id}`);
 }

@@ -1,7 +1,7 @@
 import OsmLibraryPage, { type OsmLibraryConfig } from './OsmLibraryPage';
 
 const config: OsmLibraryConfig = {
-  title: 'Dog parks library',
+  title: 'Pet parks library',
   entityLabel: 'park',
   totalLabel: 'Total parks',
   addLabel: '+ Add park',

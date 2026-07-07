@@ -1,31 +1,31 @@
 import { Link } from 'react-router-dom';
-import type { Dog } from '../types';
-import { dogHeroPhoto } from '../utils/time';
+import type { Pet } from '../types';
+import { petHeroPhoto } from '../utils/time';
 
 const RANK_EMOJI: Record<number, string> = { 1: '\ud83e\udd47', 2: '\ud83e\udd48', 3: '\ud83e\udd49' };
 
-interface DogProfileCardProps {
-  dog: Dog;
+interface PetProfileCardProps {
+  pet: Pet;
   showEdit?: boolean;
   rank?: number;
 }
 
-export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardProps) {
-  const photoUrl = dogHeroPhoto(dog);
-  const photoCount = dog.photos.length;
+export default function PetProfileCard({ pet, showEdit, rank }: PetProfileCardProps) {
+  const photoUrl = petHeroPhoto(pet);
+  const photoCount = pet.photos.length;
   const hasPhotos = photoCount > 0;
   const rankLabel = rank ? RANK_EMOJI[rank] || `#${rank}` : null;
 
   return (
     <Link
-      to={`/app/dogs/${dog.id}`}
+      to={`/app/pets/${pet.id}`}
       className="block bg-white dark:bg-gray-900 rounded-2xl shadow-soft-sm border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-200 ease-soft-out hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99]"
     >
       <div className="relative aspect-[4/3] bg-gray-100 dark:bg-gray-800">
         {photoUrl ? (
           <img
             src={photoUrl}
-            alt={dog.name}
+            alt={pet.name}
             loading="lazy"
             className="absolute inset-0 w-full h-full object-cover"
           />
@@ -58,10 +58,10 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
             {photoCount}
           </span>
         )}
-        {dog.rescue_id && (
+        {pet.rescue_id && (
           <span
             className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 bg-brand-500 text-white text-[11px] font-semibold rounded-full shadow-sm"
-            title={dog.rescue_name ?? 'Rescue dog'}
+            title={pet.rescue_name ?? 'Rescue pet'}
           >
             <span aria-hidden>🏠</span>
             Rescue
@@ -71,18 +71,18 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
       <div className="p-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold">{dog.name}</h3>
-            {dog.breed_display && <p className="text-xs text-gray-500 dark:text-gray-400">{dog.breed_display}</p>}
+            <h3 className="font-semibold">{pet.name}</h3>
+            {pet.breed_display && <p className="text-xs text-gray-500 dark:text-gray-400">{pet.breed_display}</p>}
           </div>
           <div className="flex items-center gap-2">
             {showEdit && !hasPhotos && (
-              <span className="text-[10px] bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-medium">
+              <span className="text-[10px] bg-brand-100 dark:bg-brand-500/15 text-brand-600 dark:text-brand-300 px-2 py-0.5 rounded-full font-medium">
                 Add photo
               </span>
             )}
             {showEdit && (
               <Link
-                to={`/app/dogs/${dog.id}/edit`}
+                to={`/app/pets/${pet.id}/edit`}
                 onClick={(e) => e.stopPropagation()}
                 className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
@@ -91,7 +91,7 @@ export default function DogProfileCard({ dog, showEdit, rank }: DogProfileCardPr
             )}
           </div>
         </div>
-        {dog.bio && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{dog.bio}</p>}
+        {pet.bio && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{pet.bio}</p>}
       </div>
     </Link>
   );

@@ -15,14 +15,17 @@ import {
   Trophy,
 } from 'lucide-react';
 import PawTrail from '../components/flair/PawTrail';
+import SpeciesTabs from '../components/SpeciesTabs';
 import { getCurrentWinner } from '../api/rankings';
+import { useSpeciesFilter } from '../hooks/useSpeciesFilter';
+import type { WeeklyWinner, Species } from '../types';
 import { getMyFollows } from '../api/social';
-import { getMyDogs } from '../api/dogs';
-import { listMyTransfers } from '../api/dogTransfers';
+import { getMyPets } from '../api/pets';
+import { listMyTransfers } from '../api/petTransfers';
 import { getNearbyReports } from '../api/lost';
 import { getDonationConfig } from '../api/donations';
 import { useAuth } from '../store/AuthContext';
-import { dogHeroPhoto } from '../utils/time';
+import { petHeroPhoto } from '../utils/time';
 import { useWeeklyResetCountdown, nextWeeklyReset } from '../utils/weeklyReset';
 import { onboarding } from '../utils/onboarding';
 import { swipeQuota } from '../utils/swipeQuota';
@@ -46,14 +49,100 @@ function stagger(step: number) {
   return { animationDelay: `${step * 70}ms`, animationFillMode: 'backwards' as const };
 }
 
+const CROWN_GRAD: Record<Species, string> = {
+  dog: 'from-brand-400 to-brand-600',
+  cat: 'from-purple-400 to-purple-600',
+};
+
+/** Compact crown tile — used two-up (Top Dog + Top Cat) when unfiltered. */
+function CrownCard({ species, winner }: { species: Species; winner: WeeklyWinner | null }) {
+  const label = species === 'cat' ? 'Top Cat' : 'Top Dog';
+  const emoji = species === 'cat' ? '🐈' : '🐕';
+  return (
+    <Link
+      to={`/app/rankings?species=${species}`}
+      className={`group relative h-40 bg-gradient-to-b ${CROWN_GRAD[species]} flex flex-col overflow-hidden rounded-3xl active:scale-[0.99] transition-transform duration-200 ease-soft-out`}
+    >
+      {winner?.primary_photo_url && (
+        <img
+          src={winner.primary_photo_url}
+          alt={winner.pet_name || label}
+          className="absolute inset-0 w-full h-full object-cover opacity-40"
+        />
+      )}
+      <div className="relative z-10 flex items-center justify-between text-white px-3 pt-3">
+        <p className="inline-flex items-center gap-1 text-2xs uppercase tracking-widest opacity-80">
+          <Trophy size={12} aria-hidden /> {label}
+        </p>
+        <span className="text-base" aria-hidden>{emoji}</span>
+      </div>
+      <div className="relative z-10 mt-auto text-center text-white px-3 pb-3">
+        {winner ? (
+          <p className="text-lg font-bold tracking-tight truncate drop-shadow-sm">{winner.pet_name}</p>
+        ) : (
+          <p className="text-sm font-semibold opacity-90">No winner yet</p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+/** Full-width hero for a single species (when the user has filtered). */
+function CrownHero({ species, winner, resetsIn }: { species: Species; winner: WeeklyWinner | null; resetsIn: string }) {
+  const label = species === 'cat' ? "This Week's Top Cat" : "This Week's Top Dog";
+  return (
+    <Link
+      to={`/app/rankings?species=${species}`}
+      className={`group relative h-56 bg-gradient-to-b ${CROWN_GRAD[species]} flex flex-col overflow-hidden rounded-b-3xl active:scale-[0.99] transition-transform duration-200 ease-soft-out`}
+    >
+      {winner?.primary_photo_url && (
+        <img
+          src={winner.primary_photo_url}
+          alt={winner.pet_name || 'Weekly winner'}
+          className="absolute inset-0 w-full h-full object-cover opacity-40"
+        />
+      )}
+      <PawTrail steps={4} direction={-24} size={18} className="absolute top-10 right-4 text-white/15" />
+      <div className="relative z-10 flex items-center justify-between text-white px-4 pt-5">
+        <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-80">
+          <Trophy size={14} aria-hidden /> {label}
+        </p>
+        <span className="text-xs font-medium opacity-80 group-hover:opacity-100 transition-opacity">Rankings →</span>
+      </div>
+      <div className="relative z-10 mt-auto text-center text-white px-4 pb-4">
+        {winner ? (
+          <p className="text-3xl font-bold tracking-tight drop-shadow-sm">{winner.pet_name}</p>
+        ) : (
+          <>
+            <p className="text-2xl font-bold tracking-tight opacity-90">No winner yet</p>
+            <div
+              className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium"
+              title={`Winner announced ${nextWeeklyReset().toLocaleString()}`}
+            >
+              <Hourglass size={12} aria-hidden />
+              <span>Results in {resetsIn}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </Link>
+  );
+}
+
 export default function HomePage() {
   const { user } = useAuth();
   // Rescues are distinct content-producer accounts — they don't get the
   // consumer home. Skip the consumer queries and send them to their dashboard.
   const isRescue = user?.role === 'rescue';
-  const { data: winner } = useQuery({
-    queryKey: ['weekly-winner'],
-    queryFn: getCurrentWinner,
+  const [speciesFilter] = useSpeciesFilter();
+  const { data: dogWinner } = useQuery({
+    queryKey: ['weekly-winner', 'dog'],
+    queryFn: () => getCurrentWinner('dog'),
+    enabled: !isRescue,
+  });
+  const { data: catWinner } = useQuery({
+    queryKey: ['weekly-winner', 'cat'],
+    queryFn: () => getCurrentWinner('cat'),
     enabled: !isRescue,
   });
   const { data: follows = [] } = useQuery({
@@ -62,8 +151,8 @@ export default function HomePage() {
     enabled: !isRescue,
   });
   const { data: myDogs = [], isLoading: dogsLoading } = useQuery({
-    queryKey: ['my-dogs'],
-    queryFn: getMyDogs,
+    queryKey: ['my-pets'],
+    queryFn: getMyPets,
     enabled: !isRescue,
   });
   const { data: transfers = [] } = useQuery({
@@ -74,7 +163,7 @@ export default function HomePage() {
   const pendingTransfers = transfers.filter((t) => t.status === 'pending');
   const resetsIn = useWeeklyResetCountdown();
 
-  // Live bits for the CTA cards: swipes left today + missing dogs nearby.
+  // Live bits for the CTA cards: swipes left today + missing pets nearby.
   const { isSubscriber } = useSubscription();
   const swipesLeft = user && !isRescue ? swipeQuota.remaining(user.id) : 0;
   const [lng, lat] = useUserLocation(DEFAULT_CENTER);
@@ -92,20 +181,20 @@ export default function HomePage() {
     staleTime: 5 * 60_000,
   });
 
-  const followedDogs = follows.map((f) => f.dog).filter((d) => !!d);
+  const followedDogs = follows.map((f) => f.pet).filter((d) => !!d);
   const stripDogs = followedDogs.slice(0, MAX_STRIP_AVATARS);
   const hasMore = followedDogs.length > MAX_STRIP_AVATARS;
 
   // First-run checklist. The customer asked specifically to surface "add your
-  // dog" when the user owns none, so step 1 is the gate: once they have a dog
+  // pet" when the user owns none, so step 1 is the gate: once they have a pet
   // the card disappears. Swipe/follow are shown as the path that follows.
   const [dismissed, setDismissed] = useState(() =>
     user ? onboarding.isDismissed(user.id) : false,
   );
   const steps: { key: string; label: string; to: string; done: boolean }[] = [
-    { key: 'dog', label: 'Add your dog', to: '/app/dogs/new', done: myDogs.length > 0 },
-    { key: 'swipe', label: 'Rate some dogs', to: '/app/swipe', done: user ? onboarding.hasSwiped(user.id) : false },
-    { key: 'follow', label: 'Follow a dog you like', to: '/app/explore', done: followedDogs.length > 0 },
+    { key: 'pet', label: 'Add your pet', to: '/app/pets/new', done: myDogs.length > 0 },
+    { key: 'swipe', label: 'Rate some pets', to: '/app/swipe', done: user ? onboarding.hasSwiped(user.id) : false },
+    { key: 'follow', label: 'Follow a pet you like', to: '/app/explore', done: followedDogs.length > 0 },
   ];
   const showOnboarding =
     !!user && !dismissed && !dogsLoading && myDogs.length === 0;
@@ -120,49 +209,22 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col">
-      {/* Hero: Weekly Winner */}
-      <Link
-        to="/app/rankings"
-        className="group relative h-56 bg-gradient-to-b from-brand-400 to-brand-600 flex flex-col overflow-hidden rounded-b-3xl active:scale-[0.99] transition-transform duration-200 ease-soft-out"
-      >
-        {winner?.primary_photo_url && (
-          <img
-            src={winner.primary_photo_url}
-            alt={winner.dog_name || 'Weekly winner'}
-            className="absolute inset-0 w-full h-full object-cover opacity-40"
-          />
-        )}
-        <PawTrail
-          steps={4}
-          direction={-24}
-          size={18}
-          className="absolute top-10 right-4 text-white/15"
+      {/* Hero: weekly crowns — Top Dog + Top Cat, or one when filtered */}
+      {speciesFilter === 'all' ? (
+        <div className="grid grid-cols-2 gap-3 px-4 pt-4">
+          <CrownCard species="dog" winner={dogWinner ?? null} />
+          <CrownCard species="cat" winner={catWinner ?? null} />
+        </div>
+      ) : (
+        <CrownHero
+          species={speciesFilter}
+          winner={(speciesFilter === 'cat' ? catWinner : dogWinner) ?? null}
+          resetsIn={resetsIn}
         />
-        <div className="relative z-10 flex items-center justify-between text-white px-4 pt-5">
-          <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-80">
-            <Trophy size={14} aria-hidden /> This Week's Top Dog
-          </p>
-          <span className="text-xs font-medium opacity-80 group-hover:opacity-100 transition-opacity">
-            Rankings →
-          </span>
-        </div>
-        <div className="relative z-10 mt-auto text-center text-white px-4 pb-4">
-          {winner ? (
-            <p className="text-3xl font-bold tracking-tight drop-shadow-sm">{winner.dog_name}</p>
-          ) : (
-            <>
-              <p className="text-2xl font-bold tracking-tight opacity-90">No winner yet</p>
-              <div
-                className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium"
-                title={`Winner announced ${nextWeeklyReset().toLocaleString()}`}
-              >
-                <Hourglass size={12} aria-hidden />
-                <span>Results in {resetsIn}</span>
-              </div>
-            </>
-          )}
-        </div>
-      </Link>
+      )}
+      <div className="flex justify-center pt-3">
+        <SpeciesTabs />
+      </div>
 
       <div className="p-4 pt-5 flex flex-col gap-5">
         <h1 className="text-lg font-bold animate-fade-in-up" style={stagger(0)}>
@@ -170,7 +232,7 @@ export default function HomePage() {
           {user ? `, ${user.display_name}` : ''}!
         </h1>
 
-        {/* Pending dog transfers — only shown when an invitation is waiting */}
+        {/* Pending pet transfers — only shown when an invitation is waiting */}
         {pendingTransfers.length > 0 && (
           <Link
             to="/app/transfers"
@@ -183,8 +245,8 @@ export default function HomePage() {
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {pendingTransfers.length === 1
-                    ? 'A dog transfer is waiting for you'
-                    : `${pendingTransfers.length} dog transfers are waiting for you`}
+                    ? 'A pet transfer is waiting for you'
+                    : `${pendingTransfers.length} pet transfers are waiting for you`}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Review the invitation to take ownership.</p>
               </div>
@@ -193,7 +255,7 @@ export default function HomePage() {
           </Link>
         )}
 
-        {/* First-run checklist — shown until the user adds their first dog */}
+        {/* First-run checklist — shown until the user adds their first pet */}
         {showOnboarding && (
           <section className="relative overflow-hidden rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-brand-50/80 dark:bg-brand-500/10 p-4 shadow-soft-sm animate-fade-in-up">
             <button
@@ -208,7 +270,7 @@ export default function HomePage() {
               🐾 Join the pack
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-              Add your dog to get rated, climb the rankings, and follow other pups.
+              Add your pet to get rated, climb the rankings, and follow other pets.
             </p>
             <ol className="mt-3 flex flex-col gap-1.5">
               {steps.map((step, i) => {
@@ -277,11 +339,11 @@ export default function HomePage() {
           <div className="relative z-10 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-2xs uppercase tracking-widest opacity-80">Ready to swipe?</p>
-              <p className="text-lg font-bold mt-0.5">Rate Dogs</p>
+              <p className="text-lg font-bold mt-0.5">Rate pets</p>
               <p className="inline-flex items-center gap-1.5 text-xs opacity-90 mt-1">
                 <Bone size={13} aria-hidden className="-rotate-12" />
                 {isSubscriber
-                  ? 'Unlimited swipes — fresh pups waiting'
+                  ? 'Unlimited swipes — fresh pets waiting'
                   : swipesLeft > 0
                     ? `${swipesLeft} swipes left today`
                     : 'Out of swipes — resets tomorrow'}
@@ -308,7 +370,7 @@ export default function HomePage() {
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-bold">Rescues</p>
-                <p className="text-2xs opacity-90 mt-0.5">Meet adoptable pups</p>
+                <p className="text-2xs opacity-90 mt-0.5">Meet adoptable pets</p>
               </div>
             </div>
             <div
@@ -363,7 +425,7 @@ export default function HomePage() {
           </Link>
         )}
 
-        {/* Following — strip when the user follows dogs, prompt row otherwise */}
+        {/* Following — strip when the user follows pets, prompt row otherwise */}
         {stripDogs.length > 0 ? (
           <section className="animate-fade-in-up" style={stagger(3)}>
             <div className="flex items-baseline justify-between mb-2">
@@ -373,12 +435,12 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 snap-x snap-mandatory scrollbar-none">
-              {stripDogs.map((dog) => {
-                const photo = dogHeroPhoto(dog);
+              {stripDogs.map((pet) => {
+                const photo = petHeroPhoto(pet);
                 return (
                   <Link
-                    key={dog.id}
-                    to={`/app/dogs/${dog.id}`}
+                    key={pet.id}
+                    to={`/app/pets/${pet.id}`}
                     className="flex flex-col items-center gap-1.5 w-16 snap-start flex-shrink-0"
                   >
                     <div className="p-[2px] rounded-full bg-gradient-to-br from-brand-300 to-brand-500 shadow-soft-sm">
@@ -386,7 +448,7 @@ export default function HomePage() {
                         {photo ? (
                           <img
                             src={photo}
-                            alt={dog.name}
+                            alt={pet.name}
                             loading="lazy"
                             className="w-12 h-12 rounded-full object-cover"
                           />
@@ -398,7 +460,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     <span className="text-2xs text-gray-700 dark:text-gray-300 font-medium truncate w-full text-center">
-                      {dog.name}
+                      {pet.name}
                     </span>
                   </Link>
                 );
@@ -426,7 +488,7 @@ export default function HomePage() {
               <span className="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-500/15 text-lg" aria-hidden>🐾</span>
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Following</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Follow dogs to see them here</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Follow pets to see them here</p>
               </div>
             </div>
             <ChevronRight size={18} aria-hidden className="text-gray-300 dark:text-gray-600" />

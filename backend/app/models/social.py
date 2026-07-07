@@ -8,29 +8,29 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKey
 
 
 class Follow(Base, UUIDPrimaryKey, TimestampMixin):
-    """Users follow dogs (not other users)."""
+    """Users follow pets (not other users)."""
 
     __tablename__ = "follows"
     __table_args__ = (
-        UniqueConstraint("follower_id", "dog_id", name="uq_follow"),
+        UniqueConstraint("follower_id", "pet_id", name="uq_follow"),
     )
 
     follower_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False, index=True,
     )
-    dog_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dogs.id", ondelete="CASCADE"),
+    pet_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("pets.id", ondelete="CASCADE"),
         nullable=False, index=True,
     )
 
     follower = relationship("User", foreign_keys=[follower_id])
-    dog = relationship("Dog", foreign_keys=[dog_id])
+    pet = relationship("Pet", foreign_keys=[pet_id])
 
 
 class Block(Base, UUIDPrimaryKey, TimestampMixin):
     """blocker never wants to see or hear from blocked again. Enforced in the
-    feed/explore, comments, follows, and the lost-dog contact relay."""
+    feed/explore, comments, follows, and the lost-pet contact relay."""
 
     __tablename__ = "blocks"
     __table_args__ = (

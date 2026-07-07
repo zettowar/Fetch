@@ -38,7 +38,7 @@ export interface ExtraField {
 }
 
 export interface OsmLibraryConfig {
-  title: string;               // page heading, e.g. 'Dog parks library'
+  title: string;               // page heading, e.g. 'Pet parks library'
   entityLabel: string;         // singular, e.g. 'park' / 'vet clinic'
   totalLabel: string;          // e.g. 'Total parks'
   addLabel: string;            // e.g. '+ Add park'

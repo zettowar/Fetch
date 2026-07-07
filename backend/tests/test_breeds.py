@@ -38,7 +38,7 @@ async def test_admin_breed_crud(client: AsyncClient, admin_headers: dict):
     breed = res.json()
     breed_id = breed["id"]
     assert breed["slug"] == f"crud-breed-{suffix}"
-    assert breed["dog_count"] == 0
+    assert breed["pet_count"] == 0
 
     # Duplicate create should 409
     res = await client.post(
@@ -64,7 +64,7 @@ async def test_admin_breed_crud(client: AsyncClient, admin_headers: dict):
 
 @pytest.mark.asyncio
 async def test_admin_delete_breed_with_dogs_blocked(client: AsyncClient, admin_headers: dict, auth_headers: dict):
-    # Create a new breed and attach a dog, then try to delete
+    # Create a new breed and attach a pet, then try to delete
     suffix = uuid.uuid4().hex[:6]
     res = await client.post(
         "/api/v1/admin/breeds",
@@ -75,7 +75,7 @@ async def test_admin_delete_breed_with_dogs_blocked(client: AsyncClient, admin_h
     breed_id = res.json()["id"]
 
     res = await client.post(
-        "/api/v1/dogs",
+        "/api/v1/pets",
         json={"name": "UsesBreed", "mix_type": "purebred", "breed_ids": [breed_id]},
         headers=auth_headers,
     )

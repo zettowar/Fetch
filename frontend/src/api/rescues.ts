@@ -66,7 +66,7 @@ export async function getRescue(id: string): Promise<RescuePublic> {
 }
 
 export async function getRescueDogs(id: string, includeAdopted = false) {
-  const res = await client.get(`/rescues/${id}/dogs`, {
+  const res = await client.get(`/rescues/${id}/pets`, {
     params: { include_adopted: includeAdopted },
   });
   return res.data;
@@ -86,16 +86,16 @@ export async function updateMyRescueProfile(
 
 // --- Adoption actions ---
 
-export async function markDogAdopted(dogId: string) {
-  const res = await client.post(`/rescues/dogs/${dogId}/mark-adopted`);
+export async function markDogAdopted(petId: string) {
+  const res = await client.post(`/rescues/pets/${petId}/mark-adopted`);
   return res.data;
 }
 
 export async function transferDog(
-  dogId: string,
+  petId: string,
   payload: { target_user_id?: string; invited_email?: string },
 ) {
-  const res = await client.post(`/rescues/dogs/${dogId}/transfer`, payload);
+  const res = await client.post(`/rescues/pets/${petId}/transfer`, payload);
   return res.data;
 }
 

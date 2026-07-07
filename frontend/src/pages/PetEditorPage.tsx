@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Check, Dog as DogIcon, Pencil, X } from 'lucide-react';
+import { Check, PawPrint as DogIcon, Pencil, X } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { usePawBurst } from '../components/flair/PawBurst';
-import { createDog, getDog, updateDog, deleteDog, DOG_TRAITS, MIX_TYPES, MAX_BREEDS_PER_DOG } from '../api/dogs';
+import { createPet, getPet, updatePet, deletePet, TRAITS_BY_SPECIES, MIX_TYPES, MAX_BREEDS_PER_PET } from '../api/pets';
 import { deletePhoto, uploadPhoto } from '../api/photos';
 import PhotoUploader from '../components/PhotoUploader';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import BreedMultiSelect from '../components/ui/BreedMultiSelect';
-import type { Breed, MixType } from '../types';
+import type { Breed, MixType, Species } from '../types';
 import { photoUrl } from '../utils/time';
 import { apiErrorMessage } from '../utils/apiError';
 
@@ -21,13 +21,14 @@ interface PendingPhoto {
   previewUrl: string;
 }
 
-export default function DogEditorPage() {
+export default function PetEditorPage() {
   const { id } = useParams();
   const isEditing = !!id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [name, setName] = useState('');
+  const [species, setSpecies] = useState<Species>('dog');
   const [mixType, setMixType] = useState<MixType>('mystery_mutt');
   const [breeds, setBreeds] = useState<Breed[]>([]);
   const [bio, setBio] = useState('');
@@ -39,23 +40,24 @@ export default function DogEditorPage() {
   const [uploadingPhotoIndex, setUploadingPhotoIndex] = useState<number | null>(null);
   const { fire, PawBurstLayer } = usePawBurst();
 
-  const { data: dog, refetch } = useQuery({
-    queryKey: ['dog', id],
-    queryFn: () => getDog(id!),
+  const { data: pet, refetch } = useQuery({
+    queryKey: ['pet', id],
+    queryFn: () => getPet(id!),
     enabled: isEditing,
   });
 
   useEffect(() => {
-    if (dog) {
-      setName(dog.name);
-      setMixType(dog.mix_type);
-      setBreeds(dog.breeds || []);
-      setBio(dog.bio || '');
-      setBirthday(dog.birthday || '');
-      setTraits(dog.traits || []);
-      setIsPublic(dog.is_public);
+    if (pet) {
+      setName(pet.name);
+      setSpecies(pet.species);
+      setMixType(pet.mix_type);
+      setBreeds(pet.breeds || []);
+      setBio(pet.bio || '');
+      setBirthday(pet.birthday || '');
+      setTraits(pet.traits || []);
+      setIsPublic(pet.is_public);
     }
-  }, [dog]);
+  }, [pet]);
 
   // Release object URLs when pending photos go away (on unmount or removal).
   useEffect(() => {
@@ -66,7 +68,17 @@ export default function DogEditorPage() {
   }, []);
 
   const allowedBreedCap =
-    mixType === 'purebred' ? 1 : mixType === 'cross' ? 2 : mixType === 'mystery_mutt' ? 0 : MAX_BREEDS_PER_DOG;
+    mixType === 'purebred' ? 1 : mixType === 'cross' ? 2 : mixType === 'mystery_mutt' ? 0 : MAX_BREEDS_PER_PET;
+
+  const handleSpeciesChange = (next: Species) => {
+    if (next === species) return;
+    setSpecies(next);
+    // Breeds are species-specific, so clear them; drop any traits that don't
+    // apply to the new species.
+    setBreeds([]);
+    const allowed = new Set(TRAITS_BY_SPECIES[next]);
+    setTraits((prev) => prev.filter((t) => allowed.has(t)));
+  };
 
   const handleMixChange = (next: MixType) => {
     setMixType(next);
@@ -103,6 +115,7 @@ export default function DogEditorPage() {
     try {
       const payload = {
         name,
+        species,
         mix_type: mixType,
         breed_ids: breeds.map((b) => b.id),
         bio: bio || undefined,
@@ -111,12 +124,12 @@ export default function DogEditorPage() {
         is_public: isPublic,
       };
       if (isEditing) {
-        await updateDog(id!, payload);
-        toast.success('Dog updated!');
-        queryClient.invalidateQueries({ queryKey: ['dog', id] });
+        await updatePet(id!, payload);
+        toast.success('Pet updated!');
+        queryClient.invalidateQueries({ queryKey: ['pet', id] });
       } else {
-        // Create the dog first, then upload any queued photos in sequence.
-        const newDog = await createDog(payload);
+        // Create the pet first, then upload any queued photos in sequence.
+        const newDog = await createPet(payload);
         fire();
         let uploadFailures = 0;
         for (let i = 0; i < pendingPhotos.length; i++) {
@@ -133,17 +146,17 @@ export default function DogEditorPage() {
         pendingPhotos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
 
         if (uploadFailures === 0) {
-          toast.success(pendingPhotos.length > 0 ? 'Dog created with photos!' : 'Dog created!');
+          toast.success(pendingPhotos.length > 0 ? 'Pet created with photos!' : 'Pet created!');
         } else {
           toast.error(
-            `Dog created, but ${uploadFailures} photo${uploadFailures > 1 ? 's' : ''} failed to upload. You can add them on the profile page.`,
+            `Pet created, but ${uploadFailures} photo${uploadFailures > 1 ? 's' : ''} failed to upload. You can add them on the profile page.`,
           );
         }
-        queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
-        navigate(`/app/dogs/${newDog.id}`);
+        queryClient.invalidateQueries({ queryKey: ['my-pets'] });
+        navigate(`/app/pets/${newDog.id}`);
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
+      queryClient.invalidateQueries({ queryKey: ['my-pets'] });
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Failed to save'));
     } finally {
@@ -153,12 +166,12 @@ export default function DogEditorPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to remove this dog?')) return;
+    if (!confirm('Are you sure you want to remove this pet?')) return;
     try {
-      await deleteDog(id!);
-      toast.success('Dog removed');
-      queryClient.invalidateQueries({ queryKey: ['my-dogs'] });
-      navigate('/app/dogs');
+      await deletePet(id!);
+      toast.success('Pet removed');
+      queryClient.invalidateQueries({ queryKey: ['my-pets'] });
+      navigate('/app/pets');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Failed to delete'));
     }
@@ -176,18 +189,43 @@ export default function DogEditorPage() {
 
   return (
     <div className="p-4">
-      <BackButton fallback="/app/dogs" />
+      <BackButton fallback="/app/pets" />
       <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
         {isEditing ? (
           <Pencil size={20} aria-hidden className="text-brand-500" />
         ) : (
           <DogIcon size={20} aria-hidden className="text-brand-500" />
         )}
-        {isEditing ? 'Edit Dog' : 'Add a Dog'}
+        {isEditing ? 'Edit Pet' : 'Add a Pet'}
       </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
+
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Species</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(['dog', 'cat'] as const).map((sp) => (
+              <button
+                key={sp}
+                type="button"
+                disabled={isEditing}
+                onClick={() => handleSpeciesChange(sp)}
+                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                  species === sp
+                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300'
+                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:border-brand-300'
+                } ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                <span aria-hidden>{sp === 'cat' ? '🐈' : '🐕'}</span>
+                {sp === 'cat' ? 'Cat' : 'Dog'}
+              </button>
+            ))}
+          </div>
+          {isEditing && (
+            <p className="text-xs text-gray-400 dark:text-gray-500">Species can't be changed after creation.</p>
+          )}
+        </div>
 
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Breed type</label>
@@ -199,7 +237,7 @@ export default function DogEditorPage() {
                 onClick={() => handleMixChange(opt.value)}
                 className={`flex flex-col items-start px-3 py-2 rounded-xl border text-left transition-colors ${
                   mixType === opt.value
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
+                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300'
                     : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:border-brand-300'
                 }`}
               >
@@ -215,6 +253,7 @@ export default function DogEditorPage() {
             value={breeds}
             onChange={setBreeds}
             max={allowedBreedCap}
+            species={species}
             label={
               mixType === 'purebred'
                 ? 'Breed'
@@ -235,10 +274,10 @@ export default function DogEditorPage() {
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
           <textarea
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
             rows={3}
             maxLength={500}
-            placeholder="Tell us about your dog..."
+            placeholder="Tell us about your pet..."
             value={bio}
             onChange={(e) => setBio(e.target.value)}
           />
@@ -247,7 +286,7 @@ export default function DogEditorPage() {
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Personality traits</label>
           <div className="flex flex-wrap gap-2">
-            {DOG_TRAITS.map((trait) => {
+            {TRAITS_BY_SPECIES[species].map((trait) => {
               const selected = traits.includes(trait);
               return (
                 <button
@@ -275,7 +314,7 @@ export default function DogEditorPage() {
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Public share page</p>
             <p className="text-xs text-gray-400 dark:text-gray-500">
-              Lets anyone with the link see {name.trim() || 'this dog'}'s page, no account needed.
+              Lets anyone with the link see {name.trim() || 'this pet'}'s page, no account needed.
             </p>
           </div>
           <button
@@ -297,8 +336,8 @@ export default function DogEditorPage() {
         </div>
 
         {/* Photos — on the initial add page we queue them client-side and
-            upload after the dog is created. On the edit page the existing
-            section below handles photos against an existing dog id. */}
+            upload after the pet is created. On the edit page the existing
+            section below handles photos against an existing pet id. */}
         {!isEditing && (
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -366,21 +405,21 @@ export default function DogEditorPage() {
             {isEditing
               ? 'Save Changes'
               : pendingPhotos.length > 0
-              ? `Create Dog & Upload ${pendingPhotos.length} Photo${pendingPhotos.length > 1 ? 's' : ''}`
-              : 'Create Dog'}
+              ? `Create Pet & Upload ${pendingPhotos.length} Photo${pendingPhotos.length > 1 ? 's' : ''}`
+              : 'Create Pet'}
           </Button>
           <PawBurstLayer />
         </span>
       </form>
 
-      {isEditing && dog && (
+      {isEditing && pet && (
         <>
           <div className="mt-6">
             <h2 className="text-lg font-semibold mb-3">Photos</h2>
-            <PhotoUploader dogId={id!} onUploaded={() => refetch()} />
-            {dog.photos.length > 0 && (
+            <PhotoUploader petId={id!} onUploaded={() => refetch()} />
+            {pet.photos.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mt-3">
-                {dog.photos.map((photo) => (
+                {pet.photos.map((photo) => (
                   <div key={photo.id} className="relative group">
                     <img
                       src={photoUrl(photo)}
@@ -402,7 +441,7 @@ export default function DogEditorPage() {
 
           <div className="mt-8 border-t pt-4">
             <Button variant="danger" onClick={handleDelete} className="w-full">
-              Remove Dog
+              Remove Pet
             </Button>
           </div>
         </>

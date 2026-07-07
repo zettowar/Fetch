@@ -56,7 +56,7 @@ export default function RescueSignupPage() {
       <AuthHero
         tone="purple"
         title="Rescue / Shelter Account"
-        subtitle="Create a verified account so your adoptable dogs can appear in Fetch. Applications are reviewed by our team — we'll reach out if we need more info."
+        subtitle="Create a verified account so your adoptable pets can appear in Fetch. Applications are reviewed by our team — we'll reach out if we need more info."
         icon={<HousePlus size={32} aria-hidden />}
       />
 
@@ -90,7 +90,7 @@ export default function RescueSignupPage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">About your organization</label>
             <textarea
-              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
               rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -121,7 +121,7 @@ export default function RescueSignupPage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Proof of status (optional)</label>
             <textarea
-              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 resize-none"
+              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
               rows={2}
               value={proof}
               onChange={(e) => setProof(e.target.value)}

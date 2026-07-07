@@ -9,12 +9,12 @@ from httpx import AsyncClient
 @pytest.mark.asyncio
 async def test_create_post(client: AsyncClient, auth_headers: dict):
     res = await client.post("/api/v1/posts", json={
-        "title": "Best Dog Treats",
-        "body": "Here are my favorite treats for dogs...",
+        "title": "Best Pet Treats",
+        "body": "Here are my favorite treats for pets...",
         "tags": ["training", "health"],
     }, headers=auth_headers)
     assert res.status_code == 201
-    assert res.json()["title"] == "Best Dog Treats"
+    assert res.json()["title"] == "Best Pet Treats"
 
 
 @pytest.mark.asyncio
@@ -50,7 +50,7 @@ async def test_rescue_signup_creates_pending_profile(client: AsyncClient):
         "email": email,
         "password": "password123",
         "org_name": org_name,
-        "description": "We rescue dogs in need",
+        "description": "We rescue pets in need",
         "website": "happypaws.org",
     })
     assert res.status_code == 201, res.text

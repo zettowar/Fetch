@@ -2,7 +2,7 @@
 
 The rest of the suite builds its schema with create_all (from the models), so
 drift between the migration chain and the models is invisible to it — this is
-how the weekly_winners.dog_id NOT NULL bug slipped through. Here we upgrade a
+how the weekly_winners.pet_id NOT NULL bug slipped through. Here we upgrade a
 scratch database to head and diff it against Base.metadata.
 """
 

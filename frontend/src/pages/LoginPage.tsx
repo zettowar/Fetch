@@ -42,7 +42,7 @@ export default function LoginPage() {
     <div className="flex flex-col pb-10">
       <AuthHero
         title="Welcome back"
-        subtitle="Log in to keep swiping and find this week's top pup."
+        subtitle="Log in to keep swiping and find this week's top pet."
       />
 
       {/* Form card */}

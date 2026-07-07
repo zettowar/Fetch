@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import get_current_user
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.photo import Photo
 from app.models.user import User
 from app.schemas.photo import PhotoOut
@@ -39,20 +39,20 @@ def _resize_image(img: Image.Image, max_dim: int) -> Image.Image:
     return img.resize((new_w, new_h), Image.LANCZOS)
 
 
-@router.post("/dogs/{dog_id}/photos", response_model=PhotoOut, status_code=status.HTTP_201_CREATED)
+@router.post("/pets/{pet_id}/photos", response_model=PhotoOut, status_code=status.HTTP_201_CREATED)
 async def upload_photo(
-    dog_id: UUID,
+    pet_id: UUID,
     file: UploadFile = File(...),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify ownership
-    result = await db.execute(select(Dog).where(Dog.id == dog_id))
-    dog = result.scalar_one_or_none()
-    if not dog:
-        raise HTTPException(status_code=404, detail="Dog not found")
-    if dog.owner_id != user.id:
-        raise HTTPException(status_code=403, detail="Not your dog")
+    result = await db.execute(select(Pet).where(Pet.id == pet_id))
+    pet = result.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet not found")
+    if pet.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your pet")
 
     # Read and validate
     data = await file.read()
@@ -106,7 +106,7 @@ async def upload_photo(
     await storage.put(key, saved_data, content_type)
 
     photo = Photo(
-        dog_id=dog_id,
+        pet_id=pet_id,
         storage_key=key,
         width=img.size[0],
         height=img.size[1],
@@ -118,8 +118,8 @@ async def upload_photo(
     await db.refresh(photo)
 
     # Auto-set primary photo if first photo
-    if dog.primary_photo_id is None:
-        dog.primary_photo_id = photo.id
+    if pet.primary_photo_id is None:
+        pet.primary_photo_id = photo.id
         await db.commit()
 
     return photo
@@ -137,16 +137,16 @@ async def delete_photo(
         raise HTTPException(status_code=404, detail="Photo not found")
 
     # Verify ownership
-    dog_result = await db.execute(select(Dog).where(Dog.id == photo.dog_id))
-    dog = dog_result.scalar_one_or_none()
-    if not dog or dog.owner_id != user.id:
+    pet_result = await db.execute(select(Pet).where(Pet.id == photo.pet_id))
+    pet = pet_result.scalar_one_or_none()
+    if not pet or pet.owner_id != user.id:
         raise HTTPException(status_code=403, detail="Not your photo")
 
     # Clear primary reference first, commit DB change, then delete the file.
     # Reversing this order means a failed commit leaves the file gone but the
     # row intact — orphaned references on reload.
-    if dog.primary_photo_id == photo.id:
-        dog.primary_photo_id = None
+    if pet.primary_photo_id == photo.id:
+        pet.primary_photo_id = None
 
     key = photo.storage_key
     await db.delete(photo)
@@ -162,7 +162,7 @@ async def delete_photo(
 
 @router.get("/photos/file/{key:path}")
 async def get_photo_file(key: str, db: AsyncSession = Depends(get_db)):
-    # Withhold dog photos that haven't passed moderation — otherwise sharing
+    # Withhold pet photos that haven't passed moderation — otherwise sharing
     # the direct file URL bypasses every feed-level filter. Keys with no Photo
     # row (e.g. sighting photos, which are reject-on-upload) pass through.
     photo_result = await db.execute(select(Photo).where(Photo.storage_key == key))

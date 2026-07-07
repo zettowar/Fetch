@@ -12,7 +12,7 @@ async def _create_approved_rescue(client: AsyncClient) -> tuple[str, dict]:
         "email": email,
         "password": "password123",
         "org_name": "Test Rescue",
-        "description": "We rescue dogs.",
+        "description": "We rescue pets.",
         "location": "Somewhere",
     })
     assert r.status_code == 201, r.text

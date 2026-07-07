@@ -1,4 +1,4 @@
-"""Tests for dog photo uploads and lost-report sighting photos."""
+"""Tests for pet photo uploads and lost-report sighting photos."""
 import io
 
 import pytest
@@ -21,34 +21,34 @@ def _make_png(size: tuple[int, int] = (120, 80)) -> bytes:
     return buf.getvalue()
 
 
-async def _create_dog(client: AsyncClient, auth_headers: dict) -> str:
-    res = await client.post("/api/v1/dogs", json={"name": "PhotoPup"}, headers=auth_headers)
+async def _create_pet(client: AsyncClient, auth_headers: dict) -> str:
+    res = await client.post("/api/v1/pets", json={"name": "PhotoPup"}, headers=auth_headers)
     assert res.status_code == 201, res.text
     return res.json()["id"]
 
 
-# --- Dog photo uploads ---
+# --- Pet photo uploads ---
 
 @pytest.mark.asyncio
 async def test_upload_dog_photo_jpeg(client: AsyncClient, auth_headers: dict):
-    dog_id = await _create_dog(client, auth_headers)
+    pet_id = await _create_pet(client, auth_headers)
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("pup.jpg", _make_jpeg(), "image/jpeg")},
         headers=auth_headers,
     )
     assert res.status_code == 201, res.text
     data = res.json()
-    assert data["dog_id"] == dog_id
+    assert data["pet_id"] == pet_id
     assert data["content_type"] == "image/jpeg"
     assert data["width"] > 0 and data["height"] > 0
 
 
 @pytest.mark.asyncio
 async def test_upload_dog_photo_png(client: AsyncClient, auth_headers: dict):
-    dog_id = await _create_dog(client, auth_headers)
+    pet_id = await _create_pet(client, auth_headers)
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("pup.png", _make_png(), "image/png")},
         headers=auth_headers,
     )
@@ -58,9 +58,9 @@ async def test_upload_dog_photo_png(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.asyncio
 async def test_upload_dog_photo_rejects_non_image(client: AsyncClient, auth_headers: dict):
-    dog_id = await _create_dog(client, auth_headers)
+    pet_id = await _create_pet(client, auth_headers)
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("bad.jpg", b"not-an-image", "image/jpeg")},
         headers=auth_headers,
     )
@@ -69,7 +69,7 @@ async def test_upload_dog_photo_rejects_non_image(client: AsyncClient, auth_head
 
 @pytest.mark.asyncio
 async def test_upload_dog_photo_requires_ownership(client: AsyncClient, auth_headers: dict):
-    dog_id = await _create_dog(client, auth_headers)
+    pet_id = await _create_pet(client, auth_headers)
     # Different user
     import uuid
     email = f"other-{uuid.uuid4().hex[:8]}@fetchapp.dev"
@@ -78,7 +78,7 @@ async def test_upload_dog_photo_requires_ownership(client: AsyncClient, auth_hea
     })
     other_headers = {"Authorization": f"Bearer {r.json()['tokens']['access_token']}"}
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("x.jpg", _make_jpeg(), "image/jpeg")},
         headers=other_headers,
     )
@@ -90,12 +90,12 @@ async def test_upload_dog_photo_requires_ownership(client: AsyncClient, auth_hea
 @pytest.mark.asyncio
 async def test_upload_large_rgba_png_survives_resize(client: AsyncClient, auth_headers: dict):
     """A >1600px RGBA PNG must not 500 (JPEG can't encode RGBA) and must stay PNG."""
-    dog_id = await _create_dog(client, auth_headers)
+    pet_id = await _create_pet(client, auth_headers)
     img = Image.new("RGBA", (2000, 1400), color=(0, 200, 0, 128))
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("big.png", buf.getvalue(), "image/png")},
         headers=auth_headers,
     )
@@ -111,12 +111,12 @@ async def test_upload_large_rgba_png_survives_resize(client: AsyncClient, auth_h
 
 @pytest.mark.asyncio
 async def test_upload_large_webp_survives_resize(client: AsyncClient, auth_headers: dict):
-    dog_id = await _create_dog(client, auth_headers)
+    pet_id = await _create_pet(client, auth_headers)
     img = Image.new("RGB", (1800, 900), color="blue")
     buf = io.BytesIO()
     img.save(buf, format="WEBP")
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("big.webp", buf.getvalue(), "image/webp")},
         headers=auth_headers,
     )
@@ -132,9 +132,9 @@ async def test_upload_large_webp_survives_resize(client: AsyncClient, auth_heade
 
 @pytest.mark.asyncio
 async def test_upload_large_jpeg_survives_resize(client: AsyncClient, auth_headers: dict):
-    dog_id = await _create_dog(client, auth_headers)
+    pet_id = await _create_pet(client, auth_headers)
     res = await client.post(
-        f"/api/v1/dogs/{dog_id}/photos",
+        f"/api/v1/pets/{pet_id}/photos",
         files={"file": ("big.jpg", _make_jpeg(size=(2400, 1200)), "image/jpeg")},
         headers=auth_headers,
     )
@@ -156,7 +156,7 @@ async def test_add_sighting_with_photo(client: AsyncClient, auth_headers: dict):
     # Reporter creates a missing report.
     create_res = await client.post("/api/v1/lost/reports", json={
         "kind": "missing",
-        "description": "Missing dog — sighting test",
+        "description": "Missing pet — sighting test",
     }, headers=auth_headers)
     report_id = create_res.json()["id"]
 

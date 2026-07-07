@@ -200,6 +200,61 @@ BREED_SEED: list[tuple[str, str | None]] = [
 ]
 
 
+# Cat breeds (CFA/TICA). Grouped loosely by TICA category (Natural / Hybrid /
+# Mutation). "Domestic Shorthair/Longhair" are the common non-pedigree cats.
+CAT_BREED_SEED: list[tuple[str, str | None]] = [
+    ("Abyssinian", "Natural"),
+    ("American Bobtail", "Mutation"),
+    ("American Curl", "Mutation"),
+    ("American Shorthair", "Natural"),
+    ("American Wirehair", "Mutation"),
+    ("Balinese", "Natural"),
+    ("Bengal", "Hybrid"),
+    ("Birman", "Natural"),
+    ("Bombay", "Hybrid"),
+    ("British Longhair", "Natural"),
+    ("British Shorthair", "Natural"),
+    ("Burmese", "Natural"),
+    ("Burmilla", "Natural"),
+    ("Chartreux", "Natural"),
+    ("Cornish Rex", "Mutation"),
+    ("Devon Rex", "Mutation"),
+    ("Domestic Longhair", None),
+    ("Domestic Shorthair", None),
+    ("Egyptian Mau", "Natural"),
+    ("Exotic Shorthair", "Natural"),
+    ("Havana Brown", "Natural"),
+    ("Himalayan", "Natural"),
+    ("Japanese Bobtail", "Natural"),
+    ("Korat", "Natural"),
+    ("LaPerm", "Mutation"),
+    ("Maine Coon", "Natural"),
+    ("Manx", "Mutation"),
+    ("Munchkin", "Mutation"),
+    ("Nebelung", "Natural"),
+    ("Norwegian Forest Cat", "Natural"),
+    ("Ocicat", "Hybrid"),
+    ("Oriental Shorthair", "Natural"),
+    ("Persian", "Natural"),
+    ("Peterbald", "Mutation"),
+    ("Ragamuffin", "Natural"),
+    ("Ragdoll", "Natural"),
+    ("Russian Blue", "Natural"),
+    ("Savannah", "Hybrid"),
+    ("Scottish Fold", "Mutation"),
+    ("Selkirk Rex", "Mutation"),
+    ("Siamese", "Natural"),
+    ("Siberian", "Natural"),
+    ("Singapura", "Natural"),
+    ("Somali", "Natural"),
+    ("Sphynx", "Mutation"),
+    ("Tonkinese", "Natural"),
+    ("Toyger", "Hybrid"),
+    ("Turkish Angora", "Natural"),
+    ("Turkish Van", "Natural"),
+]
+
+
 def slugify(name: str) -> str:
     out = []
     prev_dash = False

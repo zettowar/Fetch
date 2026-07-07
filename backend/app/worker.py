@@ -38,7 +38,7 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(day_of_week="monday", hour=0, minute=5),
     },
     # Troubleshooting / dev: pick a winner from the current week's votes
-    # every 10 minutes so a Top Dog becomes visible without waiting for
+    # every 10 minutes so a Top Pet becomes visible without waiting for
     # Monday's roll-over. Upserts the WeeklyWinner row for this week.
     "pick-current-winner": {
         "task": "app.tasks.weekly_winner.pick_current_winner_task",

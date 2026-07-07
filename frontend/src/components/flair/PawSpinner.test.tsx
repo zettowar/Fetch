@@ -10,7 +10,7 @@ describe('PawSpinner', () => {
   });
 
   it('accepts a custom label', () => {
-    render(<PawSpinner label="Fetching dogs" />);
-    expect(screen.getByRole('status')).toHaveAccessibleName('Fetching dogs');
+    render(<PawSpinner label="Fetching pets" />);
+    expect(screen.getByRole('status')).toHaveAccessibleName('Fetching pets');
   });
 });

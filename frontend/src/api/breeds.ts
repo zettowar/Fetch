@@ -1,13 +1,13 @@
 import client from './client';
-import type { Breed } from '../types';
+import type { Breed, Species } from '../types';
 
-export async function listBreeds(q?: string): Promise<Breed[]> {
-  const res = await client.get('/breeds', { params: { q: q || undefined } });
+export async function listBreeds(q?: string, species?: Species): Promise<Breed[]> {
+  const res = await client.get('/breeds', { params: { q: q || undefined, species } });
   return res.data;
 }
 
 export interface AdminBreed extends Breed {
-  dog_count: number;
+  pet_count: number;
   created_at: string;
 }
 
@@ -25,6 +25,7 @@ export async function adminListBreeds(params: {
 export async function adminCreateBreed(data: {
   name: string;
   group?: string | null;
+  species?: Species;
   is_active?: boolean;
 }): Promise<AdminBreed> {
   const res = await client.post('/admin/breeds', data);

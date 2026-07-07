@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy.orm import selectinload
 
-from app.models.dog import Dog
+from app.models.pet import Pet, SPECIES
 from app.models.vote import Vote
 from app.models.weekly_winner import WeeklyWinner
 from app.services.breed_display import breed_display
@@ -17,39 +17,47 @@ from app.services.feed_service import current_week_bucket
 logger = logging.getLogger(__name__)
 
 
-async def get_current_leaderboard(db: AsyncSession, limit: int = 20) -> list[dict]:
+async def get_current_leaderboard(
+    db: AsyncSession, species: str | None = None, limit: int = 20
+) -> list[dict]:
     week = current_week_bucket()
     query = (
         select(
-            Vote.dog_id,
+            Vote.pet_id,
             func.sum(Vote.value).label("score"),
             func.count().label("total_votes"),
         )
+        .join(Pet, Pet.id == Vote.pet_id)
         .where(Vote.week_bucket == week)
-        .group_by(Vote.dog_id)
+    )
+    if species:
+        query = query.where(Pet.species == species)
+    query = (
+        query.group_by(Vote.pet_id)
         .order_by(func.sum(Vote.value).desc())
         .limit(limit)
     )
     result = await db.execute(query)
     rows = result.all()
 
-    dog_ids = [row.dog_id for row in rows]
-    dogs_by_id: dict = {}
-    if dog_ids:
-        dog_result = await db.execute(
-            select(Dog).options(selectinload(Dog.breeds)).where(Dog.id.in_(dog_ids))
+    pet_ids = [row.pet_id for row in rows]
+    pets_by_id: dict = {}
+    if pet_ids:
+        pet_result = await db.execute(
+            select(Pet).options(selectinload(Pet.breeds)).where(Pet.id.in_(pet_ids))
         )
-        dogs_by_id = {d.id: d for d in dog_result.scalars().all()}
+        pets_by_id = {d.id: d for d in pet_result.scalars().all()}
 
     leaderboard = []
     for rank, row in enumerate(rows, 1):
-        dog = dogs_by_id.get(row.dog_id)
-        if dog:
+        pet = pets_by_id.get(row.pet_id)
+        if pet:
             leaderboard.append({
                 "rank": rank,
-                "dog_id": str(dog.id),
-                "dog_name": dog.name,
-                "breed": breed_display(dog.mix_type, dog.breeds),
+                "pet_id": str(pet.id),
+                "pet_name": pet.name,
+                "species": pet.species,
+                "breed": breed_display(pet.mix_type, pet.breeds, pet.species),
                 "score": row.score,
                 "total_votes": row.total_votes,
             })
@@ -57,27 +65,32 @@ async def get_current_leaderboard(db: AsyncSession, limit: int = 20) -> list[dic
     return leaderboard
 
 
-async def get_dog_stats(dog_id: UUID, db: AsyncSession) -> dict:
+async def get_pet_stats(pet_id: UUID, db: AsyncSession) -> dict:
     likes = await db.execute(
-        select(func.count()).where(Vote.dog_id == dog_id, Vote.value == 1)
+        select(func.count()).where(Vote.pet_id == pet_id, Vote.value == 1)
     )
     passes = await db.execute(
-        select(func.count()).where(Vote.dog_id == dog_id, Vote.value == -1)
+        select(func.count()).where(Vote.pet_id == pet_id, Vote.value == -1)
     )
 
-    # This week's standing: score, rank among dogs with votes, and field size.
+    # This week's standing is scoped to the pet's own species — a cat ranks
+    # among cats, a dog among dogs.
+    species = (
+        await db.execute(select(Pet.species).where(Pet.id == pet_id))
+    ).scalar_one_or_none()
     week = current_week_bucket()
     scores_sq = (
-        select(Vote.dog_id, func.sum(Vote.value).label("score"))
-        .where(Vote.week_bucket == week)
-        .group_by(Vote.dog_id)
+        select(Vote.pet_id, func.sum(Vote.value).label("score"))
+        .join(Pet, Pet.id == Vote.pet_id)
+        .where(Vote.week_bucket == week, Pet.species == species)
+        .group_by(Vote.pet_id)
         .subquery()
     )
     week_total = (
         await db.execute(select(func.count()).select_from(scores_sq))
     ).scalar() or 0
     week_score = (
-        await db.execute(select(scores_sq.c.score).where(scores_sq.c.dog_id == dog_id))
+        await db.execute(select(scores_sq.c.score).where(scores_sq.c.pet_id == pet_id))
     ).scalar_one_or_none()
     week_rank = None
     if week_score is not None:
@@ -90,7 +103,7 @@ async def get_dog_stats(dog_id: UUID, db: AsyncSession) -> dict:
 
     crowns = await db.execute(
         select(WeeklyWinner.week_bucket)
-        .where(WeeklyWinner.dog_id == dog_id)
+        .where(WeeklyWinner.pet_id == pet_id)
         .order_by(WeeklyWinner.week_bucket.desc())
     )
 
@@ -104,39 +117,52 @@ async def get_dog_stats(dog_id: UUID, db: AsyncSession) -> dict:
     }
 
 
-async def compute_weekly_winner(db: AsyncSession) -> WeeklyWinner | None:
-    """Compute the prior week's winner (production weekly job).
+async def compute_weekly_winner(db: AsyncSession) -> list[WeeklyWinner]:
+    """Compute the prior week's winner *per species* (production weekly job).
 
-    Upserts rather than skips: the 10-minute pick_current_winner job usually
-    creates the row during the week, but votes cast in its final window would
-    otherwise never be counted — Monday's run is the authoritative tally.
+    One crown per species — Top Dog and Top Cat. Upserts rather than skips: the
+    10-minute pick_current_winner job usually creates the row during the week,
+    but votes cast in its final window would otherwise never be counted —
+    Monday's run is the authoritative tally.
     """
     last_week = current_week_bucket() - timedelta(days=7)
-    return await _pick_winner_for_week(db, last_week, upsert=True, notify_win=True)
+    winners = []
+    for species in SPECIES:
+        w = await _pick_winner_for_week(db, last_week, species, upsert=True, notify_win=True)
+        if w:
+            winners.append(w)
+    return winners
 
 
-async def pick_current_winner(db: AsyncSession) -> WeeklyWinner | None:
-    """Compute (or update) the *current* week's winner.
+async def pick_current_winner(db: AsyncSession) -> list[WeeklyWinner]:
+    """Compute (or update) the *current* week's winner per species.
 
     Used by the troubleshooting 10-minute beat job so a winner appears as
     soon as anyone votes, and updates as the leaderboard shifts.
     """
-    return await _pick_winner_for_week(db, current_week_bucket(), upsert=True)
+    week = current_week_bucket()
+    winners = []
+    for species in SPECIES:
+        w = await _pick_winner_for_week(db, week, species, upsert=True)
+        if w:
+            winners.append(w)
+    return winners
 
 
 async def _pick_winner_for_week(
-    db: AsyncSession, week: date, *, upsert: bool, notify_win: bool = False
+    db: AsyncSession, week: date, species: str, *, upsert: bool, notify_win: bool = False
 ) -> WeeklyWinner | None:
-    # Ties break deterministically: first dog to enter the race wins, with
-    # dog_id as a final absolute tiebreaker.
+    # Ties break deterministically: first pet to enter the race wins, with
+    # pet_id as a final absolute tiebreaker. Scoped to one species.
     query = (
-        select(Vote.dog_id, func.sum(Vote.value).label("score"))
-        .where(Vote.week_bucket == week)
-        .group_by(Vote.dog_id)
+        select(Vote.pet_id, func.sum(Vote.value).label("score"))
+        .join(Pet, Pet.id == Vote.pet_id)
+        .where(Vote.week_bucket == week, Pet.species == species)
+        .group_by(Vote.pet_id)
         .order_by(
             func.sum(Vote.value).desc(),
             func.min(Vote.created_at).asc(),
-            Vote.dog_id.asc(),
+            Vote.pet_id.asc(),
         )
         .limit(1)
     )
@@ -144,34 +170,35 @@ async def _pick_winner_for_week(
     row = result.first()
 
     if not row:
-        logger.info("No votes found for week %s", week)
+        logger.info("No %s votes found for week %s", species, week)
         return None
 
     if upsert:
         existing_q = await db.execute(
-            select(WeeklyWinner).where(WeeklyWinner.week_bucket == week)
+            select(WeeklyWinner).where(
+                WeeklyWinner.week_bucket == week, WeeklyWinner.species == species
+            )
         )
         existing = existing_q.scalar_one_or_none()
         if existing:
-            if existing.dog_id != row.dog_id or existing.score != row.score:
-                existing.dog_id = row.dog_id
+            if existing.pet_id != row.pet_id or existing.score != row.score:
+                existing.pet_id = row.pet_id
                 existing.score = row.score
                 await db.commit()
                 logger.info(
-                    "Updated winner for week %s: dog %s with score %s",
-                    week,
-                    row.dog_id,
-                    row.score,
+                    "Updated %s winner for week %s: pet %s with score %s",
+                    species, week, row.pet_id, row.score,
                 )
             else:
-                logger.info("Winner for week %s unchanged", week)
+                logger.info("%s winner for week %s unchanged", species, week)
             if notify_win:
-                await _notify_winner(db, week, row.dog_id, row.score)
+                await _notify_winner(db, week, species, row.pet_id, row.score)
             return existing
 
     winner = WeeklyWinner(
         week_bucket=week,
-        dog_id=row.dog_id,
+        species=species,
+        pet_id=row.pet_id,
         score=row.score,
     )
     db.add(winner)
@@ -179,29 +206,32 @@ async def _pick_winner_for_week(
         await db.commit()
     except IntegrityError:
         await db.rollback()
-        logger.info("Winner for week %s already exists (race condition handled)", week)
+        logger.info("%s winner for week %s already exists (race handled)", species, week)
         return None
-    logger.info("Winner for week %s: dog %s with score %s", week, row.dog_id, row.score)
+    logger.info("%s winner for week %s: pet %s with score %s", species, week, row.pet_id, row.score)
     if notify_win:
-        await _notify_winner(db, week, row.dog_id, row.score)
+        await _notify_winner(db, week, species, row.pet_id, row.score)
     return winner
 
 
-async def _notify_winner(db: AsyncSession, week: date, dog_id, score: int) -> None:
-    """Tell the owner their dog took the crown — once per week, however many
+async def _notify_winner(
+    db: AsyncSession, week: date, species: str, pet_id, score: int
+) -> None:
+    """Tell the owner their pet took the crown — once per week, however many
     times the final tally re-runs (the title embeds the week, so a duplicate
     is detectable)."""
     from app.models.notification import Notification
     from app.services.notify import notify
 
-    dog = (await db.execute(select(Dog).where(Dog.id == dog_id))).scalar_one_or_none()
-    if not dog:
+    pet = (await db.execute(select(Pet).where(Pet.id == pet_id))).scalar_one_or_none()
+    if not pet:
         return
-    title = f"{dog.name} is Top Dog for the week of {week.isoformat()}! 🏆"
+    crown = "Top Cat" if species == "cat" else "Top Dog"
+    title = f"{pet.name} is {crown} for the week of {week.isoformat()}! 🏆"
     already = (
         await db.execute(
             select(Notification.id).where(
-                Notification.user_id == dog.owner_id,
+                Notification.user_id == pet.owner_id,
                 Notification.type == "weekly_winner",
                 Notification.title == title,
             )
@@ -210,10 +240,10 @@ async def _notify_winner(db: AsyncSession, week: date, dog_id, score: int) -> No
     if already:
         return
     if await notify(
-        db, dog.owner_id,
+        db, pet.owner_id,
         type="weekly_winner",
         title=title,
         body=f"Final score: {score} ❤️",
-        link=f"/app/dogs/{dog.id}",
+        link=f"/app/pets/{pet.id}",
     ):
         await db.commit()

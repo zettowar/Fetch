@@ -41,7 +41,7 @@ export default function SignupPage() {
     <div className="flex flex-col pb-10">
       <AuthHero
         title="Join the pack"
-        subtitle="Under a minute. No ads, no feed tricks — just dogs."
+        subtitle="Under a minute. No ads, no feed tricks — just pets."
       />
 
       {/* Form card */}
@@ -99,7 +99,7 @@ export default function SignupPage() {
             <Link to="/terms" className="underline hover:text-gray-600 dark:hover:text-gray-300">Terms</Link>
             {' '}and{' '}
             <Link to="/privacy" className="underline hover:text-gray-600 dark:hover:text-gray-300">Privacy Policy</Link>
-            , and to be a good dog person.
+            , and to be a good pet person.
           </p>
         </form>
 

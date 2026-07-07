@@ -25,11 +25,11 @@ class User(Base, UUIDPrimaryKey, TimestampMixin):
         Boolean, default=True, nullable=False, server_default="true",
     )
 
-    dogs = relationship(
-        "Dog",
+    pets = relationship(
+        "Pet",
         back_populates="owner",
         cascade="all, delete-orphan",
-        foreign_keys="Dog.owner_id",
+        foreign_keys="Pet.owner_id",
     )
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     rescue_profile = relationship(

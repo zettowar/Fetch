@@ -1,15 +1,15 @@
 import { Link } from 'react-router-dom';
 
 interface Props {
-  dogId: string;
+  petId: string;
   dogName: string;
   rescueName: string | null;
   onDismiss: () => void;
 }
 
-export default function AdoptionPrompt({ dogId, dogName, rescueName, onDismiss }: Props) {
+export default function AdoptionPrompt({ petId, dogName, rescueName, onDismiss }: Props) {
   return (
-    <div className="mt-3 w-full animate-fade-in-up rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-4 shadow-sm">
+    <div className="mt-3 w-full animate-fade-in-up rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-gradient-to-br from-brand-50 to-white dark:from-brand-500/10 dark:to-gray-900 p-4 shadow-sm">
       <div className="flex items-start gap-3">
         <span className="text-2xl leading-none" aria-hidden>🐾</span>
         <div className="flex-1 min-w-0">
@@ -23,7 +23,7 @@ export default function AdoptionPrompt({ dogId, dogName, rescueName, onDismiss }
           </p>
           <div className="flex gap-2 mt-3">
             <Link
-              to={`/app/dogs/${dogId}`}
+              to={`/app/pets/${petId}`}
               onClick={onDismiss}
               className="text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 px-3 py-1.5 rounded-lg transition-colors"
             >

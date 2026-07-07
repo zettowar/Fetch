@@ -23,18 +23,22 @@ export interface Photo {
 
 export type MixType = 'purebred' | 'cross' | 'mixed' | 'mystery_mutt';
 
+export type Species = 'dog' | 'cat';
+
 export interface Breed {
   id: string;
   name: string;
   slug: string;
   group?: string | null;
+  species?: Species;
   is_active?: boolean;
 }
 
-export interface Dog {
+export interface Pet {
   id: string;
   owner_id: string;
   name: string;
+  species: Species;
   mix_type: MixType;
   breeds: Breed[];
   breed_display: string;
@@ -57,7 +61,7 @@ export interface Dog {
 export interface Vote {
   id: string;
   voter_id: string;
-  dog_id: string;
+  pet_id: string;
   value: number;
   week_bucket: string;
   created_at: string;
@@ -65,8 +69,9 @@ export interface Vote {
 
 export interface LeaderboardEntry {
   rank: number;
-  dog_id: string;
-  dog_name: string;
+  pet_id: string;
+  pet_name: string;
+  species: Species;
   breed: string | null; // display string (joined breed names / mix_type label)
   score: number;
   total_votes: number;
@@ -75,15 +80,16 @@ export interface LeaderboardEntry {
 export interface WeeklyWinner {
   id: string;
   week_bucket: string;
-  dog_id: string;
-  dog_name: string | null;
+  species: Species;
+  pet_id: string;
+  pet_name: string | null;
   breed: string | null; // display string
   score: number;
   primary_photo_url: string | null;
   created_at: string;
 }
 
-export interface DogStats {
+export interface PetStats {
   likes: number;
   passes: number;
   week_score: number | null;

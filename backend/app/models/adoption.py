@@ -24,9 +24,9 @@ class AdoptionInquiry(Base, UUIDPrimaryKey, TimestampMixin):
         nullable=False,
         index=True,
     )
-    dog_id: Mapped[uuid.UUID | None] = mapped_column(
+    pet_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("dogs.id", ondelete="SET NULL"),
+        ForeignKey("pets.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
@@ -48,5 +48,5 @@ class AdoptionInquiry(Base, UUIDPrimaryKey, TimestampMixin):
     )
 
     rescue = relationship("RescueProfile")
-    dog = relationship("Dog")
+    pet = relationship("Pet")
     inquirer = relationship("User")

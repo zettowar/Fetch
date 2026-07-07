@@ -36,7 +36,7 @@ class ParkOut(BaseModel):
     attributes: dict | None = None
     avg_rating: float | None = None
     review_count: int = 0
-    active_dogs_count: int = 0
+    active_pets_count: int = 0
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -95,16 +95,16 @@ class ParkIncidentOut(BaseModel):
 
 
 class CheckinCreate(BaseModel):
-    dog_id: UUID
+    pet_id: UUID
 
 
 class ParkCheckinOut(BaseModel):
     id: UUID
     park_id: UUID
-    dog_id: UUID | None
-    dog_name: str | None = None
-    dog_breed: str | None = None
-    dog_photo_url: str | None = None
+    pet_id: UUID | None
+    pet_name: str | None = None
+    pet_breed: str | None = None
+    pet_photo_url: str | None = None
     checked_in_at: datetime
     checked_out_at: datetime | None = None
 

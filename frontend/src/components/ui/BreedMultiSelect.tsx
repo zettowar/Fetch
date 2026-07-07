@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { Breed } from '../../types';
+import type { Breed, Species } from '../../types';
 import { listBreeds } from '../../api/breeds';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   disabled?: boolean;
   placeholder?: string;
   label?: string;
+  species?: Species;
 }
 
 export default function BreedMultiSelect({
@@ -19,14 +20,15 @@ export default function BreedMultiSelect({
   disabled,
   placeholder = 'Search breeds...',
   label = 'Breeds',
+  species,
 }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const { data: all = [] } = useQuery({
-    queryKey: ['breeds'],
-    queryFn: () => listBreeds(),
+    queryKey: ['breeds', species ?? 'all'],
+    queryFn: () => listBreeds(undefined, species),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -67,12 +69,12 @@ export default function BreedMultiSelect({
       <div
         className={`flex flex-wrap items-center gap-1.5 rounded-xl border border-gray-300 dark:border-gray-700 px-2 py-2 min-h-[44px] ${
           disabled ? 'bg-gray-50 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-900'
-        } focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200`}
+        } focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200 dark:focus-within:ring-brand-500/30`}
       >
         {value.map((b) => (
           <span
             key={b.id}
-            className="inline-flex items-center gap-1 rounded-full bg-brand-100 text-brand-700 text-sm px-2.5 py-0.5"
+            className="inline-flex items-center gap-1 rounded-full bg-brand-100 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 text-sm px-2.5 py-0.5"
           >
             {b.name}
             <button
@@ -109,7 +111,7 @@ export default function BreedMultiSelect({
                 <button
                   type="button"
                   onClick={() => add(b)}
-                  className="w-full text-left px-3 py-2 hover:bg-brand-50 text-sm flex items-center justify-between"
+                  className="w-full text-left px-3 py-2 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-sm flex items-center justify-between"
                 >
                   <span>{b.name}</span>
                   {b.group && <span className="text-xs text-gray-400 dark:text-gray-500">{b.group}</span>}

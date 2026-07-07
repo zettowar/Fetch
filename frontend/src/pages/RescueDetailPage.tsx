@@ -9,7 +9,7 @@ import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
 import Map from '../components/Map';
 import { photoUrl } from '../utils/time';
-import type { Dog } from '../types';
+import type { Pet } from '../types';
 
 const RESCUE_PIN_COLOR = '#8b5cf6'; // shared with the Rescue map page
 
@@ -21,8 +21,8 @@ export default function RescueDetailPage() {
     enabled: !!id,
     retry: false,
   });
-  const { data: dogs = [] } = useQuery<Dog[]>({
-    queryKey: ['rescue-dogs', id],
+  const { data: pets = [] } = useQuery<Pet[]>({
+    queryKey: ['rescue-pets', id],
     queryFn: () => getRescueDogs(id!),
     enabled: !!id,
   });
@@ -100,7 +100,7 @@ export default function RescueDetailPage() {
               href={rescue.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 px-4 py-2 rounded-xl transition-colors"
+              className="text-sm font-medium text-brand-600 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 px-4 py-2 rounded-xl transition-colors"
             >
               Visit website
             </a>
@@ -109,20 +109,20 @@ export default function RescueDetailPage() {
       )}
 
       <h2 className="text-lg font-semibold mt-8 mb-3">
-        Adoptable dogs ({dogs.length})
+        Adoptable pets ({pets.length})
       </h2>
-      {dogs.length === 0 ? (
+      {pets.length === 0 ? (
         <EmptyState
           illustration="sleeping"
-          title="No dogs available right now"
+          title="No pets available right now"
           body="Check back soon."
         />
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          {dogs.map((d) => (
+          {pets.map((d) => (
             <Link
               key={d.id}
-              to={`/app/dogs/${d.id}`}
+              to={`/app/pets/${d.id}`}
               className="block rounded-xl overflow-hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-soft-sm hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
             >
               {d.primary_photo_url ? (
@@ -138,7 +138,7 @@ export default function RescueDetailPage() {
                   className="w-full aspect-square object-cover"
                 />
               ) : (
-                <div className="w-full aspect-square bg-brand-50 flex items-center justify-center text-3xl">
+                <div className="w-full aspect-square bg-brand-50 dark:bg-brand-500/10 flex items-center justify-center text-3xl">
                   🐕
                 </div>
               )}
@@ -157,7 +157,7 @@ export default function RescueDetailPage() {
         <AdoptionInquiryForm
           rescueId={rescue.id}
           rescueName={rescue.org_name}
-          dogs={dogs.filter((d) => !d.adopted_at && d.is_active)}
+          pets={pets.filter((d) => !d.adopted_at && d.is_active)}
         />
       </div>
     </div>

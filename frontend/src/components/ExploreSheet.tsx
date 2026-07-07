@@ -14,13 +14,13 @@ interface ExploreItem {
 const ITEMS: ExploreItem[] = [
   {
     label: 'Parks',
-    description: 'Find dog-friendly parks around you.',
+    description: 'Find pet-friendly parks around you.',
     icon: '🌳',
     to: '/app/parks',
   },
   {
     label: 'The Pack',
-    description: 'Browse other Fetch users and their dogs.',
+    description: 'Browse other Fetch users and their pets.',
     icon: '🐾',
     to: '/app/explore',
     featured: true,
@@ -33,7 +33,7 @@ const ITEMS: ExploreItem[] = [
   },
   {
     label: 'Shop',
-    description: 'Branded gear for you and your dog.',
+    description: 'Branded gear for you and your pet.',
     icon: '🛍️',
     to: '/app/shop',
   },

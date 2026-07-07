@@ -130,7 +130,7 @@ export default function AdminBreedsPage() {
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   {b.group ? `${b.group} · ` : ''}
-                  {b.dog_count} dog{b.dog_count === 1 ? '' : 's'}
+                  {b.pet_count} pet{b.pet_count === 1 ? '' : 's'}
                 </p>
               </div>
               <div className="flex gap-1 shrink-0">
@@ -140,7 +140,7 @@ export default function AdminBreedsPage() {
                   variant="ghost"
                   loading={deleteMutation.isPending && deleteMutation.variables === b.id}
                   onClick={() => {
-                    if (confirm(`Delete "${b.name}"? This fails if any dog uses it.`)) {
+                    if (confirm(`Delete "${b.name}"? This fails if any pet uses it.`)) {
                       deleteMutation.mutate(b.id);
                     }
                   }}

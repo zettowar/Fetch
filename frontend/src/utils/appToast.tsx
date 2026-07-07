@@ -5,7 +5,7 @@ import PawMark from '../components/ui/PawMark';
  * App-standard toasts. Global glass styling lives in main.tsx; these
  * wrappers add the brand touches so pages stop configuring toasts inline.
  * - success: paw icon
- * - celebrate: for the big happy moments (weekly win, dog created)
+ * - celebrate: for the big happy moments (weekly win, pet created)
  */
 export const appToast = {
   success: (message: string) =>

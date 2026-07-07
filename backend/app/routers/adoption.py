@@ -10,7 +10,7 @@ from app.deps import get_current_user, require_approved_rescue
 from app.limiter import limiter
 from app.models.adoption import AdoptionInquiry
 from app.models.audit_log import AuditLog
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.rescue import RescueProfile
 from app.models.user import User
 from app.services.notify import notify
@@ -47,16 +47,16 @@ async def create_inquiry(
     if not rescue:
         raise HTTPException(status_code=404, detail="Rescue not found")
 
-    # If a dog was specified, ensure it belongs to this rescue.
-    if body.dog_id is not None:
-        dog_res = await db.execute(select(Dog).where(Dog.id == body.dog_id))
-        dog = dog_res.scalar_one_or_none()
-        if not dog or dog.owner_id != rescue.user_id:
-            raise HTTPException(status_code=400, detail="Dog not from this rescue")
+    # If a pet was specified, ensure it belongs to this rescue.
+    if body.pet_id is not None:
+        pet_res = await db.execute(select(Pet).where(Pet.id == body.pet_id))
+        pet = pet_res.scalar_one_or_none()
+        if not pet or pet.owner_id != rescue.user_id:
+            raise HTTPException(status_code=400, detail="Pet not from this rescue")
 
     inquiry = AdoptionInquiry(
         rescue_id=rescue.id,
-        dog_id=body.dog_id,
+        pet_id=body.pet_id,
         inquirer_id=user.id,
         name=body.name,
         email=body.email,
@@ -76,7 +76,7 @@ async def create_inquiry(
         action="adoption.inquiry_submitted",
         target_type="rescue",
         target_id=rescue.id,
-        metadata_={"dog_id": str(body.dog_id) if body.dog_id else None},
+        metadata_={"pet_id": str(body.pet_id) if body.pet_id else None},
     ))
     await db.commit()
     await db.refresh(inquiry)

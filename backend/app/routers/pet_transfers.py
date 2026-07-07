@@ -1,6 +1,6 @@
 """Incoming transfer inbox + accept/decline for the recipient side.
 
-Rescue-initiated creation lives in rescues.py (POST /rescues/dogs/:id/transfer).
+Rescue-initiated creation lives in rescues.py (POST /rescues/pets/:id/transfer).
 """
 from datetime import datetime, timezone
 from uuid import UUID
@@ -13,42 +13,42 @@ from sqlalchemy.orm import selectinload
 from app.db import get_db
 from app.deps import get_current_user
 from app.models.audit_log import AuditLog
-from app.models.dog import Dog
-from app.models.dog_transfer import DogTransfer
+from app.models.pet import Pet
+from app.models.pet_transfer import PetTransfer
 from app.models.rescue import RescueProfile
 from app.models.user import User
-from app.schemas.dog_transfer import DogTransferOut
-from app.services.dog_serializer import display_photo_url
+from app.schemas.pet_transfer import PetTransferOut
+from app.services.pet_serializer import display_photo_url
 from app.services.notify import notify
 
 router = APIRouter()
 
 
 async def _serialize_transfers(
-    transfers: list[DogTransfer], db: AsyncSession
-) -> list[DogTransferOut]:
-    """Batch-load dogs and rescue names once, however many transfers there are."""
-    dogs: dict = {}
+    transfers: list[PetTransfer], db: AsyncSession
+) -> list[PetTransferOut]:
+    """Batch-load pets and rescue names once, however many transfers there are."""
+    pets: dict = {}
     rescue_names: dict = {}
     if transfers:
-        dog_res = await db.execute(
-            select(Dog)
-            .options(selectinload(Dog.photos))
-            .where(Dog.id.in_({t.dog_id for t in transfers}))
+        pet_res = await db.execute(
+            select(Pet)
+            .options(selectinload(Pet.photos))
+            .where(Pet.id.in_({t.pet_id for t in transfers}))
         )
-        dogs = {d.id: d for d in dog_res.scalars().all()}
+        pets = {d.id: d for d in pet_res.scalars().all()}
         rp_res = await db.execute(
             select(RescueProfile.user_id, RescueProfile.org_name).where(
                 RescueProfile.user_id.in_({t.from_user_id for t in transfers})
             )
         )
         rescue_names = dict(rp_res.all())
-    return [_to_out(t, dogs.get(t.dog_id), rescue_names.get(t.from_user_id)) for t in transfers]
+    return [_to_out(t, pets.get(t.pet_id), rescue_names.get(t.from_user_id)) for t in transfers]
 
 
-def _to_out(t: DogTransfer, dog: Dog | None, rescue_name: str | None) -> DogTransferOut:
-    photo_url = display_photo_url(dog)
-    dog_name = dog.name if dog else None
+def _to_out(t: PetTransfer, pet: Pet | None, rescue_name: str | None) -> PetTransferOut:
+    photo_url = display_photo_url(pet)
+    pet_name = pet.name if pet else None
 
     # Show "expired" for stale pending transfers without persisting the change
     # (a read endpoint shouldn't write). accept/decline re-check expiry inline.
@@ -56,11 +56,11 @@ def _to_out(t: DogTransfer, dog: Dog | None, rescue_name: str | None) -> DogTran
     if t.status == "pending" and t.expires_at < datetime.now(timezone.utc):
         effective_status = "expired"
 
-    return DogTransferOut(
+    return PetTransferOut(
         id=t.id,
-        dog_id=t.dog_id,
-        dog_name=dog_name,
-        dog_photo_url=photo_url,
+        pet_id=t.pet_id,
+        pet_name=pet_name,
+        pet_photo_url=photo_url,
         from_user_id=t.from_user_id,
         from_rescue_name=rescue_name,
         to_user_id=t.to_user_id,
@@ -72,7 +72,7 @@ def _to_out(t: DogTransfer, dog: Dog | None, rescue_name: str | None) -> DogTran
     )
 
 
-@router.get("/mine", response_model=list[DogTransferOut])
+@router.get("/mine", response_model=list[PetTransferOut])
 async def list_my_transfers(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -80,20 +80,20 @@ async def list_my_transfers(
     """All transfers addressed to me — by user_id or by invited_email."""
     # Match both direct user_id assignment and latent email invites.
     result = await db.execute(
-        select(DogTransfer)
+        select(PetTransfer)
         .where(
             or_(
-                DogTransfer.to_user_id == user.id,
-                DogTransfer.invited_email == user.email,
+                PetTransfer.to_user_id == user.id,
+                PetTransfer.invited_email == user.email,
             )
         )
-        .order_by(DogTransfer.created_at.desc())
+        .order_by(PetTransfer.created_at.desc())
     )
     transfers = list(result.scalars().all())
     return await _serialize_transfers(transfers, db)
 
 
-@router.post("/{transfer_id}/accept", response_model=DogTransferOut)
+@router.post("/{transfer_id}/accept", response_model=PetTransferOut)
 async def accept_transfer(
     transfer_id: UUID,
     user: User = Depends(get_current_user),
@@ -107,15 +107,15 @@ async def accept_transfer(
         await db.commit()
         raise HTTPException(status_code=400, detail="Transfer has expired")
 
-    dog_res = await db.execute(select(Dog).where(Dog.id == t.dog_id))
-    dog = dog_res.scalar_one_or_none()
-    if not dog:
-        raise HTTPException(status_code=404, detail="Dog no longer exists")
+    pet_res = await db.execute(select(Pet).where(Pet.id == t.pet_id))
+    pet = pet_res.scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet no longer exists")
 
     now = datetime.now(timezone.utc)
-    dog.owner_id = user.id
-    dog.adopted_at = now
-    dog.adopted_by_user_id = user.id
+    pet.owner_id = user.id
+    pet.adopted_at = now
+    pet.adopted_by_user_id = user.id
     t.status = "accepted"
     t.to_user_id = user.id
     t.responded_at = now
@@ -123,14 +123,14 @@ async def accept_transfer(
     await notify(
         db, t.from_user_id,
         type="transfer_resolved",
-        title=f"{user.display_name} accepted the transfer of {dog.name}",
+        title=f"{user.display_name} accepted the transfer of {pet.name}",
         link="/app/rescue/dashboard",
     )
     db.add(AuditLog(
         actor_id=user.id,
-        action="dog.transfer_accepted",
-        target_type="dog",
-        target_id=dog.id,
+        action="pet.transfer_accepted",
+        target_type="pet",
+        target_id=pet.id,
         metadata_={"transfer_id": str(t.id), "from_user_id": str(t.from_user_id)},
     ))
     await db.commit()
@@ -138,7 +138,7 @@ async def accept_transfer(
     return (await _serialize_transfers([t], db))[0]
 
 
-@router.post("/{transfer_id}/decline", response_model=DogTransferOut)
+@router.post("/{transfer_id}/decline", response_model=PetTransferOut)
 async def decline_transfer(
     transfer_id: UUID,
     user: User = Depends(get_current_user),
@@ -152,14 +152,14 @@ async def decline_transfer(
     await notify(
         db, t.from_user_id,
         type="transfer_resolved",
-        title=f"{user.display_name} declined a dog transfer",
+        title=f"{user.display_name} declined a pet transfer",
         link="/app/rescue/dashboard",
     )
     db.add(AuditLog(
         actor_id=user.id,
-        action="dog.transfer_declined",
-        target_type="dog",
-        target_id=t.dog_id,
+        action="pet.transfer_declined",
+        target_type="pet",
+        target_id=t.pet_id,
         metadata_={"transfer_id": str(t.id)},
     ))
     await db.commit()
@@ -169,14 +169,14 @@ async def decline_transfer(
 
 async def _load_transfer_for_user(
     transfer_id: UUID, user: User, db: AsyncSession
-) -> DogTransfer:
-    result = await db.execute(select(DogTransfer).where(DogTransfer.id == transfer_id))
+) -> PetTransfer:
+    result = await db.execute(select(PetTransfer).where(PetTransfer.id == transfer_id))
     t = result.scalar_one_or_none()
     if not t:
         raise HTTPException(status_code=404, detail="Transfer not found")
     # Authorize: either directly assigned to this user, or invited by email —
     # but an email match only counts if the account's email is verified, so an
-    # unverified user can't claim a dog by setting a victim's invited address.
+    # unverified user can't claim a pet by setting a victim's invited address.
     is_recipient = t.to_user_id == user.id or (
         t.invited_email is not None
         and t.invited_email == user.email

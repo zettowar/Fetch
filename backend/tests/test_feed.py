@@ -18,7 +18,7 @@ async def test_feed_returns_list(client: AsyncClient, auth_headers: dict):
 @pytest.mark.asyncio
 async def test_vote_requires_auth(client: AsyncClient):
     res = await client.post("/api/v1/votes", json={
-        "dog_id": "00000000-0000-0000-0000-000000000000",
+        "pet_id": "00000000-0000-0000-0000-000000000000",
         "value": 1,
     })
     assert res.status_code in (401, 403)
@@ -27,7 +27,7 @@ async def test_vote_requires_auth(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_vote_invalid_value(client: AsyncClient, auth_headers: dict):
     res = await client.post("/api/v1/votes", json={
-        "dog_id": "00000000-0000-0000-0000-000000000000",
+        "pet_id": "00000000-0000-0000-0000-000000000000",
         "value": 5,
     }, headers=auth_headers)
     assert res.status_code == 422

@@ -17,7 +17,7 @@ def _not_future_datetime(v: datetime | None) -> datetime | None:
 # --- Lost Report ---
 
 class LostReportCreate(BaseModel):
-    dog_id: UUID | None = None
+    pet_id: UUID | None = None
     kind: str
     last_seen_at: datetime | None = None
     last_seen_lat: float | None = Field(default=None, ge=-90, le=90)
@@ -99,7 +99,7 @@ class LostReportPhotoOut(BaseModel):
 class LostReportOut(BaseModel):
     id: UUID
     reporter_id: UUID
-    dog_id: UUID | None = None
+    pet_id: UUID | None = None
     kind: str
     status: str
     last_seen_at: datetime | None = None
@@ -114,10 +114,10 @@ class LostReportOut(BaseModel):
     created_at: datetime
     photos: list[LostReportPhotoOut] = []
     sighting_count: int = 0
-    # Dog info if linked
-    dog_name: str | None = None
-    dog_breed: str | None = None
-    dog_photo_url: str | None = None
+    # Pet info if linked
+    pet_name: str | None = None
+    pet_breed: str | None = None
+    pet_photo_url: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -130,9 +130,9 @@ class NearbyReportOut(BaseModel):
     fuzzed_lat: float
     fuzzed_lng: float
     location_fuzz_m: int = 500
-    dog_name: str | None = None
-    dog_breed: str | None = None
-    dog_photo_url: str | None = None
+    pet_name: str | None = None
+    pet_breed: str | None = None
+    pet_photo_url: str | None = None
     description: str
     created_at: datetime
 

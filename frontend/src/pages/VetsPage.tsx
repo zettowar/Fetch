@@ -218,7 +218,7 @@ export default function VetsPage() {
                       }}
                       className={`block p-3 rounded-xl border transition-all ${
                         isSelected
-                          ? 'bg-white dark:bg-gray-900 border-brand-300 ring-2 ring-brand-200 shadow-sm'
+                          ? 'bg-white dark:bg-gray-900 border-brand-300 dark:border-brand-500/50 ring-2 ring-brand-200 dark:ring-brand-500/30 shadow-sm'
                           : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-brand-200'
                       }`}
                     >

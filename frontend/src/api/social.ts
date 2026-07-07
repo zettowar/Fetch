@@ -1,12 +1,12 @@
 import client from './client';
-import type { Dog } from '../types';
+import type { Pet } from '../types';
 
 export interface Follow {
   id: string;
   follower_id: string;
-  dog_id: string;
+  pet_id: string;
   created_at: string;
-  dog?: Dog | null;
+  pet?: Pet | null;
 }
 
 export interface Comment {
@@ -31,7 +31,7 @@ export interface UserProfile {
   display_name: string;
   location_rough: string | null;
   created_at: string;
-  dog_count: number;
+  pet_count: number;
   follower_count: number;
 }
 
@@ -58,13 +58,13 @@ export async function getMyBlocks(): Promise<BlockedUser[]> {
 
 // --- Follows ---
 
-export async function followDog(dogId: string): Promise<Follow> {
-  const res = await client.post('/social/follows', { dog_id: dogId });
+export async function followDog(petId: string): Promise<Follow> {
+  const res = await client.post('/social/follows', { pet_id: petId });
   return res.data;
 }
 
-export async function unfollowDog(dogId: string): Promise<void> {
-  await client.delete(`/social/follows/${dogId}`);
+export async function unfollowDog(petId: string): Promise<void> {
+  await client.delete(`/social/follows/${petId}`);
 }
 
 export async function getMyFollows(): Promise<Follow[]> {
@@ -72,8 +72,8 @@ export async function getMyFollows(): Promise<Follow[]> {
   return res.data;
 }
 
-export async function getFollowerCount(dogId: string): Promise<{ count: number; is_following: boolean }> {
-  const res = await client.get(`/social/dogs/${dogId}/followers/count`);
+export async function getFollowerCount(petId: string): Promise<{ count: number; is_following: boolean }> {
+  const res = await client.get(`/social/pets/${petId}/followers/count`);
   return res.data;
 }
 

@@ -22,7 +22,7 @@ from sqlalchemy.orm import selectinload
 from app.db import get_db
 from app.deps import get_current_user
 from app.limiter import limiter
-from app.models.dog import Dog
+from app.models.pet import Pet
 from app.models.lost_report import (
     LostReport,
     LostReportSighting,
@@ -63,7 +63,7 @@ def _sighting_to_out(
     fuzz_m: int = 500,
 ) -> SightingOut:
     storage = get_storage()
-    # A sighting's coordinates are often the dog's exact last-known location.
+    # A sighting's coordinates are often the pet's exact last-known location.
     # Fuzz them for everyone except the report owner, mirroring report privacy.
     lat, lng = sighting.lat, sighting.lng
     if not is_owner:
@@ -96,21 +96,21 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
         for p in (report.photos or [])
     ]
 
-    dog_name = None
-    dog_breed = None
-    dog_photo_url = None
-    if report.dog:
-        dog_name = report.dog.name
-        dog_breed = breed_display(report.dog.mix_type, report.dog.breeds)
+    pet_name = None
+    pet_breed = None
+    pet_photo_url = None
+    if report.pet:
+        pet_name = report.pet.name
+        pet_breed = breed_display(report.pet.mix_type, report.pet.breeds, report.pet.species)
         approved = [
-            p for p in (report.dog.photos or []) if p.moderation_status == "approved"
+            p for p in (report.pet.photos or []) if p.moderation_status == "approved"
         ]
         if approved:
             primary = next(
-                (p for p in approved if p.id == report.dog.primary_photo_id),
+                (p for p in approved if p.id == report.pet.primary_photo_id),
                 approved[0],
             )
-            dog_photo_url = storage.url(primary.storage_key)
+            pet_photo_url = storage.url(primary.storage_key)
 
     sighting_count = len(report.sightings) if report.sightings else 0
 
@@ -125,7 +125,7 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
     return LostReportOut(
         id=report.id,
         reporter_id=report.reporter_id,
-        dog_id=report.dog_id,
+        pet_id=report.pet_id,
         kind=report.kind,
         status=report.status,
         last_seen_at=report.last_seen_at,
@@ -138,9 +138,9 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
         created_at=report.created_at,
         photos=photos,
         sighting_count=sighting_count,
-        dog_name=dog_name,
-        dog_breed=dog_breed,
-        dog_photo_url=dog_photo_url,
+        pet_name=pet_name,
+        pet_breed=pet_breed,
+        pet_photo_url=pet_photo_url,
     )
 
 
@@ -154,14 +154,14 @@ async def create_report(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Validate dog ownership if provided
-    if body.dog_id:
-        result = await db.execute(select(Dog).where(Dog.id == body.dog_id))
-        dog = result.scalar_one_or_none()
-        if not dog:
-            raise HTTPException(status_code=404, detail="Dog not found")
-        if body.kind == "missing" and dog.owner_id != user.id:
-            raise HTTPException(status_code=403, detail="Can only report your own dog as missing")
+    # Validate pet ownership if provided
+    if body.pet_id:
+        result = await db.execute(select(Pet).where(Pet.id == body.pet_id))
+        pet = result.scalar_one_or_none()
+        if not pet:
+            raise HTTPException(status_code=404, detail="Pet not found")
+        if body.kind == "missing" and pet.owner_id != user.id:
+            raise HTTPException(status_code=403, detail="Can only report your own pet as missing")
 
     # For 'found' reports, check account age >= 7 days
     if body.kind == "found":
@@ -169,12 +169,12 @@ async def create_report(
         if account_age < 7 and not user.is_verified:
             raise HTTPException(
                 status_code=403,
-                detail="Account must be at least 7 days old to report a found dog",
+                detail="Account must be at least 7 days old to report a found pet",
             )
 
     report = LostReport(
         reporter_id=user.id,
-        dog_id=body.dog_id,
+        pet_id=body.pet_id,
         kind=body.kind,
         last_seen_at=body.last_seen_at,
         last_seen_lat=body.last_seen_lat,
@@ -193,8 +193,8 @@ async def create_report(
         .options(
             selectinload(LostReport.photos),
             selectinload(LostReport.sightings),
-            selectinload(LostReport.dog).selectinload(Dog.photos),
-            selectinload(LostReport.dog).selectinload(Dog.breeds),
+            selectinload(LostReport.pet).selectinload(Pet.photos),
+            selectinload(LostReport.pet).selectinload(Pet.breeds),
         )
         .where(LostReport.id == report.id)
     )
@@ -224,19 +224,19 @@ async def nearby_reports(
         f_lat, f_lng = fuzz_coordinate(
             r.last_seen_lat, r.last_seen_lng, r.location_fuzz_m, seed=str(r.id)
         )
-        dog_name = r.dog.name if r.dog else None
-        dog_breed = breed_display(r.dog.mix_type, r.dog.breeds) if r.dog else None
-        dog_photo_url = None
-        if r.dog:
+        pet_name = r.pet.name if r.pet else None
+        pet_breed = breed_display(r.pet.mix_type, r.pet.breeds, r.pet.species) if r.pet else None
+        pet_photo_url = None
+        if r.pet:
             approved = [
-                p for p in (r.dog.photos or []) if p.moderation_status == "approved"
+                p for p in (r.pet.photos or []) if p.moderation_status == "approved"
             ]
             if approved:
                 primary = next(
-                    (p for p in approved if p.id == r.dog.primary_photo_id),
+                    (p for p in approved if p.id == r.pet.primary_photo_id),
                     approved[0],
                 )
-                dog_photo_url = storage.url(primary.storage_key)
+                pet_photo_url = storage.url(primary.storage_key)
 
         out.append(NearbyReportOut(
             id=r.id,
@@ -245,9 +245,9 @@ async def nearby_reports(
             fuzzed_lat=f_lat,
             fuzzed_lng=f_lng,
             location_fuzz_m=r.location_fuzz_m or 500,
-            dog_name=dog_name,
-            dog_breed=dog_breed,
-            dog_photo_url=dog_photo_url,
+            pet_name=pet_name,
+            pet_breed=pet_breed,
+            pet_photo_url=pet_photo_url,
             description=r.description,
             created_at=r.created_at,
         ))
@@ -265,8 +265,8 @@ async def get_report(
         .options(
             selectinload(LostReport.photos),
             selectinload(LostReport.sightings),
-            selectinload(LostReport.dog).selectinload(Dog.photos),
-            selectinload(LostReport.dog).selectinload(Dog.breeds),
+            selectinload(LostReport.pet).selectinload(Pet.photos),
+            selectinload(LostReport.pet).selectinload(Pet.breeds),
         )
         .where(LostReport.id == report_id)
     )
@@ -417,7 +417,7 @@ async def add_sighting(
         await notify(
             db, report.reporter_id,
             type="sighting",
-            title="New sighting on your lost-dog report",
+            title="New sighting on your lost-pet report",
             body=body.note[:120] if body.note else None,
             link=f"/app/lost/{report_id}",
         )
@@ -539,7 +539,7 @@ async def contact_reporter(
     replies go to the sender via Reply-To)."""
     result = await db.execute(
         select(LostReport)
-        .options(selectinload(LostReport.dog))
+        .options(selectinload(LostReport.pet))
         .where(LostReport.id == report_id)
     )
     report = result.scalar_one_or_none()
@@ -571,7 +571,7 @@ async def contact_reporter(
         )
 
     report_title = (
-        report.dog.name if report.dog else (report.description or "your report")[:60]
+        report.pet.name if report.pet else (report.description or "your report")[:60]
     )
     background_tasks.add_task(
         send_contact_relay_email,
