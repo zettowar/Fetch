@@ -56,13 +56,6 @@ export default function RescuesHubPage() {
           className="pointer-events-none absolute -right-5 -bottom-5 w-20 h-20 rounded-full bg-white/10 blur-xl"
         />
       </Link>
-
-      <Link
-        to="/signup-rescue"
-        className="text-xs font-medium text-brand-500 hover:text-brand-600 text-center"
-      >
-        Are you a rescue? Apply to join →
-      </Link>
     </div>
   );
 }
