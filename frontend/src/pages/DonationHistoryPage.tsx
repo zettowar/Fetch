@@ -20,7 +20,7 @@ const STATUS_BADGE: Record<DonationStatus, { variant: 'success' | 'neutral' | 'w
 };
 
 export default function DonationHistoryPage() {
-  useDocumentTitle('My donations · Fetch');
+  useDocumentTitle('My donations · Fetchpawz');
   const { data: donations, isLoading, isError, refetch } = useQuery({
     queryKey: ['my-donations'],
     queryFn: getMyDonations,

@@ -3,6 +3,7 @@ import type { User } from '../types';
 
 export interface RescuePublic {
   id: string;
+  slug: string | null;
   org_name: string;
   description: string;
   location: string | null;
@@ -11,6 +12,8 @@ export interface RescuePublic {
   website: string | null;
   donation_url: string | null;
   donations_enabled: boolean; // Stripe Connect live → in-app donations
+  logo_url: string | null;
+  cover_url: string | null;
 }
 
 export interface RescueProfile extends RescuePublic {
@@ -20,6 +23,7 @@ export interface RescueProfile extends RescuePublic {
   review_note: string | null;
   reviewed_at: string | null;
   created_at: string;
+  is_public: boolean;
 }
 
 export interface RescueSignupPayload {
@@ -78,11 +82,21 @@ export async function getMyRescueProfile(): Promise<RescueProfile> {
 }
 
 export async function updateMyRescueProfile(
-  data: Partial<Pick<RescueProfile, 'org_name' | 'description' | 'location' | 'lat' | 'lng' | 'website' | 'donation_url'>>,
+  data: Partial<Pick<RescueProfile, 'org_name' | 'description' | 'location' | 'lat' | 'lng' | 'website' | 'donation_url' | 'is_public'>>,
 ): Promise<RescueProfile> {
   const res = await client.patch('/rescues/me', data);
   return res.data;
 }
+
+async function uploadRescueImage(kind: 'logo' | 'cover', file: File): Promise<RescueProfile> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await client.post(`/rescues/me/${kind}`, form);
+  return res.data;
+}
+
+export const uploadRescueLogo = (file: File) => uploadRescueImage('logo', file);
+export const uploadRescueCover = (file: File) => uploadRescueImage('cover', file);
 
 // --- Adoption actions ---
 

@@ -56,6 +56,30 @@ async def test_update_date_of_birth(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
+async def test_species_preference_defaults_to_both(client: AsyncClient, auth_headers: dict):
+    res = await client.get("/api/v1/users/me", headers=auth_headers)
+    assert res.status_code == 200
+    assert res.json()["species_preference"] == "both"
+
+
+@pytest.mark.asyncio
+async def test_update_species_preference(client: AsyncClient, auth_headers: dict):
+    res = await client.patch(
+        "/api/v1/users/me", json={"species_preference": "cat"}, headers=auth_headers
+    )
+    assert res.status_code == 200
+    assert res.json()["species_preference"] == "cat"
+
+
+@pytest.mark.asyncio
+async def test_update_species_preference_rejects_invalid(client: AsyncClient, auth_headers: dict):
+    res = await client.patch(
+        "/api/v1/users/me", json={"species_preference": "bird"}, headers=auth_headers
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_delete_account_deactivates_user(client: AsyncClient):
     headers = await _fresh_user(client)
     res = await client.delete("/api/v1/users/me", headers=headers)

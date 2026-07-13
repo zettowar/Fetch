@@ -39,7 +39,7 @@ export default function ParkDetailPage() {
     enabled: !!id,
   });
 
-  useDocumentTitle(park ? `${park.name} · Fetch` : null);
+  useDocumentTitle(park ? `${park.name} · Fetchpawz` : null);
 
   const { data: reviews = [] } = useQuery({
     queryKey: ['park-reviews', id],
@@ -133,7 +133,7 @@ export default function ParkDetailPage() {
       <div className="flex items-start justify-between gap-2">
         <h1 className="text-2xl font-bold">{park.name}</h1>
         <button
-          onClick={() => shareLink(`${window.location.origin}/app/parks/${id}`, `${park.name} · Fetch`)}
+          onClick={() => shareLink(`${window.location.origin}/app/parks/${id}`, `${park.name} · Fetchpawz`)}
           className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors flex-shrink-0"
           title="Share park"
         >

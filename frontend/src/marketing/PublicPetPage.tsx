@@ -25,7 +25,7 @@ export default function PublicPetPage() {
     enabled: !!petId,
     retry: (count, err) => !isNotFound(err) && count < 2,
   });
-  useDocumentTitle(pet ? `${pet.name} · Fetch` : 'Fetch');
+  useDocumentTitle(pet ? `${pet.name} · Fetchpawz` : 'Fetchpawz');
 
   if (isLoading) {
     return (

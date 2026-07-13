@@ -57,7 +57,7 @@ function ProductCard({ product, index }: { product: ShopProduct; index: number }
 }
 
 export default function ShopPage() {
-  useDocumentTitle('Shop · Fetch');
+  useDocumentTitle('Shop · Fetchpawz');
 
   const {
     data: products = [],

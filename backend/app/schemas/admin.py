@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class AuditLogOut(BaseModel):
@@ -128,3 +128,22 @@ class FAQUpdate(BaseModel):
     answer: str | None = None
     category: str | None = None
     sort_order: int | None = None
+
+
+# --- QR tags ---
+
+class TagGenerateRequest(BaseModel):
+    count: int = Field(ge=1, le=500)
+
+
+class TagAssignRequest(BaseModel):
+    pet_id: UUID
+
+
+class AdminTagOut(BaseModel):
+    code: str
+    pet_id: UUID | None = None
+    pet_name: str | None = None
+    owner_email: str | None = None
+    assigned_at: datetime | None = None
+    created_at: datetime

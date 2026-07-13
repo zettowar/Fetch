@@ -90,7 +90,7 @@ function CartRow({
 }
 
 export default function CartPage() {
-  useDocumentTitle('Cart · Fetch');
+  useDocumentTitle('Cart · Fetchpawz');
   const { cart, isLoading, isError, refetch, update, remove } = useCart();
 
   const busy = update.isPending || remove.isPending;

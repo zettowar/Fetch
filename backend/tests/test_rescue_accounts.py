@@ -299,3 +299,39 @@ async def test_admin_reject_with_note(client: AsyncClient, admin_headers: dict):
     assert res.status_code == 200
     assert res.json()["status"] == "rejected"
     assert res.json()["review_note"] == "Need more info"
+
+
+@pytest.mark.asyncio
+async def test_public_rescue_page(client: AsyncClient, admin_headers: dict):
+    headers, _pid, _email = await _signup_rescue(client, approved=True, admin_headers=admin_headers)
+    me = await client.get("/api/v1/rescues/me", headers=headers)
+    slug = me.json()["slug"]
+    assert slug
+
+    # Works logged out (no auth header).
+    pub = await client.get(f"/api/v1/public/rescues/{slug}")
+    assert pub.status_code == 200
+    body = pub.json()
+    assert body["org_name"] == me.json()["org_name"]
+    assert "pets" in body
+
+    # Hiding it (is_public=False) 404s the public page.
+    await client.patch("/api/v1/rescues/me", json={"is_public": False}, headers=headers)
+    hidden = await client.get(f"/api/v1/public/rescues/{slug}")
+    assert hidden.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_public_rescue_pending_404(client: AsyncClient, admin_headers: dict):
+    headers, _pid, _email = await _signup_rescue(client, approved=False, admin_headers=admin_headers)
+    me = await client.get("/api/v1/rescues/me", headers=headers)
+    slug = me.json()["slug"]
+    assert slug  # pending rescues still get a slug at signup
+    res = await client.get(f"/api/v1/public/rescues/{slug}")
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_public_rescue_image_404_for_unknown_key(client: AsyncClient):
+    res = await client.get("/api/v1/public/rescues/images/nonexistent.jpg")
+    assert res.status_code == 404

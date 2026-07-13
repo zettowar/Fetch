@@ -39,7 +39,7 @@ export default function LostReportDetailPage() {
 
   useDocumentTitle(
     report
-      ? `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.pet_name || 'Pet'} · Fetch`
+      ? `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.pet_name || 'Pet'} · Fetchpawz`
       : null,
   );
 

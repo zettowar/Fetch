@@ -34,6 +34,12 @@ class User(Base, UUIDPrimaryKey, TimestampMixin):
     show_adoption_prompt: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, server_default="true",
     )
+    # Which species the Home surface defaults to: dog | cat | both. "both"
+    # preserves the pre-preference behavior (Dogs/Cats toggle on Home); a
+    # single-species value hides that switch and locks Home to one species.
+    species_preference: Mapped[str] = mapped_column(
+        String(10), default="both", nullable=False, server_default="both",
+    )
 
     pets = relationship(
         "Pet",

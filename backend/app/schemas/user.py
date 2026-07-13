@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ class UserOut(BaseModel):
     is_verified: bool
     role: str
     show_adoption_prompt: bool = True
+    species_preference: str = "both"
     totp_enabled: bool = False
     created_at: datetime
 
@@ -24,6 +26,7 @@ class UserUpdate(BaseModel):
     location_rough: str | None = None
     date_of_birth: date | None = None
     show_adoption_prompt: bool | None = None
+    species_preference: Literal["dog", "cat", "both"] | None = None
 
 
 class BlockedUserOut(BaseModel):

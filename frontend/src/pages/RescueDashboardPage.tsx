@@ -7,6 +7,10 @@ import {
   getMyRescueProfile,
   markDogAdopted,
   transferDog,
+  updateMyRescueProfile,
+  uploadRescueLogo,
+  uploadRescueCover,
+  type RescueProfile,
 } from '../api/rescues';
 import {
   connectOnboard,
@@ -124,6 +128,8 @@ export default function RescueDashboardPage() {
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Pets you post here appear in the swipe feed and the adoption directory.
       </p>
+
+      <PublicPageCard profile={profile} />
 
       <ConnectDonationsCard externalDonationUrl={profile.donation_url} />
 
@@ -404,6 +410,126 @@ function InquiryRow({
         )}
       </div>
     </Card>
+  );
+}
+
+function PublicPageCard({ profile }: { profile: RescueProfile }) {
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['rescue-profile-me'] });
+  const publicUrl = profile.slug ? `${window.location.origin}/rescue/${profile.slug}` : null;
+
+  const visibility = useMutation({
+    mutationFn: (is_public: boolean) => updateMyRescueProfile({ is_public }),
+    onSuccess: (p) => {
+      toast.success(p.is_public ? 'Public page is on' : 'Public page hidden');
+      invalidate();
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Could not update visibility')),
+  });
+  const logo = useMutation({
+    mutationFn: (file: File) => uploadRescueLogo(file),
+    onSuccess: () => { toast.success('Logo updated'); invalidate(); },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Logo upload failed')),
+  });
+  const cover = useMutation({
+    mutationFn: (file: File) => uploadRescueCover(file),
+    onSuccess: () => { toast.success('Cover updated'); invalidate(); },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Cover upload failed')),
+  });
+
+  return (
+    <Card padding="md" className="mb-8">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Your public page</h2>
+        <label className="inline-flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <input
+            type="checkbox"
+            checked={profile.is_public}
+            disabled={visibility.isPending}
+            onChange={(e) => visibility.mutate(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-brand-500 focus:ring-brand-400"
+          />
+          Visible
+        </label>
+      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        A free website for your rescue — logo, description, and adoptable pets.
+      </p>
+
+      {publicUrl && (
+        <div className="mt-3 flex items-center gap-2">
+          <code className="flex-1 min-w-0 truncate rounded-lg bg-gray-50 dark:bg-gray-800/60 px-2 py-1.5 text-xs text-gray-600 dark:text-gray-300">
+            {publicUrl}
+          </code>
+          <Button size="sm" variant="secondary" onClick={() => {
+            navigator.clipboard?.writeText(publicUrl);
+            toast.success('Link copied');
+          }}>
+            Copy
+          </Button>
+          <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+            <Button size="sm" variant="ghost">View ↗</Button>
+          </a>
+        </div>
+      )}
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <ImageUploadTile
+          label="Logo"
+          url={profile.logo_url}
+          pending={logo.isPending}
+          onSelect={(f) => logo.mutate(f)}
+          className="aspect-square"
+        />
+        <ImageUploadTile
+          label="Cover"
+          url={profile.cover_url}
+          pending={cover.isPending}
+          onSelect={(f) => cover.mutate(f)}
+          className="aspect-[3/1] col-span-2 sm:col-span-1 sm:aspect-square"
+        />
+      </div>
+    </Card>
+  );
+}
+
+function ImageUploadTile({
+  label,
+  url,
+  pending,
+  onSelect,
+  className = '',
+}: {
+  label: string;
+  url: string | null;
+  pending: boolean;
+  onSelect: (file: File) => void;
+  className?: string;
+}) {
+  return (
+    <label
+      className={`relative overflow-hidden rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 flex items-center justify-center cursor-pointer hover:border-brand-400 transition-colors ${className}`}
+    >
+      {url ? (
+        <img src={url} alt={`${label} preview`} className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <span className="text-xs text-gray-400 dark:text-gray-500">Add {label.toLowerCase()}</span>
+      )}
+      <span className="absolute bottom-1 right-1 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
+        {pending ? 'Uploading…' : url ? `Change ${label.toLowerCase()}` : label}
+      </span>
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        disabled={pending}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onSelect(f);
+          e.target.value = '';
+        }}
+      />
+    </label>
   );
 }
 

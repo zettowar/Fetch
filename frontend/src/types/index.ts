@@ -7,6 +7,7 @@ export interface User {
   is_verified: boolean;
   role: string;
   show_adoption_prompt: boolean;
+  species_preference: 'dog' | 'cat' | 'both';
   totp_enabled?: boolean;
   created_at: string;
 }

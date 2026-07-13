@@ -31,7 +31,7 @@ const SITE_TEASERS = [
 
 export default function MarketingHome() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  useDocumentTitle('Fetch · The app that gets cats and dogs adopted');
+  useDocumentTitle('Fetchpawz · The app that gets cats and dogs adopted');
 
   if (isLoading) {
     return (

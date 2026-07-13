@@ -15,7 +15,7 @@ const POLL_ATTEMPTS = 3;
 const POLL_DELAY_MS = 2500;
 
 export default function DonateReturnPage() {
-  useDocumentTitle('Thank you · Fetch');
+  useDocumentTitle('Thank you · Fetchpawz');
   const [params] = useSearchParams();
   const sessionId = params.get('session_id');
   const [status, setStatus] = useState<Status>(sessionId ? 'verifying' : 'error');

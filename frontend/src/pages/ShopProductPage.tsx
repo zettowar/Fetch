@@ -44,7 +44,7 @@ export default function ShopProductPage() {
     enabled: Boolean(handle),
   });
 
-  useDocumentTitle(product ? `${product.title} · Fetch Shop` : null);
+  useDocumentTitle(product ? `${product.title} · Fetchpawz Shop` : null);
 
   // Seed the option selection once the product arrives.
   useEffect(() => {

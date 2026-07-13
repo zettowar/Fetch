@@ -200,6 +200,8 @@ async def signup_rescue(
     except IntegrityError:
         raise HTTPException(status_code=409, detail="Email already registered")
 
+    from app.services.rescue_service import unique_rescue_slug
+
     profile = RescueProfile(
         user_id=user.id,
         org_name=body.org_name,
@@ -211,6 +213,7 @@ async def signup_rescue(
         donation_url=body.donation_url,
         proof_details=body.proof_details,
         status="pending",
+        slug=await unique_rescue_slug(db, body.org_name),
     )
     db.add(profile)
     await db.flush()

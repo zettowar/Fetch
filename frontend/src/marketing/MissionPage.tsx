@@ -3,7 +3,7 @@ import { useDocumentTitle } from '../utils/useDocumentTitle';
 import PageHero from './PageHero';
 
 export default function MissionPage() {
-  useDocumentTitle('Mission · Fetch');
+  useDocumentTitle('Mission · Fetchpawz');
 
   return (
     <div className="animate-fade-in">

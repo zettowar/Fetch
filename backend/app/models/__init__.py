@@ -34,6 +34,7 @@ from app.models.notification import Notification, PushSubscription, Notification
 from app.models.beta import InviteCode, Feedback
 from app.models.announcement import Announcement
 from app.models.app_setting import AppSetting
+from app.models.qr_tag import QRTag
 
 __all__ = [
     "Base",
@@ -82,4 +83,5 @@ __all__ = [
     "Feedback",
     "Announcement",
     "AppSetting",
+    "QRTag",
 ]

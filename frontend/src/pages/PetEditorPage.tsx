@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Check, PawPrint as DogIcon, Pencil, X } from 'lucide-react';
+import { Check, PawPrint as DogIcon, Pencil, QrCode, X } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { claimTag, getTagsForPet, unlinkTag } from '../api/tags';
 import { usePawBurst } from '../components/flair/PawBurst';
 import { createPet, getPet, updatePet, deletePet, TRAITS_BY_SPECIES, MIX_TYPES, MAX_BREEDS_PER_PET } from '../api/pets';
 import { deletePhoto, uploadPhoto } from '../api/photos';
@@ -439,6 +440,8 @@ export default function PetEditorPage() {
             )}
           </div>
 
+          <PetTagSection petId={id!} />
+
           <div className="mt-8 border-t pt-4">
             <Button variant="danger" onClick={handleDelete} className="w-full">
               Remove Pet
@@ -446,6 +449,73 @@ export default function PetEditorPage() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function PetTagSection({ petId }: { petId: string }) {
+  const [code, setCode] = useState('');
+  const queryClient = useQueryClient();
+  const { data: tags = [] } = useQuery({
+    queryKey: ['pet-tags', petId],
+    queryFn: () => getTagsForPet(petId),
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['pet-tags', petId] });
+
+  const claim = useMutation({
+    mutationFn: () => claimTag(code.trim(), petId),
+    onSuccess: () => { toast.success('Tag linked'); setCode(''); invalidate(); },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Could not link that tag')),
+  });
+  const unlink = useMutation({
+    mutationFn: (c: string) => unlinkTag(c),
+    onSuccess: () => { toast.success('Tag unlinked'); invalidate(); },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Could not unlink')),
+  });
+
+  return (
+    <div className="mt-8">
+      <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
+        <QrCode size={18} aria-hidden className="text-brand-500" /> QR tag
+      </h2>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+        Got a Fetchpawz tag? Enter its code to link it — scanning it will open this pet’s page.
+      </p>
+
+      {tags.length > 0 && (
+        <div className="flex flex-col gap-2 mb-3">
+          {tags.map((t) => (
+            <div key={t.code} className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2">
+              <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{t.code}</span>
+              <span className="flex-1" />
+              <Button
+                size="sm"
+                variant="ghost"
+                loading={unlink.isPending && unlink.variables === t.code}
+                onClick={() => { if (confirm(`Unlink tag ${t.code}?`)) unlink.mutate(t.code); }}
+              >
+                Unlink
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <Input
+            label="Tag code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="e.g. ABCD2345"
+            maxLength={16}
+          />
+        </div>
+        <Button size="sm" onClick={() => claim.mutate()} loading={claim.isPending} disabled={!code.trim()}>
+          Link tag
+        </Button>
+      </div>
     </div>
   );
 }

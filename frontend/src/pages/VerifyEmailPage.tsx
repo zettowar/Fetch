@@ -19,7 +19,7 @@ export default function VerifyEmailPage() {
   const [status, setStatus] = useState<Status>('verifying');
   const [message, setMessage] = useState('');
   const attempted = useRef(false);
-  useDocumentTitle('Verify email · Fetch');
+  useDocumentTitle('Verify email · Fetchpawz');
 
   useEffect(() => {
     if (attempted.current || !token) return;

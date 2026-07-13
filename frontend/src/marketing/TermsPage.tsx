@@ -5,7 +5,7 @@ import PageHero from './PageHero';
 const LAST_UPDATED = 'July 4, 2026';
 
 export default function TermsPage() {
-  useDocumentTitle('Terms · Fetch');
+  useDocumentTitle('Terms · Fetchpawz');
 
   return (
     <div className="animate-fade-in">

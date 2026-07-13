@@ -11,10 +11,13 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from app.services.rescue_service import prepare_rescue_image
+from app.storage import generate_storage_key, get_storage
 
 from app.db import get_db
 from app.deps import get_current_user, require_approved_rescue
@@ -140,6 +143,62 @@ async def update_my_rescue_profile(
     await db.commit()
     await db.refresh(profile)
     return profile
+
+
+# --- Public-page images (logo + cover) ---
+
+_IMAGE_MAX_DIM = {"logo": 512, "cover": 1600}
+
+
+async def _set_rescue_image(
+    kind: str, file: UploadFile, user: User, db: AsyncSession
+) -> RescueProfile:
+    result = await db.execute(
+        select(RescueProfile).where(RescueProfile.user_id == user.id)
+    )
+    profile = result.scalar_one_or_none()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Rescue profile not found")
+
+    data = await file.read()
+    try:
+        out, content_type, _w, _h = prepare_rescue_image(data, _IMAGE_MAX_DIM[kind])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    storage = get_storage()
+    key = generate_storage_key(content_type)
+    await storage.put(key, out, content_type)
+
+    old_key = getattr(profile, f"{kind}_key")
+    setattr(profile, f"{kind}_key", key)
+    await db.commit()
+    await db.refresh(profile)
+
+    if old_key:  # reclaim the replaced file
+        try:
+            await storage.delete(old_key)
+        except Exception:
+            pass
+    return profile
+
+
+@router.post("/me/logo", response_model=RescueProfileOut)
+async def upload_rescue_logo(
+    file: UploadFile = File(...),
+    user: User = Depends(require_approved_rescue),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _set_rescue_image("logo", file, user, db)
+
+
+@router.post("/me/cover", response_model=RescueProfileOut)
+async def upload_rescue_cover(
+    file: UploadFile = File(...),
+    user: User = Depends(require_approved_rescue),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _set_rescue_image("cover", file, user, db)
 
 
 # Route ordering: parameterized /{rescue_id} must come AFTER /me.

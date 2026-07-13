@@ -19,7 +19,7 @@ export default function ConfirmEmailChangePage() {
   const [status, setStatus] = useState<Status>('confirming');
   const [message, setMessage] = useState('');
   const attempted = useRef(false);
-  useDocumentTitle('Confirm email change · Fetch');
+  useDocumentTitle('Confirm email change · Fetchpawz');
 
   useEffect(() => {
     if (attempted.current) return;

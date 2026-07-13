@@ -25,6 +25,7 @@ import { getUnreadCount } from '../api/notifications';
 import { useCart } from '../utils/useCart';
 import PawMark from './ui/PawMark';
 import ExploreSheet from './ExploreSheet';
+import { usePublicFlags } from '../hooks/usePublicFlags';
 
 // Paths that the Explore sheet routes to — used to mark the tab "active"
 // when any of those destinations is showing.
@@ -82,6 +83,7 @@ export default function NavBar() {
   });
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
+  const flags = usePublicFlags();
   const showVerifyBanner = isAuthenticated && user && !user.is_verified && !bannerDismissed;
 
   // Close the Explore sheet on navigation so it doesn't linger when the user
@@ -265,8 +267,15 @@ export default function NavBar() {
               const { path, label, icon: Icon } = item;
               const isActive = activePath === path;
               const isSheet = 'isSheet' in item && item.isSheet;
+              // Explore fully off (admin flag) => greyed, non-opening "Soon" tab.
+              const exploreDisabled = isSheet && !flags.explore_enabled;
+              const displayLabel = exploreDisabled ? 'Soon' : label;
               const itemClasses = `relative flex flex-1 flex-col items-center gap-1 px-2 pt-2.5 pb-2 min-h-[53px] transition-colors duration-200 ease-soft-out ${
-                isActive ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                exploreDisabled
+                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                  : isActive
+                    ? 'text-brand-600 dark:text-brand-400'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`;
               const content = (
                 <>
@@ -295,7 +304,7 @@ export default function NavBar() {
                     />
                   </motion.span>
                   <span className="text-xs font-semibold leading-none tracking-tight">
-                    {label}
+                    {displayLabel}
                   </span>
                 </>
               );
@@ -305,10 +314,12 @@ export default function NavBar() {
                   <button
                     key={path}
                     type="button"
-                    onClick={() => setExploreOpen((v) => !v)}
-                    aria-label={label}
-                    aria-haspopup="dialog"
-                    aria-expanded={exploreOpen}
+                    onClick={exploreDisabled ? undefined : () => setExploreOpen((v) => !v)}
+                    disabled={exploreDisabled}
+                    aria-label={exploreDisabled ? `${label} — coming soon` : label}
+                    aria-haspopup={exploreDisabled ? undefined : 'dialog'}
+                    aria-expanded={exploreDisabled ? undefined : exploreOpen}
+                    title={exploreDisabled ? 'Coming soon' : undefined}
                     className={itemClasses}
                   >
                     {content}

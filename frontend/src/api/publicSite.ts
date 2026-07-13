@@ -36,3 +36,39 @@ export async function getPublicTopDog(): Promise<PublicTopDog | null> {
   const res = await client.get('/public/top-pet');
   return res.data;
 }
+
+export interface PublicRescue {
+  id: string;
+  slug: string | null;
+  org_name: string;
+  description: string;
+  location: string | null;
+  lat: number | null;
+  lng: number | null;
+  website: string | null;
+  donation_url: string | null;
+  donations_enabled: boolean;
+  logo_url: string | null;
+  cover_url: string | null;
+  pets: PublicDog[];
+}
+
+export async function getPublicRescue(slug: string): Promise<PublicRescue> {
+  const res = await client.get(`/public/rescues/${slug}`);
+  return res.data;
+}
+
+// Client-facing UI feature flags (Explore section gating). Unauthenticated.
+export interface PublicFlags {
+  explore_enabled: boolean;
+  explore_parks_enabled: boolean;
+  explore_pack_enabled: boolean;
+  explore_donate_enabled: boolean;
+  explore_shop_enabled: boolean;
+  explore_vets_enabled: boolean;
+}
+
+export async function getPublicFlags(): Promise<PublicFlags> {
+  const res = await client.get('/public/flags');
+  return res.data;
+}

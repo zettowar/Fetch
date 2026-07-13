@@ -18,12 +18,13 @@ import { useDocumentTitle } from '../utils/useDocumentTitle';
 export default function ProfileEditPage() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-  useDocumentTitle('Edit profile · Fetch');
+  useDocumentTitle('Edit profile · Fetchpawz');
 
   const [displayName, setDisplayName] = useState('');
   const [locationRough, setLocationRough] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [showAdoptionPrompt, setShowAdoptionPrompt] = useState(true);
+  const [speciesPreference, setSpeciesPreference] = useState<'dog' | 'cat' | 'both'>('both');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function ProfileEditPage() {
     setLocationRough(user.location_rough ?? '');
     setDateOfBirth(user.date_of_birth ?? '');
     setShowAdoptionPrompt(user.show_adoption_prompt ?? true);
+    setSpeciesPreference(user.species_preference ?? 'both');
   }, [user]);
 
   if (!user) {
@@ -52,6 +54,7 @@ export default function ProfileEditPage() {
         location_rough: locationRough.trim() || null,
         date_of_birth: dateOfBirth || null,
         show_adoption_prompt: showAdoptionPrompt,
+        species_preference: speciesPreference,
       });
       setUser(updated);
       toast.success('Profile saved');
@@ -106,6 +109,37 @@ export default function ProfileEditPage() {
           onChange={(e) => setDateOfBirth(e.target.value)}
           max={new Date().toISOString().slice(0, 10)}
         />
+
+        <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Which pets do you want to see?
+          </span>
+          <span className="text-xs text-gray-400 dark:text-gray-500 mb-1">
+            Sets your Home page. Pick one, or “Both” to switch between them there.
+          </span>
+          <div
+            role="radiogroup"
+            aria-label="Species preference"
+            className="inline-flex self-start rounded-full bg-gray-100 dark:bg-gray-800 p-1"
+          >
+            {([['dog', 'Dogs'], ['cat', 'Cats'], ['both', 'Both']] as const).map(([val, label]) => (
+              <button
+                key={val}
+                type="button"
+                role="radio"
+                aria-checked={speciesPreference === val}
+                onClick={() => setSpeciesPreference(val)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  speciesPreference === val
+                    ? 'bg-white dark:bg-gray-900 text-brand-600 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
           <label className="flex items-start gap-2.5 cursor-pointer">

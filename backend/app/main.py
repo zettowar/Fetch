@@ -13,7 +13,7 @@ from app.config import settings
 from app.limiter import limiter
 from app.logging import setup_logging
 from app.middleware import RequestIDMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
-from app.routers import auth, users, pets, breeds, photos, feed, votes, rankings, reports, admin, admin_ops, lost, social, parks, vets, playdates, posts, rescues, pet_transfers, support, billing, donations, notifications, feedback, adoption, public
+from app.routers import auth, users, pets, breeds, photos, feed, votes, rankings, reports, admin, admin_ops, lost, social, parks, vets, playdates, posts, rescues, pet_transfers, support, billing, donations, notifications, feedback, adoption, public, tags
 
 logger = structlog.stdlib.get_logger()
 
@@ -93,6 +93,7 @@ app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
 app.include_router(donations.router, prefix="/api/v1/donations", tags=["donations"])
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])
 app.include_router(feedback.router, prefix="/api/v1", tags=["feedback"])
+app.include_router(tags.router, prefix="/api/v1/tags", tags=["tags"])
 
 
 @app.get("/healthz")

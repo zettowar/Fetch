@@ -10,7 +10,7 @@ import { ListSkeleton } from '../components/ui/Skeleton';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function LikedPetsPage() {
-  useDocumentTitle('Liked pets · Fetch');
+  useDocumentTitle('Liked pets · Fetchpawz');
   const { data: pets = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['liked-pets'],
     queryFn: () => getLikedPets({ limit: 60 }),

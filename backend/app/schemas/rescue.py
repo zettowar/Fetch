@@ -64,6 +64,7 @@ class RescueProfileUpdate(BaseModel):
     lng: float | None = None
     website: str | None = None
     donation_url: str | None = None
+    is_public: bool | None = None
 
     @field_validator("website", "donation_url", mode="before")
     @classmethod
@@ -88,6 +89,10 @@ class RescueProfileOut(BaseModel):
     reviewed_at: datetime | None = None
     created_at: datetime
     donations_enabled: bool = False  # model property: Connect account live
+    slug: str | None = None
+    is_public: bool = True
+    logo_url: str | None = None   # model property, from logo_key
+    cover_url: str | None = None  # model property, from cover_key
 
     model_config = {"from_attributes": True}
 
@@ -95,6 +100,7 @@ class RescueProfileOut(BaseModel):
 class RescuePublicOut(BaseModel):
     """Public directory view (approved only). No internal review details."""
     id: UUID
+    slug: str | None = None
     org_name: str
     description: str
     location: str | None = None
@@ -103,6 +109,8 @@ class RescuePublicOut(BaseModel):
     website: str | None = None
     donation_url: str | None = None
     donations_enabled: bool = False  # model property: Connect account live
+    logo_url: str | None = None
+    cover_url: str | None = None
 
     model_config = {"from_attributes": True}
 

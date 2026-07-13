@@ -65,7 +65,7 @@ export default function UserProfilePage() {
     onError: () => toast.error('Could not send verification email'),
   });
 
-  useDocumentTitle(profile ? `${profile.display_name} · Fetch` : null);
+  useDocumentTitle(profile ? `${profile.display_name} · Fetchpawz` : null);
 
   if (isLoading) {
     return (

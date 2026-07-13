@@ -26,7 +26,7 @@ type Recipient =
   | { type: 'rescue'; rescue: RescuePublic };
 
 export default function DonatePage() {
-  useDocumentTitle('Donate · Fetch');
+  useDocumentTitle('Donate · Fetchpawz');
   const [params, setParams] = useSearchParams();
 
   const { data: config, isLoading: configLoading } = useQuery({

@@ -34,6 +34,8 @@ async def update_me(
         user.date_of_birth = body.date_of_birth
     if body.show_adoption_prompt is not None:
         user.show_adoption_prompt = body.show_adoption_prompt
+    if body.species_preference is not None:
+        user.species_preference = body.species_preference
     await db.commit()
     await db.refresh(user)
     return user

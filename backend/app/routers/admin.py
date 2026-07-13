@@ -22,9 +22,12 @@ from app.models.report import Report, Strike
 from app.models.rescue import RescueProfile
 from app.models.support import FAQEntry, SupportTicket
 from app.models.user import User
+from app.models.qr_tag import QRTag
+from app.services.qr_service import generate_unique_codes
 from app.schemas.admin import (
     AdminPetOut,
     AdminLostReportOut,
+    AdminTagOut,
     AdminUserOut,
     AuditLogOut,
     DashboardStats,
@@ -32,6 +35,8 @@ from app.schemas.admin import (
     FAQCreate,
     FAQUpdate,
     FlaggedPhotoOut,
+    TagAssignRequest,
+    TagGenerateRequest,
     TicketStatusUpdate,
 )
 from app.storage import get_storage
@@ -1562,6 +1567,96 @@ async def list_vets_admin(
             stmt = stmt.where(f)
     result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+# --- QR tag registry ---
+
+@router.post("/tags/generate")
+async def generate_tags(
+    body: TagGenerateRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mint a batch of unassigned QR tags for pre-printing."""
+    codes = await generate_unique_codes(db, body.count)
+    for c in codes:
+        db.add(QRTag(code=c, created_by=admin.id))
+    await _log(db, actor_id=admin.id, action="tag.generate", target_type="tag",
+               metadata={"count": len(codes)})
+    await db.commit()
+    return {"codes": codes}
+
+
+@router.get("/tags", response_model=list[AdminTagOut])
+async def list_tags(
+    response: Response,
+    assigned: bool | None = Query(None),
+    q: str = Query(default=""),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    base = select(QRTag)
+    if assigned is True:
+        base = base.where(QRTag.pet_id.is_not(None))
+    elif assigned is False:
+        base = base.where(QRTag.pet_id.is_(None))
+    if q:
+        base = base.where(QRTag.code.ilike(f"%{q.strip().upper()}%"))
+
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+    rows = (await db.execute(
+        base.order_by(QRTag.created_at.desc()).offset(offset).limit(limit)
+    )).scalars().all()
+
+    out: list[AdminTagOut] = []
+    for t in rows:
+        pet_name = owner_email = None
+        if t.pet_id:
+            pr = (await db.execute(
+                select(Pet.name, User.email)
+                .join(User, User.id == Pet.owner_id)
+                .where(Pet.id == t.pet_id)
+            )).first()
+            if pr:
+                pet_name, owner_email = pr
+        out.append(AdminTagOut(
+            code=t.code, pet_id=t.pet_id, pet_name=pet_name, owner_email=owner_email,
+            assigned_at=t.assigned_at, created_at=t.created_at,
+        ))
+    return out
+
+
+@router.post("/tags/{code}/assign", response_model=AdminTagOut)
+async def admin_assign_tag(
+    code: str,
+    body: TagAssignRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    tag = (await db.execute(
+        select(QRTag).where(QRTag.code == code.strip().upper())
+    )).scalar_one_or_none()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Unknown tag code")
+    pet = (await db.execute(select(Pet).where(Pet.id == body.pet_id))).scalar_one_or_none()
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet not found")
+    tag.pet_id = pet.id
+    tag.assigned_by = admin.id
+    tag.assigned_at = datetime.now(timezone.utc)
+    await _log(db, actor_id=admin.id, action="tag.assign", target_type="tag",
+               metadata={"code": tag.code, "pet_id": str(pet.id)})
+    await db.commit()
+    owner_email = (await db.execute(select(User.email).where(User.id == pet.owner_id))).scalar()
+    return AdminTagOut(
+        code=tag.code, pet_id=tag.pet_id, pet_name=pet.name, owner_email=owner_email,
+        assigned_at=tag.assigned_at, created_at=tag.created_at,
+    )
 
 
 # --- Helpers ---

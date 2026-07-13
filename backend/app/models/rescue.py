@@ -42,9 +42,27 @@ class RescueProfile(Base, UUIDPrimaryKey, TimestampMixin):
         Boolean, default=False, nullable=False
     )
 
+    # Public "website" page at /rescue/{slug} (part of the subscription). Slug is
+    # stable once assigned (at signup / backfill); is_public lets a rescue hide
+    # the page. logo/cover are storage keys served via /public/rescues/images.
+    slug: Mapped[str | None] = mapped_column(String(80), unique=True, nullable=True, index=True)
+    is_public: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="true",
+    )
+    logo_key: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    cover_key: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
     user = relationship("User", back_populates="rescue_profile", foreign_keys=[user_id])
 
     @property
     def donations_enabled(self) -> bool:
         """Can this rescue take in-app donations? Surfaces on public schemas."""
         return bool(self.stripe_account_id) and self.stripe_charges_enabled
+
+    @property
+    def logo_url(self) -> str | None:
+        return f"/api/v1/public/rescues/images/{self.logo_key}" if self.logo_key else None
+
+    @property
+    def cover_url(self) -> str | None:
+        return f"/api/v1/public/rescues/images/{self.cover_key}" if self.cover_key else None

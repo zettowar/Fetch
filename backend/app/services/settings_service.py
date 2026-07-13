@@ -20,7 +20,26 @@ DEFAULTS: dict[str, tuple[Any, str]] = {
     "signups_paused": (False, "Reject new member signups (rescue signups still allowed)."),
     "maintenance_banner": ("", "Site-wide banner text shown to all users. Empty = hidden."),
     "donations_paused": (False, "Hide donation calls-to-action and reject new checkouts."),
+    # Explore section gating. `explore_enabled` off greys out the whole Explore
+    # tab ("coming soon"); each sub-flag greys out one item inside the sheet.
+    "explore_enabled": (True, "Show the Explore section. Off = greyed-out tab with 'Soon'."),
+    "explore_parks_enabled": (True, "Show Parks inside Explore. Off = greyed 'Soon'."),
+    "explore_pack_enabled": (True, "Show The Pack (pet discovery) inside Explore."),
+    "explore_donate_enabled": (True, "Show Donate inside Explore."),
+    "explore_shop_enabled": (True, "Show Shop inside Explore."),
+    "explore_vets_enabled": (True, "Show Vets inside Explore."),
 }
+
+# The subset of settings safe to expose on the unauthenticated /public/flags
+# endpoint (client-facing UI gates only — never operational flags).
+PUBLIC_FLAG_KEYS = (
+    "explore_enabled",
+    "explore_parks_enabled",
+    "explore_pack_enabled",
+    "explore_donate_enabled",
+    "explore_shop_enabled",
+    "explore_vets_enabled",
+)
 
 _TTL_SECONDS = 30.0
 _cache: dict[str, Any] = {}

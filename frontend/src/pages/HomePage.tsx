@@ -54,40 +54,7 @@ const CROWN_GRAD: Record<Species, string> = {
   cat: 'from-purple-400 to-purple-600',
 };
 
-/** Compact crown tile — used two-up (Top Dog + Top Cat) when unfiltered. */
-function CrownCard({ species, winner }: { species: Species; winner: WeeklyWinner | null }) {
-  const label = species === 'cat' ? 'Top Cat' : 'Top Dog';
-  const emoji = species === 'cat' ? '🐈' : '🐕';
-  return (
-    <Link
-      to={`/app/rankings?species=${species}`}
-      className={`group relative h-40 bg-gradient-to-b ${CROWN_GRAD[species]} flex flex-col overflow-hidden rounded-3xl active:scale-[0.99] transition-transform duration-200 ease-soft-out`}
-    >
-      {winner?.primary_photo_url && (
-        <img
-          src={winner.primary_photo_url}
-          alt={winner.pet_name || label}
-          className="absolute inset-0 w-full h-full object-cover opacity-40"
-        />
-      )}
-      <div className="relative z-10 flex items-center justify-between text-white px-3 pt-3">
-        <p className="inline-flex items-center gap-1 text-2xs uppercase tracking-widest opacity-80">
-          <Trophy size={12} aria-hidden /> {label}
-        </p>
-        <span className="text-base" aria-hidden>{emoji}</span>
-      </div>
-      <div className="relative z-10 mt-auto text-center text-white px-3 pb-3">
-        {winner ? (
-          <p className="text-lg font-bold tracking-tight truncate drop-shadow-sm">{winner.pet_name}</p>
-        ) : (
-          <p className="text-sm font-semibold opacity-90">No winner yet</p>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-/** Full-width hero for a single species (when the user has filtered). */
+/** Full-width hero for a single species. */
 function CrownHero({ species, winner, resetsIn }: { species: Species; winner: WeeklyWinner | null; resetsIn: string }) {
   const label = species === 'cat' ? "This Week's Top Cat" : "This Week's Top Dog";
   return (
@@ -135,6 +102,14 @@ export default function HomePage() {
   // consumer home. Skip the consumer queries and send them to their dashboard.
   const isRescue = user?.role === 'rescue';
   const [speciesFilter] = useSpeciesFilter();
+  // Home shows exactly one species — no "All"/dual-crown view. A "both" user
+  // gets a Dogs/Cats toggle (the shared filter, with a mixed value read as dog);
+  // a single-species preference locks Home to that species and hides the switch.
+  const speciesPref = user?.species_preference ?? 'both';
+  const homeSpecies: Species =
+    speciesPref === 'both'
+      ? speciesFilter === 'cat' ? 'cat' : 'dog'
+      : speciesPref;
   const { data: dogWinner } = useQuery({
     queryKey: ['weekly-winner', 'dog'],
     queryFn: () => getCurrentWinner('dog'),
@@ -209,22 +184,18 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col">
-      {/* Hero: weekly crowns — Top Dog + Top Cat, or one when filtered */}
-      {speciesFilter === 'all' ? (
-        <div className="grid grid-cols-2 gap-3 px-4 pt-4">
-          <CrownCard species="dog" winner={dogWinner ?? null} />
-          <CrownCard species="cat" winner={catWinner ?? null} />
+      {/* Hero: this week's crown for the home species (single species, no dual view) */}
+      <CrownHero
+        species={homeSpecies}
+        winner={(homeSpecies === 'cat' ? catWinner : dogWinner) ?? null}
+        resetsIn={resetsIn}
+      />
+      {/* Species switch only for "both" users — Dogs/Cats, no "All". */}
+      {speciesPref === 'both' && (
+        <div className="flex justify-center pt-3">
+          <SpeciesTabs hideAll />
         </div>
-      ) : (
-        <CrownHero
-          species={speciesFilter}
-          winner={(speciesFilter === 'cat' ? catWinner : dogWinner) ?? null}
-          resetsIn={resetsIn}
-        />
       )}
-      <div className="flex justify-center pt-3">
-        <SpeciesTabs />
-      </div>
 
       <div className="p-4 pt-5 flex flex-col gap-5">
         <h1 className="text-lg font-bold animate-fade-in-up" style={stagger(0)}>

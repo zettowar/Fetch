@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePublicFlags } from '../hooks/usePublicFlags';
+import type { PublicFlags } from '../api/publicSite';
 
 interface ExploreItem {
   label: string;
@@ -9,6 +11,8 @@ interface ExploreItem {
   to?: string;
   disabled?: boolean;
   featured?: boolean;
+  // Admin flag that gates this item; off => greyed "Soon".
+  flagKey: keyof PublicFlags;
 }
 
 const ITEMS: ExploreItem[] = [
@@ -17,6 +21,7 @@ const ITEMS: ExploreItem[] = [
     description: 'Find pet-friendly parks around you.',
     icon: '🌳',
     to: '/app/parks',
+    flagKey: 'explore_parks_enabled',
   },
   {
     label: 'The Pack',
@@ -24,24 +29,28 @@ const ITEMS: ExploreItem[] = [
     icon: '🐾',
     to: '/app/explore',
     featured: true,
+    flagKey: 'explore_pack_enabled',
   },
   {
     label: 'Donate',
     description: 'Support Fetch and local rescues.',
     icon: '💖',
     to: '/app/donate',
+    flagKey: 'explore_donate_enabled',
   },
   {
     label: 'Shop',
     description: 'Branded gear for you and your pet.',
     icon: '🛍️',
     to: '/app/shop',
+    flagKey: 'explore_shop_enabled',
   },
   {
     label: 'Vets',
     description: 'Find a vet near you.',
     icon: '🩺',
     to: '/app/vets',
+    flagKey: 'explore_vets_enabled',
   },
 ];
 
@@ -54,6 +63,7 @@ interface Props {
 // pattern in native iOS/Android share sheets — drag/tap the handle to close,
 // tap the backdrop to dismiss, Esc to close on keyboards.
 export default function ExploreSheet({ open, onClose }: Props) {
+  const flags = usePublicFlags();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -124,7 +134,8 @@ export default function ExploreSheet({ open, onClose }: Props) {
               {ITEMS.map((item) => {
                 const baseRow =
                   'flex items-center gap-3 px-3 py-3 rounded-xl transition-colors';
-                if (item.disabled || !item.to) {
+                const disabled = item.disabled || !flags[item.flagKey];
+                if (disabled || !item.to) {
                   return (
                     <li key={item.label}>
                       <div

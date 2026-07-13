@@ -18,6 +18,7 @@ const NAV_ITEMS: { path: string; label: string; end?: boolean; adminOnly?: boole
   { path: '/admin/invites', label: 'Invites', adminOnly: true },
   { path: '/admin/faq', label: 'FAQ', adminOnly: true },
   { path: '/admin/breeds', label: 'Breeds', adminOnly: true },
+  { path: '/admin/tags', label: 'QR Tags', adminOnly: true },
   { path: '/admin/parks', label: 'Parks', adminOnly: true },
   { path: '/admin/vets', label: 'Vets', adminOnly: true },
   { path: '/admin/settings', label: 'Settings', adminOnly: true },

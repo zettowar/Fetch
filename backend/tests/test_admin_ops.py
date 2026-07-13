@@ -280,6 +280,27 @@ async def test_unknown_setting_rejected(client: AsyncClient, admin_headers: dict
     assert res.status_code == 404
 
 
+@pytest.mark.asyncio
+async def test_public_flags_reflect_explore_toggle(client: AsyncClient, admin_headers: dict):
+    # Public, unauthenticated, and defaults to enabled.
+    res = await client.get("/api/v1/public/flags")
+    assert res.status_code == 200
+    assert res.json()["explore_enabled"] is True
+    assert "explore_shop_enabled" in res.json()
+
+    try:
+        put = await client.put(
+            "/api/v1/admin/settings/explore_enabled", json={"value": False}, headers=admin_headers
+        )
+        assert put.status_code == 200
+        res = await client.get("/api/v1/public/flags")
+        assert res.json()["explore_enabled"] is False
+    finally:
+        await client.put(
+            "/api/v1/admin/settings/explore_enabled", json={"value": True}, headers=admin_headers
+        )
+
+
 # --- System / jobs ---
 
 @pytest.mark.asyncio

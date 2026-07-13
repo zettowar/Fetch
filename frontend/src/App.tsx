@@ -8,6 +8,7 @@ import AdminLayout from './components/AdminLayout';
 import AppShell from './components/AppShell';
 import ScrollToTop from './components/ScrollToTop';
 import ImpersonationBanner from './components/ImpersonationBanner';
+import FlagGate from './components/FlagGate';
 
 // Marketing website (web-first, unauthenticated front door)
 import MarketingLayout from './marketing/MarketingLayout';
@@ -18,6 +19,8 @@ import NewsPage from './marketing/NewsPage';
 import PrivacyPage from './marketing/PrivacyPage';
 import TermsPage from './marketing/TermsPage';
 import PublicPetPage from './marketing/PublicPetPage';
+import PublicRescuePage from './marketing/PublicRescuePage';
+import TagLandingPage from './marketing/TagLandingPage';
 import AuthLayout from './marketing/AuthLayout';
 
 // Auth screens
@@ -79,6 +82,7 @@ import AdminFeedbackPage from './pages/admin/AdminFeedbackPage';
 import AdminInvitesPage from './pages/admin/AdminInvitesPage';
 import AdminFAQPage from './pages/admin/AdminFAQPage';
 import AdminBreedsPage from './pages/admin/AdminBreedsPage';
+import AdminTagsPage from './pages/admin/AdminTagsPage';
 import AdminParksPage from './pages/admin/AdminParksPage';
 import AdminVetsPage from './pages/admin/AdminVetsPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
@@ -133,8 +137,11 @@ function AppContent() {
           <Route path="/news" element={<NewsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
-          {/* Public read-only pet share page — no session required. */}
+          {/* Public read-only share pages — no session required. */}
           <Route path="/pets/:petId" element={<PublicPetPage />} />
+          <Route path="/rescue/:slug" element={<PublicRescuePage />} />
+          {/* QR tag scan destination — resolves to the linked pet, or a claim prompt. */}
+          <Route path="/t/:code" element={<TagLandingPage />} />
           {/* Unknown public URL — 404 inside the site chrome. */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
@@ -173,15 +180,15 @@ function AppContent() {
           <Route path="lost/report-found" element={<ReportFoundPage />} />
           <Route path="lost/:id" element={<LostReportDetailPage />} />
           <Route path="users/:id" element={<UserProfilePage />} />
-          <Route path="parks" element={<ParksPage />} />
-          <Route path="parks/new" element={<ParkEditorPage />} />
-          <Route path="parks/:id/edit" element={<ParkEditorPage />} />
-          <Route path="parks/:id" element={<ParkDetailPage />} />
-          <Route path="vets" element={<VetsPage />} />
-          <Route path="vets/:id" element={<VetDetailPage />} />
+          <Route path="parks" element={<FlagGate flag="explore_parks_enabled"><ParksPage /></FlagGate>} />
+          <Route path="parks/new" element={<FlagGate flag="explore_parks_enabled"><ParkEditorPage /></FlagGate>} />
+          <Route path="parks/:id/edit" element={<FlagGate flag="explore_parks_enabled"><ParkEditorPage /></FlagGate>} />
+          <Route path="parks/:id" element={<FlagGate flag="explore_parks_enabled"><ParkDetailPage /></FlagGate>} />
+          <Route path="vets" element={<FlagGate flag="explore_vets_enabled"><VetsPage /></FlagGate>} />
+          <Route path="vets/:id" element={<FlagGate flag="explore_vets_enabled"><VetDetailPage /></FlagGate>} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="following" element={<FollowingPage />} />
-          <Route path="explore" element={<ExplorePage />} />
+          <Route path="explore" element={<FlagGate flag="explore_pack_enabled"><ExplorePage /></FlagGate>} />
           <Route path="rescues" element={<RescuesHubPage />} />
           <Route path="rescues/browse" element={<RescuesPage />} />
           <Route path="rescues/map" element={<RescuesMapPage />} />
@@ -190,12 +197,12 @@ function AppContent() {
           <Route path="transfers" element={<TransfersPage />} />
           <Route path="liked" element={<LikedPetsPage />} />
           <Route path="billing" element={<BillingPage />} />
-          <Route path="donate" element={<DonatePage />} />
-          <Route path="donate/success" element={<DonateReturnPage />} />
+          <Route path="donate" element={<FlagGate flag="explore_donate_enabled"><DonatePage /></FlagGate>} />
+          <Route path="donate/success" element={<FlagGate flag="explore_donate_enabled"><DonateReturnPage /></FlagGate>} />
           <Route path="donations" element={<DonationHistoryPage />} />
-          <Route path="shop" element={<ShopPage />} />
-          <Route path="shop/:handle" element={<ShopProductPage />} />
-          <Route path="cart" element={<CartPage />} />
+          <Route path="shop" element={<FlagGate flag="explore_shop_enabled"><ShopPage /></FlagGate>} />
+          <Route path="shop/:handle" element={<FlagGate flag="explore_shop_enabled"><ShopProductPage /></FlagGate>} />
+          <Route path="cart" element={<FlagGate flag="explore_shop_enabled"><CartPage /></FlagGate>} />
           {/* Unknown /app URL — 404 inside the app shell. */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
@@ -224,6 +231,7 @@ function AppContent() {
           <Route path="invites" element={<AdminInvitesPage />} />
           <Route path="faq" element={<AdminFAQPage />} />
           <Route path="breeds" element={<AdminBreedsPage />} />
+          <Route path="tags" element={<AdminTagsPage />} />
           <Route path="parks" element={<AdminParksPage />} />
           <Route path="vets" element={<AdminVetsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />

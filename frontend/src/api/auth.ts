@@ -98,6 +98,7 @@ export interface UpdateMePayload {
   location_rough?: string | null;
   date_of_birth?: string | null;
   show_adoption_prompt?: boolean;
+  species_preference?: 'dog' | 'cat' | 'both';
 }
 
 export async function updateMe(body: UpdateMePayload): Promise<User> {

@@ -49,7 +49,7 @@ const POSTS: NewsPost[] = [
 ];
 
 export default function NewsPage() {
-  useDocumentTitle('News · Fetch');
+  useDocumentTitle('News · Fetchpawz');
 
   return (
     <div className="animate-fade-in">

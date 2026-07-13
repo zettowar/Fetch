@@ -42,7 +42,7 @@ export default function PetDetailPage() {
     enabled: !!id,
   });
 
-  useDocumentTitle(pet ? `${pet.name} · Fetch` : null);
+  useDocumentTitle(pet ? `${pet.name} · Fetchpawz` : null);
 
   const isOwner = user?.id === pet?.owner_id?.toString();
 
@@ -110,7 +110,7 @@ export default function PetDetailPage() {
     const url = pet?.is_public
       ? `${window.location.origin}/pets/${id}`
       : `${window.location.origin}/app/pets/${id}`;
-    shareLink(url, pet?.name ? `${pet.name} on Fetch` : 'Fetch');
+    shareLink(url, pet?.name ? `${pet.name} on Fetchpawz` : 'Fetchpawz');
   };
 
   // Keyboard navigation for fullscreen lightbox. Must be declared before any
