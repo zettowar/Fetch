@@ -1,44 +1,48 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { getFeedback } from '../../api/admin';
+import { searchFeedback } from '../../api/admin';
 import TimeAgo from '../../components/TimeAgo';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import SearchInput from '../../components/ui/SearchInput';
+import PaginationFooter from '../../components/ui/PaginationFooter';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import ErrorState from '../../components/ui/ErrorState';
 
-export default function AdminFeedbackPage() {
-  const [search, setSearch] = useState('');
+const PAGE_SIZE = 100;
 
-  const { data: allFeedback = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['admin-feedback'],
-    queryFn: getFeedback,
+export default function AdminFeedbackPage() {
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+  const [offset, setOffset] = useState(0);
+
+  const { data: page, isLoading, isError, refetch } = useQuery({
+    queryKey: ['admin-feedback', search, offset],
+    queryFn: () => searchFeedback({ q: search, offset, limit: PAGE_SIZE }),
   });
 
-  const feedback = search
-    ? allFeedback.filter((f) =>
-        f.body.toLowerCase().includes(search.toLowerCase()) ||
-        (f.screen_name || '').toLowerCase().includes(search.toLowerCase())
-      )
-    : allFeedback;
+  const feedback = page?.items ?? [];
+  const total = page?.total ?? 0;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Feedback ({allFeedback.length})</h1>
+        <h1 className="text-2xl font-bold">Feedback ({total})</h1>
       </div>
 
-      {allFeedback.length > 5 && (
+      <form
+        onSubmit={(e) => { e.preventDefault(); setSearch(query); setOffset(0); }}
+        className="mb-4 flex gap-2"
+      >
         <SearchInput
-          className="mb-4"
+          className="flex-1"
           placeholder="Search feedback..."
-          value={search}
-          onChange={setSearch}
+          value={query}
+          onChange={setQuery}
         />
-      )}
+      </form>
 
       {isLoading ? (
         <ListSkeleton rows={5} />
@@ -67,6 +71,8 @@ export default function AdminFeedbackPage() {
           ))}
         </Card>
       )}
+
+      <PaginationFooter offset={offset} pageSize={PAGE_SIZE} rendered={feedback.length} total={total} onChange={setOffset} />
     </div>
   );
 }

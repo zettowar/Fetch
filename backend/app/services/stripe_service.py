@@ -139,6 +139,17 @@ async def retrieve_checkout_session(session_id: str) -> dict:
     return await _get(f"/checkout/sessions/{session_id}")
 
 
+async def create_refund(payment_intent_id: str) -> dict:
+    """Fully refund a captured payment by its PaymentIntent. For destination
+    (rescue) charges this also reverses the transfer so the platform isn't out
+    of pocket. The `charge.refunded` webhook flips the donation to 'refunded'."""
+    return await _post("/refunds", {
+        "payment_intent": payment_intent_id,
+        "reverse_transfer": "true",
+        "refund_application_fee": "true",
+    })
+
+
 def verify_webhook(payload: bytes, sig_header: str) -> dict:
     """Verify a Stripe-Signature header and return the parsed event.
 

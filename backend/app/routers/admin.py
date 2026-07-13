@@ -2,19 +2,20 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import select, func, or_, cast, update, Date
+from sqlalchemy import select, func, or_, cast, delete, update, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
-from app.deps import require_admin
+from app.deps import require_admin, require_staff
+from app.models.adoption import AdoptionInquiry
 from app.models.audit_log import AuditLog
 from app.models.beta import Feedback, InviteCode
 from app.models.breed import Breed, pet_breeds
 from app.models.pet import Pet
 from app.models.donation import Donation
 from app.models.entitlement import Entitlement
-from app.models.lost_report import LostReport
+from app.models.lost_report import LostReport, LostReportPhoto, LostReportSighting
 from app.models.park import Park
 from app.models.photo import Photo
 from app.models.report import Report, Strike
@@ -84,7 +85,7 @@ async def _log(
 
 @router.get("/stats", response_model=DashboardStats)
 async def dashboard_stats(
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     now = datetime.now(timezone.utc)
@@ -103,6 +104,18 @@ async def dashboard_stats(
     unused_invites = (await db.execute(select(func.count()).where(InviteCode.is_used == False))).scalar() or 0
     total_feedback = (await db.execute(select(func.count()).select_from(Feedback))).scalar() or 0
     reports_7d = (await db.execute(select(func.count()).where(Report.created_at >= week_ago))).scalar() or 0
+
+    donations_total = (await db.execute(
+        select(func.coalesce(func.sum(Donation.amount_cents), 0)).where(Donation.status == "succeeded")
+    )).scalar() or 0
+    donations_7d = (await db.execute(
+        select(func.coalesce(func.sum(Donation.amount_cents), 0)).where(
+            Donation.status == "succeeded", Donation.created_at >= week_ago
+        )
+    )).scalar() or 0
+    open_inquiries = (await db.execute(
+        select(func.count()).where(AdoptionInquiry.status == "new")
+    )).scalar() or 0
 
     oldest_report_result = await db.execute(
         select(func.min(Report.created_at)).where(Report.status == "pending")
@@ -136,13 +149,16 @@ async def dashboard_stats(
         reports_last_7d=reports_7d,
         oldest_pending_report_hours=oldest_report_hours,
         oldest_open_ticket_hours=oldest_ticket_hours,
+        donations_total_cents=int(donations_total),
+        donations_last_7d_cents=int(donations_7d),
+        open_inquiries=open_inquiries,
     )
 
 
 @router.get("/stats/timeseries", response_model=DashboardTimeseries)
 async def dashboard_timeseries(
     days: int = Query(14, ge=1, le=90),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     """Daily counts of new users, reports, and pets over the last `days` days."""
@@ -191,7 +207,7 @@ async def list_audit_log(
     actor_id: UUID | None = Query(None),
     target_id: UUID | None = Query(None),
     limit: int = Query(100, ge=1, le=500),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit)
@@ -221,9 +237,12 @@ async def list_donations(
     from app.schemas.donation import DonationOut
 
     query = select(Donation).order_by(Donation.created_at.desc())
+    count_stmt = select(func.count()).select_from(Donation)
     if status_filter:
         query = query.where(Donation.status == status_filter)
+        count_stmt = count_stmt.where(Donation.status == status_filter)
     rows = (await db.execute(query.offset(offset).limit(limit))).scalars().all()
+    total = (await db.execute(count_stmt)).scalar() or 0
 
     totals = (await db.execute(
         select(
@@ -234,6 +253,7 @@ async def list_donations(
     )).one()
     return {
         "items": [DonationOut.model_validate(r).model_dump(mode="json") for r in rows],
+        "total": total,
         "succeeded_count": totals[0],
         "succeeded_amount_cents": int(totals[1]),
         "succeeded_fee_cents": int(totals[2]),
@@ -248,7 +268,7 @@ async def search_users(
     q: str = Query(default=""),
     offset: int = Query(0, ge=0),
     limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     # Correlated subqueries avoid the N+1 per-user count lookups.
@@ -303,7 +323,7 @@ async def search_users(
 @router.get("/users/{user_id}", response_model=AdminUserOut)
 async def get_user_detail(
     user_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(User).where(User.id == user_id))
@@ -342,7 +362,7 @@ async def _suspend_with_dogs(user: User, db: AsyncSession) -> list[str]:
 @router.post("/users/{user_id}/suspend")
 async def suspend_user(
     user_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(User).where(User.id == user_id))
@@ -359,7 +379,7 @@ async def suspend_user(
 @router.post("/users/{user_id}/reinstate")
 async def reinstate_user(
     user_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(User).where(User.id == user_id))
@@ -428,20 +448,106 @@ async def demote_user(
     return {"detail": "User demoted to regular user"}
 
 
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Permanently delete a user account and everything they own.
+
+    Unlike suspend (which flips ``is_active`` and is fully reversible), this
+    destroys the row. The database's ``ON DELETE`` rules do the cascading:
+    owned content (pets, photos, votes, follows, comments, posts, tickets,
+    strikes, entitlements, …) is CASCADE-deleted, while records meant to
+    outlive the account are preserved via SET NULL — donations keep their
+    ``recipient_name`` snapshot, and the audit log's actor/target ids are
+    plain UUID columns (no FK) so this action's own history survives.
+
+    Irreversible, so it is guarded: an admin cannot delete their own account,
+    and cannot delete another admin (demote them first — this prevents a
+    single compromised or careless admin from erasing a colleague).
+    """
+    row = (await db.execute(
+        select(User.id, User.email, User.display_name, User.role)
+        .where(User.id == user_id)
+    )).one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    _uid, email, display_name, role = row
+
+    if user_id == admin.id:
+        raise HTTPException(status_code=400, detail="You cannot delete your own account")
+    if role == "admin":
+        raise HTTPException(
+            status_code=400,
+            detail="Demote this admin before deleting their account",
+        )
+
+    # Collect on-disk file keys BEFORE the rows vanish — the DB cascade removes
+    # the photo rows but not the underlying files, exactly like reject_photo.
+    owned_pet_ids = select(Pet.id).where(Pet.owner_id == user_id).scalar_subquery()
+    pet_photo_keys = (await db.execute(
+        select(Photo.storage_key).where(Photo.pet_id.in_(owned_pet_ids))
+    )).scalars().all()
+    lost_photo_keys = (await db.execute(
+        select(LostReportPhoto.storage_key)
+        .join(LostReport, LostReport.id == LostReportPhoto.report_id)
+        .where(LostReport.reporter_id == user_id)
+    )).scalars().all()
+    sighting_keys = (await db.execute(
+        select(LostReportSighting.photo_key).where(
+            LostReportSighting.reporter_id == user_id,
+            LostReportSighting.photo_key.is_not(None),
+        )
+    )).scalars().all()
+    storage_keys = [*pet_photo_keys, *lost_photo_keys, *sighting_keys]
+
+    pet_count = (await db.execute(
+        select(func.count()).where(Pet.owner_id == user_id)
+    )).scalar() or 0
+
+    # Core DELETE: let Postgres cascade the whole graph in one statement rather
+    # than loading every owned row into the session.
+    await db.execute(delete(User).where(User.id == user_id))
+    await _log(db, actor_id=admin.id, action="user.delete", target_type="user", target_id=user_id,
+               metadata={"email": email, "display_name": display_name, "role": role,
+                         "pets_deleted": pet_count, "photos_purged": len(storage_keys)})
+    await db.commit()
+
+    # Best-effort file cleanup; the rows are already gone, so a failure here
+    # only leaves an unreachable orphan, never a dangling reference.
+    storage = get_storage()
+    for key in storage_keys:
+        try:
+            await storage.delete(key)
+        except Exception:
+            pass
+
+    return {
+        "detail": "User permanently deleted",
+        "pets_deleted": pet_count,
+        "photos_purged": len(storage_keys),
+    }
+
+
 # --- Reports ---
 
 @router.get("/reports", response_model=list[ReportOut])
 async def list_reports(
     response: Response,
     status_filter: str = Query("pending"),
+    q: str = Query(default=""),
     offset: int = Query(0, ge=0),
     limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     base = select(Report)
     if status_filter != "all":
         base = base.where(Report.status == status_filter)
+    if q:
+        base = base.where(or_(Report.reason.ilike(f"%{q}%"), Report.admin_notes.ilike(f"%{q}%")))
 
     count_result = await db.execute(select(func.count()).select_from(base.subquery()))
     total = count_result.scalar() or 0
@@ -458,7 +564,7 @@ async def list_reports(
 async def review_report(
     report_id: UUID,
     body: ReportReview,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Report).where(Report.id == report_id))
@@ -513,7 +619,7 @@ async def review_report(
 async def get_user_strikes(
     user_id: UUID,
     limit: int = Query(100, ge=1, le=500),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -528,7 +634,7 @@ async def get_user_strikes(
 @router.get("/users/{user_id}/entitlements")
 async def get_user_entitlements(
     user_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     """All entitlements granted to a user (admin view)."""
@@ -552,7 +658,7 @@ async def get_user_entitlements(
 @router.get("/users/{user_id}/reports-filed", response_model=list[ReportOut])
 async def get_user_reports_filed(
     user_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     """Reports filed BY this user."""
@@ -568,7 +674,7 @@ async def get_user_reports_filed(
 @router.get("/users/{user_id}/reports-against", response_model=list[ReportOut])
 async def get_user_reports_against(
     user_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     """Reports that ultimately target this user (direct, via pet ownership, or via photo->pet->owner)."""
@@ -600,7 +706,7 @@ async def get_user_reports_against(
 @router.get("/users/{user_id}/rescue-profile", response_model=RescueProfileOut | None)
 async def get_user_rescue_profile(
     user_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     """Single rescue profile this user owns, if any."""
@@ -616,7 +722,7 @@ async def get_user_rescue_profile(
 async def update_ticket(
     ticket_id: UUID,
     body: TicketStatusUpdate,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(SupportTicket).where(SupportTicket.id == ticket_id))
@@ -625,8 +731,12 @@ async def update_ticket(
         raise HTTPException(status_code=404, detail="Ticket not found")
     ticket.status = body.status
     ticket.assigned_to = admin.id
+    # Persist the internal note (previously accepted by the schema but silently
+    # dropped). Only overwrite when the caller actually supplied one.
+    if body.admin_notes is not None:
+        ticket.admin_notes = body.admin_notes
     await _log(db, actor_id=admin.id, action="ticket.update", target_type="ticket", target_id=ticket_id,
-               metadata={"status": body.status})
+               metadata={"status": body.status, "noted": body.admin_notes is not None})
     await db.commit()
     await db.refresh(ticket)
     return ticket
@@ -698,29 +808,32 @@ async def delete_faq(
 async def list_rescue_profiles(
     response: Response,
     status_filter: str = Query("pending"),
+    q: str = Query(default=""),
     offset: int = Query(0, ge=0),
     limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
-    filter_base = select(RescueProfile.id)
+    filters = []
     if status_filter != "all":
-        filter_base = filter_base.where(RescueProfile.status == status_filter)
-    total = (await db.execute(
-        select(func.count()).select_from(filter_base.subquery())
-    )).scalar() or 0
+        filters.append(RescueProfile.status == status_filter)
+    if q:
+        filters.append(or_(
+            RescueProfile.org_name.ilike(f"%{q}%"),
+            RescueProfile.location.ilike(f"%{q}%"),
+        ))
+
+    count_stmt = select(func.count()).select_from(RescueProfile)
+    for f in filters:
+        count_stmt = count_stmt.where(f)
+    total = (await db.execute(count_stmt)).scalar() or 0
     response.headers["X-Total-Count"] = str(total)
     response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
 
-    query = (
-        select(RescueProfile)
-        .order_by(RescueProfile.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-    )
-    if status_filter != "all":
-        query = query.where(RescueProfile.status == status_filter)
-    result = await db.execute(query)
+    query = select(RescueProfile).order_by(RescueProfile.created_at.desc())
+    for f in filters:
+        query = query.where(f)
+    result = await db.execute(query.offset(offset).limit(limit))
     return list(result.scalars().all())
 
 
@@ -728,7 +841,7 @@ async def list_rescue_profiles(
 async def review_rescue_profile(
     profile_id: UUID,
     body: RescueReviewRequest,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -766,7 +879,7 @@ async def list_dogs_admin(
     active_only: bool = Query(False),
     offset: int = Query(0, ge=0),
     limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     photo_count_sq = (
@@ -830,7 +943,7 @@ async def list_dogs_admin(
 @router.post("/pets/{pet_id}/deactivate")
 async def deactivate_dog(
     pet_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Pet).where(Pet.id == pet_id))
@@ -847,7 +960,7 @@ async def deactivate_dog(
 @router.post("/pets/{pet_id}/reactivate")
 async def reactivate_dog(
     pet_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Pet).where(Pet.id == pet_id))
@@ -870,7 +983,7 @@ async def reactivate_dog(
 @router.get("/photos/flagged", response_model=list[FlaggedPhotoOut])
 async def list_flagged_photos(
     response: Response,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
@@ -923,7 +1036,7 @@ async def list_flagged_photos(
 @router.get("/photos/{photo_id}/file")
 async def get_photo_file_admin(
     photo_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a photo regardless of moderation status so reviewers can see it
@@ -943,7 +1056,7 @@ async def get_photo_file_admin(
 @router.post("/photos/{photo_id}/approve")
 async def approve_photo(
     photo_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Photo).where(Photo.id == photo_id))
@@ -970,7 +1083,7 @@ async def approve_photo(
 @router.post("/photos/{photo_id}/reject")
 async def reject_photo(
     photo_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Photo).where(Photo.id == photo_id))
@@ -1011,16 +1124,21 @@ async def reject_photo(
 async def list_lost_reports_admin(
     response: Response,
     status_filter: str = Query("open"),
+    q: str = Query(default=""),
     offset: int = Query(0, ge=0),
     limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
-    filter_base = select(LostReport.id)
+    filters = []
     if status_filter != "all":
-        filter_base = filter_base.where(LostReport.status == status_filter)
-    count_result = await db.execute(select(func.count()).select_from(filter_base.subquery()))
-    total = count_result.scalar() or 0
+        filters.append(LostReport.status == status_filter)
+    if q:
+        filters.append(LostReport.description.ilike(f"%{q}%"))
+    count_stmt = select(func.count()).select_from(LostReport)
+    for f in filters:
+        count_stmt = count_stmt.where(f)
+    total = (await db.execute(count_stmt)).scalar() or 0
     response.headers["X-Total-Count"] = str(total)
     response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
 
@@ -1031,8 +1149,8 @@ async def list_lost_reports_admin(
         .offset(offset)
         .limit(limit)
     )
-    if status_filter != "all":
-        query = query.where(LostReport.status == status_filter)
+    for f in filters:
+        query = query.where(f)
     result = await db.execute(query)
     reports = result.scalars().all()
 
@@ -1055,7 +1173,7 @@ async def list_lost_reports_admin(
 @router.post("/lost-reports/{report_id}/close")
 async def close_lost_report(
     report_id: UUID,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(LostReport).where(LostReport.id == report_id))

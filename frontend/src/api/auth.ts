@@ -16,8 +16,25 @@ export async function signup(
   return res.data;
 }
 
-export async function login(email: string, password: string): Promise<AuthResponse> {
-  const res = await client.post('/auth/login', { email, password });
+export async function login(email: string, password: string, otp?: string): Promise<AuthResponse> {
+  const res = await client.post('/auth/login', { email, password, ...(otp ? { otp } : {}) });
+  return res.data;
+}
+
+// --- Two-factor auth (TOTP) ---
+
+export async function totpSetup(): Promise<{ secret: string; otpauth_uri: string }> {
+  const res = await client.post('/auth/2fa/setup');
+  return res.data;
+}
+
+export async function totpEnable(code: string): Promise<{ detail: string }> {
+  const res = await client.post('/auth/2fa/enable', { code });
+  return res.data;
+}
+
+export async function totpDisable(opts: { password?: string; code?: string }): Promise<{ detail: string }> {
+  const res = await client.post('/auth/2fa/disable', opts);
   return res.data;
 }
 

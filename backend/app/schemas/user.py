@@ -13,6 +13,7 @@ class UserOut(BaseModel):
     is_verified: bool
     role: str
     show_adoption_prompt: bool = True
+    totp_enabled: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}

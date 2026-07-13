@@ -348,3 +348,111 @@ async def test_admin_cannot_demote_self(client: AsyncClient, admin_headers: dict
         f"/api/v1/admin/users/{self_id}/demote", headers=admin_headers
     )
     assert res.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_admin_delete_user_removes_account_and_cascades(
+    client: AsyncClient, admin_headers: dict
+):
+    """Hard delete destroys the row and cascade-removes owned data, unlike the
+    reversible suspend."""
+    from sqlalchemy import select, func
+    from app.models.user import User
+    from app.models.pet import Pet
+    from tests.conftest import test_session_factory
+
+    email = f"delete-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    signup = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "To Delete",
+    })
+    user_id = signup.json()["user"]["id"]
+    user_token = signup.json()["tokens"]["access_token"]
+    user_headers = {"Authorization": f"Bearer {user_token}"}
+
+    pet_id = (await client.post(
+        "/api/v1/pets", json={"name": "Doomed"}, headers=user_headers
+    )).json()["id"]
+
+    res = await client.delete(f"/api/v1/admin/users/{user_id}", headers=admin_headers)
+    assert res.status_code == 200, res.text
+    assert res.json()["pets_deleted"] == 1
+
+    # Row is gone (not merely deactivated), and the cascade took the pet with it.
+    async with test_session_factory() as db:
+        assert (await db.execute(
+            select(func.count()).where(User.id == user_id)
+        )).scalar() == 0
+        assert (await db.execute(
+            select(func.count()).where(Pet.id == pet_id)
+        )).scalar() == 0
+
+    # The deleted user's token no longer authenticates.
+    me = await client.get("/api/v1/auth/me", headers=user_headers)
+    assert me.status_code == 401
+    # And the admin detail lookup 404s.
+    detail = await client.get(f"/api/v1/admin/users/{user_id}", headers=admin_headers)
+    assert detail.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_admin_delete_user_writes_audit(client: AsyncClient, admin_headers: dict):
+    email = f"delaudit-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    signup = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "Audit Me",
+    })
+    user_id = signup.json()["user"]["id"]
+
+    await client.delete(f"/api/v1/admin/users/{user_id}", headers=admin_headers)
+
+    audit = await client.get(
+        "/api/v1/admin/audit",
+        params={"action": "user.delete", "target_id": user_id},
+        headers=admin_headers,
+    )
+    rows = audit.json()
+    assert len(rows) == 1
+    assert rows[0]["metadata_"]["email"] == email
+
+
+@pytest.mark.asyncio
+async def test_admin_cannot_delete_self(client: AsyncClient, admin_headers: dict):
+    me = await client.get("/api/v1/auth/me", headers=admin_headers)
+    self_id = me.json()["id"]
+    res = await client.delete(f"/api/v1/admin/users/{self_id}", headers=admin_headers)
+    assert res.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_admin_cannot_delete_other_admin(client: AsyncClient, admin_headers: dict):
+    """A second admin must be demoted before deletion — guards against one
+    admin erasing another."""
+    email = f"otheradmin-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    signup = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123", "display_name": "Other Admin",
+    })
+    user_id = signup.json()["user"]["id"]
+    await client.post(f"/api/v1/admin/users/{user_id}/promote", headers=admin_headers)
+
+    res = await client.delete(f"/api/v1/admin/users/{user_id}", headers=admin_headers)
+    assert res.status_code == 400
+
+    # After demotion the same delete succeeds.
+    await client.post(f"/api/v1/admin/users/{user_id}/demote", headers=admin_headers)
+    ok = await client.delete(f"/api/v1/admin/users/{user_id}", headers=admin_headers)
+    assert ok.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_admin_delete_user_not_found(client: AsyncClient, admin_headers: dict):
+    res = await client.delete(
+        f"/api/v1/admin/users/{uuid.uuid4()}", headers=admin_headers
+    )
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_admin_delete_user_requires_admin(client: AsyncClient, auth_headers: dict):
+    res = await client.delete(
+        f"/api/v1/admin/users/{uuid.uuid4()}", headers=auth_headers
+    )
+    assert res.status_code == 403

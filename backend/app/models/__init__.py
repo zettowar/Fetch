@@ -32,6 +32,8 @@ from app.models.entitlement import Entitlement
 from app.models.donation import Donation, StripeEvent
 from app.models.notification import Notification, PushSubscription, NotificationPreference
 from app.models.beta import InviteCode, Feedback
+from app.models.announcement import Announcement
+from app.models.app_setting import AppSetting
 
 __all__ = [
     "Base",
@@ -78,4 +80,6 @@ __all__ = [
     "NotificationPreference",
     "InviteCode",
     "Feedback",
+    "Announcement",
+    "AppSetting",
 ]

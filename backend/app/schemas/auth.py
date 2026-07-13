@@ -51,6 +51,23 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    # Required only when the account has TOTP 2FA enabled.
+    otp: str | None = None
+
+
+class TotpSetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class TotpEnableRequest(BaseModel):
+    code: str
+
+
+class TotpDisableRequest(BaseModel):
+    # Either the current password or a valid TOTP code authorizes disabling.
+    password: str | None = None
+    code: str | None = None
 
 
 class TokenResponse(BaseModel):

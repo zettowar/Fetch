@@ -48,6 +48,12 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.token_cleanup.purge_refresh_tokens_task",
         "schedule": crontab(hour=3, minute=0),
     },
+    # Daily notification digest. Sends to digest_mode='daily' every day and
+    # 'weekly' on Mondays (the task decides based on the weekday).
+    "send-notification-digest": {
+        "task": "app.tasks.digest.send_digest_task",
+        "schedule": crontab(hour=13, minute=0),
+    },
 }
 
 celery_app.autodiscover_tasks(["app.tasks"])

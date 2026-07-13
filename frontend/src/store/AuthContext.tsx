@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { setTokens, clearTokens } from '../api/client';
+import { setTokens, clearTokens, impersonationToken } from '../api/client';
 import { getMe, refreshTokens } from '../api/auth';
 import type { User } from '../types';
 
@@ -37,6 +37,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Impersonation tab: load the impersonated user straight from their token,
+    // bypassing the admin's refresh flow entirely.
+    if (impersonationToken()) {
+      getMe()
+        .then((u) => setUser(u))
+        .catch(() => {
+          try { sessionStorage.removeItem('imp_token'); } catch { /* ignore */ }
+        })
+        .finally(() => setIsLoading(false));
+      return;
+    }
+
     const savedRefresh = localStorage.getItem('refresh_token');
     if (!savedRefresh) {
       setIsLoading(false);

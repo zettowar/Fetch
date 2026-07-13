@@ -30,5 +30,9 @@ class SupportTicket(Base, UUIDPrimaryKey, TimestampMixin):
     )  # open | in_progress | resolved | closed
     ticket_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    # Internal resolution note left by staff when updating the ticket. Not shown
+    # to the reporter (there is no reply channel yet), but persisted for the
+    # audit trail and the next operator to see.
+    admin_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user = relationship("User", foreign_keys=[user_id])

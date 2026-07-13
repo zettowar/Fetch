@@ -21,6 +21,9 @@ export interface DashboardStats {
   reports_last_7d: number;
   oldest_pending_report_hours: number | null;
   oldest_open_ticket_hours: number | null;
+  donations_total_cents: number;
+  donations_last_7d_cents: number;
+  open_inquiries: number;
 }
 
 export interface AdminUser {
@@ -63,6 +66,8 @@ export interface SupportTicket {
   source_screen: string | null;
   status: string;
   ticket_number: string;
+  assigned_to: string | null;
+  admin_notes: string | null;
   created_at: string;
 }
 
@@ -130,6 +135,16 @@ export const suspendUser = async (id: string) =>
 export const reinstateUser = async (id: string) =>
   (await client.post(`/admin/users/${id}/reinstate`)).data;
 
+export interface DeleteUserResult {
+  detail: string;
+  pets_deleted: number;
+  photos_purged: number;
+}
+
+// Permanent, irreversible. Backend blocks deleting yourself or another admin.
+export const deleteUser = async (id: string): Promise<DeleteUserResult> =>
+  (await client.delete(`/admin/users/${id}`)).data;
+
 export const getReports = async (
   params: { status?: string; offset?: number; limit?: number } = {},
 ): Promise<Paginated<Report>> => {
@@ -152,11 +167,32 @@ export const getUserStrikes = async (userId: string): Promise<Strike[]> =>
 export const getTickets = async (status = 'open'): Promise<SupportTicket[]> =>
   (await client.get('/support/tickets', { params: { status_filter: status } })).data;
 
+export const searchTickets = async (
+  params: { status?: string; q?: string; offset?: number; limit?: number } = {},
+): Promise<Paginated<SupportTicket>> => {
+  const res = await client.get('/support/tickets', {
+    params: {
+      status_filter: params.status ?? 'open',
+      q: params.q,
+      offset: params.offset,
+      limit: params.limit,
+    },
+  });
+  return { items: res.data, total: readTotal(res.headers, res.data.length) };
+};
+
 export const updateTicket = async (id: string, data: { status: string; admin_notes?: string }) =>
   (await client.post(`/admin/tickets/${id}/update`, data)).data;
 
 export const getFeedback = async (): Promise<FeedbackEntry[]> =>
   (await client.get('/feedback')).data;
+
+export const searchFeedback = async (
+  params: { q?: string; offset?: number; limit?: number } = {},
+): Promise<Paginated<FeedbackEntry>> => {
+  const res = await client.get('/feedback', { params });
+  return { items: res.data, total: readTotal(res.headers, res.data.length) };
+};
 
 export const getInvites = async (): Promise<InviteCode[]> =>
   (await client.get('/invites')).data;
@@ -306,3 +342,135 @@ export const getAdminLostReports = async (
 
 export const closeLostReport = async (id: string) =>
   (await client.post(`/admin/lost-reports/${id}/close`)).data;
+
+// --- User roles + account actions ---
+
+export const setUserRole = async (id: string, role: 'user' | 'moderator' | 'admin') =>
+  (await client.post(`/admin/users/${id}/set-role`, null, { params: { role } })).data;
+
+export const editUser = async (id: string, data: { display_name?: string; email?: string }) =>
+  (await client.patch(`/admin/users/${id}`, data)).data;
+
+export const resendVerification = async (id: string) =>
+  (await client.post(`/admin/users/${id}/resend-verification`)).data as { detail: string };
+
+export const sendPasswordReset = async (id: string) =>
+  (await client.post(`/admin/users/${id}/send-password-reset`)).data as { detail: string };
+
+export const markVerified = async (id: string) =>
+  (await client.post(`/admin/users/${id}/mark-verified`)).data;
+
+export interface ImpersonateResult {
+  access_token: string;
+  token_type: string;
+  user_id: string;
+  display_name: string;
+}
+export const impersonateUser = async (id: string): Promise<ImpersonateResult> =>
+  (await client.post(`/admin/users/${id}/impersonate`)).data;
+
+// --- Rescue oversight ---
+
+export const setRescueStatus = async (id: string, data: { status: string; note?: string }) =>
+  (await client.post(`/admin/rescue-profiles/${id}/set-status`, data)).data;
+
+export const editRescue = async (
+  id: string,
+  data: Partial<{ org_name: string; description: string; location: string; website: string; donation_url: string }>,
+) => (await client.patch(`/admin/rescue-profiles/${id}`, data)).data;
+
+export interface AdoptionInquiry {
+  id: string;
+  rescue_id: string;
+  rescue_name: string | null;
+  pet_id: string | null;
+  inquirer_id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  message: string;
+  status: string;
+  created_at: string;
+}
+export const getAdoptionInquiries = async (
+  params: { rescue_id?: string; status?: string; offset?: number; limit?: number } = {},
+): Promise<Paginated<AdoptionInquiry>> => {
+  const res = await client.get('/admin/adoption-inquiries', {
+    params: { rescue_id: params.rescue_id, status: params.status, offset: params.offset, limit: params.limit },
+  });
+  return { items: res.data, total: readTotal(res.headers, res.data.length) };
+};
+
+// --- Donations ---
+
+export interface AdminDonation {
+  id: string;
+  recipient_type: string;
+  recipient_name: string;
+  amount_cents: number;
+  currency: string;
+  application_fee_cents: number;
+  status: string;
+  message: string | null;
+  created_at: string;
+}
+export interface DonationsPage {
+  items: AdminDonation[];
+  total: number;
+  succeeded_count: number;
+  succeeded_amount_cents: number;
+  succeeded_fee_cents: number;
+}
+export const getDonations = async (
+  params: { status?: string; offset?: number; limit?: number } = {},
+): Promise<DonationsPage> =>
+  (await client.get('/admin/donations', { params })).data;
+
+export const refundDonation = async (id: string) =>
+  (await client.post(`/admin/donations/${id}/refund`)).data as { detail: string; amount_cents: number };
+
+// --- Announcements ---
+
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  link: string | null;
+  segment: string;
+  send_email: boolean;
+  recipient_count: number;
+  sent_by: string | null;
+  created_at: string;
+}
+export const getAnnouncements = async (): Promise<Announcement[]> =>
+  (await client.get('/admin/announcements')).data;
+
+export const createAnnouncement = async (data: {
+  title: string; body: string; link?: string; segment: string; send_email: boolean;
+}): Promise<Announcement> =>
+  (await client.post('/admin/announcements', data)).data;
+
+// --- Settings / feature flags ---
+
+export interface AppSetting {
+  key: string;
+  value: unknown;
+  default: unknown;
+  description: string;
+  overridden: boolean;
+}
+export const getSettings = async (): Promise<AppSetting[]> =>
+  (await client.get('/admin/settings')).data;
+
+export const putSetting = async (key: string, value: unknown): Promise<AppSetting> =>
+  (await client.put(`/admin/settings/${key}`, { value })).data;
+
+// --- System / jobs ---
+
+export interface SystemJobs {
+  broker_queue_depth: number | null;
+  beat_jobs: { name: string; schedule: string; registered: boolean }[];
+  registered_tasks: string[];
+}
+export const getSystemJobs = async (): Promise<SystemJobs> =>
+  (await client.get('/admin/system/jobs')).data;

@@ -7,6 +7,7 @@ import AdminGuard from './components/AdminGuard';
 import AdminLayout from './components/AdminLayout';
 import AppShell from './components/AppShell';
 import ScrollToTop from './components/ScrollToTop';
+import ImpersonationBanner from './components/ImpersonationBanner';
 
 // Marketing website (web-first, unauthenticated front door)
 import MarketingLayout from './marketing/MarketingLayout';
@@ -50,6 +51,7 @@ import ParkEditorPage from './pages/ParkEditorPage';
 import VetsPage from './pages/VetsPage';
 import VetDetailPage from './pages/VetDetailPage';
 import ProfileEditPage from './pages/ProfileEditPage';
+import SecurityPage from './pages/SecurityPage';
 import NotificationsPage from './pages/NotificationsPage';
 import FollowingPage from './pages/FollowingPage';
 import ExplorePage from './pages/ExplorePage';
@@ -80,6 +82,11 @@ import AdminBreedsPage from './pages/admin/AdminBreedsPage';
 import AdminParksPage from './pages/admin/AdminParksPage';
 import AdminVetsPage from './pages/admin/AdminVetsPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
+import AdminDonationsPage from './pages/admin/AdminDonationsPage';
+import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import AdminSystemPage from './pages/admin/AdminSystemPage';
+import AdminInquiriesPage from './pages/admin/AdminInquiriesPage';
 
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -116,6 +123,7 @@ function AppContent() {
   return (
     <>
       <ScrollToTop />
+      <ImpersonationBanner />
       <Routes>
         {/* ── Marketing website — web-first, for everyone (logged out) ── */}
         <Route element={<MarketingLayout />}>
@@ -152,6 +160,7 @@ function AppContent() {
           }
         >
           <Route path="profile/edit" element={<ProfileEditPage />} />
+          <Route path="security" element={<SecurityPage />} />
           <Route path="home" element={<HomePage />} />
           <Route path="swipe" element={<SwipePage />} />
           <Route path="pets" element={<MyPetsPage />} />
@@ -208,12 +217,17 @@ function AppContent() {
           <Route path="lost" element={<AdminLostReportsPage />} />
           <Route path="tickets" element={<AdminTicketsPage />} />
           <Route path="rescues" element={<AdminRescuesPage />} />
+          <Route path="inquiries" element={<AdminInquiriesPage />} />
+          <Route path="donations" element={<AdminDonationsPage />} />
+          <Route path="announcements" element={<AdminAnnouncementsPage />} />
           <Route path="feedback" element={<AdminFeedbackPage />} />
           <Route path="invites" element={<AdminInvitesPage />} />
           <Route path="faq" element={<AdminFAQPage />} />
           <Route path="breeds" element={<AdminBreedsPage />} />
           <Route path="parks" element={<AdminParksPage />} />
           <Route path="vets" element={<AdminVetsPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="system" element={<AdminSystemPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
         </Route>
       </Routes>

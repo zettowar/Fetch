@@ -24,9 +24,25 @@ async def get_current_user(
     return user
 
 
+# Staff = anyone allowed into the admin console. "admin" is full privilege;
+# "moderator" is scoped to moderation/read surfaces (see require_admin below
+# for the privileged actions moderators are kept out of).
+STAFF_ROLES = ("admin", "moderator")
+
+
 async def require_admin(user: User = Depends(get_current_user)) -> User:
+    """Full-privilege gate: destructive/sensitive actions (delete accounts,
+    change roles, grant entitlements, edit config, send broadcasts, refunds)."""
     if user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin required")
+    return user
+
+
+async def require_staff(user: User = Depends(get_current_user)) -> User:
+    """Moderation/read gate: reports, tickets, content review, dashboards.
+    Admins pass this too."""
+    if user.role not in STAFF_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Staff access required")
     return user
 
 

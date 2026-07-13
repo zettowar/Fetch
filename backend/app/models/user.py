@@ -20,7 +20,17 @@ class User(Base, UUIDPrimaryKey, TimestampMixin):
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # user | moderator | admin | rescue. "moderator" and "admin" are staff
+    # (see app.deps.require_staff / require_admin); moderator is scoped to
+    # moderation surfaces, admin has full privilege.
     role: Mapped[str] = mapped_column(String(20), default="user", nullable=False)
+
+    # Optional TOTP two-factor auth. Opt-in; enforced at login only once
+    # `totp_enabled` is set (so enrolling can't lock anyone out mid-setup).
+    totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    totp_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false",
+    )
     show_adoption_prompt: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, server_default="true",
     )

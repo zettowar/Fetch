@@ -1,13 +1,13 @@
 """Beta feedback and invite code management."""
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import get_db
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user, require_admin, require_staff
 from app.limiter import limiter
 from app.models.audit_log import AuditLog
 from app.models.beta import Feedback, InviteCode
@@ -39,14 +39,27 @@ async def submit_feedback(
 
 @router.get("/feedback", response_model=list[FeedbackOut])
 async def list_feedback(
+    response: Response,
+    q: str = Query(default=""),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Feedback).order_by(Feedback.created_at.desc()).limit(limit).offset(offset)
-    )
+    # Server-side search over the body — the UI previously filtered only the
+    # first fetched page client-side, silently missing older feedback.
+    clause = Feedback.body.ilike(f"%{q}%") if q else None
+    count_stmt = select(func.count()).select_from(Feedback)
+    if clause is not None:
+        count_stmt = count_stmt.where(clause)
+    total = (await db.execute(count_stmt)).scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+    query = select(Feedback).order_by(Feedback.created_at.desc())
+    if clause is not None:
+        query = query.where(clause)
+    result = await db.execute(query.limit(limit).offset(offset))
     return list(result.scalars().all())
 
 

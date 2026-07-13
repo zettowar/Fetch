@@ -35,6 +35,8 @@ class TicketOut(BaseModel):
     source_screen: str | None = None
     status: str
     ticket_number: str
+    assigned_to: UUID | None = None
+    admin_notes: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

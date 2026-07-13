@@ -81,6 +81,13 @@ async def create_checkout(
 ):
     _require_enabled()
 
+    from app.services import settings_service
+    if await settings_service.get_setting(db, "donations_paused"):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Donations are temporarily paused",
+        )
+
     recipient_name = PLATFORM_RECIPIENT_NAME
     destination_account: str | None = None
     application_fee_cents = 0

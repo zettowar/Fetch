@@ -96,6 +96,13 @@ export default function AdminDashboardPage() {
         <StatCard label="Reports (7d)" value={stats.reports_last_7d} />
       </div>
 
+      {/* Revenue + inquiries */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <MoneyCard label="Donations raised" cents={stats.donations_total_cents} link="/admin/donations" />
+        <MoneyCard label="Donations (7d)" cents={stats.donations_last_7d_cents} link="/admin/donations" />
+        <StatCard label="Open inquiries" value={stats.open_inquiries} link="/admin/inquiries" color={stats.open_inquiries > 0 ? 'text-warning-600 dark:text-warning-400' : undefined} />
+      </div>
+
       {/* Quick actions */}
       <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Quick Actions</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
@@ -120,6 +127,17 @@ function StatCard({ label, value, color = 'text-gray-800 dark:text-gray-200', li
   const content = (
     <Card className="hover:shadow-soft transition-shadow">
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{label}</p>
+    </Card>
+  );
+  return link ? <Link to={link}>{content}</Link> : content;
+}
+
+function MoneyCard({ label, cents, link }: { label: string; cents: number; link?: string }) {
+  const money = (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'usd' });
+  const content = (
+    <Card className="hover:shadow-soft transition-shadow">
+      <p className="text-2xl font-bold text-success-600 dark:text-success-400">{money}</p>
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{label}</p>
     </Card>
   );

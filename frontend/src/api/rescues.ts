@@ -103,9 +103,10 @@ export async function transferDog(
 
 export async function adminListRescueProfiles(
   status: 'pending' | 'approved' | 'rejected' | 'all' = 'pending',
+  q = '',
 ): Promise<RescueProfile[]> {
   const res = await client.get('/admin/rescue-profiles', {
-    params: { status_filter: status, limit: 100 },
+    params: { status_filter: status, q: q || undefined, limit: 100 },
   });
   return res.data;
 }

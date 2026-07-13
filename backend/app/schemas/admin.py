@@ -77,6 +77,9 @@ class DashboardStats(BaseModel):
     reports_last_7d: int = 0
     oldest_pending_report_hours: float | None = None
     oldest_open_ticket_hours: float | None = None
+    donations_total_cents: int = 0
+    donations_last_7d_cents: int = 0
+    open_inquiries: int = 0
 
 
 class AdminUserOut(BaseModel):

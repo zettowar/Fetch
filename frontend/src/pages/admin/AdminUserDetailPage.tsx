@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import client from '../../api/client';
@@ -7,8 +7,13 @@ import {
   getAdminUser,
   suspendUser,
   reinstateUser,
-  promoteUser,
-  demoteUser,
+  deleteUser,
+  setUserRole,
+  editUser,
+  resendVerification,
+  sendPasswordReset,
+  markVerified,
+  impersonateUser,
   grantEntitlement,
   revokeEntitlement,
   getUserEntitlements,
@@ -17,6 +22,7 @@ import {
   getUserReportsAgainst,
   getAuditLog,
 } from '../../api/admin';
+import { useAuth } from '../../store/AuthContext';
 import type { RescueProfile } from '../../api/rescues';
 import BackButton from '../../components/ui/BackButton';
 import Button from '../../components/ui/Button';
@@ -27,6 +33,10 @@ import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { ListSkeleton, Spinner } from '../../components/ui/Skeleton';
 import TimeAgo from '../../components/TimeAgo';
+
+function errDetail(e: unknown): string | undefined {
+  return (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+}
 
 type Tab = 'strikes' | 'filed' | 'against' | 'rescue' | 'audit';
 
@@ -40,10 +50,15 @@ const TABS: { key: Tab; label: string }[] = [
 
 export default function AdminUserDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   const [tab, setTab] = useState<Tab>('strikes');
   const [grantKey, setGrantKey] = useState('ads_removed');
   const [showGrant, setShowGrant] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: ['admin-user', id],
@@ -94,15 +109,58 @@ export default function AdminUserDetailPage() {
     mutationFn: () => reinstateUser(id!),
     onSuccess: () => { toast.success('User reinstated'); invalidate(); },
   });
-  const promoteMutation = useMutation({
-    mutationFn: () => promoteUser(id!),
-    onSuccess: () => { toast.success('Promoted to admin'); invalidate(); },
-    onError: () => toast.error('Failed to promote'),
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteUser(id!),
+    onSuccess: (res) => {
+      toast.success(
+        `Account deleted — ${res.pets_deleted} pet${res.pets_deleted !== 1 ? 's' : ''}, ${res.photos_purged} photo${res.photos_purged !== 1 ? 's' : ''} removed`,
+      );
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      navigate('/admin/users');
+    },
+    onError: (e: unknown) => {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail || 'Failed to delete account');
+      setShowDelete(false);
+    },
   });
-  const demoteMutation = useMutation({
-    mutationFn: () => demoteUser(id!),
-    onSuccess: () => { toast.success('Demoted to regular user'); invalidate(); },
-    onError: () => toast.error('Failed to demote'),
+  const roleMutation = useMutation({
+    mutationFn: (role: 'user' | 'moderator' | 'admin') => setUserRole(id!, role),
+    onSuccess: () => { toast.success('Role updated'); invalidate(); },
+    onError: (e: unknown) => toast.error(errDetail(e) || 'Failed to change role'),
+  });
+  const verifyMutation = useMutation({
+    mutationFn: () => markVerified(id!),
+    onSuccess: () => { toast.success('Marked verified'); invalidate(); },
+    onError: () => toast.error('Failed'),
+  });
+  const resendMutation = useMutation({
+    mutationFn: () => resendVerification(id!),
+    onSuccess: (r) => toast.success(r.detail),
+    onError: (e: unknown) => toast.error(errDetail(e) || 'Failed'),
+  });
+  const resetMutation = useMutation({
+    mutationFn: () => sendPasswordReset(id!),
+    onSuccess: (r) => toast.success(r.detail),
+    onError: () => toast.error('Failed'),
+  });
+  const impersonateMutation = useMutation({
+    mutationFn: () => impersonateUser(id!),
+    onSuccess: (r) => {
+      // Per-tab override (sessionStorage) so the admin's persistent session in
+      // other tabs is untouched. Same-tab navigate boots as the impersonated
+      // user; the banner offers a one-click return.
+      sessionStorage.setItem('imp_token', r.access_token);
+      sessionStorage.setItem('imp_name', r.display_name);
+      window.location.assign('/app/home');
+    },
+    onError: (e: unknown) => toast.error(errDetail(e) || 'Cannot impersonate'),
+  });
+  const editMutation = useMutation({
+    mutationFn: (data: { display_name?: string; email?: string }) => editUser(id!, data),
+    onSuccess: () => { toast.success('User updated'); setShowEdit(false); invalidate(); },
+    onError: (e: unknown) => toast.error(errDetail(e) || 'Failed to update'),
   });
   const grantMutation = useMutation({
     mutationFn: () => grantEntitlement({ user_id: id!, entitlement_key: grantKey, source: 'admin_grant' }),
@@ -127,8 +185,13 @@ export default function AdminUserDetailPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
             <h1 className="text-2xl font-bold">{user.display_name}</h1>
-            {user.role === 'admin' && (
-              <Badge variant="info" className="uppercase">Admin</Badge>
+            {(user.role === 'admin' || user.role === 'moderator') && (
+              <Badge variant="info" className="uppercase">{user.role}</Badge>
+            )}
+            {user.is_verified ? (
+              <Badge variant="success" className="uppercase">Verified</Badge>
+            ) : (
+              <Badge variant="neutral" className="uppercase">Unverified</Badge>
             )}
             {!user.is_active && (
               <Badge variant="danger" className="uppercase">Suspended</Badge>
@@ -159,14 +222,24 @@ export default function AdminUserDetailPage() {
         ) : (
           <Button size="sm" loading={reinstateMutation.isPending} onClick={() => reinstateMutation.mutate()}>Reinstate</Button>
         )}
-        {user.role !== 'admin' ? (
-          <Button size="sm" variant="secondary" loading={promoteMutation.isPending} onClick={() => {
-            if (confirm(`Promote ${user.display_name} to admin?`)) promoteMutation.mutate();
-          }}>Promote to Admin</Button>
-        ) : (
-          <Button size="sm" variant="ghost" loading={demoteMutation.isPending} onClick={() => {
-            if (confirm(`Demote ${user.display_name} from admin?`)) demoteMutation.mutate();
-          }}>Demote</Button>
+        <Button size="sm" variant="secondary" onClick={() => setShowEdit((v) => !v)}>Edit</Button>
+        {!user.is_verified && (
+          <Button size="sm" variant="secondary" loading={verifyMutation.isPending} onClick={() => verifyMutation.mutate()}>
+            Mark verified
+          </Button>
+        )}
+        {!user.is_verified && (
+          <Button size="sm" variant="ghost" loading={resendMutation.isPending} onClick={() => resendMutation.mutate()}>
+            Resend verification
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" loading={resetMutation.isPending} onClick={() => {
+          if (confirm(`Email a password reset link to ${user.email}?`)) resetMutation.mutate();
+        }}>Send reset</Button>
+        {isAdmin && user.role !== 'admin' && user.role !== 'moderator' && (
+          <Button size="sm" variant="ghost" loading={impersonateMutation.isPending} onClick={() => {
+            if (confirm(`Open a support session as ${user.display_name}? This is logged.`)) impersonateMutation.mutate();
+          }}>Log in as</Button>
         )}
         <Button size="sm" variant="secondary" onClick={() => setShowGrant(!showGrant)}>Grant Entitlement</Button>
         <Button
@@ -177,7 +250,36 @@ export default function AdminUserDetailPage() {
         >
           {hasPackPlus ? 'Revoke Pack+' : 'Grant Pack+'}
         </Button>
+        {/* Role selector — admin only, and never on your own row. */}
+        {isAdmin && user.id !== currentUser?.id && user.role !== 'rescue' && (
+          <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            Role
+            <select
+              className="rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1 text-sm"
+              value={user.role}
+              disabled={roleMutation.isPending}
+              onChange={(e) => {
+                const role = e.target.value as 'user' | 'moderator' | 'admin';
+                if (confirm(`Set ${user.display_name}'s role to ${role}?`)) roleMutation.mutate(role);
+              }}
+            >
+              <option value="user">user</option>
+              <option value="moderator">moderator</option>
+              <option value="admin">admin</option>
+            </select>
+          </label>
+        )}
       </div>
+
+      {showEdit && (
+        <EditUserForm
+          displayName={user.display_name}
+          email={user.email}
+          pending={editMutation.isPending}
+          onCancel={() => setShowEdit(false)}
+          onSave={(data) => editMutation.mutate(data)}
+        />
+      )}
 
       {/* Entitlement chips */}
       {entitlements.length > 0 && (
@@ -241,6 +343,168 @@ export default function AdminUserDetailPage() {
       {tab === 'against' && <ReportsAgainstTab userId={user.id} />}
       {tab === 'rescue' && <RescueProfileTab userId={user.id} />}
       {tab === 'audit' && <AuditTab userId={user.id} />}
+
+      {/* Danger zone — permanent deletion, distinct from reversible suspend */}
+      <div className="mt-8 rounded-lg border border-danger-300 dark:border-danger-500/40 bg-danger-50/50 dark:bg-danger-500/5 p-4">
+        <h2 className="text-sm font-semibold text-danger-700 dark:text-danger-300">Danger zone</h2>
+        <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-xs text-gray-600 dark:text-gray-400 max-w-md">
+            Permanently delete this account and everything it owns — pets, photos, votes,
+            posts, and comments. This <strong>cannot be undone</strong>. To temporarily
+            disable access instead, use Suspend above.
+          </p>
+          {user.role === 'admin' ? (
+            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+              Demote before deleting
+            </span>
+          ) : (
+            <Button
+              size="sm"
+              variant="danger"
+              className="shrink-0"
+              onClick={() => setShowDelete(true)}
+            >
+              Delete account
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {showDelete && (
+        <DeleteAccountModal
+          displayName={user.display_name}
+          email={user.email}
+          petCount={user.pet_count}
+          pending={deleteMutation.isPending}
+          onCancel={() => setShowDelete(false)}
+          onConfirm={() => deleteMutation.mutate()}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditUserForm({
+  displayName,
+  email,
+  pending,
+  onCancel,
+  onSave,
+}: {
+  displayName: string;
+  email: string;
+  pending: boolean;
+  onCancel: () => void;
+  onSave: (data: { display_name?: string; email?: string }) => void;
+}) {
+  const [name, setName] = useState(displayName);
+  const [mail, setMail] = useState(email);
+  const dirty = name.trim() !== displayName || mail.trim().toLowerCase() !== email;
+
+  return (
+    <div className="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800/40">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label className="text-xs text-gray-500 dark:text-gray-400">
+          Display name
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1.5 text-sm"
+          />
+        </label>
+        <label className="text-xs text-gray-500 dark:text-gray-400">
+          Email <span className="text-gray-400">(changing clears verified)</span>
+          <input
+            value={mail}
+            onChange={(e) => setMail(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1.5 text-sm"
+          />
+        </label>
+      </div>
+      <div className="mt-3 flex justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={onCancel} disabled={pending}>Cancel</Button>
+        <Button
+          size="sm"
+          loading={pending}
+          disabled={!dirty || pending}
+          onClick={() => {
+            const data: { display_name?: string; email?: string } = {};
+            if (name.trim() !== displayName) data.display_name = name.trim();
+            if (mail.trim().toLowerCase() !== email) data.email = mail.trim();
+            onSave(data);
+          }}
+        >
+          Save changes
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DeleteAccountModal({
+  displayName,
+  email,
+  petCount,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  displayName: string;
+  email: string;
+  petCount: number;
+  pending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const [confirmText, setConfirmText] = useState('');
+  const matches = confirmText.trim().toLowerCase() === email.trim().toLowerCase();
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-md rounded-xl bg-white dark:bg-gray-900 p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-bold text-danger-700 dark:text-danger-300">
+          Delete {displayName}?
+        </h2>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+          This permanently erases the account, {petCount} pet{petCount !== 1 ? 's' : ''} and all
+          their photos, plus every vote, post, comment, and report tied to this user. Donation
+          records are kept (anonymized). This action is <strong>irreversible</strong>.
+        </p>
+        <label className="mt-4 block text-xs font-medium text-gray-500 dark:text-gray-400">
+          Type <span className="font-mono text-gray-700 dark:text-gray-200">{email}</span> to confirm
+        </label>
+        <input
+          autoFocus
+          type="text"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-sm focus:border-danger-500 focus:outline-none focus:ring-1 focus:ring-danger-500"
+          placeholder={email}
+          autoComplete="off"
+        />
+        <div className="mt-4 flex justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={onCancel} disabled={pending}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            variant="danger"
+            loading={pending}
+            disabled={!matches || pending}
+            onClick={onConfirm}
+          >
+            Permanently delete
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

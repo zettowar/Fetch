@@ -7,8 +7,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
-from app.deps import get_current_user
+from app.deps import STAFF_ROLES, get_current_user
 from app.limiter import limiter
+from app.models.audit_log import AuditLog
 from app.models.beta import InviteCode
 from app.models.rescue import RescueProfile
 from app.models.user import (
@@ -35,10 +36,14 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     SignupRequest,
     TokenResponse,
+    TotpDisableRequest,
+    TotpEnableRequest,
+    TotpSetupResponse,
     VerifyEmailRequest,
 )
 from app.schemas.rescue import RescueSignupRequest
 from app.schemas.user import UserOut
+from app.services import settings_service, totp
 from app.services.email import (
     send_email_change_email,
     send_password_reset_email,
@@ -97,6 +102,15 @@ async def _create_tokens(user: User, db: AsyncSession) -> TokenResponse:
     return TokenResponse(access_token=access_token, refresh_token=raw_refresh)
 
 
+def _client_ip(request: Request) -> str | None:
+    """Best-effort source IP. The backend runs behind nginx/caddy with
+    --proxy-headers, so X-Forwarded-For's first hop is the real client."""
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else None
+
+
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def signup(
@@ -105,6 +119,11 @@ async def signup(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
+    # Runtime kill-switch (admin-toggleable, distinct from the INVITE_REQUIRED
+    # env gate). Rescue signups go through a separate endpoint and stay open.
+    if await settings_service.get_setting(db, "signups_paused"):
+        raise HTTPException(status_code=403, detail="New signups are temporarily paused")
+
     invite_code = (body.invite_code or "").strip().upper()
     if settings.INVITE_REQUIRED and not invite_code:
         raise HTTPException(
@@ -223,6 +242,23 @@ async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends
     if not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    # Second factor: only gates accounts that opted in. 401 with a distinct
+    # code so the client knows to prompt for a code rather than re-ask the
+    # password.
+    if user.totp_enabled:
+        if not body.otp:
+            raise HTTPException(status_code=401, detail="2FA code required", headers={"X-2FA-Required": "1"})
+        if not totp.verify(user.totp_secret or "", body.otp):
+            raise HTTPException(status_code=401, detail="Invalid 2FA code", headers={"X-2FA-Required": "1"})
+
+    # Audit staff logins (with source IP) — normal-user logins are too noisy
+    # to record and aren't a security-review concern.
+    if user.role in STAFF_ROLES:
+        db.add(AuditLog(
+            actor_id=user.id, action="auth.login", target_type="user", target_id=user.id,
+            metadata_={"role": user.role, "ip": _client_ip(request)},
+        ))
+
     tokens = await _create_tokens(user, db)
     return AuthResponse(tokens=tokens, user=UserOut.model_validate(user))
 
@@ -273,6 +309,73 @@ async def logout(request: Request, body: LogoutRequest, db: AsyncSession = Depen
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)):
     return user
+
+
+# --- Two-factor auth (TOTP) ---
+
+@router.post("/2fa/setup", response_model=TotpSetupResponse)
+@limiter.limit("10/minute")
+async def totp_setup(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate (or reveal, if enrollment is mid-flight) a TOTP secret and the
+    otpauth URI to load into an authenticator app. Not active until /2fa/enable
+    confirms a code, so re-calling before enabling just rotates the secret."""
+    if user.totp_enabled:
+        raise HTTPException(status_code=400, detail="2FA is already enabled")
+    user.totp_secret = totp.generate_secret()
+    await db.commit()
+    return TotpSetupResponse(
+        secret=user.totp_secret,
+        otpauth_uri=totp.provisioning_uri(user.totp_secret, account=user.email),
+    )
+
+
+@router.post("/2fa/enable", response_model=DetailResponse)
+@limiter.limit("10/minute")
+async def totp_enable(
+    request: Request,
+    body: TotpEnableRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user.totp_enabled:
+        raise HTTPException(status_code=400, detail="2FA is already enabled")
+    if not user.totp_secret:
+        raise HTTPException(status_code=400, detail="Start with /2fa/setup first")
+    if not totp.verify(user.totp_secret, body.code):
+        raise HTTPException(status_code=400, detail="Invalid code")
+    user.totp_enabled = True
+    db.add(AuditLog(actor_id=user.id, action="auth.2fa_enable", target_type="user", target_id=user.id))
+    await db.commit()
+    return DetailResponse(detail="Two-factor authentication enabled")
+
+
+@router.post("/2fa/disable", response_model=DetailResponse)
+@limiter.limit("10/minute")
+async def totp_disable(
+    request: Request,
+    body: TotpDisableRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Turn 2FA off. Requires re-proving identity with either the account
+    password or a current TOTP code."""
+    if not user.totp_enabled:
+        raise HTTPException(status_code=400, detail="2FA is not enabled")
+    authorized = (
+        (body.password and verify_password(body.password, user.password_hash))
+        or (body.code and totp.verify(user.totp_secret or "", body.code))
+    )
+    if not authorized:
+        raise HTTPException(status_code=400, detail="Password or valid 2FA code required")
+    user.totp_enabled = False
+    user.totp_secret = None
+    db.add(AuditLog(actor_id=user.id, action="auth.2fa_disable", target_type="user", target_id=user.id))
+    await db.commit()
+    return DetailResponse(detail="Two-factor authentication disabled")
 
 
 @router.post("/change-password", response_model=TokenResponse)

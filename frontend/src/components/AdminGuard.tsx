@@ -13,7 +13,8 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     );
   }
 
-  if (!isAuthenticated || user?.role !== 'admin') {
+  // Both staff tiers reach the console; admin-only actions are gated per-control.
+  if (!isAuthenticated || (user?.role !== 'admin' && user?.role !== 'moderator')) {
     return <Navigate to="/" replace />;
   }
 

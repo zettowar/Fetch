@@ -12,6 +12,8 @@ import { apiErrorMessage } from '../utils/apiError';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [needsOtp, setNeedsOtp] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login: authLogin } = useAuth();
   const navigate = useNavigate();
@@ -21,7 +23,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await login(email, password);
+      const data = await login(email, password, needsOtp ? otp : undefined);
       authLogin(data.tokens.access_token, data.tokens.refresh_token, data.user);
       // Return to the deep link that bounced us here, else route by role so
       // rescues land on their dashboard instead of the consumer home.
@@ -32,7 +34,14 @@ export default function LoginPage() {
           : data.user.role === 'rescue' ? '/app/rescue/dashboard' : '/app/home';
       navigate(dest, { replace: true });
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Invalid email or password'));
+      // The backend signals a required second factor with X-2FA-Required.
+      const resp = (err as { response?: { headers?: Record<string, string> } })?.response;
+      if (resp?.headers?.['x-2fa-required'] === '1') {
+        setNeedsOtp(true);
+        if (otp) toast.error('Invalid 2FA code');
+      } else {
+        toast.error(apiErrorMessage(err, 'Invalid email or password'));
+      }
     } finally {
       setLoading(false);
     }
@@ -77,8 +86,21 @@ export default function LoginPage() {
             </Link>
           </div>
 
+          {needsOtp && (
+            <Input
+              label="Authentication code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="6-digit code"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              autoFocus
+              required
+            />
+          )}
+
           <Button type="submit" loading={loading} size="lg" className="w-full">
-            Log In
+            {needsOtp ? 'Verify' : 'Log In'}
           </Button>
         </form>
 

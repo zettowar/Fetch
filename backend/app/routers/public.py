@@ -24,6 +24,20 @@ from app.storage import get_storage
 router = APIRouter()
 
 
+class SiteBannerOut(BaseModel):
+    banner: str = ""
+
+
+@router.get("/banner", response_model=SiteBannerOut)
+async def site_banner(db: AsyncSession = Depends(get_db)):
+    """Admin-set maintenance/announcement banner, shown to everyone. Empty
+    string = no banner. Polled by the app shell."""
+    from app.services import settings_service
+
+    text = await settings_service.get_setting(db, "maintenance_banner")
+    return SiteBannerOut(banner=text or "")
+
+
 class PublicPetOut(BaseModel):
     id: UUID
     name: str

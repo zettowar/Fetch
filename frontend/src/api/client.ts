@@ -24,9 +24,21 @@ export function getRefreshToken() {
   return refreshToken;
 }
 
+// Admin "log in as" stores a short-lived token in sessionStorage (per-tab, so
+// it never touches the admin's persistent session in other tabs). When present
+// it overrides the normal access token for this tab only.
+export function impersonationToken(): string | null {
+  try {
+    return sessionStorage.getItem('imp_token');
+  } catch {
+    return null;
+  }
+}
+
 client.interceptors.request.use((config) => {
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`;
+  const token = impersonationToken() || accessToken;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -56,7 +68,9 @@ client.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry && refreshToken) {
+    // Don't burn the admin refresh token while impersonating; an expired
+    // impersonation token just ends the impersonated session.
+    if (error.response?.status === 401 && !original._retry && refreshToken && !impersonationToken()) {
       original._retry = true;
       try {
         const access = await ensureFreshAccessToken();
