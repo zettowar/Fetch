@@ -125,6 +125,38 @@ make prod-restore FILE=predeploy-20260704-120000.dump
 database (`pg_restore --clean --if-exists`) and prompts for confirmation first.
 Consider `make prod-backup` immediately beforehand.
 
+## Resetting production to a clean slate
+
+Use this to wipe early-development junk (test users, insecure accounts, seed
+data) and start over with a single fresh admin. **This permanently deletes all
+data.** It does not touch the code — the schema is rebuilt from migrations.
+
+```bash
+# 0. (Recommended) pull an OFF-BOX copy of the safety backup first — the
+#    auto-backup lives in the same db_backups volume you're about to keep, but
+#    off-box is safer. See the "Backups" section for the docker cp one-liner.
+
+# 1. Wipe: backs up → stops writers → DROP SCHEMA public → backend re-migrates.
+#    Prompts you to type the database name to confirm.
+make prod-reset-db
+
+# 2. Create the fresh admin (prompts for email + password; min 12 chars,
+#    never echoed or stored in shell history). Created active + verified.
+make prod-create-admin
+
+# 3. (Optional) drop orphaned uploaded files (photos/logos the DB no longer references).
+make prod-clear-uploads
+```
+
+Notes:
+- `prod-reset-db` takes its own `manual-<timestamp>.dump` before wiping, so a
+  mistake is recoverable with `make prod-restore FILE=<that dump>`.
+- Non-interactive admin creation (e.g. from a script): set `ADMIN_EMAIL` and
+  `ADMIN_PASSWORD` (and optional `ADMIN_NAME`) in the environment instead of
+  being prompted — `docker compose -f docker-compose.prod.yml exec -e ADMIN_EMAIL=… -e ADMIN_PASSWORD=… backend python -m app.scripts.create_admin`.
+- The wipe only clears the database. Redis is transient; if you want it clean
+  too: `docker compose -f docker-compose.prod.yml exec redis redis-cli FLUSHALL`.
+
 ## Rollback
 
 Images are built from source, so a rollback is: **restore the data, then

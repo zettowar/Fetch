@@ -89,6 +89,29 @@ prod-restore: ## Restore a backup: make prod-restore FILE=<name-in-db_backups> (
 	docker compose -f $(PROD) run --rm --no-deps -T --entrypoint sh db-backup -c \
 	  'pg_restore --clean --if-exists --no-owner -d "$$PGDATABASE" "/backups/$(FILE)"'
 
+prod-create-admin: ## Create/promote ONE admin (prompts for password; or set ADMIN_EMAIL/ADMIN_PASSWORD)
+	docker compose -f $(PROD) exec backend python -m app.scripts.create_admin
+
+prod-reset-db: ## DANGER: wipe ALL prod data (backs up first, drops schema, re-migrates). Then run prod-create-admin.
+	@DB=$$(grep -E '^POSTGRES_DB=' .env 2>/dev/null | cut -d= -f2); DB=$${DB:-fetch}; \
+	  printf 'This PERMANENTLY DELETES every row in prod DB "%s".\nType the database name to confirm: ' "$$DB"; \
+	  read ANS; [ "$$ANS" = "$$DB" ] || { echo "Aborted."; exit 1; }
+	@echo "==> 1/4 Taking a safety backup first..."
+	$(MAKE) prod-backup
+	@echo "==> 2/4 Stopping app writers (db + redis stay up)..."
+	docker compose -f $(PROD) stop backend celery-worker celery-beat
+	@echo "==> 3/4 Dropping the public schema (all tables + alembic_version)..."
+	docker compose -f $(PROD) run --rm --no-deps -T --entrypoint sh db-backup -c \
+	  'psql -v ON_ERROR_STOP=1 -d "$$PGDATABASE" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"'
+	@echo "==> 4/4 Booting backend (re-runs alembic upgrade head → fresh schema)..."
+	docker compose -f $(PROD) up -d --wait backend
+	docker compose -f $(PROD) up -d celery-worker celery-beat
+	@echo "Done. Empty schema is live. Next: make prod-create-admin   (optional: make prod-clear-uploads)"
+
+prod-clear-uploads: ## DANGER: delete ALL uploaded files (pet photos, rescue logos) from the uploads volume
+	@printf 'This deletes ALL uploaded files. Ctrl-C to abort; Enter to proceed. '; read _
+	docker compose -f $(PROD) run --rm --no-deps -T --entrypoint sh backend -c 'rm -rf /app/uploads/* && echo "uploads cleared"'
+
 # ---------------------------------------------------------------------------
 help: ## List available targets
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?##' $(MAKEFILE_LIST) \
