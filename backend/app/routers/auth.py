@@ -237,9 +237,10 @@ async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends
         select(User).where(User.email == body.email.lower(), User.is_active == True)
     )
     user = result.scalar_one_or_none()
-    if user is None:
-        # Run a throwaway verify so response time doesn't reveal whether the
-        # email exists (constant-time-ish enumeration defense).
+    # `not user.password_hash` covers SSO-only accounts (no password set) — they
+    # can't password-login. Same generic 401 + throwaway verify so response time
+    # never reveals whether the email exists or is SSO-only.
+    if user is None or not user.password_hash:
         verify_password(body.password, DUMMY_PASSWORD_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(body.password, user.password_hash):

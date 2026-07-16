@@ -31,6 +31,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ConfirmEmailChangePage from './pages/ConfirmEmailChangePage';
+import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import LikedPetsPage from './pages/LikedPetsPage';
 
 // Authenticated app pages
@@ -155,6 +156,8 @@ function AppContent() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
           <Route path="/confirm-email-change" element={<ConfirmEmailChangePage />} />
+          {/* SSO handoff landing — exchanges the one-time code for a session. */}
+          <Route path="/auth/callback" element={<OAuthCallbackPage />} />
         </Route>
 
         {/* ── Authenticated web app — mobile-portrait shell, session required ── */}

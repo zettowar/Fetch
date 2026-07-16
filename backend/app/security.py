@@ -19,7 +19,10 @@ def hash_password(password: str) -> str:
     return pwd_ctx.hash(password)
 
 
-def verify_password(plain: str, hashed: str) -> bool:
+def verify_password(plain: str, hashed: str | None) -> bool:
+    # SSO-only accounts have no password (password_hash is NULL) — never a match.
+    if not hashed:
+        return False
     return pwd_ctx.verify(plain, hashed)
 
 
@@ -53,3 +56,35 @@ def generate_reset_token() -> str:
 
 def hash_reset_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+# --- OAuth / SSO ---
+
+def generate_handoff_token() -> str:
+    """One-time code the browser trades for real tokens after an SSO round-trip
+    (so tokens never appear in a URL)."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_handoff_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_signed_state(payload: dict, ttl_seconds: int = 600) -> str:
+    """Signed, expiring CSRF state carried through the OAuth redirect."""
+    expire = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
+    return jwt.encode(
+        {**payload, "exp": expire, "type": "oauth_state"},
+        settings.JWT_SECRET,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+
+def decode_signed_state(token: str) -> dict | None:
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("type") != "oauth_state":
+            return None
+        return payload
+    except jwt.PyJWTError:
+        return None

@@ -14,7 +14,8 @@ class User(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "users"
 
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False, index=True)
-    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    # Nullable: accounts created via SSO have no password until they set one.
+    password_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     location_rough: Mapped[str | None] = mapped_column(String(200), nullable=True)
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)

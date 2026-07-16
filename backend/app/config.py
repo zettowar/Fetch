@@ -82,6 +82,19 @@ class Settings(BaseSettings):
     DONATION_MIN_CENTS: int = 100
     DONATION_MAX_CENTS: int = 10_000_00
 
+    # SSO / OAuth. Empty client id/secret = that provider is unavailable. The
+    # whole feature is ALSO gated behind the admin `sso_enabled` flag, so real
+    # users never see it until it's switched on. OAUTH_REDIRECT_BASE is the
+    # backend's own public origin (dev: http://localhost:9001; prod:
+    # https://<DOMAIN>) — the provider callback is appended to it and must be
+    # registered in each provider console.
+    GOOGLE_OAUTH_CLIENT_ID: str = ""
+    GOOGLE_OAUTH_CLIENT_SECRET: str = ""
+    GITHUB_OAUTH_CLIENT_ID: str = ""
+    GITHUB_OAUTH_CLIENT_SECRET: str = ""
+    OAUTH_REDIRECT_BASE: str = "http://localhost:9001"
+    OAUTH_TIMEOUT_S: int = 15
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @field_validator("JWT_SECRET")

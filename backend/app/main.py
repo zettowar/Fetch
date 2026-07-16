@@ -13,7 +13,7 @@ from app.config import settings
 from app.limiter import limiter
 from app.logging import setup_logging
 from app.middleware import RequestIDMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
-from app.routers import auth, users, pets, breeds, photos, feed, votes, rankings, reports, admin, admin_ops, lost, social, parks, vets, playdates, posts, rescues, pet_transfers, support, billing, donations, notifications, feedback, adoption, public, tags
+from app.routers import auth, users, pets, breeds, photos, feed, votes, rankings, reports, admin, admin_ops, lost, social, parks, vets, playdates, posts, rescues, pet_transfers, support, billing, donations, notifications, feedback, adoption, public, tags, oauth
 
 logger = structlog.stdlib.get_logger()
 
@@ -68,6 +68,7 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # Routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(oauth.router, prefix="/api/v1/auth/oauth", tags=["oauth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(pets.router, prefix="/api/v1/pets", tags=["pets"])
 app.include_router(breeds.router, prefix="/api/v1/breeds", tags=["breeds"])

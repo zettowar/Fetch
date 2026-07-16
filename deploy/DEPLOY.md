@@ -157,6 +157,22 @@ Notes:
 - The wipe only clears the database. Redis is transient; if you want it clean
   too: `docker compose -f docker-compose.prod.yml exec redis redis-cli FLUSHALL`.
 
+## SSO / OAuth (Google + GitHub)
+
+SSO is gated by the admin `sso_enabled` flag (**off** by default) so it stays
+invisible to real users until you switch it on. To enable:
+
+1. Create the provider apps and register the callback URIs — full steps are in
+   `.env.example` (the `GOOGLE_/GITHUB_OAUTH_*` block). Callback URI pattern:
+   `https://<DOMAIN>/api/v1/auth/oauth/<google|github>/callback`.
+2. Put the client id/secret + `OAUTH_REDIRECT_BASE=https://<DOMAIN>` in `.env`,
+   then `make deploy` (or `make prod-restart SERVICE=backend`).
+3. Flip **Admin → Settings → `sso_enabled`** on. Buttons appear on login/signup
+   for whichever providers have credentials; turn it off to instantly hide them.
+
+Adding another provider later is a new `OAuthProvider` subclass +
+`services/oauth/registry.py` entry + its `*_OAUTH_*` env vars — no flow changes.
+
 ## Rollback
 
 Images are built from source, so a rollback is: **restore the data, then

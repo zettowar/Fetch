@@ -1,5 +1,24 @@
-import client from './client';
+import client, { API_BASE } from './client';
 import type { AuthResponse, User } from '../types';
+
+// --- SSO / OAuth ---
+
+// Providers to show buttons for (configured AND admin-enabled). [] = feature off.
+export async function getOAuthProviders(): Promise<string[]> {
+  const res = await client.get('/auth/oauth/providers');
+  return res.data;
+}
+
+// Top-level navigation target that kicks off the provider redirect.
+export function oauthStartUrl(provider: string, returnTo = '/app/home'): string {
+  return `${API_BASE}/auth/oauth/${provider}/start?return=${encodeURIComponent(returnTo)}`;
+}
+
+// Trade the one-time handoff code (from the callback URL) for real tokens.
+export async function oauthExchange(code: string): Promise<AuthResponse> {
+  const res = await client.post('/auth/oauth/exchange', { code });
+  return res.data;
+}
 
 export async function signup(
   email: string,

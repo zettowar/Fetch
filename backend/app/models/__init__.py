@@ -35,6 +35,8 @@ from app.models.beta import InviteCode, Feedback
 from app.models.announcement import Announcement
 from app.models.app_setting import AppSetting
 from app.models.qr_tag import QRTag
+from app.models.user_identity import UserIdentity
+from app.models.oauth_handoff import OAuthHandoff
 
 __all__ = [
     "Base",
@@ -84,4 +86,6 @@ __all__ = [
     "Announcement",
     "AppSetting",
     "QRTag",
+    "UserIdentity",
+    "OAuthHandoff",
 ]

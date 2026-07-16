@@ -7,6 +7,7 @@ import AuthHero from '../components/AuthHero';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
+import SSOButtons from '../components/SSOButtons';
 import { apiErrorMessage } from '../utils/apiError';
 
 export default function SignupPage() {
@@ -102,6 +103,8 @@ export default function SignupPage() {
             , and to be a good pet person.
           </p>
         </form>
+
+        <SSOButtons />
 
         <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
           Already have an account?{' '}

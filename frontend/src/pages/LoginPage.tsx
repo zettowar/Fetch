@@ -7,6 +7,7 @@ import AuthHero from '../components/AuthHero';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
+import SSOButtons from '../components/SSOButtons';
 import { apiErrorMessage } from '../utils/apiError';
 
 export default function LoginPage() {
@@ -103,6 +104,8 @@ export default function LoginPage() {
             {needsOtp ? 'Verify' : 'Log In'}
           </Button>
         </form>
+
+        <SSOButtons />
 
         <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
           New to Fetch?{' '}
