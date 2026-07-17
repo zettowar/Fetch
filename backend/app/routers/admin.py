@@ -1076,7 +1076,7 @@ async def approve_photo(
             db, pet.owner_id,
             type="photo_moderated",
             title=f"A photo of {pet.name} was approved",
-            body="It's now visible across Fetch.",
+            body="It's now visible across Fetchpawz.",
             link=f"/app/pets/{pet.id}",
         )
     await _log(db, actor_id=admin.id, action="photo.approve", target_type="photo",

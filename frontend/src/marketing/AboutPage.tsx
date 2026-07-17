@@ -10,7 +10,7 @@ export default function AboutPage() {
       <PageHero
         eyebrow="About us"
         title="The why and the how"
-        subtitle="People ask us why Fetch exists and how it got built. Both answers are shorter than you'd expect."
+        subtitle="People ask us why Fetchpawz exists and how it got built. Both answers are shorter than you'd expect."
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-14">
@@ -36,7 +36,7 @@ export default function AboutPage() {
               about good pets with a rescue mission running through every
               feature.
             </p>
-            <p>Welcome to Fetch.</p>
+            <p>Welcome to Fetchpawz.</p>
           </div>
         </section>
 
@@ -52,7 +52,7 @@ export default function AboutPage() {
             <TeamCard
               name="Sean Oosterveen"
               role="CTO"
-              body="The how. Software engineer with an R&D background; built Fetch from the first deck onward."
+              body="The how. Software engineer with an R&D background; built Fetchpawz from the first deck onward."
             />
           </div>
           <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
@@ -68,7 +68,7 @@ export default function AboutPage() {
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <ValueCard emoji="🐾" title="Pets first" body="The test for every feature is simple: does it help a pet get seen, get found, or get home? If not, it doesn't ship." />
-            <ValueCard emoji="🤝" title="Kind by default" body="There is no downvote on Fetch. The harshest thing you can do to a pet here is pass, and someone else will like them within the hour." />
+            <ValueCard emoji="🤝" title="Kind by default" body="There is no downvote on Fetchpawz. The harshest thing you can do to a pet here is pass, and someone else will like them within the hour." />
             <ValueCard emoji="🛟" title="Safety net" body="When a pet goes missing, minutes matter. An alert goes out to everyone nearby, and sightings go straight to the owner." />
           </div>
         </section>

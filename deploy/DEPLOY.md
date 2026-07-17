@@ -1,6 +1,6 @@
 # Production deployment runbook
 
-One command deploys Fetch: **`make deploy`**. It validates your environment,
+One command deploys Fetchpawz: **`make deploy`**. It validates your environment,
 snapshots the database, builds immutable images, applies migrations, waits for
 every container to report healthy, and smoke-tests the public HTTPS edge —
 aborting (without touching data) the moment anything is wrong.

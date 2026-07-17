@@ -1,13 +1,13 @@
 import type { CSSProperties } from 'react';
 
 /**
- * Fetch brand mark: a paw print inside a ringed circle.
+ * Fetchpawz brand mark: a paw print inside a ringed circle.
  * Paw and ring render in `currentColor`; the circle interior is transparent
  * so the mark shows against any surface (including the brand gradient).
  */
 export default function PawMark({
   className = '',
-  title = 'Fetch',
+  title = 'Fetchpawz',
   decorative = false,
   style,
 }: {

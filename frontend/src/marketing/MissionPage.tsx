@@ -9,7 +9,7 @@ export default function MissionPage() {
     <div className="animate-fade-in">
       <PageHero
         eyebrow="Our mission"
-        title="Why Fetch exists"
+        title="Why Fetchpawz exists"
         subtitle="Put adoptable pets in front of people who are already here looking at pets, and shorten the wait for a home."
       />
 
@@ -17,7 +17,7 @@ export default function MissionPage() {
         {/* Statement */}
         <section className="text-center">
           <p className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-balance text-gray-900 dark:text-gray-100">
-            Too many good pets wait too long in shelters. Fetch exists to put
+            Too many good pets wait too long in shelters. Fetchpawz exists to put
             every adoptable pet in front of the person who will take them home.
           </p>
         </section>
@@ -38,7 +38,7 @@ export default function MissionPage() {
           <ul className="mt-4 space-y-3 text-base leading-relaxed text-gray-600 dark:text-gray-400">
             <li>
               <strong className="text-gray-900 dark:text-gray-100">One number matters most:</strong>{' '}
-              how many pets found homes because someone saw them on Fetch.
+              how many pets found homes because someone saw them on Fetchpawz.
               Once we're live, we'll publish it.
             </li>
             <li>

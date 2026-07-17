@@ -54,7 +54,7 @@ export default function PublicPetPage() {
           to="/"
           className="mt-6 inline-flex items-center rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
         >
-          Meet Fetch
+          Meet Fetchpawz
         </Link>
       </div>
     );
@@ -149,7 +149,7 @@ export default function PublicPetPage() {
           <div aria-hidden className="pointer-events-none absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-3xl" />
           <PawTrail steps={5} size={18} className="absolute bottom-6 left-6 text-white/15" />
           <p className="relative text-xl font-bold tracking-tight text-balance">
-            {pet.name} lives on Fetch, the pet app that gets rescues adopted.
+            {pet.name} lives on Fetchpawz, the pet app that gets rescues adopted.
           </p>
           <p className="relative mt-1.5 text-sm text-white/85">
             Swipe good pets, crown a weekly champion, and help lost pets get home.
@@ -158,7 +158,7 @@ export default function PublicPetPage() {
             to="/"
             className="relative mt-5 inline-flex items-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-brand-700 shadow-soft-lg transition-transform duration-200 ease-soft-out hover:scale-[1.02] active:scale-95"
           >
-            Meet Fetch
+            Meet Fetchpawz
           </Link>
         </div>
       </div>

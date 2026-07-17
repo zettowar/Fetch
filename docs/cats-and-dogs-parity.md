@@ -1,6 +1,6 @@
 # Cats + Dogs Parity — Implementation Plan
 
-**Status:** Proposed · **Scope:** add full cat/dog parity to Fetch, on an
+**Status:** Proposed · **Scope:** add full cat/dog parity to Fetchpawz, on an
 N‑species‑ready foundation · **Whole purpose:** get animals rehomed.
 
 ---
@@ -39,7 +39,7 @@ This plan is written so the `species` work (mandatory) and the rename
 skip §8‑migration‑2 and keep the `dog`/`dog_id` identifiers. Everything else
 holds. **Recommendation: Option A, sequenced first in Phase 1.**
 
-> Naming: the app stays **Fetch** and copy stays "cats and dogs." "Rate My
+> Naming: the app stays **Fetchpawz** and copy stays "cats and dogs." "Rate My
 > Dog" becomes a species‑aware title. Nothing forces an app‑name change.
 
 ---
@@ -201,4 +201,4 @@ writes new cat code on the old `dog` identifiers.
 2. **Species filter storage** — *Recommended: `localStorage` v1*, upgrade to a user column later. (§6)
 3. **Swipe "All" behavior** — *Recommended: mixed deck* (species badge per card) vs. force a pick. (§6)
 4. **Cat breed seed list** — I can generate a curated CFA/TICA list for review. (§7)
-5. App name stays **Fetch**, copy = "cats and dogs" — assumed yes unless told otherwise. (§3)
+5. App name stays **Fetchpawz**, copy = "cats and dogs" — assumed yes unless told otherwise. (§3)

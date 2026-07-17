@@ -1,8 +1,25 @@
 import client from './client';
 import type { Pet, Vote } from '../types';
 
+export interface SwipeQuota {
+  used: number;
+  cap: number;
+  remaining: number;
+  unlimited: boolean;
+}
+
 export async function castVote(pet_id: string, value: 1 | -1): Promise<Vote> {
   const res = await client.post('/votes', { pet_id, value });
+  return res.data;
+}
+
+export async function getSwipeQuota(): Promise<SwipeQuota> {
+  const res = await client.get('/votes/quota');
+  return res.data;
+}
+
+export async function grantSwipeReward(): Promise<SwipeQuota> {
+  const res = await client.post('/votes/quota/reward');
   return res.data;
 }
 

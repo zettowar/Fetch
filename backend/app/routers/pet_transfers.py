@@ -112,6 +112,18 @@ async def accept_transfer(
     if not pet:
         raise HTTPException(status_code=404, detail="Pet no longer exists")
 
+    # Guard against a stale transfer: the pet may have been adopted, transferred
+    # elsewhere, or reassigned since this invite was created. Accepting now must
+    # not silently flip ownership of a pet the sender no longer holds.
+    if pet.adopted_at is not None or pet.owner_id != t.from_user_id:
+        t.status = "expired"
+        t.responded_at = datetime.now(timezone.utc)
+        await db.commit()
+        raise HTTPException(
+            status_code=409,
+            detail="This pet is no longer available for transfer",
+        )
+
     now = datetime.now(timezone.utc)
     pet.owner_id = user.id
     pet.adopted_at = now

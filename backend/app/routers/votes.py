@@ -1,4 +1,7 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,10 +15,19 @@ from app.models.user import User
 from app.models.vote import Vote
 from app.schemas.pet import PetOut
 from app.schemas.vote import VoteCreate, VoteOut
+from app.services.blocks import is_blocked_between
 from app.services.pet_serializer import pet_to_out
 from app.services.feed_service import current_week_bucket
+from app.services import quota as quota_service
 
 router = APIRouter()
+
+
+class QuotaOut(BaseModel):
+    used: int
+    cap: int
+    remaining: int
+    unlimited: bool
 
 
 @router.post("", response_model=VoteOut, status_code=status.HTTP_201_CREATED)
@@ -33,6 +45,19 @@ async def cast_vote(
         raise HTTPException(status_code=404, detail="Pet not found")
     if pet.owner_id == user.id:
         raise HTTPException(status_code=400, detail="Cannot vote on your own pet")
+    # A blocked user can't interact with the other side's pet via the raw API,
+    # just as the feed never surfaces it. Same 404 as a nonexistent pet.
+    if await is_blocked_between(db, user.id, pet.owner_id):
+        raise HTTPException(status_code=404, detail="Pet not found")
+
+    # Enforce the daily swipe cap server-side — the client mirror is only a
+    # display. Ad-free (Pack+) users are uncapped.
+    now = datetime.now(timezone.utc)
+    if not await quota_service.can_swipe(db, user.id, now):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Daily swipe limit reached",
+        )
 
     week = current_week_bucket()
     vote = Vote(
@@ -50,6 +75,28 @@ async def cast_vote(
 
     await db.refresh(vote)
     return vote
+
+
+@router.get("/quota", response_model=QuotaOut)
+async def get_swipe_quota(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Today's server-authoritative swipe quota for the current user."""
+    q = await quota_service.get_quota(db, user.id, datetime.now(timezone.utc))
+    return QuotaOut(used=q.used, cap=q.cap, remaining=q.remaining, unlimited=q.unlimited)
+
+
+@router.post("/quota/reward", response_model=QuotaOut)
+@limiter.limit("20/hour")
+async def grant_swipe_reward(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Grant one rewarded-ad increment for today (bounded by the daily ceiling)."""
+    q = await quota_service.grant_reward(db, user.id, datetime.now(timezone.utc))
+    return QuotaOut(used=q.used, cap=q.cap, remaining=q.remaining, unlimited=q.unlimited)
 
 
 @router.get("/mine", response_model=list[VoteOut])

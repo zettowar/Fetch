@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
@@ -19,7 +19,7 @@ import { usePawBurst } from './flair/PawBurst';
 import { useAuth } from '../store/AuthContext';
 import { useSpeciesFilter, filterToSpecies } from '../hooks/useSpeciesFilter';
 import { useSubscription } from '../utils/useSubscription';
-import { swipeQuota } from '../utils/swipeQuota';
+import { useSwipeQuota, REWARD_INCREMENT } from '../utils/swipeQuota';
 import { onboarding } from '../utils/onboarding';
 
 const SEEN_PROMPTS_KEY = 'fetch.adoption_prompts_seen';
@@ -55,21 +55,13 @@ export default function SwipeDeck() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lastVote, setLastVote] = useState<{ petId: string; index: number } | null>(null);
   const [prompt, setPrompt] = useState<PromptState | null>(null);
-  const [quota, setQuota] = useState(() =>
-    user ? swipeQuota.get(user.id) : { used: 0, cap: swipeQuota.FREE_DAILY },
-  );
+  const quota = useSwipeQuota(Boolean(user) && !isSubscriber);
   const [adOpen, setAdOpen] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { fire: fireLikeBurst, PawBurstLayer } = usePawBurst();
 
-  // Re-read quota when the user resolves (initial load) or changes (logout/login).
-  useEffect(() => {
-    if (!user) return;
-    setQuota(swipeQuota.get(user.id));
-  }, [user?.id]);
-
-  const quotaBlocked = !isSubscriber && quota.used >= quota.cap;
-  const remaining = Math.max(0, quota.cap - quota.used);
+  const quotaBlocked = !isSubscriber && quota.blocked;
+  const remaining = quota.remaining;
 
   const [speciesFilter] = useSpeciesFilter();
   const { data: pets = [], isLoading, isError, refetch } = useQuery({
@@ -97,8 +89,10 @@ export default function SwipeDeck() {
   const voteMutation = useMutation({
     mutationFn: ({ petId, value }: { petId: string; value: 1 | -1; index: number }) =>
       castVote(petId, value),
-    onError: (_err, vars) => {
-      toast.error('Vote failed');
+    onError: (err, vars) => {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const quotaHit = status === 429;
+      toast.error(quotaHit ? "You've hit today's swipe limit" : 'Vote failed');
       // Only rewind when the failed vote is the one the deck just advanced
       // past — an older failure from a rapid-swipe burst must not yank the
       // user off the card they're currently on.
@@ -106,9 +100,11 @@ export default function SwipeDeck() {
       // Undo would re-rewind and re-refund the same failed vote; drop it.
       setLastVote((lv) => (lv?.petId === vars.petId ? null : lv));
       // The vote didn't land server-side — give the swipe back so the user
-      // isn't punished for our flaky network.
-      if (!isSubscriber && user) {
-        setQuota(swipeQuota.refund(user.id));
+      // isn't punished for our flaky network. On a 429 the server is the
+      // authority: re-sync so the blocked overlay reflects the real cap.
+      if (!isSubscriber) {
+        quota.refund();
+        if (quotaHit) quota.sync();
       }
     },
   });
@@ -122,7 +118,7 @@ export default function SwipeDeck() {
     (direction: 'left' | 'right') => {
       const pet = pets[currentIndex];
       if (!pet) return;
-      if (!isSubscriber && user && quota.used >= quota.cap) {
+      if (!isSubscriber && quota.blocked) {
         // Quota exhausted — block the swipe; the overlay handles unlock paths.
         return;
       }
@@ -135,10 +131,7 @@ export default function SwipeDeck() {
       voteMutation.mutate({ petId: pet.id, value, index: currentIndex });
       if (user) onboarding.markSwiped(user.id);
 
-      if (!isSubscriber && user) {
-        const next = swipeQuota.consume(user.id);
-        setQuota(next);
-      }
+      if (!isSubscriber) quota.consume();
 
       // Clear undo after 5 seconds
       if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -169,7 +162,7 @@ export default function SwipeDeck() {
         refetch();
       }
     },
-    [pets, currentIndex, voteMutation, refetch, user, prompt, isSubscriber, quota.used, quota.cap, fireLikeBurst],
+    [pets, currentIndex, voteMutation, refetch, user, prompt, isSubscriber, quota, fireLikeBurst],
   );
 
   const handleUndo = () => {
@@ -183,18 +176,16 @@ export default function SwipeDeck() {
     setLastVote(null);
     setPrompt(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
-    // Refund quota on undo. Subscribers bypass the cap anyway so this is a
-    // no-op for them \u2014 but keeping the call site uniform avoids surprise if
-    // we later let free users undo once.
-    if (user) setQuota(swipeQuota.refund(user.id));
+    // Refund quota on undo (subscribers can't reach here \u2014 undo is Pack+ only,
+    // and they're uncapped regardless).
+    if (!isSubscriber) quota.refund();
     toast('Swipe undone', { icon: '\u21a9\ufe0f' });
   };
 
   const handleReward = () => {
     if (!user) return;
-    const next = swipeQuota.grantReward(user.id);
-    setQuota(next);
-    toast.success(`+${swipeQuota.REWARD_INCREMENT} swipes unlocked`);
+    quota.grantReward();
+    toast.success(`+${REWARD_INCREMENT} swipes unlocked`);
   };
 
   if (isLoading) {
@@ -328,12 +319,12 @@ export default function SwipeDeck() {
                 You've used today's free swipes
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                Watch a quick video to unlock {swipeQuota.REWARD_INCREMENT} more, or go ad-free with Pack+.
+                Watch a quick video to unlock {REWARD_INCREMENT} more, or go ad-free with Pack+.
               </p>
               <div className="mt-4 flex flex-col gap-2">
-                {swipeQuota.canEarnMore(user?.id ?? '') ? (
+                {quota.canEarnMore ? (
                   <Button onClick={() => setAdOpen(true)}>
-                    Watch ad · +{swipeQuota.REWARD_INCREMENT} swipes
+                    Watch ad · +{REWARD_INCREMENT} swipes
                   </Button>
                 ) : (
                   <p className="text-xs text-gray-500 dark:text-gray-400">Daily cap reached. Come back tomorrow.</p>
@@ -436,7 +427,7 @@ export default function SwipeDeck() {
         open={adOpen}
         onReward={handleReward}
         onClose={() => setAdOpen(false)}
-        rewardAmount={swipeQuota.REWARD_INCREMENT}
+        rewardAmount={REWARD_INCREMENT}
       />
     </div>
   );

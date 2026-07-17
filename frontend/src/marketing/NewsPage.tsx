@@ -20,11 +20,11 @@ const POSTS: NewsPost[] = [
   {
     date: 'June 2026',
     tag: 'Milestone',
-    title: 'Fetch enters private beta',
+    title: 'Fetchpawz enters private beta',
     body: (
       <>
         The first invites went out. A small group of pet owners and rescue
-        partners is using Fetch daily now, and their feedback has already
+        partners is using Fetchpawz daily now, and their feedback has already
         changed how the feed works. A public launch date comes next.
       </>
     ),
@@ -35,7 +35,7 @@ const POSTS: NewsPost[] = [
     title: 'Partnering with rescues for launch',
     body: (
       <>
-        Adoption is the whole point of Fetch, so rescues got the first look.
+        Adoption is the whole point of Fetchpawz, so rescues got the first look.
         Our earliest partners are setting up their profiles now, and their
         adoptable pets will be in the feed on day one. If you run a rescue and
         want in,{' '}
@@ -55,8 +55,8 @@ export default function NewsPage() {
     <div className="animate-fade-in">
       <PageHero
         eyebrow="News"
-        title="What's new at Fetch"
-        subtitle="Short notes from the team as we get Fetch ready."
+        title="What's new at Fetchpawz"
+        subtitle="Short notes from the team as we get Fetchpawz ready."
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">

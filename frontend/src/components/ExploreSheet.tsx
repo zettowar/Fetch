@@ -25,7 +25,7 @@ const ITEMS: ExploreItem[] = [
   },
   {
     label: 'The Pack',
-    description: 'Browse other Fetch users and their pets.',
+    description: 'Browse other Fetchpawz users and their pets.',
     icon: '🐾',
     to: '/app/explore',
     featured: true,
@@ -33,7 +33,7 @@ const ITEMS: ExploreItem[] = [
   },
   {
     label: 'Donate',
-    description: 'Support Fetch and local rescues.',
+    description: 'Support Fetchpawz and local rescues.',
     icon: '💖',
     to: '/app/donate',
     flagKey: 'explore_donate_enabled',

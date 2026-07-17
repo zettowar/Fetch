@@ -53,7 +53,7 @@ export default function MarketingLayout() {
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
                 <PawMark className="h-[24px] w-[24px]" />
               </span>
-              <span>Fetch</span>
+              <span>Fetchpawz</span>
               <span className="ml-1 hidden rounded-full bg-brand-50 px-2 py-0.5 text-2xs font-semibold uppercase tracking-widest text-brand-600 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-400 dark:ring-brand-500/30 sm:inline">
                 Beta
               </span>
@@ -158,7 +158,7 @@ function MarketingFooter() {
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
                 <PawMark className="h-[24px] w-[24px]" />
               </span>
-              <span className="text-lg font-bold tracking-tight text-brand-600">Fetch</span>
+              <span className="text-lg font-bold tracking-tight text-brand-600">Fetchpawz</span>
             </div>
             <p className="mt-3 max-w-sm text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
               A swipe feed for pet people, with rescue pets in the deck and a
@@ -215,7 +215,7 @@ function MarketingFooter() {
         </div>
 
         <div className="mt-10 border-t border-gray-100 dark:border-gray-800 pt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-400 dark:text-gray-500">
-          <span>© {year} Fetch. All rights reserved.</span>
+          <span>© {year} Fetchpawz Inc. All rights reserved.</span>
           <Link to="/privacy" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
             Privacy
           </Link>

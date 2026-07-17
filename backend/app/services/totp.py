@@ -46,7 +46,7 @@ def verify(secret: str, code: str, *, at: float | None = None) -> bool:
     return False
 
 
-def provisioning_uri(secret: str, *, account: str, issuer: str = "Fetch") -> str:
+def provisioning_uri(secret: str, *, account: str, issuer: str = "Fetchpawz") -> str:
     """otpauth:// URI an authenticator app scans (as a QR code) to enroll."""
     label = quote(f"{issuer}:{account}")
     params = f"secret={secret}&issuer={quote(issuer)}&digits={_DIGITS}&period={_PERIOD}"

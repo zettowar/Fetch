@@ -97,7 +97,7 @@ export default function DonatePage() {
   };
 
   const recipientLabel =
-    recipient.type === 'platform' ? 'Fetch' : recipient.rescue.org_name;
+    recipient.type === 'platform' ? 'Fetchpawz' : recipient.rescue.org_name;
 
   // Only rescues that can actually take money — in-app or via external link.
   const donatable = rescues.filter((r) => r.donations_enabled || r.donation_url);
@@ -150,7 +150,7 @@ export default function DonatePage() {
                     <HeartHandshake size={18} />
                   </span>
                   <div>
-                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Support Fetch</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Support Fetchpawz</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       Keep the pack running — servers, treats, and new features.
                     </p>
@@ -170,7 +170,7 @@ export default function DonatePage() {
                 <EmptyState
                   illustration="sniffing"
                   title={search ? 'No rescues found' : 'No rescues taking donations yet'}
-                  body={search ? 'Try a different search.' : 'Check back soon — or support Fetch above.'}
+                  body={search ? 'Try a different search.' : 'Check back soon — or support Fetchpawz above.'}
                 />
               ) : (
                 <ul className="flex flex-col gap-2">
@@ -299,7 +299,7 @@ export default function DonatePage() {
             </div>
             {recipient.type === 'rescue' && config.platform_fee_percent > 0 && (
               <p className="mt-2 text-2xs text-gray-500 dark:text-gray-400">
-                {config.platform_fee_percent}% supports Fetch's platform costs; the
+                {config.platform_fee_percent}% supports Fetchpawz's platform costs; the
                 rest goes straight to {recipientLabel}.
               </p>
             )}

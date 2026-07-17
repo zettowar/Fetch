@@ -1,4 +1,4 @@
-# Fetch
+# Fetchpawz
 
 A mobile-first web app where dog owners create profiles for their dogs, rate other dogs in a Tinder-style swipe interface, and compete for the weekly "top dog" crown.
 
@@ -12,7 +12,7 @@ A mobile-first web app where dog owners create profiles for their dogs, rate oth
 
 ```bash
 # 1. Clone and enter the repo
-cd Fetch
+cd Fetchpawz
 
 # 2. Copy env file
 cp .env.example .env
@@ -59,7 +59,7 @@ make revision msg="add new table"
 ## Project Structure
 
 ```
-Fetch/
+Fetchpawz/
 ├── backend/           # FastAPI backend
 │   ├── app/
 │   │   ├── models/    # SQLAlchemy ORM models

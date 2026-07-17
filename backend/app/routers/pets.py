@@ -12,7 +12,7 @@ from app.models.pet import Pet
 from app.models.user import User
 from app.schemas.pet import PetCreate, PetOut, PetUpdate
 from app.schemas.photo import SetPrimaryPhotoRequest
-from app.services.blocks import blocked_user_ids_subquery
+from app.services.blocks import blocked_user_ids_subquery, is_blocked_between
 from app.services.pet_serializer import pet_to_out as _pet_to_out, get_pet_full as _get_pet_full
 
 router = APIRouter()
@@ -144,6 +144,10 @@ async def list_pets_by_user(
     db: AsyncSession = Depends(get_db),
 ):
     """List a user's public, active pets. Used by the user profile page."""
+    # A block hides both sides' pets from each other — mirror the feed filter
+    # so the profile page can't be used to sidestep it.
+    if user_id != user.id and await is_blocked_between(db, user.id, user_id):
+        return []
     result = await db.execute(
         select(Pet)
         .options(
@@ -165,6 +169,10 @@ async def get_pet(
 ):
     pet = await _get_pet_full(pet_id, db)
     if not pet.is_active:
+        raise HTTPException(status_code=404, detail="Pet not found")
+    # Blocked users can't read each other's pets directly — same 404 the feed
+    # gives, deliberately indistinguishable from a nonexistent pet.
+    if pet.owner_id != user.id and await is_blocked_between(db, user.id, pet.owner_id):
         raise HTTPException(status_code=404, detail="Pet not found")
     return _pet_to_out(pet)
 

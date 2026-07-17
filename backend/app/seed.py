@@ -112,8 +112,8 @@ POSTS_DATA = [
     },
     {
         "kind": "sponsor",
-        "title": "Introducing Fetch Premium: No ads, unlimited swipes",
-        "body": "We've launched Fetch Premium! Get an ad-free experience, unlimited daily swipes, and early access to new features. Use code BETA50 for 50% off.",
+        "title": "Introducing Fetchpawz Premium: No ads, unlimited swipes",
+        "body": "We've launched Fetchpawz Premium! Get an ad-free experience, unlimited daily swipes, and early access to new features. Use code BETA50 for 50% off.",
         "tags": ["premium", "announcement"],
         "pinned": True,
     },

@@ -5,5 +5,10 @@
 {$DOMAIN} {
 	encode gzip
 	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
-	reverse_proxy frontend:8080
+	reverse_proxy frontend:8080 {
+		# Caddy is the sole public edge. Overwrite X-Forwarded-For with the real
+		# peer address so a client-supplied header can't survive downstream and
+		# spoof the source IP used for rate limiting and audit logs.
+		header_up X-Forwarded-For {remote_host}
+	}
 }

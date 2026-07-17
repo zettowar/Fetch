@@ -84,7 +84,7 @@ export default function UserProfilePage() {
 
   const handleShare = () => {
     const url = `${window.location.origin}/app/users/${profile.id}`;
-    shareLink(url, `${profile.display_name} on Fetch`);
+    shareLink(url, `${profile.display_name} on Fetchpawz`);
   };
 
   return (
@@ -308,7 +308,7 @@ function InviteSection() {
         <Ticket size={16} aria-hidden className="text-brand-500" /> Invite friends
       </p>
       <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-        Fetch is invite-only for now. Your codes let a friend in.
+        Fetchpawz is invite-only for now. Your codes let a friend in.
       </p>
       {invites.length === 0 ? (
         <Button

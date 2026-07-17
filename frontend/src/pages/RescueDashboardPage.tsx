@@ -305,7 +305,7 @@ function AdoptableDogRow({
           />
           <p className="text-xs text-gray-400 dark:text-gray-500">
             They'll see a pending transfer next time they log in. If they don't
-            have Fetch yet, they'll see it when they sign up with this email.
+            have Fetchpawz yet, they'll see it when they sign up with this email.
           </p>
           <div className="flex gap-2">
             <Button
@@ -585,7 +585,7 @@ function ConnectDonationsCard({ externalDonationUrl }: { externalDonationUrl: st
           </div>
           {status?.charges_enabled ? (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Supporters can donate to you right inside Fetch. Payouts go to your
+              Supporters can donate to you right inside Fetchpawz. Payouts go to your
               Stripe account.
             </p>
           ) : status?.has_account ? (
@@ -609,7 +609,7 @@ function ConnectDonationsCard({ externalDonationUrl }: { externalDonationUrl: st
           ) : (
             <>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Let supporters donate without leaving Fetch. Stripe handles
+                Let supporters donate without leaving Fetchpawz. Stripe handles
                 identity checks and pays out straight to your bank (US accounts).
                 {externalDonationUrl ? ' Your external donation link keeps working either way.' : ''}
               </p>

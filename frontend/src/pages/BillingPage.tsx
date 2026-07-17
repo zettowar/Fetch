@@ -27,7 +27,7 @@ export default function BillingPage() {
         <p className="text-xs uppercase tracking-wide text-brand-500 font-semibold">Subscription</p>
         <h1 className="text-2xl font-bold tracking-tight mt-1">Pack+</h1>
         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-          Support Fetch and unlock the good stuff.
+          Support Fetchpawz and unlock the good stuff.
         </p>
       </header>
 

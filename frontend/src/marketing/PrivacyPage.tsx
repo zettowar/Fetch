@@ -18,8 +18,9 @@ export default function PrivacyPage() {
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-10 text-base leading-relaxed text-gray-600 dark:text-gray-400">
         <section>
           <p>
-            Fetch is a place to show off your pet, not a data business. This
-            page explains what information the app and this website handle.
+            Fetchpawz is a place to show off your pet, not a data business.
+            Fetchpawz, the app and this website, is operated by Fetchpawz Inc. This
+            page explains what information they handle.
             We've tried to write it the way we'd want to read it. If anything
             is unclear, email us at{' '}
             <a href="mailto:fetchpawz.inc@gmail.com" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
@@ -67,7 +68,7 @@ export default function PrivacyPage() {
 
         <LegalSection title="What we use it for">
           <p>
-            Running Fetch: showing pets in the feed, counting votes, sending
+            Running Fetchpawz: showing pets in the feed, counting votes, sending
             the emails you'd expect (password resets, email verification,
             lost-pet alerts you subscribed to, messages relayed from other
             users about your lost-pet report), and keeping the community safe
@@ -93,7 +94,7 @@ export default function PrivacyPage() {
         <LegalSection title="What we will never do">
           <p>
             We don't sell your data. We don't run ad targeting. We don't show
-            your email address to other users, including when Fetch relays a
+            your email address to other users, including when Fetchpawz relays a
             message about your lost-pet report.
           </p>
         </LegalSection>
@@ -117,15 +118,15 @@ export default function PrivacyPage() {
 
         <LegalSection title="Children">
           <p>
-            Fetch is not directed at children under 13, and we don't knowingly
-            collect their data. If you believe a child is using Fetch, tell us
+            Fetchpawz is not directed at children under 13, and we don't knowingly
+            collect their data. If you believe a child is using Fetchpawz, tell us
             and we'll remove the account.
           </p>
         </LegalSection>
 
         <LegalSection title="Changes">
           <p>
-            Fetch is in beta and this policy will evolve with it. We'll update
+            Fetchpawz is in beta and this policy will evolve with it. We'll update
             the date at the top when it does, and email you about anything
             that meaningfully changes how your data is handled.
           </p>

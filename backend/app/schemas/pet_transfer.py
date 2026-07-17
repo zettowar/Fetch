@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr, model_validator
 
 class PetTransferCreate(BaseModel):
     """Rescue initiates a transfer. Provide either a target_user_id (they
-    already have Fetch) or invited_email (we'll match on signup)."""
+    already have Fetchpawz) or invited_email (we'll match on signup)."""
     target_user_id: UUID | None = None
     invited_email: EmailStr | None = None
 

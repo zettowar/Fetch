@@ -20,13 +20,13 @@ const RESCUE_FEATURES = [
   { icon: '🏠', title: 'List adoptables', body: 'Give each pet photos, traits, and a story. They appear in the same feed as everyone else.' },
   { icon: '💬', title: 'Manage inquiries', body: 'Inbound interest, organized. Status, notes, and history in one place.' },
   { icon: '🗺️', title: 'Map presence', body: 'Your organization shows up on the rescue map, so nearby adopters can find you.' },
-  { icon: '🤝', title: 'Smooth handoff', body: 'Mark adoptions complete or transfer a pet to its new family on Fetch.' },
+  { icon: '🤝', title: 'Smooth handoff', body: 'Mark adoptions complete or transfer a pet to its new family on Fetchpawz.' },
 ];
 
 const SITE_TEASERS = [
-  { to: '/about', emoji: '🐾', eyebrow: 'About us', title: 'The people behind Fetch', body: "Who we are, and why this started in a group chat full of shelter listings." },
-  { to: '/mission', emoji: '🎯', eyebrow: 'Our mission', title: 'Why Fetch exists', body: "Shelter pets wait too long for homes. Here's what we're doing about it." },
-  { to: '/news', emoji: '📰', eyebrow: 'News', title: 'Latest updates', body: 'Short notes from the team as we get Fetch ready.' },
+  { to: '/about', emoji: '🐾', eyebrow: 'About us', title: 'The people behind Fetchpawz', body: "Who we are, and why this started in a group chat full of shelter listings." },
+  { to: '/mission', emoji: '🎯', eyebrow: 'Our mission', title: 'Why Fetchpawz exists', body: "Shelter pets wait too long for homes. Here's what we're doing about it." },
+  { to: '/news', emoji: '📰', eyebrow: 'News', title: 'Latest updates', body: 'Short notes from the team as we get Fetchpawz ready.' },
 ];
 
 export default function MarketingHome() {
@@ -64,7 +64,7 @@ export default function MarketingHome() {
               </span>
 
               <h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.02] tracking-tight text-balance">
-                Fetch is
+                Fetchpawz is
                 <br />
                 almost here.
               </h1>
@@ -85,7 +85,7 @@ export default function MarketingHome() {
                   to="/about"
                   className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-base font-semibold text-brand-700 shadow-soft-lg transition-transform duration-200 ease-soft-out hover:scale-[1.02] active:scale-95"
                 >
-                  Learn about Fetch
+                  Learn about Fetchpawz
                 </Link>
                 <Link
                   to="/login"
@@ -169,7 +169,7 @@ export default function MarketingHome() {
 
       {/* ── Explore the site ───────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        <SectionHeading eyebrow="More about us" title="Get to know Fetch" />
+        <SectionHeading eyebrow="More about us" title="Get to know Fetchpawz" />
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {SITE_TEASERS.map((t) => (
             <Link
@@ -197,7 +197,7 @@ export default function MarketingHome() {
           <PawMark decorative className="pointer-events-none absolute -bottom-8 -right-4 h-28 w-28 text-white/[0.08] rotate-12" />
           <h2 className="relative text-3xl sm:text-4xl font-extrabold tracking-tight text-balance">We're not open yet.</h2>
           <p className="relative mt-3 mx-auto max-w-xl text-white/90 text-balance">
-            Fetch is still in active development. Check back soon, or{' '}
+            Fetchpawz is still in active development. Check back soon, or{' '}
             <a href="mailto:fetchpawz.inc@gmail.com" className="font-semibold underline underline-offset-2 hover:text-white">
               write to us
             </a>{' '}

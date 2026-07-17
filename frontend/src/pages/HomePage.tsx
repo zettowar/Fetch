@@ -28,7 +28,7 @@ import { useAuth } from '../store/AuthContext';
 import { petHeroPhoto } from '../utils/time';
 import { useWeeklyResetCountdown, nextWeeklyReset } from '../utils/weeklyReset';
 import { onboarding } from '../utils/onboarding';
-import { swipeQuota } from '../utils/swipeQuota';
+import { useSwipeQuota } from '../utils/swipeQuota';
 import { useSubscription } from '../utils/useSubscription';
 import { useUserLocation } from '../utils/useUserLocation';
 
@@ -140,7 +140,8 @@ export default function HomePage() {
 
   // Live bits for the CTA cards: swipes left today + missing pets nearby.
   const { isSubscriber } = useSubscription();
-  const swipesLeft = user && !isRescue ? swipeQuota.remaining(user.id) : 0;
+  const homeQuota = useSwipeQuota(Boolean(user) && !isRescue && !isSubscriber);
+  const swipesLeft = user && !isRescue ? homeQuota.remaining : 0;
   const [lng, lat] = useUserLocation(DEFAULT_CENTER);
   const { data: nearbyLost = [] } = useQuery({
     queryKey: ['nearby-lost-count', lat.toFixed(2), lng.toFixed(2)],
@@ -388,7 +389,7 @@ export default function HomePage() {
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Donate</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Support rescues and keep Fetch running
+                  Support rescues and keep Fetchpawz running
                 </p>
               </div>
             </div>

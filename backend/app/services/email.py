@@ -77,12 +77,12 @@ def _layout(heading: str, body: str, cta_url: str | None = None, cta_label: str 
     return (
         '<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;'
         'max-width:520px;margin:0 auto;padding:32px 24px;color:#111827;">'
-        '<p style="font-size:20px;font-weight:800;color:#ee7a10;margin:0 0 24px;">🐾 Fetch</p>'
+        '<p style="font-size:20px;font-weight:800;color:#ee7a10;margin:0 0 24px;">🐾 Fetchpawz</p>'
         f'<h1 style="font-size:20px;margin:0 0 16px;">{html.escape(heading)}</h1>'
         f"{body}"
         f"{button}"
         '<hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0 16px;">'
-        '<p style="color:#9ca3af;font-size:12px;margin:0;">Sent by Fetch. '
+        '<p style="color:#9ca3af;font-size:12px;margin:0;">Sent by Fetchpawz. '
         "If you weren't expecting this email, you can ignore it.</p>"
         "</div>"
     )
@@ -92,7 +92,7 @@ async def send_password_reset_email(to: str, raw_token: str) -> bool:
     url = f"{settings.FRONTEND_BASE_URL}/reset-password?token={raw_token}"
     return await send_email(
         to,
-        "Reset your Fetch password",
+        "Reset your Fetchpawz password",
         _layout(
             "Reset your password",
             "<p>Someone (hopefully you) asked to reset the password for this "
@@ -108,10 +108,10 @@ async def send_verification_email(to: str, raw_token: str) -> bool:
     url = f"{settings.FRONTEND_BASE_URL}/verify-email/{raw_token}"
     return await send_email(
         to,
-        "Verify your email for Fetch",
+        "Verify your email for Fetchpawz",
         _layout(
             "Confirm your email",
-            "<p>Verifying unlocks everything in Fetch — lost &amp; found reports, "
+            "<p>Verifying unlocks everything in Fetchpawz — lost &amp; found reports, "
             "pet transfers, the works.</p>",
             cta_url=url,
             cta_label="Verify my email",
@@ -123,10 +123,10 @@ async def send_email_change_email(to: str, raw_token: str) -> bool:
     url = f"{settings.FRONTEND_BASE_URL}/confirm-email-change?token={raw_token}"
     return await send_email(
         to,
-        "Confirm your new email for Fetch",
+        "Confirm your new email for Fetchpawz",
         _layout(
             "Confirm this address",
-            "<p>Someone asked to move their Fetch account to this email "
+            "<p>Someone asked to move their Fetchpawz account to this email "
             "address. Confirm to complete the switch; if this wasn't you, "
             "ignore this email and nothing changes.</p>",
             cta_url=url,
@@ -149,7 +149,7 @@ async def send_contact_relay_email(
         _layout(
             "A message about your report",
             f"<p><strong>{html.escape(sender_name)}</strong> sent you a message "
-            f"about “{html.escape(report_title)}” through Fetch:</p>"
+            f"about “{html.escape(report_title)}” through Fetchpawz:</p>"
             '<blockquote style="border-left:3px solid #ee7a10;margin:16px 0;'
             'padding:8px 16px;color:#374151;background:#fff7ed;border-radius:0 8px 8px 0;">'
             f"{html.escape(message)}</blockquote>"

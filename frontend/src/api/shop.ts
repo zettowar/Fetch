@@ -439,9 +439,9 @@ function buildMock(def: {
 const MOCK_PRODUCTS: ShopProduct[] = [
   buildMock({
     handle: 'fetch-classic-tee',
-    title: 'Fetch classic tee',
+    title: 'Fetchpawz classic tee',
     description:
-      'Soft 100% cotton tee with the Fetch paw mark on the chest. Your everyday pet-park uniform.',
+      'Soft 100% cotton tee with the Fetchpawz paw mark on the chest. Your everyday pet-park uniform.',
     emoji: '👕',
     price: 26,
     tags: ['apparel', 'branded'],
@@ -460,7 +460,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
   }),
   buildMock({
     handle: 'fetch-bandana',
-    title: 'Fetch bandana',
+    title: 'Fetchpawz bandana',
     description:
       'Reversible cotton bandana that snaps onto any collar. Because your pet deserves merch too.',
     emoji: '🧣',
@@ -479,7 +479,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
   buildMock({
     handle: 'paw-enamel-pin',
     title: 'Paw enamel pin',
-    description: 'Hard-enamel Fetch paw pin with a rubber clutch back. Perfect for bags and jackets.',
+    description: 'Hard-enamel Fetchpawz paw pin with a rubber clutch back. Perfect for bags and jackets.',
     emoji: '📌',
     price: 9,
     tags: ['accessory', 'branded'],

@@ -36,7 +36,7 @@ logger = structlog.stdlib.get_logger()
 
 router = APIRouter()
 
-PLATFORM_RECIPIENT_NAME = "Fetch"
+PLATFORM_RECIPIENT_NAME = "Fetchpawz"
 
 
 def _require_enabled() -> None:
@@ -114,7 +114,7 @@ async def create_checkout(
 
     donation_id = uuid.uuid4()
     product_name = (
-        "Donation to Fetch"
+        "Donation to Fetchpawz"
         if body.recipient_type == "platform"
         else f"Donation to {recipient_name}"
     )

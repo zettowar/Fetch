@@ -163,7 +163,7 @@ async def test_platform_checkout_creates_pending_donation(
     assert history.status_code == 200
     row = history.json()[0]
     assert row["status"] == "pending"
-    assert row["recipient_name"] == "Fetch"
+    assert row["recipient_name"] == "Fetchpawz"
     assert row["amount_cents"] == 1000
     assert row["message"] == "Woof!"
 

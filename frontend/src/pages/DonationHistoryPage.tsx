@@ -38,7 +38,7 @@ export default function DonationHistoryPage() {
         <EmptyState
           illustration="sleeping"
           title="No donations yet"
-          body="Chip in for the rescues doing the hard work — or toss Fetch a bone."
+          body="Chip in for the rescues doing the hard work — or toss Fetchpawz a bone."
           action={
             <Link to="/app/donate">
               <Button size="sm">Donate</Button>

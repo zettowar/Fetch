@@ -36,7 +36,7 @@ export default function AdminLayout() {
       <div className="bg-gray-900 text-white px-4 py-2.5 flex items-center justify-between">
         <span className="flex items-center gap-2 font-bold text-sm">
           <PawMark decorative className="h-4 w-4 text-brand-500" />
-          Fetch Admin
+          Fetchpawz Admin
         </span>
         <div className="flex items-center gap-4">
           <Link to="/app/security" className="text-xs text-gray-400 dark:text-gray-500 hover:text-white transition-colors">

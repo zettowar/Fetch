@@ -8,7 +8,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 
-// Fetch FAQ via support endpoint (public, but admin can manage)
+// Fetchpawz FAQ via support endpoint (public, but admin can manage)
 import client from '../../api/client';
 const getFAQ = async (): Promise<FAQEntry[]> => (await client.get('/support/faq')).data;
 

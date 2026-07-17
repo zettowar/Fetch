@@ -7,6 +7,7 @@ Mondays (covering the last 7 days). Requires an email provider — a no-op
 otherwise, same as every other email path.
 """
 import asyncio
+import html
 from datetime import datetime, timedelta, timezone
 
 import structlog
@@ -21,8 +22,20 @@ def send_digest_task():
     return asyncio.run(_run())
 
 
+def _render_items(unread) -> str:
+    """Build the digest's <li> list. Titles/bodies embed user-controlled
+    strings (display names, comment excerpts, donation messages), so escape
+    them — a crafted name must not inject markup/phishing links into the email."""
+    return "".join(
+        f"<li style='margin-bottom:6px'><strong>{html.escape(n.title)}</strong>"
+        + (f"<br>{html.escape(n.body)}" if n.body else "")
+        + "</li>"
+        for n in unread
+    )
+
+
 async def _run() -> int:
-    from sqlalchemy import select, func
+    from sqlalchemy import select
     from app.config import settings
     from app.db import async_session
     from app.models.notification import Notification, NotificationPreference
@@ -68,12 +81,7 @@ async def _run() -> int:
             if user is None:
                 continue
 
-            items = "".join(
-                f"<li style='margin-bottom:6px'><strong>{n.title}</strong>"
-                + (f"<br>{n.body}" if n.body else "")
-                + "</li>"
-                for n in unread
-            )
+            items = _render_items(unread)
             heading = f"You have {len(unread)} new notification" + ("s" if len(unread) != 1 else "")
             html = _layout(
                 heading,
@@ -81,7 +89,7 @@ async def _run() -> int:
                 cta_url=f"{settings.FRONTEND_BASE_URL}/app/inbox",
                 cta_label="Open your inbox",
             )
-            if await send_email(user.email, f"Fetch — {heading.lower()}", html):
+            if await send_email(user.email, f"Fetchpawz — {heading.lower()}", html):
                 sent += 1
 
     logger.info("digest_sent", count=sent)

@@ -153,7 +153,7 @@ export default function NavBar() {
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
             <PawMark className="h-[22px] w-[22px]" />
           </span>
-          <span>Fetch</span>
+          <span>Fetchpawz</span>
         </Link>
         {isAuthenticated ? (
           <div className="flex items-center gap-3">

@@ -29,7 +29,7 @@ export default function SignupPage() {
     try {
       const data = await signup(email, password, displayName, inviteCode.trim() || undefined);
       login(data.tokens.access_token, data.tokens.refresh_token, data.user);
-      toast.success('Welcome to Fetch!');
+      toast.success('Welcome to Fetchpawz!');
       navigate('/app/home');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Signup failed. Email may already be registered.'));
@@ -87,7 +87,7 @@ export default function SignupPage() {
               autoComplete="off"
             />
             <p className="text-xs text-gray-400 dark:text-gray-500">
-              Required while Fetch is in private beta.
+              Required while Fetchpawz is in private beta.
             </p>
           </div>
 

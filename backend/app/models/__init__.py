@@ -10,6 +10,7 @@ from app.models.pet import Pet
 from app.models.breed import Breed, pet_breeds
 from app.models.photo import Photo
 from app.models.vote import Vote
+from app.models.swipe_allowance import SwipeAllowance
 from app.models.weekly_winner import WeeklyWinner
 from app.models.audit_log import AuditLog
 from app.models.report import Report, Strike
@@ -50,6 +51,7 @@ __all__ = [
     "pet_breeds",
     "Photo",
     "Vote",
+    "SwipeAllowance",
     "WeeklyWinner",
     "AuditLog",
     "Report",

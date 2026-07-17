@@ -103,12 +103,18 @@ async def _create_tokens(user: User, db: AsyncSession) -> TokenResponse:
 
 
 def _client_ip(request: Request) -> str | None:
-    """Best-effort source IP. The backend runs behind nginx/caddy with
-    --proxy-headers, so X-Forwarded-For's first hop is the real client."""
+    """Best-effort source IP. Uvicorn's --proxy-headers already resolves the
+    real client into request.client.host from the trusted forwarded chain
+    (Caddy sanitizes X-Forwarded-For at the edge; FORWARDED_ALLOW_IPS is pinned
+    to the compose subnet). Read the raw header only as a last-resort fallback
+    when there is no resolved client at all — never trust it preferentially, as
+    an untrusted client could otherwise spoof it."""
+    if request.client:
+        return request.client.host
     fwd = request.headers.get("x-forwarded-for")
     if fwd:
         return fwd.split(",")[0].strip()
-    return request.client.host if request.client else None
+    return None
 
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
@@ -127,7 +133,7 @@ async def signup(
     invite_code = (body.invite_code or "").strip().upper()
     if settings.INVITE_REQUIRED and not invite_code:
         raise HTTPException(
-            status_code=400, detail="An invite code is required while Fetch is in beta"
+            status_code=400, detail="An invite code is required while Fetchpawz is in beta"
         )
 
     existing = await db.execute(select(User).where(User.email == body.email.lower()))

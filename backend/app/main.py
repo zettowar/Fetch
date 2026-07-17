@@ -28,7 +28,7 @@ if settings.SENTRY_DSN:
         profiles_sample_rate=0.1,
     )
 
-app = FastAPI(title="Fetch API", version="0.2.0")
+app = FastAPI(title="Fetchpawz API", version="0.2.0")
 app.state.limiter = limiter
 
 # Middleware (order matters — outermost first)

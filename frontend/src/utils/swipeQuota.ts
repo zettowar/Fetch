@@ -1,77 +1,90 @@
-// Client-side swipe quota tracker.
-// Free users: 50 swipes/day. Each rewarded ad grants +25, capped at 150/day.
-// Subscribers bypass entirely (the consuming component checks isSubscriber).
+// Server-authoritative swipe quota (see backend app/services/quota.py).
+// The daily cap is enforced by the API — casting a vote past the cap returns
+// 429. This hook mirrors the server's count for display and applies optimistic
+// deltas between refetches so the counter feels instant; clearing browser
+// storage no longer grants extra swipes.
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getSwipeQuota, grantSwipeReward, type SwipeQuota } from '../api/votes';
 
-const FREE_DAILY = 50;
-const REWARD_INCREMENT = 25;
-const MAX_DAILY = 150;
+// Kept in sync with backend app/services/quota.py.
+export const FREE_DAILY = 50;
+export const REWARD_INCREMENT = 25;
+export const MAX_DAILY = 150;
 
-function todayKey(userId: string): string {
-  const d = new Date();
-  const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  return `fetch.swipe_quota.${userId}.${ymd}`;
-}
+const QUOTA_KEY = ['swipe-quota'];
 
-interface QuotaState {
+export interface UseSwipeQuota {
   used: number;
   cap: number;
+  remaining: number;
+  unlimited: boolean;
+  isLoading: boolean;
+  blocked: boolean;
+  canEarnMore: boolean;
+  consume: () => void;
+  refund: () => void;
+  grantReward: () => void;
+  /** Re-sync with the server (e.g. after a 429). Clears the optimistic delta. */
+  sync: () => void;
 }
 
-function read(userId: string): QuotaState {
-  try {
-    const raw = localStorage.getItem(todayKey(userId));
-    if (!raw) return { used: 0, cap: FREE_DAILY };
-    const parsed = JSON.parse(raw);
-    return {
-      used: Number(parsed.used) || 0,
-      cap: Math.min(MAX_DAILY, Number(parsed.cap) || FREE_DAILY),
-    };
-  } catch {
-    return { used: 0, cap: FREE_DAILY };
+export function useSwipeQuota(enabled: boolean): UseSwipeQuota {
+  const qc = useQueryClient();
+  const { data, isLoading, dataUpdatedAt } = useQuery<SwipeQuota>({
+    queryKey: QUOTA_KEY,
+    queryFn: getSwipeQuota,
+    enabled,
+    staleTime: 30_000,
+  });
+
+  // Optimistic votes since the last server sync. Reset whenever fresh server
+  // data lands (its `used` already accounts for those votes).
+  const [delta, setDelta] = useState(0);
+  const lastSyncRef = useRef(0);
+  if (dataUpdatedAt && dataUpdatedAt !== lastSyncRef.current) {
+    lastSyncRef.current = dataUpdatedAt;
+    if (delta !== 0) setDelta(0);
   }
-}
 
-function write(userId: string, state: QuotaState) {
-  try {
-    localStorage.setItem(todayKey(userId), JSON.stringify(state));
-  } catch {
-    // localStorage unavailable; fail silent
-  }
-}
+  const server = data ?? { used: 0, cap: FREE_DAILY, remaining: FREE_DAILY, unlimited: false };
+  const used = server.used + delta;
+  const cap = server.cap;
+  const unlimited = server.unlimited;
+  const remaining = unlimited ? Infinity : Math.max(0, cap - used);
+  const blocked = !unlimited && remaining <= 0;
+  const canEarnMore = !unlimited && cap < MAX_DAILY;
 
-export const swipeQuota = {
-  FREE_DAILY,
-  REWARD_INCREMENT,
-  MAX_DAILY,
-  get(userId: string): QuotaState {
-    return read(userId);
-  },
-  remaining(userId: string): number {
-    const { used, cap } = read(userId);
-    return Math.max(0, cap - used);
-  },
-  consume(userId: string): QuotaState {
-    const cur = read(userId);
-    const next = { ...cur, used: cur.used + 1 };
-    write(userId, next);
-    return next;
-  },
-  refund(userId: string): QuotaState {
-    // Undo one `consume`. Floor at zero so a refund storm can't go negative.
-    const cur = read(userId);
-    const next = { ...cur, used: Math.max(0, cur.used - 1) };
-    write(userId, next);
-    return next;
-  },
-  grantReward(userId: string): QuotaState {
-    const cur = read(userId);
-    const newCap = Math.min(MAX_DAILY, cur.cap + REWARD_INCREMENT);
-    const next = { ...cur, cap: newCap };
-    write(userId, next);
-    return next;
-  },
-  canEarnMore(userId: string): boolean {
-    const { cap } = read(userId);
-    return cap < MAX_DAILY;
-  },
-};
+  const consume = useCallback(() => setDelta((d) => d + 1), []);
+  const refund = useCallback(() => setDelta((d) => d - 1), []);
+  const sync = useCallback(() => {
+    setDelta(0);
+    qc.invalidateQueries({ queryKey: QUOTA_KEY });
+  }, [qc]);
+
+  const rewardMutation = useMutation({
+    mutationFn: grantSwipeReward,
+    onSuccess: (fresh) => {
+      qc.setQueryData(QUOTA_KEY, fresh);
+      setDelta(0);
+    },
+  });
+  const grantReward = useCallback(() => rewardMutation.mutate(), [rewardMutation]);
+
+  return useMemo(
+    () => ({
+      used,
+      cap,
+      remaining,
+      unlimited,
+      isLoading,
+      blocked,
+      canEarnMore,
+      consume,
+      refund,
+      grantReward,
+      sync,
+    }),
+    [used, cap, remaining, unlimited, isLoading, blocked, canEarnMore, consume, refund, grantReward, sync],
+  );
+}

@@ -108,7 +108,7 @@ export default function LoginPage() {
         <SSOButtons />
 
         <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
-          New to Fetch?{' '}
+          New to Fetchpawz?{' '}
           <Link
             to="/signup"
             className="text-brand-600 font-semibold hover:text-brand-700 hover:underline"

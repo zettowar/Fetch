@@ -1,6 +1,6 @@
-# CLAUDE.md — Fetch Project Guide
+# CLAUDE.md — Fetchpawz Project Guide
 
-## What is Fetch?
+## What is Fetchpawz?
 
 A mobile-first web app where dog owners create profiles for their dogs, rate other dogs via a Tinder-style swipe interface, and compete for the weekly "top dog" crown. Extended with lost & found dogs, dog parks (reviews, check-ins, play dates), vets, rescues + adoption inquiries, dog transfers, social (follows/comments/reactions, user blocks), community posts, a notification inbox, public dog share pages (`/dogs/{id}`, opt-out via `dogs.is_public`), member + admin invite codes, liked-dogs history, crown badges/weekly rank on dog pages, account management (password/email change), support tickets + FAQ, beta feedback, billing entitlements, and a full admin panel. Donations are in-app via Stripe Checkout — to the platform and (via Stripe Connect Express) to rescues, with external donation links as the fallback (see Donations below); the shop is Shopify-only (see below).
 
@@ -29,7 +29,7 @@ make test        # Run all tests (~260 backend + ~63 frontend)
 ## Project Structure
 
 ```
-Fetch/
+Fetchpawz/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py           # App factory, middleware, router registration
@@ -279,7 +279,7 @@ In-app donations live in `backend/app/routers/donations.py` (`/api/v1/donations`
 with the Stripe REST calls in `services/stripe_service.py` (plain httpx — no
 SDK). Two money flows:
 
-- **Platform** ("Support Fetch") — ordinary Checkout to the platform account.
+- **Platform** ("Support Fetchpawz") — ordinary Checkout to the platform account.
 - **Rescues** — Stripe **Connect Express** destination charges. Rescues onboard
   from their dashboard (`POST /donations/connect/onboard`); `rescue_profiles`
   stores `stripe_account_id` + `stripe_charges_enabled` (synced on read and via

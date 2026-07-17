@@ -198,7 +198,7 @@ async def test_overpass_request_sets_user_agent():
 
     ua = captured["headers"].get("User-Agent", "")
     assert ua, "User-Agent header missing — Overpass will 406"
-    assert "Fetch" in ua
+    assert "Fetchpawz" in ua
 
 
 @pytest.mark.asyncio

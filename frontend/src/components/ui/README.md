@@ -1,4 +1,4 @@
-# Fetch UI conventions
+# Fetchpawz UI conventions
 
 The one-page contract for styling app code. When in doubt, copy what a
 shared component does — don't hand-roll.

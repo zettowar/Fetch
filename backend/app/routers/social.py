@@ -289,6 +289,15 @@ async def toggle_reaction(
     db: AsyncSession = Depends(get_db),
 ):
     await _require_target(db, body.target_type, body.target_id)
+    # Honor blocks: a blocked user can't react to the other side's content.
+    # Reuse the comment owner-resolver (returns the target's owner id).
+    owner_id, _, _ = await _comment_notification_context(
+        db, body.target_type, body.target_id
+    )
+    if owner_id is not None and owner_id != user.id and await is_blocked_between(
+        db, user.id, owner_id
+    ):
+        raise HTTPException(status_code=404, detail=f"{body.target_type} not found")
     # Check for existing reaction
     result = await db.execute(
         select(Reaction).where(

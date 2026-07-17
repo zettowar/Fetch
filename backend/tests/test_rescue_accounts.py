@@ -82,7 +82,7 @@ async def test_transfer_flow_changes_ownership(
     client: AsyncClient, auth_headers: dict, admin_headers: dict,
 ):
     """Rescue initiates transfer → recipient accepts → owner_id flips + adopted_at is set."""
-    # Recipient account (existing Fetch user).
+    # Recipient account (existing Fetchpawz user).
     recipient_email = f"adopter-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     signup = await client.post("/api/v1/auth/signup", json={
         "email": recipient_email,

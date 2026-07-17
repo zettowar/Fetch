@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     # Sender in "Name <addr>" form. The resend.dev sandbox sender works
     # without DNS setup but only delivers to your own Resend account email;
     # switch to a verified domain before launch.
-    EMAIL_FROM: str = "Fetch <onboarding@resend.dev>"
+    EMAIL_FROM: str = "Fetchpawz <onboarding@resend.dev>"
     EMAIL_TIMEOUT_S: int = 10
     # Absolute origin used to build links inside emails.
     FRONTEND_BASE_URL: str = "http://localhost:3174"

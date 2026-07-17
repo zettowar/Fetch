@@ -18,7 +18,7 @@ export default function AuthLayout() {
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
               <PawMark className="h-[24px] w-[24px]" />
             </span>
-            <span>Fetch</span>
+            <span>Fetchpawz</span>
           </Link>
           <Link
             to="/"

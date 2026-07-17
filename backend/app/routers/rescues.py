@@ -6,7 +6,7 @@
 - `/api/v1/rescues/me` (PATCH)               update own profile (approved only)
 - `/api/v1/rescues/:id/pets`                 public list of this rescue's active, unadopted pets
 - `/api/v1/rescues/pets/:pet_id/mark-adopted` rescue flags pet as adopted (no transfer)
-- `/api/v1/rescues/pets/:pet_id/transfer`    rescue initiates a transfer to a Fetch user
+- `/api/v1/rescues/pets/:pet_id/transfer`    rescue initiates a transfer to a Fetchpawz user
 """
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
@@ -261,7 +261,7 @@ async def mark_adopted(
     user: User = Depends(require_approved_rescue),
     db: AsyncSession = Depends(get_db),
 ):
-    """Flag a pet as adopted without transferring to a Fetch user."""
+    """Flag a pet as adopted without transferring to a Fetchpawz user."""
     pet = await _get_pet_full(pet_id, db)
     if pet.owner_id != user.id:
         raise HTTPException(status_code=403, detail="Not your pet")
@@ -269,6 +269,17 @@ async def mark_adopted(
         raise HTTPException(status_code=400, detail="Pet is already marked adopted")
 
     pet.adopted_at = datetime.now(timezone.utc)
+    # Adopting externally voids any in-flight transfer invite — otherwise it
+    # lingers in the invitee's inbox (accept now 409s, but don't dangle it).
+    pending = await db.execute(
+        select(PetTransfer).where(
+            PetTransfer.pet_id == pet_id,
+            PetTransfer.status == "pending",
+        )
+    )
+    for t in pending.scalars().all():
+        t.status = "cancelled"
+        t.responded_at = datetime.now(timezone.utc)
     db.add(AuditLog(
         actor_id=user.id,
         action="pet.mark_adopted",
@@ -294,8 +305,8 @@ async def transfer_dog(
     user: User = Depends(require_approved_rescue),
     db: AsyncSession = Depends(get_db),
 ):
-    """Start a transfer to a Fetch user. Ownership flips only once the
-    recipient accepts. If they don't have Fetch yet, invite by email —
+    """Start a transfer to a Fetchpawz user. Ownership flips only once the
+    recipient accepts. If they don't have Fetchpawz yet, invite by email —
     they'll see the pending transfer when they sign up with that email."""
     pet = await _get_pet_full(pet_id, db)
     if pet.owner_id != user.id:

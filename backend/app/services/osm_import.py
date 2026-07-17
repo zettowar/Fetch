@@ -23,7 +23,7 @@ DEFAULT_TIMEOUT_SECONDS = 120
 # Overpass's Apache layer rejects httpx's default UA with 406 Not Acceptable.
 # Identifying ourselves also follows the Overpass usage policy:
 # https://operations.osmfoundation.org/policies/api/
-USER_AGENT = "Fetch/1.0 (https://fetchapp.dev; admin OSM import)"
+USER_AGENT = "Fetchpawz/1.0 (https://fetchapp.dev; admin OSM import)"
 
 # Row keys every importer produces; anything else in a row is an
 # entity-specific extra column (e.g. vet phone/website/hours).

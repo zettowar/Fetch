@@ -12,14 +12,15 @@ export default function TermsPage() {
       <PageHero
         eyebrow="Terms of service"
         title="The house rules"
-        subtitle={`The deal between you and Fetch, in plain English. Last updated ${LAST_UPDATED}.`}
+        subtitle={`The deal between you and Fetchpawz, in plain English. Last updated ${LAST_UPDATED}.`}
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20 space-y-10 text-base leading-relaxed text-gray-600 dark:text-gray-400">
         <section>
           <p>
-            By creating an account or using Fetch, you agree to these terms.
-            Fetch is currently an invite-only beta, so expect things to change
+            By creating an account or using Fetchpawz, you agree to these terms.
+            Fetchpawz is operated by Fetchpawz Inc. ("Fetchpawz", "we", "us").
+            It is currently an invite-only beta, so expect things to change
             while we build. Questions go to{' '}
             <a href="mailto:fetchpawz.inc@gmail.com" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
               fetchpawz.inc@gmail.com
@@ -30,7 +31,7 @@ export default function TermsPage() {
 
         <LegalSection title="Your account">
           <p>
-            You need to be at least 13 to use Fetch, and if you're under 18,
+            You need to be at least 13 to use Fetchpawz, and if you're under 18,
             a parent or guardian should be on board. Keep your login to
             yourself, give us accurate information, and use one account per
             person. You're responsible for what happens on your account.
@@ -76,7 +77,7 @@ export default function TermsPage() {
         <LegalSection title="Lost & Found">
           <p>
             Lost & Found runs on community reports. We can't guarantee a
-            sighting is accurate or that a lost pet will be found, and Fetch
+            sighting is accurate or that a lost pet will be found, and Fetchpawz
             shouldn't be your only channel when a pet is missing. Use normal
             caution when arranging to meet anyone about a pet.
           </p>
@@ -87,20 +88,20 @@ export default function TermsPage() {
             The shop is powered by Shopify, and purchases (including payment,
             shipping, and returns) run through Shopify checkout. Donation
             links on rescue profiles go straight to the rescue's own donation
-            page; Fetch is not a party to those donations.
+            page; Fetchpawz is not a party to those donations.
           </p>
         </LegalSection>
 
         <LegalSection title="Not veterinary advice">
           <p>
-            Nothing on Fetch, including vet listings and community posts, is
+            Nothing on Fetchpawz, including vet listings and community posts, is
             veterinary or medical advice. In an emergency, call a real vet.
           </p>
         </LegalSection>
 
         <LegalSection title="Beta, availability, and liability">
           <p>
-            Fetch is provided as-is while in beta. Features may change, break,
+            Fetchpawz is provided as-is while in beta. Features may change, break,
             or be removed, and we may pause or revoke beta access as we test.
             To the fullest extent the law allows, we're not liable for
             indirect or consequential damages arising from your use of the
@@ -120,7 +121,7 @@ export default function TermsPage() {
         <LegalSection title="Changes to these terms">
           <p>
             When we change these terms, we'll update the date at the top and
-            email account holders about anything significant. Using Fetch
+            email account holders about anything significant. Using Fetchpawz
             after a change means you accept the new terms.
           </p>
         </LegalSection>
