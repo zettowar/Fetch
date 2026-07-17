@@ -46,11 +46,15 @@ services:
       dockerfile: Dockerfile.prod
     environment:
       ENVIRONMENT: production
-      # Trust the forwarded chain only from inside this compose network (subnet
-      # pinned below), never "*". Caddy overwrites X-Forwarded-For at the edge
-      # and nginx forwards it verbatim, so the value uvicorn keys rate limiting
-      # and audit IPs on is the real client — not a client-spoofable header.
-      FORWARDED_ALLOW_IPS: "172.28.0.0/16"
+      # Trust the forwarded chain only from inside the Docker bridge network,
+      # never "*". 172.16.0.0/12 is Docker's default private range and covers
+      # whatever 172.x subnet Compose assigns fetch_default, so uvicorn honors
+      # nginx's X-Forwarded-For but nothing external. Caddy overwrites the
+      # header at the edge and nginx forwards it verbatim, so the value keyed
+      # for rate limiting and audit IPs is the real client, not a spoofable one.
+      # (If the host uses a custom Docker address pool outside 172.16/12, widen
+      # this to match, or rate limiting will bucket all traffic as the proxy IP.)
+      FORWARDED_ALLOW_IPS: "172.16.0.0/12"
       INVITE_REQUIRED: ${INVITE_REQUIRED:-true}
     env_file:
       - .env
@@ -218,12 +222,3 @@ volumes:
   caddy_data:
   caddy_config:
   db_backups:
-
-# Pin the default network's subnet so FORWARDED_ALLOW_IPS can name it exactly.
-# The backend publishes no host port, so this subnet is the only path to it;
-# trusting proxy headers from within it (and nowhere else) is safe.
-networks:
-  default:
-    ipam:
-      config:
-        - subnet: 172.28.0.0/16
