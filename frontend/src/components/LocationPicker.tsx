@@ -85,6 +85,7 @@ export default function LocationPicker({
           circles={circles}
           onMapClick={(lat, lng) => onChange({ lat, lng })}
           showLocateMe
+          cooperative
           className="h-full w-full"
         />
       </div>

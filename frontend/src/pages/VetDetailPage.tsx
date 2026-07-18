@@ -69,6 +69,7 @@ export default function VetDetailPage() {
               label: vet.name,
             },
           ]}
+          cooperative
           className="w-full h-full"
         />
       </div>

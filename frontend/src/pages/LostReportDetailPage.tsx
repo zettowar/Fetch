@@ -215,6 +215,7 @@ export default function LostReportDetailPage() {
                     fillOpacity: 0.15,
                   },
                 ]}
+                cooperative
                 className="h-full w-full"
               />
             </div>

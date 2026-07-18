@@ -93,7 +93,7 @@ export default function RescuesPage() {
   ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)]">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* ── Compact header ──────────────────────────────────────────── */}
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
@@ -125,7 +125,7 @@ export default function RescuesPage() {
       </div>
 
       {/* ── List pane ───────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50 dark:bg-gray-800/40">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-gray-50 dark:bg-gray-800/40">
         <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
           <span>
             {filtered.length} {filtered.length === 1 ? 'rescue' : 'rescues'}

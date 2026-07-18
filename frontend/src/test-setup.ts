@@ -34,3 +34,14 @@ Object.defineProperty(globalThis, 'localStorage', {
   writable: true,
   configurable: true,
 });
+
+// jsdom has no ResizeObserver; NavBar uses one to publish the tab bar height
+// as --tab-bar-h. A no-op keeps components mountable (heights are 0 in jsdom
+// anyway, so there is nothing meaningful to observe).
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}

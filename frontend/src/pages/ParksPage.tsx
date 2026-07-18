@@ -112,7 +112,7 @@ export default function ParksPage() {
   ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)]">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* ── Compact header ──────────────────────────────────────────── */}
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
@@ -179,7 +179,7 @@ export default function ParksPage() {
         </div>
 
         {/* ── List pane ───────────────────────────────────────────── */}
-        <div className="overflow-y-auto flex-1 bg-gray-50 dark:bg-gray-800/50">
+        <div className="overflow-y-auto overscroll-contain flex-1 bg-gray-50 dark:bg-gray-800/50">
           <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
             <span>
               {filteredParks.length} {filteredParks.length === 1 ? 'park' : 'parks'}

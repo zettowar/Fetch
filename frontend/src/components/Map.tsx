@@ -79,6 +79,14 @@ interface MapProps {
   selectedMarkerId?: string | null;
   /** Notified when the popup is closed (X button or Esc). */
   onPopupClose?: () => void;
+  /**
+   * For maps embedded in scrolling pages (detail previews, forms). Requires
+   * two fingers to pan on touch and Ctrl/⌘+wheel to zoom on desktop (MapLibre
+   * shows its own overlay hint), so a one-finger swipe / bare wheel scrolls
+   * the page instead of being trapped by the map. Leave off for full-screen
+   * split-pane maps, where the map is the primary surface and owns gestures.
+   */
+  cooperative?: boolean;
 }
 
 // Free OSM raster tiles. Override via VITE_MAP_TILE_URL for prod (commercial
@@ -140,6 +148,7 @@ export default function Map({
   onViewChange,
   selectedMarkerId = null,
   onPopupClose,
+  cooperative = false,
 }: MapProps) {
   const mapRef = useRef<MapRef | null>(null);
 
@@ -226,6 +235,7 @@ export default function Map({
         mapStyle={MAP_STYLE as any}
         onClick={onMapClick ? handleClick : undefined}
         onMoveEnd={onViewChange ? handleMoveEnd : undefined}
+        cooperativeGestures={cooperative || undefined}
         attributionControl={{ compact: true }}
         style={{ width: '100%', height: '100%', borderRadius: 'inherit' }}
         cursor={onMapClick ? 'crosshair' : 'grab'}

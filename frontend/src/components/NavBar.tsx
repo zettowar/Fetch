@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
@@ -121,6 +121,25 @@ export default function NavBar() {
           { path: `/app/users/${user.id}`, label: 'Profile', icon: UserRound },
         ]
       : CONSUMER_NAV_ITEMS;
+
+  // Publish the tab bar's real rendered height (content + safe-area inset)
+  // as --tab-bar-h on <html>, so layouts can reserve exactly that much space.
+  // Measured, not hardcoded: AppShell's fixed-viewport screens pad by this
+  // var, and a guessed constant here would silently drift the way the old
+  // `h-[calc(100vh-56px)]` navbar guess did.
+  const tabBarRef = useCallback((el: HTMLDivElement | null) => {
+    const root = document.documentElement;
+    if (!el) {
+      root.style.removeProperty('--tab-bar-h');
+      return;
+    }
+    const update = () => root.style.setProperty('--tab-bar-h', `${el.offsetHeight}px`);
+    update();
+    const obs = new ResizeObserver(update);
+    obs.observe(el);
+    // No explicit disconnect: the observer dies with the element, and the
+    // callback ref runs with null on unmount to clear the property.
+  }, []);
 
   const onExploreDestination = EXPLORE_PATHS.some((p) =>
     location.pathname.startsWith(p),
@@ -261,7 +280,10 @@ export default function NavBar() {
 
       {/* Bottom tab bar (authenticated only) */}
       {isAuthenticated && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gray-200/60 dark:border-gray-800 safe-bottom">
+        <div
+          ref={tabBarRef}
+          className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gray-200/60 dark:border-gray-800 safe-bottom"
+        >
           <div className="mx-auto max-w-app flex py-2">
             {navItems.map((item) => {
               const { path, label, icon: Icon } = item;

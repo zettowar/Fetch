@@ -54,7 +54,7 @@ export default function RescuesMapPage() {
     }));
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)]">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Compact header */}
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="flex items-baseline justify-between gap-3">
@@ -100,7 +100,7 @@ export default function RescuesMapPage() {
           )}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-gray-50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800">
           {isError ? (
             <ErrorState message="Couldn't load nearby rescues." onRetry={() => refetch()} />
           ) : rescues.length === 0 ? (

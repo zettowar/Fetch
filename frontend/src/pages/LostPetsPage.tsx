@@ -100,7 +100,7 @@ export default function LostPetsPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)]">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* ── Compact header ──────────────────────────────────────────── */}
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
@@ -214,7 +214,7 @@ export default function LostPetsPage() {
         </div>
 
         {/* Recent reports strip — keeps the area below the (smaller) map useful */}
-        <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-gray-50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800">
           {reports.length === 0 ? (
             <p className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 text-center">
               {filterMeta[filter].emptyMsg}

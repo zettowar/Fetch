@@ -62,6 +62,7 @@ export default function RescueDetailPage() {
                 label: rescue.org_name,
               },
             ]}
+            cooperative
             className="w-full h-full"
           />
         </div>
