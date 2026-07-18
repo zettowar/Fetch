@@ -1,6 +1,7 @@
 """Beta feedback, invite code management, and the launch waitlist."""
 import secrets
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import func, select
@@ -20,9 +21,10 @@ from app.schemas.beta import (
     InviteCodeBatchCreate,
     InviteCodeOut,
     WaitlistEntryOut,
+    WaitlistInviteOut,
     WaitlistJoinRequest,
 )
-from app.services.email import send_waitlist_confirmation_email
+from app.services.email import send_invite_email, send_waitlist_confirmation_email
 
 router = APIRouter()
 
@@ -224,6 +226,58 @@ async def delete_waitlist_entry(
         metadata_={"email": entry.email},
     ))
     await db.commit()
+
+
+@router.post("/waitlist/{entry_id}/invite", response_model=WaitlistInviteOut)
+async def invite_waitlist_entry(
+    entry_id: uuid.UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """One-click accept: mint (or reuse) an invite code for this waitlisted
+    address and email them a signup link with the code applied. Idempotent
+    re-send while the code is unused; mints a fresh code once it's been claimed.
+    Degrades explicitly with no email provider — the code is still created and
+    the signup_url returned so the admin can share it manually."""
+    entry = (
+        await db.execute(select(WaitlistEntry).where(WaitlistEntry.id == entry_id))
+    ).scalar_one_or_none()
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Waitlist entry not found")
+
+    # Reuse the previously issued code if it's still unused (re-send), otherwise
+    # mint a new one (first invite, or the old code was already claimed).
+    code: str | None = None
+    if entry.invite_code:
+        still_valid = (
+            await db.execute(
+                select(InviteCode.id).where(
+                    InviteCode.code == entry.invite_code,
+                    InviteCode.is_used == False,  # noqa: E712
+                )
+            )
+        ).scalar_one_or_none()
+        if still_valid is not None:
+            code = entry.invite_code
+    if code is None:
+        code = f"FETCH-{secrets.token_hex(4).upper()}"
+        db.add(InviteCode(code=code, created_by=admin.id))
+
+    entry.invited_at = datetime.now(timezone.utc)
+    entry.invite_code = code
+    db.add(AuditLog(
+        actor_id=admin.id,
+        action="waitlist.invite",
+        target_type="waitlist",
+        metadata_={"email": entry.email, "code": code},
+    ))
+    await db.commit()
+
+    signup_url = f"{settings.FRONTEND_BASE_URL}/signup?invite={code}"
+    email_sent = await send_invite_email(entry.email, code)
+    return WaitlistInviteOut(
+        email=entry.email, code=code, signup_url=signup_url, email_sent=email_sent,
+    )
 
 
 @router.get("/invites", response_model=list[InviteCodeOut])

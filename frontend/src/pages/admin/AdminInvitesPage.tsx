@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { getInvites, generateInvites, getWaitlist, deleteWaitlistEntry } from '../../api/admin';
+import { getInvites, generateInvites, getWaitlist, inviteWaitlistEntry, deleteWaitlistEntry } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
@@ -141,6 +141,20 @@ function WaitlistSection() {
   });
   const entries = data?.items ?? [];
 
+  const inviteMutation = useMutation({
+    mutationFn: inviteWaitlistEntry,
+    onSuccess: async (res) => {
+      try {
+        await navigator.clipboard.writeText(res.signup_url);
+      } catch {
+        /* clipboard may be blocked; the invite still went out */
+      }
+      toast.success(res.email_sent ? 'Invite emailed — link copied' : 'Invite created — link copied');
+      queryClient.invalidateQueries({ queryKey: ['admin-waitlist'] });
+    },
+    onError: () => toast.error('Failed to send invite'),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: deleteWaitlistEntry,
     onSuccess: () => {
@@ -184,8 +198,21 @@ function WaitlistSection() {
             <div key={entry.id} className="flex items-center gap-3 p-3">
               <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{entry.email}</span>
               {entry.source && <Badge variant="neutral">{entry.source}</Badge>}
+              {entry.invited_at && (
+                <Badge variant="success" title={`Invited ${entry.invite_code ?? ''}`}>
+                  Invited
+                </Badge>
+              )}
               <span className="flex-1" />
               <span className="text-xs text-gray-400 dark:text-gray-500"><TimeAgo value={entry.created_at} /></span>
+              <Button
+                size="sm"
+                variant={entry.invited_at ? 'ghost' : 'secondary'}
+                onClick={() => inviteMutation.mutate(entry.id)}
+                loading={inviteMutation.isPending && inviteMutation.variables === entry.id}
+              >
+                {entry.invited_at ? 'Re-send' : 'Invite'}
+              </Button>
               <Button
                 size="sm"
                 variant="danger"

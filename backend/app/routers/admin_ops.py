@@ -29,7 +29,6 @@ from app.schemas.admin_ops import (
     AdoptionInquiryOut,
     AnnouncementCreate,
     AnnouncementOut,
-    BeatJobStatus,
     ImpersonateResponse,
     RescueAdminEdit,
     RescueStatusUpdate,
@@ -442,20 +441,15 @@ async def put_setting(
 async def system_jobs(
     admin: User = Depends(require_admin),
 ):
-    """Beat schedule vs. what the worker actually has registered (this is how
-    the missing token-cleanup task would have been caught), plus broker depth."""
+    """Worker health: which app tasks are registered + broker queue depth.
+
+    The scheduled jobs themselves (and their per-row registered status) now live
+    in the editable ``periodic_tasks`` table — see the /admin/scheduled-tasks
+    endpoints — so this endpoint no longer reflects the static beat schedule."""
     import app.tasks  # noqa: F401 — force task modules to import & self-register
     from app.worker import celery_app
 
     registered = {name for name in celery_app.tasks if name.startswith("app.tasks")}
-    beat_jobs = [
-        BeatJobStatus(
-            name=cfg["task"],
-            schedule=str(cfg["schedule"]),
-            registered=cfg["task"] in registered,
-        )
-        for cfg in celery_app.conf.beat_schedule.values()
-    ]
 
     queue_depth: int | None = None
     try:
@@ -469,6 +463,5 @@ async def system_jobs(
 
     return SystemJobsOut(
         broker_queue_depth=queue_depth,
-        beat_jobs=beat_jobs,
         registered_tasks=sorted(registered),
     )

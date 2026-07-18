@@ -23,7 +23,8 @@ make test        # Run all tests (~260 backend + ~63 frontend)
 
 - **Backend:** FastAPI + SQLAlchemy 2.0 (async) + Alembic + PostgreSQL 15
 - **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS + Framer Motion + TanStack Query
-- **Jobs:** Celery + Redis (weekly winner, lost dog alerts)
+- **Jobs:** Celery + Redis (weekly winner, lost dog alerts); Beat reads an
+  admin-editable schedule from the DB, not a static dict (see Scheduled jobs)
 - **Observability:** structlog (JSON), Sentry, Prometheus at `/metrics`
 
 ## Project Structure
@@ -38,7 +39,8 @@ Fetchpawz/
 │   │   ├── deps.py           # get_current_user, require_admin, require_approved_rescue
 │   │   ├── security.py       # PyJWT encode/decode, bcrypt hashing
 │   │   ├── storage.py        # LocalStorage (S3 planned)
-│   │   ├── worker.py         # Celery app + Beat schedule
+│   │   ├── worker.py         # Celery app; wires the DB-backed Beat scheduler
+│   │   ├── beat_scheduler.py # DatabaseScheduler — reads jobs from periodic_tasks
 │   │   ├── limiter.py        # slowapi rate limiter
 │   │   ├── logging.py        # structlog setup
 │   │   ├── middleware.py      # RequestID, logging, security headers
@@ -206,6 +208,9 @@ Key vars (see `.env.example` for full list):
   proximity alerts email subscribers. `FRONTEND_BASE_URL` builds the links.
 - `RATE_LIMIT_ENABLED` — Set `false` to disable rate limiting (counters live in
   Redis so limits hold across workers)
+- `BEAT_MAX_INTERVAL` — how often (seconds, default 60) the DB-backed Beat
+  scheduler re-checks `periodic_tasks` for edits; also caps schedule-change
+  pickup latency
 - `INVITE_REQUIRED` — require an invite code at signup (off in dev, on in prod)
 - `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` — Postgres container
   credentials (prod compose requires the password; must match `DATABASE_URL`)
@@ -304,6 +309,25 @@ no shop/product/cart/order table or router in the backend. Set
 `VITE_SHOPIFY_DOMAIN` / `VITE_SHOPIFY_STOREFRONT_TOKEN` to point at a store;
 leave them empty to run an in-memory demo catalog + localStorage cart (checkout
 disabled). The Storefront token is a public, client-side token by design.
+
+## Scheduled jobs (DB-backed Celery Beat — the admin editor)
+
+Beat's schedule lives in the `periodic_tasks` table, not in
+`celery_app.conf.beat_schedule` (which is now empty). `app/beat_scheduler.py`
+provides `DatabaseScheduler`, a `celery.beat.Scheduler` subclass wired via
+`celery_app.conf.beat_scheduler` in `worker.py` — so **only the beat process**
+loads it (and its synchronous psycopg2 engine, derived from `DATABASE_URL` via
+`settings.SYNC_DATABASE_URL`; the web app + worker stay on async asyncpg). It
+reloads when the table changes (detected by `(count, max(updated_at))`), and its
+run-count/last-run write-backs use raw SQL that deliberately does **not** bump
+`updated_at`, so they never look like a config edit. Admins manage jobs from
+**Admin → System** (`AdminSystemPage`) via `/api/v1/admin/scheduled-tasks`
+(list/create/patch/delete + `POST /{id}/run` to fire now); the `task` field is
+constrained to the app's own registered `app.tasks.*` tasks. Schedule edits take
+effect within `BEAT_MAX_INTERVAL` (default 60s) with no redeploy. The built-in
+jobs (canonical defs in `app/tasks/schedule_defaults.py`) are seeded into the
+table by the `periodic_tasks` migration, so a fresh install schedules exactly as
+before. Times are UTC. Run a single beat replica — two would double-schedule.
 
 ## Phased / stub features (intentionally incomplete)
 

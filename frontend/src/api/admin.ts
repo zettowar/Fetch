@@ -205,12 +205,24 @@ export interface WaitlistEntry {
   email: string;
   source: string | null;
   created_at: string;
+  invited_at: string | null;
+  invite_code: string | null;
+}
+
+export interface WaitlistInvite {
+  email: string;
+  code: string;
+  signup_url: string;
+  email_sent: boolean;
 }
 
 export const getWaitlist = async (): Promise<Paginated<WaitlistEntry>> => {
   const res = await client.get('/waitlist');
   return { items: res.data, total: readTotal(res.headers, res.data.length) };
 };
+
+export const inviteWaitlistEntry = async (id: string): Promise<WaitlistInvite> =>
+  (await client.post(`/waitlist/${id}/invite`)).data;
 
 export const deleteWaitlistEntry = async (id: string) =>
   (await client.delete(`/waitlist/${id}`)).data;
@@ -517,8 +529,78 @@ export const putSetting = async (key: string, value: unknown): Promise<AppSettin
 
 export interface SystemJobs {
   broker_queue_depth: number | null;
-  beat_jobs: { name: string; schedule: string; registered: boolean }[];
   registered_tasks: string[];
 }
 export const getSystemJobs = async (): Promise<SystemJobs> =>
   (await client.get('/admin/system/jobs')).data;
+
+// --- Scheduled jobs (editable Celery Beat schedule) ---
+
+export type ScheduleType = 'interval' | 'crontab';
+
+export interface PeriodicTask {
+  id: string;
+  name: string;
+  task: string;
+  schedule_type: ScheduleType;
+  interval_seconds: number | null;
+  minute: string;
+  hour: string;
+  day_of_week: string;
+  day_of_month: string;
+  month_of_year: string;
+  args: unknown[];
+  kwargs: Record<string, unknown>;
+  queue: string | null;
+  enabled: boolean;
+  one_off: boolean;
+  last_run_at: string | null;
+  total_run_count: number;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  // Computed server-side:
+  registered: boolean;
+  schedule_display: string;
+}
+
+export interface PeriodicTaskInput {
+  name: string;
+  task: string;
+  schedule_type: ScheduleType;
+  interval_seconds?: number | null;
+  minute?: string;
+  hour?: string;
+  day_of_week?: string;
+  day_of_month?: string;
+  month_of_year?: string;
+  args?: unknown[];
+  kwargs?: Record<string, unknown>;
+  queue?: string | null;
+  enabled?: boolean;
+  one_off?: boolean;
+  description?: string | null;
+}
+
+export const listScheduledTasks = async (): Promise<PeriodicTask[]> =>
+  (await client.get('/admin/scheduled-tasks')).data;
+
+export const getAvailableTasks = async (): Promise<string[]> =>
+  (await client.get('/admin/scheduled-tasks/available-tasks')).data;
+
+export const createScheduledTask = async (data: PeriodicTaskInput): Promise<PeriodicTask> =>
+  (await client.post('/admin/scheduled-tasks', data)).data;
+
+export const updateScheduledTask = async (
+  id: string,
+  data: Partial<PeriodicTaskInput>,
+): Promise<PeriodicTask> =>
+  (await client.patch(`/admin/scheduled-tasks/${id}`, data)).data;
+
+export const deleteScheduledTask = async (id: string) =>
+  (await client.delete(`/admin/scheduled-tasks/${id}`)).data;
+
+export const runScheduledTask = async (
+  id: string,
+): Promise<{ detail: string; task_id: string | null }> =>
+  (await client.post(`/admin/scheduled-tasks/${id}/run`)).data;

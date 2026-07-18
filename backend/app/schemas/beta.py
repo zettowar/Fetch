@@ -50,5 +50,17 @@ class WaitlistEntryOut(BaseModel):
     email: str
     source: str | None = None
     created_at: datetime
+    invited_at: datetime | None = None
+    invite_code: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class WaitlistInviteOut(BaseModel):
+    """Result of one-click-inviting a waitlisted person."""
+    email: str
+    code: str
+    signup_url: str
+    # False when no email provider is configured — the caller can still copy the
+    # signup_url and share it manually.
+    email_sent: bool

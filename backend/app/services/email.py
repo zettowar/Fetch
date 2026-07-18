@@ -150,6 +150,25 @@ async def send_waitlist_confirmation_email(to: str) -> bool:
     )
 
 
+async def send_invite_email(to: str, code: str) -> bool:
+    """A spot opened up: send the waitlisted person their signup link with the
+    invite code baked in (only the code travels in the URL)."""
+    url = f"{settings.FRONTEND_BASE_URL}/signup?invite={code}"
+    return await send_email(
+        to,
+        "Your Fetchpawz invite is here 🐾",
+        _layout(
+            "You're in! 🐾",
+            "<p>A spot opened up and we saved it for you. Tap below to create your "
+            "account — your invite code is already applied.</p>"
+            f'<p style="color:#6b7280;font-size:13px;">Invite code: '
+            f"<strong>{html.escape(code)}</strong></p>",
+            cta_url=url,
+            cta_label="Accept your invite",
+        ),
+    )
+
+
 async def send_contact_relay_email(
     to: str, *, sender_name: str, sender_email: str, report_title: str, message: str
 ) -> bool:

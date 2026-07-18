@@ -73,6 +73,10 @@ services:
     env_file:
       - .env
     depends_on:
+      # Beat now reads its schedule from the DB (DatabaseScheduler), so it needs
+      # Postgres up, not just the broker.
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
     command: celery -A app.worker beat --loglevel=info

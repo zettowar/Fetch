@@ -3,9 +3,23 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
+from app.config import settings
+
 
 def _email() -> str:
     return f"waitlist-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+
+
+async def _join(client: AsyncClient, email: str | None = None) -> str:
+    email = email or _email()
+    res = await client.post("/api/v1/waitlist", json={"email": email})
+    assert res.status_code == 202
+    return email
+
+
+async def _get_entry(client: AsyncClient, admin_headers: dict, email: str) -> dict:
+    res = await client.get("/api/v1/waitlist", headers=admin_headers)
+    return next(e for e in res.json() if e["email"] == email)
 
 
 @pytest.mark.asyncio
@@ -63,3 +77,83 @@ async def test_admin_lists_and_deletes_entry(client: AsyncClient, admin_headers:
 async def test_delete_missing_entry_404(client: AsyncClient, admin_headers: dict):
     res = await client.delete(f"/api/v1/waitlist/{uuid.uuid4()}", headers=admin_headers)
     assert res.status_code == 404
+
+
+# --- One-click invite ---
+
+@pytest.mark.asyncio
+async def test_invite_marks_entry_and_creates_unused_code(
+    client: AsyncClient, admin_headers: dict
+):
+    email = await _join(client)
+    entry = await _get_entry(client, admin_headers, email)
+    assert entry["invited_at"] is None
+
+    res = await client.post(f"/api/v1/waitlist/{entry['id']}/invite", headers=admin_headers)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    code = body["code"]
+    assert code.startswith("FETCH-")
+    assert body["email"] == email
+    assert body["signup_url"].endswith(f"/signup?invite={code}")
+    assert body["email_sent"] is False  # no email provider configured in tests
+
+    # The waitlist entry now reflects invited status.
+    entry = await _get_entry(client, admin_headers, email)
+    assert entry["invited_at"] is not None
+    assert entry["invite_code"] == code
+
+    # A matching, still-unused invite code was minted.
+    invites = (await client.get("/api/v1/invites", headers=admin_headers)).json()
+    match = next(i for i in invites if i["code"] == code)
+    assert match["is_used"] is False
+
+
+@pytest.mark.asyncio
+async def test_invite_resend_reuses_unused_code(client: AsyncClient, admin_headers: dict):
+    email = await _join(client)
+    entry = await _get_entry(client, admin_headers, email)
+    first = (await client.post(f"/api/v1/waitlist/{entry['id']}/invite", headers=admin_headers)).json()
+    second = (await client.post(f"/api/v1/waitlist/{entry['id']}/invite", headers=admin_headers)).json()
+    assert first["code"] == second["code"]
+    # Re-send did not mint a duplicate code row.
+    invites = (await client.get("/api/v1/invites", headers=admin_headers)).json()
+    assert sum(1 for i in invites if i["code"] == first["code"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_invite_after_code_used_mints_new(
+    client: AsyncClient, admin_headers: dict, monkeypatch
+):
+    email = await _join(client)
+    entry = await _get_entry(client, admin_headers, email)
+    code1 = (
+        await client.post(f"/api/v1/waitlist/{entry['id']}/invite", headers=admin_headers)
+    ).json()["code"]
+
+    # Consume code1 via a gated signup.
+    monkeypatch.setattr(settings, "INVITE_REQUIRED", True)
+    signup = await client.post("/api/v1/auth/signup", json={
+        "email": _email(), "password": "password123",
+        "display_name": "Invitee", "invite_code": code1,
+    })
+    assert signup.status_code == 201, signup.text
+
+    # Re-inviting now mints a fresh code (the old one can't be reused).
+    code2 = (
+        await client.post(f"/api/v1/waitlist/{entry['id']}/invite", headers=admin_headers)
+    ).json()["code"]
+    assert code2 != code1
+
+
+@pytest.mark.asyncio
+async def test_invite_missing_entry_404(client: AsyncClient, admin_headers: dict):
+    res = await client.post(f"/api/v1/waitlist/{uuid.uuid4()}/invite", headers=admin_headers)
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_invite_requires_admin(client: AsyncClient, auth_headers: dict):
+    # The admin gate runs before the handler, so a non-admin gets 403 regardless.
+    res = await client.post(f"/api/v1/waitlist/{uuid.uuid4()}/invite", headers=auth_headers)
+    assert res.status_code == 403

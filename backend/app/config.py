@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # Celery
     CELERY_BROKER_URL: str = "redis://redis:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/2"
+    # How often (seconds) the DB-backed Beat scheduler re-checks the
+    # periodic_tasks table for edits. Also caps how long a schedule change waits
+    # before Beat picks it up.
+    BEAT_MAX_INTERVAL: int = 60
 
     # Observability
     SENTRY_DSN: str = ""
@@ -152,6 +156,22 @@ class Settings(BaseSettings):
                 "STRIPE_SECRET_KEY is set."
             )
         return self
+
+    @property
+    def SYNC_DATABASE_URL(self) -> str:
+        """The DATABASE_URL rewritten for a synchronous psycopg2 engine.
+
+        The app talks to Postgres over async asyncpg, but Celery Beat is a
+        synchronous process and its DB-backed scheduler needs a sync driver.
+        Swap the async dialect for psycopg2 (falling back to a plain
+        ``postgresql://`` for any other async driver name)."""
+        url = self.DATABASE_URL
+        if "+asyncpg" in url:
+            return url.replace("+asyncpg", "+psycopg2")
+        if url.startswith("postgresql+") and "psycopg2" not in url:
+            # e.g. postgresql+someasyncdriver:// -> postgresql://
+            return "postgresql://" + url.split("://", 1)[1]
+        return url
 
 
 settings = Settings()

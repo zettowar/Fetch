@@ -31,6 +31,11 @@ class WaitlistEntry(Base, UUIDPrimaryKey, TimestampMixin):
     # Which surface the signup came from (hero / closing / news) — for
     # judging which placement converts, nothing more.
     source: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # Set when an admin one-click-invites this person: the moment they were
+    # invited and the invite code we minted + emailed them (matches a row in
+    # invite_codes). Null = not yet invited.
+    invited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    invite_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
 
 class Feedback(Base, UUIDPrimaryKey, TimestampMixin):

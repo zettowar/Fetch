@@ -1,5 +1,4 @@
 from celery import Celery
-from celery.schedules import crontab
 
 from app.config import settings
 
@@ -32,28 +31,18 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
-celery_app.conf.beat_schedule = {
-    "compute-weekly-winner": {
-        "task": "app.tasks.weekly_winner.compute_weekly_winner_task",
-        "schedule": crontab(day_of_week="monday", hour=0, minute=5),
-    },
-    # Troubleshooting / dev: pick a winner from the current week's votes
-    # every 10 minutes so a Top Pet becomes visible without waiting for
-    # Monday's roll-over. Upserts the WeeklyWinner row for this week.
-    "pick-current-winner": {
-        "task": "app.tasks.weekly_winner.pick_current_winner_task",
-        "schedule": 600.0,  # seconds
-    },
-    "purge-refresh-tokens": {
-        "task": "app.tasks.token_cleanup.purge_refresh_tokens_task",
-        "schedule": crontab(hour=3, minute=0),
-    },
-    # Daily notification digest. Sends to digest_mode='daily' every day and
-    # 'weekly' on Mondays (the task decides based on the weekday).
-    "send-notification-digest": {
-        "task": "app.tasks.digest.send_digest_task",
-        "schedule": crontab(hour=13, minute=0),
-    },
-}
+# The beat schedule is no longer defined here. Beat reads it from the
+# `periodic_tasks` table via `app.beat_scheduler.DatabaseScheduler` (wired with
+# `celery ... beat --scheduler app.beat_scheduler:DatabaseScheduler` in the
+# compose files), so admins can edit jobs live from the admin panel with no
+# redeploy. The built-in jobs live in `app.tasks.schedule_defaults` and are
+# seeded into the table by an Alembic migration. Leaving this empty guarantees
+# no double-scheduling even if the default scheduler is ever used by accident.
+celery_app.conf.beat_schedule = {}
+
+# Beat reads its schedule from the DB via this scheduler (string form so only the
+# beat process imports it — the sync psycopg2 engine never loads in the web/worker
+# processes). `celery -A app.worker beat` honors this with no --scheduler flag.
+celery_app.conf.beat_scheduler = "app.beat_scheduler:DatabaseScheduler"
 
 celery_app.autodiscover_tasks(["app.tasks"])

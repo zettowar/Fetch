@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { signup } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
@@ -14,7 +14,9 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
+  const [searchParams] = useSearchParams();
+  // Pre-fill the code when arriving from an emailed invite link (?invite=…).
+  const [inviteCode, setInviteCode] = useState(() => searchParams.get('invite') ?? '');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();

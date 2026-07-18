@@ -10,6 +10,10 @@ dependencies = [
     "uvicorn[standard]>=0.27,<1",
     "sqlalchemy[asyncio]>=2.0,<3",
     "asyncpg>=0.29,<1",
+    # Sync Postgres driver used ONLY by the Celery Beat scheduler
+    # (app.beat_scheduler) — Beat is a synchronous process and can't use the
+    # app's async asyncpg engine. The web app stays on asyncpg.
+    "psycopg2-binary>=2.9,<3",
     "alembic>=1.13,<2",
     "pydantic[email]>=2.5,<3",
     "pydantic-settings>=2.1,<3",

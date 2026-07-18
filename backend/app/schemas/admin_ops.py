@@ -113,13 +113,6 @@ class SettingUpdate(BaseModel):
     value: Any = None
 
 
-class BeatJobStatus(BaseModel):
-    name: str
-    schedule: str
-    registered: bool
-
-
 class SystemJobsOut(BaseModel):
     broker_queue_depth: int | None = None
-    beat_jobs: list[BeatJobStatus]
     registered_tasks: list[str]

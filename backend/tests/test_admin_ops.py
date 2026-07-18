@@ -304,13 +304,14 @@ async def test_public_flags_reflect_explore_toggle(client: AsyncClient, admin_he
 # --- System / jobs ---
 
 @pytest.mark.asyncio
-async def test_system_jobs_all_beat_tasks_registered(client: AsyncClient, admin_headers: dict):
+async def test_system_jobs_reports_registered_tasks(client: AsyncClient, admin_headers: dict):
     res = await client.get("/api/v1/admin/system/jobs", headers=admin_headers)
     assert res.status_code == 200
     body = res.json()
-    assert body["beat_jobs"], "expected beat jobs"
-    # The whole point: every scheduled task must be registered (the bug we fixed).
-    assert all(j["registered"] for j in body["beat_jobs"]), body["beat_jobs"]
+    # Scheduled jobs moved to the editable /admin/scheduled-tasks endpoint.
+    assert "beat_jobs" not in body
+    assert body["registered_tasks"], "expected registered app tasks"
+    assert all(t.startswith("app.tasks.") for t in body["registered_tasks"])
 
 
 # --- Donation refund ---
