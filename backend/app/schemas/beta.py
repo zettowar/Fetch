@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class FeedbackCreate(BaseModel):
@@ -38,3 +38,17 @@ class InviteCodeOut(BaseModel):
 
 class InviteCodeBatchCreate(BaseModel):
     count: int = Field(default=10, ge=1, le=100)
+
+
+class WaitlistJoinRequest(BaseModel):
+    email: EmailStr
+    source: str | None = Field(default=None, max_length=50)
+
+
+class WaitlistEntryOut(BaseModel):
+    id: UUID
+    email: str
+    source: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

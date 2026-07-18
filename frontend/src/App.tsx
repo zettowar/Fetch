@@ -89,6 +89,7 @@ import AdminVetsPage from './pages/admin/AdminVetsPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
 import AdminDonationsPage from './pages/admin/AdminDonationsPage';
 import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage';
+import AdminNewsPage from './pages/admin/AdminNewsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminSystemPage from './pages/admin/AdminSystemPage';
 import AdminInquiriesPage from './pages/admin/AdminInquiriesPage';
@@ -230,6 +231,7 @@ function AppContent() {
           <Route path="inquiries" element={<AdminInquiriesPage />} />
           <Route path="donations" element={<AdminDonationsPage />} />
           <Route path="announcements" element={<AdminAnnouncementsPage />} />
+          <Route path="news" element={<AdminNewsPage />} />
           <Route path="feedback" element={<AdminFeedbackPage />} />
           <Route path="invites" element={<AdminInvitesPage />} />
           <Route path="faq" element={<AdminFAQPage />} />

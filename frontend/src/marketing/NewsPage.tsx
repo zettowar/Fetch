@@ -1,55 +1,51 @@
-import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { getPublicNews, type PublicNewsPost } from '../api/publicSite';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { Spinner } from '../components/ui/Skeleton';
 import PageHero from './PageHero';
+import WaitlistForm from './WaitlistForm';
 
 /**
- * News — a simple update feed maintained by hand for now (a CMS or backend
- * feed can replace `POSTS` later). If every post is removed, a friendly empty
- * state shows instead.
+ * News — articles posted from the admin panel (Admin → News). Drafts stay
+ * hidden until published; if every post is removed, a friendly empty state
+ * shows instead.
  */
 
-type NewsPost = {
-  date: string; // e.g. 'June 2026'
-  tag: string; // e.g. 'Product', 'Milestone', 'Behind the scenes'
-  title: string;
-  body: ReactNode;
-};
+function monthYear(dateStr: string | null): string {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
 
-const POSTS: NewsPost[] = [
-  {
-    date: 'June 2026',
-    tag: 'Milestone',
-    title: 'Fetchpawz enters private beta',
-    body: (
-      <>
-        The first invites went out. A small group of pet owners and rescue
-        partners is using Fetchpawz daily now, and their feedback has already
-        changed how the feed works. A public launch date comes next.
-      </>
-    ),
-  },
-  {
-    date: 'May 2026',
-    tag: 'Partnerships',
-    title: 'Partnering with rescues for launch',
-    body: (
-      <>
-        Adoption is the whole point of Fetchpawz, so rescues got the first look.
-        Our earliest partners are setting up their profiles now, and their
-        adoptable pets will be in the feed on day one. If you run a rescue and
-        want in,{' '}
-        <Link to="/signup-rescue" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
-          applications are open
+function PostLink({ post }: { post: PublicNewsPost }) {
+  if (!post.link_url || !post.link_label) return null;
+  const className = 'font-medium text-brand-600 dark:text-brand-400 hover:underline';
+  const label = (
+    <>
+      {post.link_label} <span aria-hidden>→</span>
+    </>
+  );
+  return (
+    <p className="mt-3 text-base">
+      {/^https?:\/\//.test(post.link_url) ? (
+        <a href={post.link_url} target="_blank" rel="noopener noreferrer" className={className}>
+          {label}
+        </a>
+      ) : (
+        <Link to={post.link_url} className={className}>
+          {label}
         </Link>
-        .
-      </>
-    ),
-  },
-];
+      )}
+    </p>
+  );
+}
 
 export default function NewsPage() {
   useDocumentTitle('News · Fetchpawz');
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ['public-news'],
+    queryFn: getPublicNews,
+  });
 
   return (
     <div className="animate-fade-in">
@@ -60,35 +56,43 @@ export default function NewsPage() {
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        {POSTS.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Spinner />
+          </div>
+        ) : posts.length === 0 ? (
           <EmptyState />
         ) : (
           <ol className="space-y-6">
-            {POSTS.map((post, i) => (
+            {posts.map((post) => (
               <li
-                key={i}
+                key={post.id}
                 className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-soft-sm"
               >
                 <div className="flex items-center gap-3 text-xs">
                   <span className="inline-flex items-center rounded-full bg-brand-50 dark:bg-brand-500/10 px-2.5 py-1 font-semibold text-brand-700 dark:text-brand-400">
                     {post.tag}
                   </span>
-                  <span className="text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">{post.date}</span>
+                  <span className="text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">
+                    {monthYear(post.published_at)}
+                  </span>
                 </div>
                 <h2 className="mt-3 text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">{post.title}</h2>
-                <p className="mt-2 text-base leading-relaxed text-gray-600 dark:text-gray-400">{post.body}</p>
+                <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-gray-600 dark:text-gray-400">
+                  {post.body}
+                </p>
+                <PostLink post={post} />
               </li>
             ))}
           </ol>
         )}
 
-        <p className="mt-10 text-center text-sm text-gray-400 dark:text-gray-500">
-          Want updates in your inbox?{' '}
-          <a href="mailto:fetchpawz.inc@gmail.com" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
-            Drop us a note
-          </a>
-          .
-        </p>
+        <div className="mt-10 mx-auto max-w-md text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Want an invite when testing expands?
+          </p>
+          <WaitlistForm source="news" variant="neutral" className="mt-3" />
+        </div>
       </div>
     </div>
   );

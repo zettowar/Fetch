@@ -144,15 +144,23 @@ export default function PublicPetPage() {
           </div>
         )}
 
-        {/* Pitch */}
+        {/* Pitch — lead with whatever this pet's page is really about. */}
         <div className="relative mt-10 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-brand-700 px-6 py-10 text-center text-white shadow-soft-lg">
           <div aria-hidden className="pointer-events-none absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-3xl" />
           <PawTrail steps={5} size={18} className="absolute bottom-6 left-6 text-white/15" />
           <p className="relative text-xl font-bold tracking-tight text-balance">
-            {pet.name} lives on Fetchpawz, the pet app that gets rescues adopted.
+            {pet.adoptable
+              ? `${pet.name} is looking for a home on Fetchpawz.`
+              : pet.crown_weeks.length > 0
+                ? `${pet.name} is a certified Top Pet on Fetchpawz.`
+                : `${pet.name} lives on Fetchpawz — the app that gets pets home.`}
           </p>
           <p className="relative mt-1.5 text-sm text-white/85">
-            Swipe good pets, crown a weekly champion, and help lost pets get home.
+            {pet.adoptable
+              ? 'Adoptable rescue pets swipe right past you in the feed. Meet them, fall for one, take them home.'
+              : pet.crown_weeks.length > 0
+                ? "Swipe the neighborhood's cats and dogs and crown the next weekly champion."
+                : 'Swipe good pets, crown a weekly champion, and help lost pets get home.'}
           </p>
           <Link
             to="/"

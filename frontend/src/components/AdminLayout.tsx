@@ -14,6 +14,7 @@ const NAV_ITEMS: { path: string; label: string; end?: boolean; adminOnly?: boole
   { path: '/admin/inquiries', label: 'Inquiries' },
   { path: '/admin/donations', label: 'Donations', adminOnly: true },
   { path: '/admin/announcements', label: 'Announce', adminOnly: true },
+  { path: '/admin/news', label: 'News', adminOnly: true },
   { path: '/admin/feedback', label: 'Feedback' },
   { path: '/admin/invites', label: 'Invites', adminOnly: true },
   { path: '/admin/faq', label: 'FAQ', adminOnly: true },
@@ -39,9 +40,6 @@ export default function AdminLayout() {
           Fetchpawz Admin
         </span>
         <div className="flex items-center gap-4">
-          <Link to="/app/security" className="text-xs text-gray-400 dark:text-gray-500 hover:text-white transition-colors">
-            Security
-          </Link>
           <Link to="/app/home" className="text-xs text-gray-400 dark:text-gray-500 hover:text-white transition-colors">
             Back to app
           </Link>

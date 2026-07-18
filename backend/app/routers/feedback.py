@@ -1,8 +1,10 @@
-"""Beta feedback and invite code management."""
+"""Beta feedback, invite code management, and the launch waitlist."""
 import secrets
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -10,9 +12,17 @@ from app.db import get_db
 from app.deps import get_current_user, require_admin, require_staff
 from app.limiter import limiter
 from app.models.audit_log import AuditLog
-from app.models.beta import Feedback, InviteCode
+from app.models.beta import Feedback, InviteCode, WaitlistEntry
 from app.models.user import User
-from app.schemas.beta import FeedbackCreate, FeedbackOut, InviteCodeBatchCreate, InviteCodeOut
+from app.schemas.beta import (
+    FeedbackCreate,
+    FeedbackOut,
+    InviteCodeBatchCreate,
+    InviteCodeOut,
+    WaitlistEntryOut,
+    WaitlistJoinRequest,
+)
+from app.services.email import send_waitlist_confirmation_email
 
 router = APIRouter()
 
@@ -149,6 +159,71 @@ async def generate_my_invite_codes(
     for c in codes:
         await db.refresh(c)
     return codes
+
+
+# --- Launch waitlist ---
+# Public sign-up is invite-gated, so the marketing site collects emails here.
+# The response never reveals whether an address was already on the list.
+
+@router.post("/waitlist", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit("5/minute")
+async def join_waitlist(
+    request: Request,
+    body: WaitlistJoinRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    email = body.email.strip().lower()
+    existing = (
+        await db.execute(select(WaitlistEntry.id).where(WaitlistEntry.email == email))
+    ).scalar_one_or_none()
+    if existing is None:
+        db.add(WaitlistEntry(email=email, source=body.source))
+        try:
+            await db.commit()
+        except IntegrityError:
+            # Lost a race with a concurrent join for the same address.
+            await db.rollback()
+        else:
+            await send_waitlist_confirmation_email(email)
+    return {"ok": True}
+
+
+@router.get("/waitlist", response_model=list[WaitlistEntryOut])
+async def list_waitlist(
+    response: Response,
+    limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    total = (await db.execute(select(func.count()).select_from(WaitlistEntry))).scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+    result = await db.execute(
+        select(WaitlistEntry).order_by(WaitlistEntry.created_at.desc()).limit(limit).offset(offset)
+    )
+    return list(result.scalars().all())
+
+
+@router.delete("/waitlist/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_waitlist_entry(
+    entry_id: uuid.UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    entry = (
+        await db.execute(select(WaitlistEntry).where(WaitlistEntry.id == entry_id))
+    ).scalar_one_or_none()
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Waitlist entry not found")
+    await db.delete(entry)
+    db.add(AuditLog(
+        actor_id=admin.id,
+        action="waitlist.delete",
+        target_type="waitlist",
+        metadata_={"email": entry.email},
+    ))
+    await db.commit()
 
 
 @router.get("/invites", response_model=list[InviteCodeOut])

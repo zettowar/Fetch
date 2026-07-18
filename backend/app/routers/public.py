@@ -14,11 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
+from app.models.news import NewsPost
 from app.models.pet import Pet
 from app.models.qr_tag import QRTag
 from app.models.rescue import RescueProfile
 from app.models.user import User
 from app.models.weekly_winner import WeeklyWinner
+from app.schemas.news import NewsPostOut
 from app.services.breed_display import breed_display
 from app.services.pet_serializer import display_photo_url
 from app.storage import get_storage
@@ -50,6 +52,17 @@ async def public_flags(db: AsyncSession = Depends(get_db)) -> dict[str, bool]:
         key: bool(await settings_service.get_setting(db, key))
         for key in settings_service.PUBLIC_FLAG_KEYS
     }
+
+
+@router.get("/news", response_model=list[NewsPostOut])
+async def public_news(db: AsyncSession = Depends(get_db)):
+    """Published news articles for the marketing site, newest first."""
+    result = await db.execute(
+        select(NewsPost)
+        .where(NewsPost.is_published == True)  # noqa: E712
+        .order_by(NewsPost.published_at.desc())
+    )
+    return list(result.scalars().all())
 
 
 class PublicPetOut(BaseModel):

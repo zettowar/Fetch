@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getSettings, putSetting, type AppSetting } from '../../api/admin';
@@ -39,6 +40,23 @@ export default function AdminSettingsPage() {
           ))}
         </div>
       )}
+
+      <Card className="mt-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-medium text-sm">Your account</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Password and two-factor auth are managed in your account security settings.
+            </p>
+          </div>
+          <Link
+            to="/app/security"
+            className="shrink-0 text-sm font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+          >
+            Open security <span aria-hidden>→</span>
+          </Link>
+        </div>
+      </Card>
     </div>
   );
 }

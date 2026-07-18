@@ -32,8 +32,9 @@ from app.models.support import FAQEntry, SupportTicket
 from app.models.entitlement import Entitlement
 from app.models.donation import Donation, StripeEvent
 from app.models.notification import Notification, PushSubscription, NotificationPreference
-from app.models.beta import InviteCode, Feedback
+from app.models.beta import InviteCode, Feedback, WaitlistEntry
 from app.models.announcement import Announcement
+from app.models.news import NewsPost
 from app.models.app_setting import AppSetting
 from app.models.qr_tag import QRTag
 from app.models.user_identity import UserIdentity
@@ -85,7 +86,9 @@ __all__ = [
     "NotificationPreference",
     "InviteCode",
     "Feedback",
+    "WaitlistEntry",
     "Announcement",
+    "NewsPost",
     "AppSetting",
     "QRTag",
     "UserIdentity",

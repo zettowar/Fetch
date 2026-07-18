@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Heart, HousePlus } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import WaitlistForm from './WaitlistForm';
 import PawMark from '../components/ui/PawMark';
 import Badge from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Skeleton';
@@ -10,10 +11,17 @@ import DogIllustration from '../components/flair/DogIllustration';
 import PawTrail from '../components/flair/PawTrail';
 
 const OWNER_FEATURES = [
-  { icon: '❤️', title: 'Swipe & rate', body: 'A Tinder-style feed of neighborhood cats and dogs. One tap, one vote.' },
+  { icon: '❤️', title: 'Swipe & rate', body: 'A swipe feed of neighborhood cats and dogs. One tap, one vote.' },
   { icon: '🏆', title: 'Weekly top pet', body: 'Votes reset every Monday, so every pet gets a fresh shot at the crown.' },
-  { icon: '🚨', title: 'Lost & Found', body: "If a pet goes missing nearby, you'll know. Sightings go straight to the owner." },
   { icon: '🐾', title: 'Follow your faves', body: 'Some pets you just need to see again. Follow them and you will.' },
+  { icon: '🔖', title: 'Your likes, kept', body: 'Every pet you like lands in a list you can wander back through anytime.' },
+];
+
+const NEIGHBORHOOD_FEATURES = [
+  { icon: '🌳', title: 'Parks & playdates', body: 'Find nearby dog parks, check in, read reviews, and set up playdates with pets from the feed.' },
+  { icon: '🏷️', title: 'QR pet tags', body: "A tag on the collar links to your pet's page — whoever finds them scans it and knows exactly who they belong to." },
+  { icon: '🚨', title: 'Lost & Found', body: 'If a pet goes missing nearby, neighbors get the alert and sightings go straight to the owner.' },
+  { icon: '🗺️', title: 'Rescues near you', body: 'Browse rescues on the map, meet their adoptable pets, and donate in a couple of taps.' },
 ];
 
 const RESCUE_FEATURES = [
@@ -21,6 +29,8 @@ const RESCUE_FEATURES = [
   { icon: '💬', title: 'Manage inquiries', body: 'Inbound interest, organized. Status, notes, and history in one place.' },
   { icon: '🗺️', title: 'Map presence', body: 'Your organization shows up on the rescue map, so nearby adopters can find you.' },
   { icon: '🤝', title: 'Smooth handoff', body: 'Mark adoptions complete or transfer a pet to its new family on Fetchpawz.' },
+  { icon: '💛', title: 'Accept donations', body: 'Take donations right on your profile via Stripe — or keep sending supporters to your own donation page.' },
+  { icon: '🔗', title: 'A page to share', body: 'Every rescue gets a public page — your story and your adoptables — to link from anywhere.' },
 ];
 
 const SITE_TEASERS = [
@@ -31,7 +41,7 @@ const SITE_TEASERS = [
 
 export default function MarketingHome() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  useDocumentTitle('Fetchpawz · The app that gets cats and dogs adopted');
+  useDocumentTitle('Fetchpawz · The pet app with a rescue mission');
 
   if (isLoading) {
     return (
@@ -64,9 +74,9 @@ export default function MarketingHome() {
               </span>
 
               <h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.02] tracking-tight text-balance">
-                Fetchpawz is
+                The pet app with
                 <br />
-                almost here.
+                a rescue mission.
               </h1>
 
               <p className="mt-5 text-xl sm:text-2xl font-bold text-white/85 text-balance">
@@ -74,29 +84,25 @@ export default function MarketingHome() {
               </p>
 
               <p className="mt-4 mx-auto lg:mx-0 max-w-xl text-base sm:text-lg text-white/85 leading-relaxed text-balance">
-                Swipe through the neighborhood's cats and dogs and crown a weekly
-                champion. Adoptable rescue pets are in the deck, and if a pet
-                goes missing nearby, the whole neighborhood hears about it.
-                We're putting the final touches on it now.
+                Swipe through the neighborhood's cats and dogs, meet up at the
+                dog park, and bring lost pets home — with adoptable rescue pets
+                right in the deck. We're putting the final touches on it now.
               </p>
 
-              <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3">
-                <Link
-                  to="/about"
-                  className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-base font-semibold text-brand-700 shadow-soft-lg transition-transform duration-200 ease-soft-out hover:scale-[1.02] active:scale-95"
-                >
+              <WaitlistForm source="hero" className="mt-8 mx-auto lg:mx-0 max-w-xl" />
+
+              <p className="mt-4 text-sm text-white/75">
+                <span aria-hidden>📣</span> Launching soon — sign-ups are
+                invite-only until then.{' '}
+                <Link to="/about" className="font-semibold underline underline-offset-2 hover:text-white">
                   Learn about Fetchpawz
                 </Link>
-                <Link
-                  to="/login"
-                  className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm px-6 py-3 text-base font-semibold text-white ring-1 ring-white/30 transition-colors hover:bg-white/25"
-                >
-                  Beta / team log in
+              </p>
+              <p className="mt-2 text-sm text-white/75">
+                Beta tester or team member?{' '}
+                <Link to="/login" className="font-semibold underline underline-offset-2 hover:text-white">
+                  Log in
                 </Link>
-              </div>
-
-              <p className="mt-6 text-sm text-white/75">
-                <span aria-hidden>📣</span> Launching soon. Public sign-ups aren't open yet.
               </p>
             </div>
 
@@ -120,7 +126,7 @@ export default function MarketingHome() {
             eyebrow="Pet owners"
             iconEmoji="🐾"
             title="Rate, follow, find."
-            body="Swipe the feed, follow your favorites, and vote for a weekly top pet. Lost & Found is built in for the days you hope never come."
+            body="Swipe the feed, crown a weekly top pet, and meet up at the dog park. Lost & Found is built in for the days you hope never come."
             tag="Coming soon"
           />
           <AudienceCard
@@ -138,32 +144,38 @@ export default function MarketingHome() {
       {/* ── Owner features ─────────────────────────────────────── */}
       <section className="bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-          <SectionHeading accent="brand" eyebrow="For pet owners" title="The daily pet fix" />
+          <SectionHeading accent="brand" eyebrow="For pet owners" title="Your daily pet fix, with a purpose" />
           <FeatureGrid features={OWNER_FEATURES} />
         </div>
       </section>
 
-      {/* ── Rescue features ────────────────────────────────────── */}
+      {/* ── Neighborhood features ──────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        <SectionHeading accent="purple" eyebrow="For rescues" title="Adoption tools, without the busywork" />
-        <FeatureGrid features={RESCUE_FEATURES} />
-        <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          Run a rescue? Applications are open ahead of launch.{' '}
-          <Link to="/signup-rescue" className="font-semibold text-purple-600 dark:text-purple-400 hover:underline">
-            Apply as a rescue <span aria-hidden>→</span>
-          </Link>
-        </p>
+        <SectionHeading accent="brand" eyebrow="Beyond the feed" title="Made for the real world" />
+        <FeatureGrid features={NEIGHBORHOOD_FEATURES} />
+      </section>
+
+      {/* ── Rescue features ────────────────────────────────────── */}
+      <section className="bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+          <SectionHeading accent="purple" eyebrow="For rescues" title="Adoption tools, without the busywork" />
+          <FeatureGrid features={RESCUE_FEATURES} cols={3} />
+          <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            Run a rescue? Applications are open ahead of launch.{' '}
+            <Link to="/signup-rescue" className="font-semibold text-purple-600 dark:text-purple-400 hover:underline">
+              Apply as a rescue <span aria-hidden>→</span>
+            </Link>
+          </p>
+        </div>
       </section>
 
       {/* ── How it'll work ─────────────────────────────────────── */}
-      <section className="bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-          <SectionHeading eyebrow="How it'll work" title="Three quick steps" />
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            <Step n={1} title="Pick your path" body="Sign up as an owner or apply as a rescue. Same login, separate spaces." />
-            <Step n={2} title="Build your profile" body="Owners add photos, breeds, and traits. Rescues add org details and their first adoptable." />
-            <Step n={3} title="Meet the pack" body="Owners climb the weekly rankings. Rescues hear from adopters." />
-          </div>
+      <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+        <SectionHeading eyebrow="How it'll work" title="From invite to top pet" />
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <Step n={1} title="Get in" body="Join the waitlist and grab your invite. Rescues skip the line — applications are already open." />
+          <Step n={2} title="Show off your pet" body="A minute of setup: photos, breed, and the traits that make them them." />
+          <Step n={3} title="Chase the crown" body="Your pet hits the feed, the votes roll in, and every Monday resets the race for the weekly crown." />
         </div>
       </section>
 
@@ -197,12 +209,10 @@ export default function MarketingHome() {
           <PawMark decorative className="pointer-events-none absolute -bottom-8 -right-4 h-28 w-28 text-white/[0.08] rotate-12" />
           <h2 className="relative text-3xl sm:text-4xl font-extrabold tracking-tight text-balance">We're not open yet.</h2>
           <p className="relative mt-3 mx-auto max-w-xl text-white/90 text-balance">
-            Fetchpawz is still in active development. Check back soon, or{' '}
-            <a href="mailto:fetchpawz.inc@gmail.com" className="font-semibold underline underline-offset-2 hover:text-white">
-              write to us
-            </a>{' '}
-            if you'd like an invite when testing expands.
+            Fetchpawz is still in active development. Leave your email and
+            we'll send an invite when testing expands.
           </p>
+          <WaitlistForm source="closing" className="relative mt-6 mx-auto max-w-md" />
           <p className="relative mt-6 text-sm text-white/80">
             Beta tester or team member?{' '}
             <Link to="/login" className="font-semibold underline underline-offset-2 hover:text-white">
@@ -232,9 +242,9 @@ function SectionHeading({ eyebrow, title, accent }: { eyebrow: string; title: st
   );
 }
 
-function FeatureGrid({ features }: { features: { icon: string; title: string; body: string }[] }) {
+function FeatureGrid({ features, cols = 4 }: { features: { icon: string; title: string; body: string }[]; cols?: 3 | 4 }) {
   return (
-    <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={`mt-10 grid gap-5 sm:grid-cols-2 ${cols === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
       {features.map((f) => (
         <div
           key={f.title}
@@ -297,8 +307,8 @@ function AudienceCard({ accent, eyebrow, iconEmoji, title, body, tag, tagTo }: {
 
 function Step({ n, title, body }: { n: number; title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-6 shadow-soft-sm">
-      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 font-bold flex items-center justify-center text-base tabular-nums">
+    <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-6 shadow-soft-sm transition-transform duration-200 ease-soft-out hover:-translate-y-1">
+      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow font-bold flex items-center justify-center text-base tabular-nums">
         {n}
       </span>
       <p className="mt-4 text-base font-semibold text-gray-900 dark:text-gray-100">{title}</p>

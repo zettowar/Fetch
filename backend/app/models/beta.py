@@ -22,6 +22,17 @@ class InviteCode(Base, UUIDPrimaryKey, TimestampMixin):
     is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
+class WaitlistEntry(Base, UUIDPrimaryKey, TimestampMixin):
+    """A pre-launch invite request from the marketing site (no account yet)."""
+
+    __tablename__ = "waitlist_entries"
+
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    # Which surface the signup came from (hero / closing / news) — for
+    # judging which placement converts, nothing more.
+    source: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+
 class Feedback(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "feedback"
 

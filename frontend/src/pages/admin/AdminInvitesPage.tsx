@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { getInvites, generateInvites } from '../../api/admin';
+import { getInvites, generateInvites, getWaitlist, deleteWaitlistEntry } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
@@ -126,6 +126,78 @@ export default function AdminInvitesPage() {
           ))}
         </Card>
       )}
+
+      <WaitlistSection />
     </div>
+  );
+}
+
+/** Invite requests from the marketing site — the other half of this funnel. */
+function WaitlistSection() {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-waitlist'],
+    queryFn: getWaitlist,
+  });
+  const entries = data?.items ?? [];
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteWaitlistEntry,
+    onSuccess: () => {
+      toast.success('Removed from waitlist');
+      queryClient.invalidateQueries({ queryKey: ['admin-waitlist'] });
+    },
+    onError: () => toast.error('Failed'),
+  });
+
+  const copyAllEmails = async () => {
+    try {
+      await navigator.clipboard.writeText(entries.map((e) => e.email).join('\n'));
+      toast.success(`Copied ${entries.length} emails`);
+    } catch {
+      toast.error('Could not copy');
+    }
+  };
+
+  return (
+    <section className="mt-8">
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-xl font-bold">Waitlist</h2>
+        {data && (
+          <span className="text-sm text-gray-400 dark:text-gray-500">{data.total} waiting</span>
+        )}
+        <span className="flex-1" />
+        {entries.length > 0 && (
+          <Button size="sm" variant="ghost" onClick={copyAllEmails}>
+            Copy all emails
+          </Button>
+        )}
+      </div>
+
+      {isLoading ? (
+        <ListSkeleton rows={3} />
+      ) : entries.length === 0 ? (
+        <EmptyState className="py-6" title="No waitlist signups yet" />
+      ) : (
+        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+          {entries.map((entry) => (
+            <div key={entry.id} className="flex items-center gap-3 p-3">
+              <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{entry.email}</span>
+              {entry.source && <Badge variant="neutral">{entry.source}</Badge>}
+              <span className="flex-1" />
+              <span className="text-xs text-gray-400 dark:text-gray-500"><TimeAgo value={entry.created_at} /></span>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => deleteMutation.mutate(entry.id)}
+                loading={deleteMutation.isPending && deleteMutation.variables === entry.id}
+              >
+                Remove
+              </Button>
+            </div>
+          ))}
+        </Card>
+      )}
+    </section>
   );
 }

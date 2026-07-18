@@ -16,6 +16,7 @@ from app.models.pet import Pet
 from app.models.donation import Donation
 from app.models.entitlement import Entitlement
 from app.models.lost_report import LostReport, LostReportPhoto, LostReportSighting
+from app.models.news import NewsPost
 from app.models.park import Park
 from app.models.photo import Photo
 from app.models.report import Report, Strike
@@ -49,6 +50,7 @@ from app.schemas.park_import import (
     ParkImportRequest,
     ParkImportResponse,
 )
+from app.schemas.news import NewsPostCreate, NewsPostOut, NewsPostUpdate
 from app.schemas.rescue import RescueProfileOut, RescueReviewRequest
 from app.schemas.support import FAQOut, TicketOut
 from app.services.notify import notify
@@ -805,6 +807,89 @@ async def delete_faq(
     await db.delete(entry)
     await db.commit()
     return {"detail": "FAQ entry deleted"}
+
+
+# --- News management (marketing-site articles) ---
+
+@router.get("/news", response_model=list[NewsPostOut])
+async def list_news_posts(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """All news posts, drafts included, newest activity first."""
+    result = await db.execute(
+        select(NewsPost).order_by(
+            func.coalesce(NewsPost.published_at, NewsPost.created_at).desc()
+        )
+    )
+    return list(result.scalars().all())
+
+
+@router.post("/news", response_model=NewsPostOut, status_code=201)
+async def create_news_post(
+    body: NewsPostCreate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    post = NewsPost(
+        title=body.title,
+        body=body.body,
+        tag=body.tag,
+        link_url=body.link_url,
+        link_label=body.link_label,
+        is_published=body.is_published,
+        published_at=func.now() if body.is_published else None,
+        created_by=admin.id,
+    )
+    db.add(post)
+    await db.flush()
+    await _log(db, actor_id=admin.id, action="news.create", target_type="news", target_id=post.id,
+               metadata={"title": body.title[:80]})
+    await db.commit()
+    await db.refresh(post)
+    return post
+
+
+@router.patch("/news/{post_id}", response_model=NewsPostOut)
+async def update_news_post(
+    post_id: UUID,
+    body: NewsPostUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(NewsPost).where(NewsPost.id == post_id))
+    post = result.scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="News post not found")
+    changes = body.model_dump(exclude_unset=True)
+    for field, value in changes.items():
+        setattr(post, field, value)
+    # First publish stamps the display date (kept on later unpublish/republish
+    # so the article's place in history is stable; editable via published_at).
+    if post.is_published and post.published_at is None:
+        post.published_at = func.now()
+    await _log(db, actor_id=admin.id, action="news.update", target_type="news", target_id=post_id,
+               metadata={k: str(v)[:80] for k, v in changes.items()})
+    await db.commit()
+    await db.refresh(post)
+    return post
+
+
+@router.delete("/news/{post_id}")
+async def delete_news_post(
+    post_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(NewsPost).where(NewsPost.id == post_id))
+    post = result.scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="News post not found")
+    await _log(db, actor_id=admin.id, action="news.delete", target_type="news", target_id=post_id,
+               metadata={"title": post.title[:80]})
+    await db.delete(post)
+    await db.commit()
+    return {"detail": "News post deleted"}
 
 
 # --- Rescue profiles (admin view) ---

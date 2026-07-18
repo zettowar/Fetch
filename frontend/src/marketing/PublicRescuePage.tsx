@@ -173,10 +173,11 @@ export default function PublicRescuePage() {
           <div aria-hidden className="pointer-events-none absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-3xl" />
           <PawTrail steps={5} size={18} className="absolute bottom-6 left-6 text-white/15" />
           <p className="relative text-xl font-bold tracking-tight text-balance">
-            {rescue.org_name} is on Fetchpawz, the pet app that gets rescues adopted.
+            {rescue.org_name} finds homes for pets on Fetchpawz.
           </p>
           <p className="relative mt-1.5 text-sm text-white/85">
-            Swipe good pets, crown a weekly champion, and help lost pets get home.
+            Meet their adoptable pets in the swipe feed, follow your favorites,
+            and support the rescue in a couple of taps.
           </p>
           <Link
             to="/"

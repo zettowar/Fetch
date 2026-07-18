@@ -56,7 +56,7 @@ export default function RescueSignupPage() {
       <AuthHero
         tone="purple"
         title="Rescue / Shelter Account"
-        subtitle="Create a verified account so your adoptable pets can appear in Fetchpawz. Applications are reviewed by our team — we'll reach out if we need more info."
+        subtitle="Create a verified account so your adoptable pets can appear in Fetchpawz — with inquiry tools, a public page, and optional in-app donations. Applications are reviewed by our team; we'll reach out if we need more info."
         icon={<HousePlus size={32} aria-hidden />}
       />
 

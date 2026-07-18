@@ -25,9 +25,10 @@ export default function MissionPage() {
         {/* Pillars */}
         <section>
           <h2 className="text-center text-2xl font-bold tracking-tight">What that looks like</h2>
-          <div className="mt-8 grid gap-5 sm:grid-cols-3">
+          <div className="mt-8 grid gap-5 sm:grid-cols-2">
             <Pillar emoji="🐾" title="Adoptables in the feed" body="Adoptable pets appear in the main feed, right between the neighborhood regulars. There is no separate tab to forget about." />
             <Pillar emoji="🤝" title="Tools rescues use" body="Listings, inquiries, and handoffs live in one place, so a volunteer's evening goes to the pets." />
+            <Pillar emoji="💛" title="Support in a couple of taps" body="Donate to a rescue right from their profile, without leaving the app. Rescues that prefer their own donation page keep that link — always." />
             <Pillar emoji="🏡" title="A faster match" body="The right person sees the right pet sooner. Waits get shorter and kennels get emptier." />
           </div>
         </section>
@@ -42,14 +43,9 @@ export default function MissionPage() {
               Once we're live, we'll publish it.
             </li>
             <li>
-              <strong className="text-gray-900 dark:text-gray-100">Donations skip the middleman.</strong>{' '}
-              Links on rescue profiles point to the rescue's own donation page.
-              The money never passes through us.
-            </li>
-            <li>
-              <strong className="text-gray-900 dark:text-gray-100">Listing is free for rescues.</strong>{' '}
-              Adoptable-pet listings and inquiry tools don't cost rescues
-              anything. That part is the mission, not the business.
+              <strong className="text-gray-900 dark:text-gray-100">Rescues come first.</strong>{' '}
+              Adoptable pets get equal footing in the feed, and the tools
+              rescues rely on are built with them, not just for them.
             </li>
           </ul>
           <div className="mt-6 flex flex-wrap gap-4 text-sm font-semibold">

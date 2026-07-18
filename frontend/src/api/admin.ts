@@ -200,6 +200,54 @@ export const getInvites = async (): Promise<InviteCode[]> =>
 export const generateInvites = async (count: number): Promise<InviteCode[]> =>
   (await client.post('/invites/generate', { count })).data;
 
+export interface WaitlistEntry {
+  id: string;
+  email: string;
+  source: string | null;
+  created_at: string;
+}
+
+export const getWaitlist = async (): Promise<Paginated<WaitlistEntry>> => {
+  const res = await client.get('/waitlist');
+  return { items: res.data, total: readTotal(res.headers, res.data.length) };
+};
+
+export const deleteWaitlistEntry = async (id: string) =>
+  (await client.delete(`/waitlist/${id}`)).data;
+
+export interface NewsPost {
+  id: string;
+  title: string;
+  body: string;
+  tag: string;
+  link_url: string | null;
+  link_label: string | null;
+  is_published: boolean;
+  published_at: string | null;
+  created_at: string;
+}
+
+export interface NewsPostInput {
+  title: string;
+  body: string;
+  tag: string;
+  link_url?: string | null;
+  link_label?: string | null;
+  is_published?: boolean;
+}
+
+export const getAdminNews = async (): Promise<NewsPost[]> =>
+  (await client.get('/admin/news')).data;
+
+export const createNewsPost = async (data: NewsPostInput): Promise<NewsPost> =>
+  (await client.post('/admin/news', data)).data;
+
+export const updateNewsPost = async (id: string, data: Partial<NewsPostInput>): Promise<NewsPost> =>
+  (await client.patch(`/admin/news/${id}`, data)).data;
+
+export const deleteNewsPost = async (id: string) =>
+  (await client.delete(`/admin/news/${id}`)).data;
+
 export const createFAQ = async (data: { question: string; answer: string; category: string; sort_order?: number }): Promise<FAQEntry> =>
   (await client.post('/admin/faq', data)).data;
 

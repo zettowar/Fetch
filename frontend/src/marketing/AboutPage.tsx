@@ -19,10 +19,6 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold tracking-tight">Our story</h2>
           <div className="mt-4 space-y-4 text-base leading-relaxed text-gray-600 dark:text-gray-400">
             <p>
-              Some ask why. Some ask how. Both answers are shorter than you
-              might expect.
-            </p>
-            <p>
               The why is our founder, Jordan Kelly. He wants to save as many
               pets as possible in the time he has — and there are more pets
               who need saving than one person can reach. So he built something
@@ -69,7 +65,7 @@ export default function AboutPage() {
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <ValueCard emoji="🐾" title="Pets first" body="The test for every feature is simple: does it help a pet get seen, get found, or get home? If not, it doesn't ship." />
             <ValueCard emoji="🤝" title="Kind by default" body="There is no downvote on Fetchpawz. The harshest thing you can do to a pet here is pass, and someone else will like them within the hour." />
-            <ValueCard emoji="🛟" title="Safety net" body="When a pet goes missing, minutes matter. An alert goes out to everyone nearby, and sightings go straight to the owner." />
+            <ValueCard emoji="🛟" title="Useful off the couch" body="The app should matter in the real world — a park to meet at, a tag that gets a found pet home, an alert the minute one goes missing." />
           </div>
         </section>
 

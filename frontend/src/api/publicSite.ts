@@ -27,6 +27,21 @@ export interface PublicTopDog {
   photo_url: string | null;
 }
 
+export interface PublicNewsPost {
+  id: string;
+  title: string;
+  body: string;
+  tag: string;
+  link_url: string | null;
+  link_label: string | null;
+  published_at: string | null;
+}
+
+export async function getPublicNews(): Promise<PublicNewsPost[]> {
+  const res = await client.get('/public/news');
+  return res.data;
+}
+
 export async function getPublicDog(petId: string): Promise<PublicDog> {
   const res = await client.get(`/public/pets/${petId}`);
   return res.data;

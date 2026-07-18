@@ -135,6 +135,21 @@ async def send_email_change_email(to: str, raw_token: str) -> bool:
     )
 
 
+async def send_waitlist_confirmation_email(to: str) -> bool:
+    return await send_email(
+        to,
+        "You're on the Fetchpawz waitlist",
+        _layout(
+            "You're on the list 🐾",
+            "<p>Fetchpawz is invite-only while we get it ready. You're in line "
+            "now — when a spot opens, your invite lands in this inbox. "
+            "Nothing else to do.</p>",
+            cta_url=settings.FRONTEND_BASE_URL,
+            cta_label="Sniff around the site",
+        ),
+    )
+
+
 async def send_contact_relay_email(
     to: str, *, sender_name: str, sender_email: str, report_title: str, message: str
 ) -> bool:
