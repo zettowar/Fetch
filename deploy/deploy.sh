@@ -16,6 +16,8 @@
 #   make deploy                 # normal path
 #   SKIP_BACKUP=1 make deploy   # skip the pre-deploy backup (e.g. no data yet)
 #   FORCE=1 make deploy         # proceed even if the pre-deploy backup fails
+#   AUTO_HEAL=1 make deploy     # if the stack is split across networks, run a
+#                               #   full down/up automatically (volumes kept)
 #   WAIT_TIMEOUT=600 make deploy # allow longer for slow first-time image builds
 set -euo pipefail
 
@@ -46,6 +48,38 @@ service_running() {
   dc ps "$1" 2>/dev/null | grep -Eq 'running|healthy|[[:space:]]Up'
 }
 
+# Reproduce the lookup the backend does at boot: a fresh one-off container on
+# the network THIS compose config uses tries to resolve `db`. Non-zero exit means
+# a running db is stranded on a stale network and a rolling deploy would fail.
+db_reachable_on_compose_network() {
+  local i
+  for i in 1 2; do
+    dc run --rm --no-deps -T --entrypoint sh db-backup -c 'getent hosts db >/dev/null 2>&1' && return 0
+    sleep 1
+  done
+  return 1
+}
+
+# Print the data-safe remediation for a split/stranded network.
+print_network_remedy() {
+  printf '%s\n' "  Reconcile with a full restart — data is safe, named volumes (db, uploads, certs) are kept:"
+  printf '%s\n' "    docker compose -f $PROD down --remove-orphans"
+  printf '%s\n' "    make deploy            # or: AUTO_HEAL=1 make deploy"
+}
+
+# On a detected split: auto-heal with down/up if opted in, else stop with guidance.
+heal_or_die() {
+  if [ "${AUTO_HEAL:-0}" = "1" ]; then
+    warn "AUTO_HEAL=1 — reconciling with a full restart (named volumes are preserved)…"
+    dc down --remove-orphans || die "down failed during auto-heal — run it manually, then re-deploy."
+    good "Stack brought down; the up step below will recreate everything on one network."
+  else
+    printf '\n'
+    print_network_remedy
+    die "$1"
+  fi
+}
+
 # ============================================================================
 step "1/5  Pre-flight validation"
 bash "$ROOT/deploy/preflight.sh" || die "Pre-flight failed — nothing was built or changed. Fix the blockers above and re-run."
@@ -53,7 +87,24 @@ bash "$ROOT/deploy/preflight.sh" || die "Pre-flight failed — nothing was built
 DOMAIN="$(env_get DOMAIN)"
 
 # ============================================================================
-step "2/5  Pre-deploy database backup"
+step "2/5  Pre-deploy checks — network sanity + database backup"
+
+# --- Network sanity ---------------------------------------------------------
+# A rolling `up` reuses the already-running stateful containers (db/redis/…).
+# If an earlier deploy left them on a stale network — e.g. a networks: config
+# change recreated the project network — the freshly-created backend lands on a
+# different network and dies with a cryptic getaddrinfo("db"). Reproduce that
+# lookup here, before building anything, and stop (or auto-heal) with guidance.
+if service_running db; then
+  info "Verifying db is reachable on the current compose network…"
+  if db_reachable_on_compose_network; then
+    good "db resolves on the compose network."
+  else
+    warn "db is running but a fresh container on this compose network can't resolve it — the stack is split across networks."
+    heal_or_die "Stranded network detected: a rolling deploy would leave the new backend unable to reach db."
+  fi
+fi
+
 if [ "${SKIP_BACKUP:-0}" = "1" ]; then
   info "SKIP_BACKUP=1 — skipping."
 elif service_running db; then
@@ -87,6 +138,13 @@ if ! dc up -d --build --remove-orphans $WAIT_ARGS; then
   dc ps || true
   printf '\n%sRecent backend logs:%s\n' "$BLD" "$RST"
   dc logs --tail 50 backend || true
+  # Targeted diagnosis: a backend that can't resolve a peer by name is almost
+  # always the split/stranded-network state — point straight at the fix.
+  if dc logs --tail 50 backend 2>/dev/null \
+       | grep -qiE 'could not translate host name|name or service not known|gaierror'; then
+    printf '\n%s! Looks like a split-network / DNS failure — containers can'\''t resolve each other by name.%s\n' "$YEL$BLD" "$RST"
+    print_network_remedy
+  fi
   die "Stack did not come up healthy within ${TIMEOUT}s. Your data is intact (see the pre-deploy backup). Debug with: make prod-logs"
 fi
 good "All containers reported healthy."

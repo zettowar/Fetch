@@ -79,7 +79,26 @@ Useful flags:
 ```bash
 SKIP_BACKUP=1 make deploy     # no data yet / backing up separately
 FORCE=1       make deploy     # proceed even if the pre-deploy backup fails
+AUTO_HEAL=1   make deploy     # if the stack is split across networks, run a
+                              #   full down/up automatically (named volumes kept)
 WAIT_TIMEOUT=600 make deploy  # slow first-time image build
+```
+
+### Split-network / "could not translate host name" failures
+
+A rolling `make deploy` reuses the already-running stateful containers
+(`db`, `redis`, `caddy`). If an earlier deploy recreated the project network —
+e.g. after a change to a `networks:` block — those containers get stranded on
+the old network while the new `backend` lands on the fresh one, so it fails at
+boot with `getaddrinfo`/`could not translate host name "db"`. The deploy now
+detects this up front (a one-off container that can't resolve `db`) and stops
+with guidance; only a full restart reconciles it:
+
+```bash
+docker compose -f docker-compose.prod.yml down --remove-orphans   # data-safe: named volumes kept
+make deploy
+# or let the deploy do it for you:
+AUTO_HEAL=1 make deploy
 ```
 
 ## Day-2 operations
