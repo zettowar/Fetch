@@ -1,6 +1,15 @@
-# Environment
+# Environment — ignore every .env variant/backup (.env.bak, .env.save, .env.local,
+# .env.production, …), but keep the tracked template.
 .env
+.env.*
+!.env.example
 *.env.local
+
+# Stray secrets & DB dumps that must never be committed (e.g. predeploy-*.dump,
+# on-box .env backups). Belt-and-suspenders alongside the .env.* rule above.
+*.bak
+*.dump
+*.sql.gz
 
 # OS
 .DS_Store
