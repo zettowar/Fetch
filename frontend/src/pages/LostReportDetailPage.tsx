@@ -147,7 +147,11 @@ export default function LostReportDetailPage() {
         <button
           onClick={() =>
             shareLink(
-              `${window.location.origin}/app/lost/${id}`,
+              // Public reports share the crawlable, logged-out-friendly page;
+              // otherwise fall back to the in-app URL (owner-only utility).
+              report.is_public
+                ? `${window.location.origin}/lost/${id}`
+                : `${window.location.origin}/app/lost/${id}`,
               `${report.kind === 'missing' ? 'Missing' : 'Found'}: ${report.pet_name || 'Pet'}`,
             )
           }
@@ -226,6 +230,41 @@ export default function LostReportDetailPage() {
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
         Reported <TimeAgo value={report.created_at} />
       </p>
+
+      {/* Spread the word — one-tap sharing to the public page */}
+      {report.is_public && report.status === 'open' && (() => {
+        const publicUrl = `${window.location.origin}/lost/${id}`;
+        const label = report.kind === 'missing' ? 'MISSING' : 'FOUND';
+        const line = `🚨 ${label}: ${report.pet_name || 'a pet'} — please share to help!`;
+        const nextdoor = `https://nextdoor.com/sharekit/?source=fetchpawz&body=${encodeURIComponent(`${line} ${publicUrl}`)}`;
+        const facebook = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(publicUrl)}`;
+        const twitter = `https://twitter.com/intent/tweet?text=${encodeURIComponent(line)}&url=${encodeURIComponent(publicUrl)}`;
+        return (
+          <div className="mt-5 p-4 rounded-2xl border border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold mb-0.5">Spread the word</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              The more neighbors who see {report.pet_name || 'this pet'}, the better the odds of a reunion.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <a href={nextdoor} target="_blank" rel="noopener noreferrer" className="text-center text-sm font-semibold px-3 py-2.5 rounded-xl bg-[#8ed500] text-[#14330a] hover:opacity-90 transition-opacity">
+                Nextdoor
+              </a>
+              <a href={facebook} target="_blank" rel="noopener noreferrer" className="text-center text-sm font-semibold px-3 py-2.5 rounded-xl bg-[#1877f2] text-white hover:opacity-90 transition-opacity">
+                Facebook
+              </a>
+              <a href={twitter} target="_blank" rel="noopener noreferrer" className="text-center text-sm font-semibold px-3 py-2.5 rounded-xl bg-gray-900 text-white hover:opacity-90 transition-opacity">
+                Share to X
+              </a>
+              <button type="button" onClick={() => shareLink(publicUrl, line)} className="text-center text-sm font-semibold px-3 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:opacity-90 transition-opacity">
+                More…
+              </button>
+            </div>
+            <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="block mt-2.5 text-xs text-center text-brand-600 dark:text-brand-400 hover:underline">
+              View public page
+            </a>
+          </div>
+        );
+      })()}
 
       {/* Microchip registry links */}
       <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl text-sm">

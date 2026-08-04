@@ -13,7 +13,7 @@ from app.config import settings
 from app.limiter import limiter
 from app.logging import setup_logging
 from app.middleware import RequestIDMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
-from app.routers import auth, users, pets, breeds, photos, feed, votes, rankings, reports, admin, admin_ops, scheduled_tasks, lost, social, parks, vets, playdates, posts, rescues, pet_transfers, support, billing, donations, notifications, feedback, adoption, public, tags, oauth
+from app.routers import auth, users, pets, breeds, photos, feed, votes, rankings, reports, admin, admin_ops, scheduled_tasks, lost, social, parks, vets, playdates, posts, rescues, pet_transfers, support, billing, donations, notifications, feedback, adoption, public, tags, oauth, share
 
 logger = structlog.stdlib.get_logger()
 
@@ -96,6 +96,9 @@ app.include_router(donations.router, prefix="/api/v1/donations", tags=["donation
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])
 app.include_router(feedback.router, prefix="/api/v1", tags=["feedback"])
 app.include_router(tags.router, prefix="/api/v1/tags", tags=["tags"])
+# Root-mounted (no /api prefix): server-rendered public share pages, sitemap and
+# robots. In prod nginx proxies /lost, /sitemap.xml and /robots.txt here.
+app.include_router(share.router, tags=["share"])
 
 
 @app.get("/healthz")

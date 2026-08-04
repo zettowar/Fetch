@@ -22,6 +22,7 @@ export interface LostReport {
   location_fuzz_m: number;
   description: string;
   contact_method: string;
+  is_public: boolean;
   resolved_at: string | null;
   created_at: string;
   photos: LostReportPhoto[];
@@ -78,6 +79,7 @@ export async function createLostReport(data: {
   description: string;
   contact_method?: string;
   contact_value?: string;
+  is_public?: boolean;
 }): Promise<LostReport> {
   const res = await client.post('/lost/reports', data);
   return res.data;
@@ -91,7 +93,7 @@ export async function getLostReport(id: string): Promise<LostReport> {
 export async function updateLostReport(
   id: string,
   // `status` is not editable here — use the dedicated resolve endpoint.
-  data: Partial<{ description: string; last_seen_lat: number; last_seen_lng: number }>,
+  data: Partial<{ description: string; last_seen_lat: number; last_seen_lng: number; is_public: boolean }>,
 ): Promise<LostReport> {
   const res = await client.patch(`/lost/reports/${id}`, data);
   return res.data;

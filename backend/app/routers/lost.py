@@ -134,6 +134,7 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
         location_fuzz_m=report.location_fuzz_m or 500,
         description=report.description,
         contact_method=report.contact_method,
+        is_public=report.is_public,
         resolved_at=report.resolved_at,
         created_at=report.created_at,
         photos=photos,
@@ -183,6 +184,7 @@ async def create_report(
         description=body.description,
         contact_method=body.contact_method,
         contact_value=body.contact_value,
+        is_public=body.is_public,
     )
     db.add(report)
     await db.commit()
@@ -303,7 +305,12 @@ async def update_report(
     await db.commit()
     result = await db.execute(
         select(LostReport)
-        .options(selectinload(LostReport.photos), selectinload(LostReport.sightings))
+        .options(
+            selectinload(LostReport.photos),
+            selectinload(LostReport.sightings),
+            selectinload(LostReport.pet).selectinload(Pet.photos),
+            selectinload(LostReport.pet).selectinload(Pet.breeds),
+        )
         .where(LostReport.id == report_id)
     )
     report = result.scalar_one()
@@ -334,7 +341,12 @@ async def resolve_report(
 
     result = await db.execute(
         select(LostReport)
-        .options(selectinload(LostReport.photos), selectinload(LostReport.sightings))
+        .options(
+            selectinload(LostReport.photos),
+            selectinload(LostReport.sightings),
+            selectinload(LostReport.pet).selectinload(Pet.photos),
+            selectinload(LostReport.pet).selectinload(Pet.breeds),
+        )
         .where(LostReport.id == report_id)
     )
     report = result.scalar_one()

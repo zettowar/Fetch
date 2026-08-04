@@ -29,6 +29,16 @@ class LostReport(Base, UUIDPrimaryKey, TimestampMixin):
     status: Mapped[str] = mapped_column(
         String(20), default="open", nullable=False, index=True
     )  # open | resolved | closed
+    # Opt-in public share page. When True, GET /lost/{id} renders a public,
+    # crawlable, shareable page (OG tags + Nextdoor/Facebook/X buttons) and the
+    # report is listed in sitemap.xml. New reports default True via the create
+    # schema + a (pre-checked, explainable) UI toggle; the DB server_default is
+    # False so pre-existing rows are NOT retroactively exposed off-platform —
+    # the owner has to opt each older report in. Coordinates stay fuzzed either
+    # way; this flag only controls whether the shareable page exists at all.
+    is_public: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="false"
+    )
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_seen_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     last_seen_lng: Mapped[float | None] = mapped_column(Float, nullable=True)

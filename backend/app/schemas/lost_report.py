@@ -28,6 +28,10 @@ class LostReportCreate(BaseModel):
     description: str = Field(..., max_length=2000)
     contact_method: str = "in_app"
     contact_value: str | None = Field(default=None, max_length=200)
+    # Opt-in (default on) to a public, shareable page at /lost/{id}. Coordinates
+    # are always fuzzed for the public; this only controls whether the page +
+    # sitemap entry exist. Owners can flip it later via PATCH.
+    is_public: bool = True
 
     @field_validator("location_fuzz_m")
     @classmethod
@@ -73,6 +77,8 @@ class LostReportUpdate(BaseModel):
     location_fuzz_m: int | None = None
     contact_method: str | None = None
     contact_value: str | None = Field(default=None, max_length=200)
+    # Toggle the public share page on/off after the fact.
+    is_public: bool | None = None
 
     @field_validator("location_fuzz_m")
     @classmethod
@@ -110,6 +116,7 @@ class LostReportOut(BaseModel):
     location_fuzz_m: int = 500
     description: str
     contact_method: str
+    is_public: bool = True
     resolved_at: datetime | None = None
     created_at: datetime
     photos: list[LostReportPhotoOut] = []

@@ -21,6 +21,7 @@ export default function ReportMissingPage() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [radius, setRadius] = useState(500); // meters
+  const [isPublic, setIsPublic] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,6 +44,7 @@ export default function ReportMissingPage() {
         last_seen_lng: location.lng,
         last_seen_at: new Date().toISOString(),
         location_fuzz_m: radius,
+        is_public: isPublic,
       });
       toast.success('Missing pet report created');
       navigate(`/app/lost/${report.id}`);
@@ -112,6 +114,22 @@ export default function ReportMissingPage() {
             accentColor="#ef4444"
           />
         </div>
+
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isPublic}
+            onChange={(e) => setIsPublic(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-brand-500"
+          />
+          <span className="text-sm text-gray-700 dark:text-gray-300">
+            <span className="font-medium">Create a public share page</span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Get a shareable link (with photo) to post on Nextdoor, Facebook and X and widen
+              the search. The exact location is always blurred — you can turn this off anytime.
+            </span>
+          </span>
+        </label>
 
         <Button type="submit" loading={saving} className="w-full" variant="danger">
           Report Missing
