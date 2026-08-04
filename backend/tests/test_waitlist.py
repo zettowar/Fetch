@@ -157,3 +157,77 @@ async def test_invite_requires_admin(client: AsyncClient, auth_headers: dict):
     # The admin gate runs before the handler, so a non-admin gets 403 regardless.
     res = await client.post(f"/api/v1/waitlist/{uuid.uuid4()}/invite", headers=auth_headers)
     assert res.status_code == 403
+
+
+# --- Invite lookup (signup-form prefill) ---
+
+async def _invite(client: AsyncClient, admin_headers: dict, email: str) -> str:
+    """Waitlist `email`, then admin-invite them; returns the minted code."""
+    await _join(client, email)
+    entry = await _get_entry(client, admin_headers, email)
+    res = await client.post(
+        f"/api/v1/waitlist/{entry['id']}/invite", headers=admin_headers
+    )
+    assert res.status_code == 200, res.text
+    return res.json()["code"]
+
+
+@pytest.mark.asyncio
+async def test_invite_lookup_returns_invited_email(client: AsyncClient, admin_headers: dict):
+    email = _email()
+    code = await _invite(client, admin_headers, email)
+
+    res = await client.get(f"/api/v1/public/invite/{code}")
+    assert res.status_code == 200, res.text
+    assert res.json() == {"status": "valid", "email": email}
+
+
+@pytest.mark.asyncio
+async def test_invite_lookup_is_case_insensitive(client: AsyncClient, admin_headers: dict):
+    """Signup upper-cases the code, so the lookup must agree — otherwise a
+    hand-typed code reads as unknown and then signs up fine."""
+    email = _email()
+    code = await _invite(client, admin_headers, email)
+
+    res = await client.get(f"/api/v1/public/invite/{code.lower()}")
+    assert res.status_code == 200
+    assert res.json()["email"] == email
+
+
+@pytest.mark.asyncio
+async def test_invite_lookup_unknown_code(client: AsyncClient):
+    res = await client.get("/api/v1/public/invite/FETCH-NOTREAL")
+    assert res.status_code == 200
+    assert res.json() == {"status": "unknown", "email": None}
+
+
+@pytest.mark.asyncio
+async def test_invite_lookup_admin_code_has_no_email(client: AsyncClient, admin_headers: dict):
+    """Admin-minted codes aren't tied to anyone, so there's nothing to prefill."""
+    made = await client.post("/api/v1/invites/generate", json={"count": 1},
+                             headers=admin_headers)
+    assert made.status_code == 201, made.text
+    code = made.json()[0]["code"]
+
+    res = await client.get(f"/api/v1/public/invite/{code}")
+    assert res.status_code == 200
+    assert res.json() == {"status": "valid", "email": None}
+
+
+@pytest.mark.asyncio
+async def test_invite_lookup_hides_email_once_used(client: AsyncClient, admin_headers: dict,
+                                                   monkeypatch):
+    """A consumed code stops disclosing the address it was issued to."""
+    email = _email()
+    code = await _invite(client, admin_headers, email)
+
+    monkeypatch.setattr(settings, "INVITE_REQUIRED", True)
+    signed = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "password123",
+        "display_name": "Invited", "invite_code": code,
+    })
+    assert signed.status_code == 201, signed.text
+
+    res = await client.get(f"/api/v1/public/invite/{code}")
+    assert res.status_code == 200
+    assert res.json() == {"status": "used", "email": None}

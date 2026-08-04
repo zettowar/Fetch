@@ -5,15 +5,18 @@ identity), and only while the owner leaves the pet public (pets.is_public,
 on by default, toggleable in the pet editor).
 """
 from datetime import date
+from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
+from app.limiter import limiter
+from app.models.beta import InviteCode, WaitlistEntry
 from app.models.news import NewsPost
 from app.models.pet import Pet
 from app.models.qr_tag import QRTag
@@ -301,3 +304,51 @@ async def public_top_pet(
         score=winner.score,
         photo_url=display_photo_url(pet),
     )
+
+
+class PublicInviteOut(BaseModel):
+    """What the signup form needs to prefill itself from an emailed invite.
+
+    ``email`` comes back only for a still-valid code, so a consumed or guessed
+    code discloses nothing.
+    """
+
+    status: Literal["valid", "used", "unknown"]
+    email: str | None = None
+
+
+@router.get("/invite/{code}", response_model=PublicInviteOut)
+@limiter.limit("30/hour")
+async def lookup_invite(
+    request: Request,
+    code: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Resolve an emailed invite code to the address it was sent to.
+
+    This exists so the invite link can stay ``/signup?invite=<code>``: putting
+    the recipient's email in the query string would leak it into web-server
+    access logs, outbound Referer headers, and browser history.
+    """
+    # Normalized the same way /auth/signup normalizes it, so a hand-typed
+    # lowercase code doesn't report "unknown" here and then sign up fine.
+    normalized = code.strip().upper()
+
+    invite = (
+        await db.execute(select(InviteCode).where(InviteCode.code == normalized))
+    ).scalar_one_or_none()
+    if invite is None:
+        return PublicInviteOut(status="unknown")
+    if invite.is_used:
+        return PublicInviteOut(status="used")
+
+    # Only waitlist invites carry an address; admin-minted codes have none, and
+    # those simply prefill nothing.
+    email = (
+        await db.execute(
+            select(WaitlistEntry.email)
+            .where(WaitlistEntry.invite_code == normalized)
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    return PublicInviteOut(status="valid", email=email)

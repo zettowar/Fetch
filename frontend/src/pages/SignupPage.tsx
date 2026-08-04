@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { signup } from '../api/auth';
+import { lookupInvite } from '../api/publicSite';
 import { useAuth } from '../store/AuthContext';
 import AuthHero from '../components/AuthHero';
 import Button from '../components/ui/Button';
@@ -17,9 +18,39 @@ export default function SignupPage() {
   const [searchParams] = useSearchParams();
   // Pre-fill the code when arriving from an emailed invite link (?invite=…).
   const [inviteCode, setInviteCode] = useState(() => searchParams.get('invite') ?? '');
+  const [inviteNotice, setInviteNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Arriving from an emailed invite link: resolve the code to the address it
+  // was sent to and prefill it. Prefill is a convenience only — the field stays
+  // editable, and a lookup failure leaves signup working exactly as before.
+  useEffect(() => {
+    const code = searchParams.get('invite');
+    if (!code) return;
+    let cancelled = false;
+    lookupInvite(code)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === 'valid') {
+          // Never clobber something the user has already typed.
+          if (res.email) setEmail((current) => current || res.email!);
+        } else {
+          setInviteNotice(
+            res.status === 'used'
+              ? 'That invite code has already been used.'
+              : "We didn't recognize that invite code.",
+          );
+        }
+      })
+      .catch(() => {
+        /* Prefill is best-effort; the form is still fully usable. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,8 +119,14 @@ export default function SignupPage() {
               onChange={(e) => setInviteCode(e.target.value)}
               autoComplete="off"
             />
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              Required while Fetchpawz is in private beta.
+            <p
+              className={`text-xs ${
+                inviteNotice
+                  ? 'text-red-500 dark:text-red-400'
+                  : 'text-gray-400 dark:text-gray-500'
+              }`}
+            >
+              {inviteNotice ?? 'Required while Fetchpawz is in private beta.'}
             </p>
           </div>
 

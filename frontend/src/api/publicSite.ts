@@ -87,3 +87,16 @@ export async function getPublicFlags(): Promise<PublicFlags> {
   const res = await client.get('/public/flags');
   return res.data;
 }
+
+// Resolve an emailed invite code to the address it was sent to, so the signup
+// form can prefill it. The email is deliberately absent from the invite URL —
+// a query string would leak it into access logs and Referer headers.
+export interface InviteLookup {
+  status: 'valid' | 'used' | 'unknown';
+  email: string | null;
+}
+
+export async function lookupInvite(code: string): Promise<InviteLookup> {
+  const res = await client.get(`/public/invite/${encodeURIComponent(code)}`);
+  return res.data;
+}
