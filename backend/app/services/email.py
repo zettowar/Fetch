@@ -19,17 +19,36 @@ logger = structlog.stdlib.get_logger()
 RESEND_API_URL = "https://api.resend.com/emails"
 
 
-async def send_email(
+def _resend_error(resp: httpx.Response) -> str:
+    """Pull the human-readable reason out of a Resend error response."""
+    try:
+        data = resp.json()
+    except ValueError:
+        data = None
+    if isinstance(data, dict):
+        message = data.get("message") or (data.get("error") or {}).get("message")
+        if isinstance(message, str) and message:
+            return message
+    return resp.text[:200].strip() or "no response body"
+
+
+async def _deliver(
     to: str,
     subject: str,
     body_html: str,
     *,
     reply_to: str | None = None,
-) -> bool:
-    """Send one email. Returns True only when Resend accepted the message."""
+) -> tuple[bool, str]:
+    """POST one message to Resend. Returns (accepted, human-readable reason).
+
+    Never raises. Callers that only care whether it worked use send_email();
+    the reason exists for the admin deliverability probe, which is useless
+    without it — "failed" alone doesn't distinguish a missing API key from an
+    unverified sender domain.
+    """
     if not settings.RESEND_API_KEY:
         logger.info("email_skipped_no_provider", to=to, subject=subject)
-        return False
+        return False, "RESEND_API_KEY is not set — email delivery is disabled."
 
     payload: dict = {
         "from": settings.EMAIL_FROM,
@@ -49,17 +68,29 @@ async def send_email(
             )
     except Exception as exc:  # noqa: BLE001
         logger.warning("email_send_failed", to=to, subject=subject, error=str(exc))
-        return False
+        return False, f"Could not reach Resend: {exc}"
 
     if resp.status_code >= 400:
         logger.warning(
             "email_send_rejected", to=to, subject=subject,
             status=resp.status_code, body=resp.text[:500],
         )
-        return False
+        return False, f"Resend rejected it (HTTP {resp.status_code}): {_resend_error(resp)}"
 
     logger.info("email_sent", to=to, subject=subject)
-    return True
+    return True, "Resend accepted the message."
+
+
+async def send_email(
+    to: str,
+    subject: str,
+    body_html: str,
+    *,
+    reply_to: str | None = None,
+) -> bool:
+    """Send one email. Returns True only when Resend accepted the message."""
+    accepted, _ = await _deliver(to, subject, body_html, reply_to=reply_to)
+    return accepted
 
 
 def _layout(heading: str, body: str, cta_url: str | None = None, cta_label: str | None = None) -> str:
@@ -190,6 +221,26 @@ async def send_contact_relay_email(
             "<p>Reply to this email to answer them directly.</p>",
         ),
         reply_to=sender_email,
+    )
+
+
+async def send_test_email(to: str) -> tuple[bool, str]:
+    """Admin deliverability probe. Returns (accepted, human-readable reason).
+
+    Unlike every other sender here it reports *why* a send failed — checking
+    that the Resend key, sender domain, and DNS actually work is the point.
+    """
+    return await _deliver(
+        to,
+        "Fetchpawz test email",
+        _layout(
+            "Email is working 🐾",
+            "<p>An admin sent this from Admin → System to confirm that "
+            "transactional email is configured correctly. Nothing to do.</p>"
+            f'<p style="color:#6b7280;font-size:13px;">Sender: '
+            f"<strong>{html.escape(settings.EMAIL_FROM)}</strong><br>"
+            f"Environment: <strong>{html.escape(settings.ENVIRONMENT)}</strong></p>",
+        ),
     )
 
 

@@ -9,9 +9,11 @@ import {
   updateScheduledTask,
   deleteScheduledTask,
   runScheduledTask,
+  sendTestEmail,
   type PeriodicTask,
   type PeriodicTaskInput,
   type ScheduleType,
+  type TestEmailResult,
 } from '../../api/admin';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -48,6 +50,8 @@ export default function AdminSystemPage() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...BLANK });
+  const [testEmail, setTestEmail] = useState('');
+  const [testResult, setTestResult] = useState<TestEmailResult | null>(null);
   const set = <K extends keyof typeof BLANK>(key: K, value: (typeof BLANK)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
@@ -160,6 +164,22 @@ export default function AdminSystemPage() {
     onError: () => toast.error('Failed'),
   });
 
+  const testEmailMutation = useMutation({
+    mutationFn: () => sendTestEmail(testEmail.trim()),
+    onSuccess: (res) => {
+      // A rejected send still resolves — the reason is the whole point.
+      setTestResult(res);
+      if (res.delivered) toast.success('Test email sent');
+      else toast.error('Send failed');
+    },
+    onError: (e: unknown) => {
+      setTestResult(null);
+      toast.error(errDetail(e) ?? 'Could not send test email');
+    },
+  });
+
+  const canSendTest = /^\S+@\S+\.\S+$/.test(testEmail.trim());
+
   const startEdit = (job: PeriodicTask) => {
     setEditId(job.id);
     setForm({
@@ -224,6 +244,61 @@ export default function AdminSystemPage() {
           dispatched but silently discarded. Fix the task name or remove the job.
         </div>
       )}
+
+      {/* Email deliverability probe */}
+      <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+        Email
+      </h2>
+      <Card className="mb-6 flex flex-col gap-3">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Sends a probe through Resend to confirm the API key, sender domain, and DNS are
+          working. Failures are reported here with the provider's reason.
+        </p>
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Input
+              label="Send a test email to"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={testEmail}
+              onChange={(e) => {
+                setTestEmail(e.target.value);
+                setTestResult(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && canSendTest && !testEmailMutation.isPending) {
+                  testEmailMutation.mutate();
+                }
+              }}
+            />
+          </div>
+          <Button
+            onClick={() => testEmailMutation.mutate()}
+            loading={testEmailMutation.isPending}
+            disabled={!canSendTest}
+          >
+            Send test
+          </Button>
+        </div>
+        {testResult && (
+          <div
+            className={`rounded-lg border p-3 text-sm ${
+              testResult.delivered
+                ? 'bg-success-50 dark:bg-success-500/10 border-success-200 dark:border-success-500/30 text-success-700 dark:text-success-300'
+                : 'bg-danger-50 dark:bg-danger-500/10 border-danger-200 dark:border-danger-500/30 text-danger-700 dark:text-danger-300'
+            }`}
+          >
+            <p className="font-medium">
+              {testResult.delivered ? 'Accepted by Resend' : 'Not delivered'}
+            </p>
+            <p className="mt-0.5">{testResult.detail}</p>
+            <p className="mt-1 text-2xs opacity-80">
+              Sent from <span className="font-mono">{testResult.sent_from}</span>
+            </p>
+          </div>
+        )}
+      </Card>
 
       {/* Editor header */}
       <div className="flex items-center justify-between mb-2">

@@ -116,3 +116,15 @@ class SettingUpdate(BaseModel):
 class SystemJobsOut(BaseModel):
     broker_queue_depth: int | None = None
     registered_tasks: list[str]
+
+
+class TestEmailRequest(BaseModel):
+    email: EmailStr
+
+
+class TestEmailResult(BaseModel):
+    """A failed probe is still a successful diagnostic, so this comes back 200
+    with delivered=False rather than as an error."""
+    delivered: bool
+    detail: str
+    sent_from: str

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from app.config import settings
 from app.db import get_db
 from app.deps import STAFF_ROLES, require_admin, require_staff
+from app.limiter import limiter
 from app.models.adoption import AdoptionInquiry
 from app.models.announcement import Announcement
 from app.models.app_setting import AppSetting
@@ -35,6 +36,8 @@ from app.schemas.admin_ops import (
     SettingOut,
     SettingUpdate,
     SystemJobsOut,
+    TestEmailRequest,
+    TestEmailResult,
 )
 from app.schemas.rescue import RescueProfileOut
 from app.security import (
@@ -43,7 +46,11 @@ from app.security import (
     hash_reset_token,
 )
 from app.services import settings_service
-from app.services.email import send_password_reset_email, send_verification_email
+from app.services.email import (
+    send_password_reset_email,
+    send_test_email,
+    send_verification_email,
+)
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -464,4 +471,27 @@ async def system_jobs(
     return SystemJobsOut(
         broker_queue_depth=queue_depth,
         registered_tasks=sorted(registered),
+    )
+
+
+@router.post("/system/test-email", response_model=TestEmailResult)
+@limiter.limit("10/hour")
+async def system_test_email(
+    request: Request,
+    body: TestEmailRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a probe email to verify the Resend key, sender domain, and DNS.
+
+    This is the only admin endpoint that mails an address which needn't belong
+    to a user, so it stays narrow: admin-only, rate-limited, and audited.
+    """
+    delivered, detail = await send_test_email(str(body.email))
+    await _log(db, actor_id=admin.id, action="system.test_email",
+               metadata={"email": str(body.email), "delivered": delivered})
+    await db.commit()
+
+    return TestEmailResult(
+        delivered=delivered, detail=detail, sent_from=settings.EMAIL_FROM,
     )

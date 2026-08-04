@@ -534,6 +534,17 @@ export interface SystemJobs {
 export const getSystemJobs = async (): Promise<SystemJobs> =>
   (await client.get('/admin/system/jobs')).data;
 
+export interface TestEmailResult {
+  delivered: boolean;
+  detail: string;
+  sent_from: string;
+}
+
+/** Email deliverability probe. Resolves (not rejects) when the send fails —
+ *  `delivered: false` plus a reason is the useful diagnostic. */
+export const sendTestEmail = async (email: string): Promise<TestEmailResult> =>
+  (await client.post('/admin/system/test-email', { email })).data;
+
 // --- Scheduled jobs (editable Celery Beat schedule) ---
 
 export type ScheduleType = 'interval' | 'crontab';

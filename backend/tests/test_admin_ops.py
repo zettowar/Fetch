@@ -314,6 +314,115 @@ async def test_system_jobs_reports_registered_tasks(client: AsyncClient, admin_h
     assert all(t.startswith("app.tasks.") for t in body["registered_tasks"])
 
 
+# --- System / test email ---
+
+@pytest.mark.asyncio
+async def test_test_email_requires_admin(client: AsyncClient, auth_headers: dict):
+    res = await client.post("/api/v1/admin/system/test-email",
+                            json={"email": "someone@example.dev"}, headers=auth_headers)
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_test_email_rejects_invalid_address(client: AsyncClient, admin_headers: dict):
+    res = await client.post("/api/v1/admin/system/test-email",
+                            json={"email": "not-an-email"}, headers=admin_headers)
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_test_email_reports_unconfigured_provider(client: AsyncClient, admin_headers: dict):
+    """No Resend key in tests: a 200 carrying the reason, not an error — the
+    admin needs to read why it didn't send."""
+    res = await client.post("/api/v1/admin/system/test-email",
+                            json={"email": "someone@example.dev"}, headers=admin_headers)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["delivered"] is False
+    assert "RESEND_API_KEY" in body["detail"]
+    assert body["sent_from"]
+
+
+@pytest.mark.asyncio
+async def test_test_email_delivers_and_audits(client: AsyncClient, admin_headers: dict, monkeypatch):
+    import httpx as _httpx
+
+    from app.config import settings as _settings
+
+    captured: dict = {}
+
+    class _Resp:
+        status_code = 200
+        text = "{}"
+
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, url, headers=None, json=None):
+            captured.update(json or {})
+            return _Resp()
+
+    monkeypatch.setattr(_settings, "RESEND_API_KEY", "re_test_key")
+    monkeypatch.setattr(_httpx, "AsyncClient", _Client)
+
+    res = await client.post("/api/v1/admin/system/test-email",
+                            json={"email": "probe@example.dev"}, headers=admin_headers)
+    assert res.status_code == 200, res.text
+    assert res.json()["delivered"] is True
+    assert captured["to"] == ["probe@example.dev"]
+
+    logged = await client.get("/api/v1/admin/audit", headers=admin_headers)
+    assert logged.status_code == 200
+    assert "system.test_email" in [e["action"] for e in logged.json()]
+
+
+@pytest.mark.asyncio
+async def test_test_email_surfaces_provider_rejection(client: AsyncClient, admin_headers: dict, monkeypatch):
+    """A 403 from Resend (unverified domain, bad key) must reach the admin
+    verbatim — that string is the entire diagnostic."""
+    import httpx as _httpx
+
+    from app.config import settings as _settings
+
+    class _Resp:
+        status_code = 403
+        text = '{"statusCode":403,"message":"The example.dev domain is not verified."}'
+
+        @staticmethod
+        def json():
+            return {"statusCode": 403, "message": "The example.dev domain is not verified."}
+
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def post(self, *args, **kwargs):
+            return _Resp()
+
+    monkeypatch.setattr(_settings, "RESEND_API_KEY", "re_test_key")
+    monkeypatch.setattr(_httpx, "AsyncClient", _Client)
+
+    res = await client.post("/api/v1/admin/system/test-email",
+                            json={"email": "probe@example.dev"}, headers=admin_headers)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["delivered"] is False
+    assert "not verified" in body["detail"]
+
+
 # --- Donation refund ---
 
 @pytest.mark.asyncio
