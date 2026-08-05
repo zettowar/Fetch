@@ -27,6 +27,7 @@ from app.models.playdate import PlayDate, PlayDateRsvp
 from app.models.post import Post
 from app.models.rescue import RescueProfile
 from app.models.adoption import AdoptionInquiry
+from app.models.pet_trait import PetTrait
 from app.models.pet_transfer import PetTransfer
 from app.models.support import FAQEntry, SupportTicket
 from app.models.entitlement import Entitlement
@@ -76,6 +77,7 @@ __all__ = [
     "Post",
     "RescueProfile",
     "AdoptionInquiry",
+    "PetTrait",
     "PetTransfer",
     "FAQEntry",
     "SupportTicket",

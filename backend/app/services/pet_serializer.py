@@ -50,6 +50,7 @@ def pet_to_out(
     *,
     rescue_name: str | None = None,
     rescue_id: UUID | None = None,
+    viewer_id: UUID | None = None,
 ) -> PetOut:
     """Serialize a Pet.
 
@@ -58,15 +59,29 @@ def pet_to_out(
     `pet.owner.rescue_profile` *if it was eager-loaded* — callers that want
     adoption signals should
     `selectinload(Pet.owner).selectinload(User.rescue_profile)`.
+
+    `viewer_id` opts into the owner's private view: their own photos still in
+    moderation are included (badged, no `url`) so an upload awaiting review
+    doesn't silently vanish. Leave it unset — the default — for any payload
+    another user, the public share page, or the feed can see.
     """
     storage = get_storage()
     # Only surface photos that passed moderation. Anything flagged is withheld
     # from public payloads (the swipe feed already filters the same way).
     approved_photos = [p for p in pet.photos if p.moderation_status == "approved"]
+    visible_photos = approved_photos
+    if viewer_id is not None and viewer_id == pet.owner_id:
+        # Approved first, so `photos[0]` stays the picture everyone else sees.
+        visible_photos = approved_photos + [
+            p for p in pet.photos if p.moderation_status != "approved"
+        ]
+
     photos_out = []
-    for p in approved_photos:
+    for p in visible_photos:
         po = PhotoSummary.model_validate(p)
-        po.url = storage.url(p.storage_key)
+        # In-review photos are withheld by the public file endpoint; the owner
+        # fetches them through the authenticated per-photo route instead.
+        po.url = storage.url(p.storage_key) if p.moderation_status == "approved" else None
         photos_out.append(po)
 
     primary_url = None

@@ -83,6 +83,7 @@ import AdminFeedbackPage from './pages/admin/AdminFeedbackPage';
 import AdminInvitesPage from './pages/admin/AdminInvitesPage';
 import AdminFAQPage from './pages/admin/AdminFAQPage';
 import AdminBreedsPage from './pages/admin/AdminBreedsPage';
+import AdminTraitsPage from './pages/admin/AdminTraitsPage';
 import AdminTagsPage from './pages/admin/AdminTagsPage';
 import AdminParksPage from './pages/admin/AdminParksPage';
 import AdminVetsPage from './pages/admin/AdminVetsPage';
@@ -236,6 +237,7 @@ function AppContent() {
           <Route path="invites" element={<AdminInvitesPage />} />
           <Route path="faq" element={<AdminFAQPage />} />
           <Route path="breeds" element={<AdminBreedsPage />} />
+          <Route path="traits" element={<AdminTraitsPage />} />
           <Route path="tags" element={<AdminTagsPage />} />
           <Route path="parks" element={<AdminParksPage />} />
           <Route path="vets" element={<AdminVetsPage />} />

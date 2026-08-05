@@ -5,6 +5,7 @@ from pydantic import BaseModel, field_validator
 
 from app.schemas.breed import BreedSummary
 from app.schemas.photo import PhotoSummary
+from app.services.traits import MAX_TRAITS_PER_PET, normalize_trait, trait_slug
 
 
 def _not_future_date(v: date | None) -> date | None:
@@ -13,33 +14,31 @@ def _not_future_date(v: date | None) -> date | None:
     return v
 
 
-# Trait vocabularies are species-aware: a shared core plus species-specific
-# extras. The frontend shows only the subset for the pet's species; the schema
-# validates against the union.
-# Keep in sync with frontend/src/api/pets.ts (DOG_TRAITS / CAT_TRAITS).
-_SHARED_TRAITS = {
-    "Playful", "Calm", "Energetic", "Good with kids", "Cuddly",
-    "Independent", "Senior", "Couch potato", "House trained",
-}
-DOG_TRAITS = _SHARED_TRAITS | {
-    "Good with dogs", "Good with cats", "Loves fetch", "Swimmer", "Leash trained",
-}
-CAT_TRAITS = _SHARED_TRAITS | {
-    "Good with cats", "Good with dogs", "Lap cat", "Mouser", "Indoor only",
-}
-TRAITS_BY_SPECIES = {"dog": DOG_TRAITS, "cat": CAT_TRAITS}
-VALID_TRAITS = DOG_TRAITS | CAT_TRAITS
-
 VALID_SPECIES = {"dog", "cat"}
 VALID_MIX_TYPES = {"purebred", "cross", "mixed", "mystery_mutt"}
 MAX_BREEDS_PER_PET = 3
 
 
 def _validate_traits(v: list[str]) -> list[str]:
+    """Shape check only — traits are free-form.
+
+    The vocabulary lives in the `pet_traits` table, so matching a label against
+    it (and creating a pending row for a brand-new one) needs a session and
+    happens in the router via `services.traits.resolve_traits`. Here we only
+    reject what could never be a trait at all.
+    """
+    if len(v) > MAX_TRAITS_PER_PET:
+        raise ValueError(f"At most {MAX_TRAITS_PER_PET} traits per pet")
+    out: list[str] = []
+    seen: set[str] = set()
     for t in v:
-        if t not in VALID_TRAITS:
-            raise ValueError(f"Unknown trait: {t}")
-    return list(dict.fromkeys(v))  # deduplicate, preserve order
+        label = normalize_trait(t)
+        slug = trait_slug(label)
+        if not slug or slug in seen:
+            continue
+        seen.add(slug)
+        out.append(label)
+    return out
 
 
 def _validate_mix_type(v: str) -> str:

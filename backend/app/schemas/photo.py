@@ -29,6 +29,12 @@ class PhotoSummary(BaseModel):
     content_type: str
     sort_order: int
     created_at: datetime
+    # Always "approved" for anyone but the owner — non-approved photos are
+    # withheld from every other payload. Owners see their own in-review photos
+    # so an upload awaiting moderation doesn't look like a failed one; those
+    # come back with `url` unset and must be fetched via
+    # GET /photos/{id}/file (authenticated).
+    moderation_status: str = "approved"
 
     model_config = {"from_attributes": True}
 

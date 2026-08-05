@@ -117,8 +117,11 @@ async def upload_photo(
     await db.commit()
     await db.refresh(photo)
 
-    # Auto-set primary photo if first photo
-    if pet.primary_photo_id is None:
+    # Auto-set primary photo if first photo. Only a photo that actually passed
+    # moderation can be primary — pointing `primary_photo_id` at a withheld
+    # photo leaves every card rendering a blank hero until a reviewer gets to
+    # it. `admin.approve_photo` claims the slot later if it's still empty.
+    if pet.primary_photo_id is None and photo.moderation_status == "approved":
         pet.primary_photo_id = photo.id
         await db.commit()
 
@@ -158,6 +161,38 @@ async def delete_photo(
     except Exception as exc:
         logger.warning("storage_delete_failed", key=key, exc=str(exc))
     return {"detail": "Photo deleted"}
+
+
+@router.get("/photos/{photo_id}/file")
+async def get_own_photo_file(
+    photo_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Serve one of the caller's own photos regardless of moderation status.
+
+    The public `/photos/file/{key}` route withholds anything not approved, which
+    is right for everyone else but means an owner's in-review upload renders as
+    a broken image on their own pet page. Owner-scoped and by id, so it can't be
+    used to enumerate other people's withheld photos.
+    """
+    result = await db.execute(select(Photo).where(Photo.id == photo_id))
+    photo = result.scalar_one_or_none()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    pet_result = await db.execute(select(Pet).where(Pet.id == photo.pet_id))
+    pet = pet_result.scalar_one_or_none()
+    if not pet or pet.owner_id != user.id:
+        # Same 404 a missing photo gives — don't confirm it exists.
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    storage = get_storage()
+    try:
+        data = await storage.get(photo.storage_key)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found")
+    return Response(content=data, media_type=photo.content_type)
 
 
 @router.get("/photos/file/{key:path}")

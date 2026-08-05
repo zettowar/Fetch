@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { HandCoins } from 'lucide-react';
+import { Camera, HandCoins } from 'lucide-react';
 import {
   getMyRescueProfile,
   markDogAdopted,
@@ -18,6 +18,8 @@ import {
   getDonationConfig,
 } from '../api/donations';
 import { getMyPets } from '../api/pets';
+import ImagePicker from '../components/ImagePicker';
+import { normalizeImageFile } from '../utils/image';
 import { listMyInquiries, updateInquiryStatus, type AdoptionInquiry } from '../api/adoption';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -506,30 +508,57 @@ function ImageUploadTile({
   onSelect: (file: File) => void;
   className?: string;
 }) {
+  // Straight to the server, so re-encode: the picker offers the camera and
+  // every format the phone can produce, the endpoint takes JPEG/PNG/WebP.
+  const pick = async (file: File) => {
+    try {
+      onSelect(await normalizeImageFile(file));
+    } catch {
+      toast.error('Couldn’t read that photo — try a JPEG, PNG, or WebP.');
+    }
+  };
+
   return (
-    <label
-      className={`relative overflow-hidden rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 flex items-center justify-center cursor-pointer hover:border-brand-400 transition-colors ${className}`}
-    >
-      {url ? (
-        <img src={url} alt={`${label} preview`} className="absolute inset-0 h-full w-full object-cover" />
-      ) : (
-        <span className="text-xs text-gray-400 dark:text-gray-500">Add {label.toLowerCase()}</span>
+    <ImagePicker onPick={pick} disabled={pending}>
+      {({ openGallery, openCamera }) => (
+        <div
+          className={`relative overflow-hidden rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 flex items-center justify-center ${className}`}
+        >
+          {url ? (
+            <img src={url} alt={`${label} preview`} className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <span className="text-xs text-gray-400 dark:text-gray-500">Add {label.toLowerCase()}</span>
+          )}
+          <div className="absolute inset-x-1 bottom-1 flex items-center justify-end gap-1">
+            {pending ? (
+              <span className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                Uploading…
+              </span>
+            ) : (
+              <>
+                {openCamera && (
+                  <button
+                    type="button"
+                    onClick={openCamera}
+                    aria-label={`Take a ${label.toLowerCase()} photo`}
+                    className="rounded-md bg-black/50 p-1 text-white hover:bg-black/70 transition-colors"
+                  >
+                    <Camera size={13} aria-hidden />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={openGallery}
+                  className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-black/70 transition-colors"
+                >
+                  {url ? `Change ${label.toLowerCase()}` : label}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       )}
-      <span className="absolute bottom-1 right-1 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
-        {pending ? 'Uploading…' : url ? `Change ${label.toLowerCase()}` : label}
-      </span>
-      <input
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="sr-only"
-        disabled={pending}
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onSelect(f);
-          e.target.value = '';
-        }}
-      />
-    </label>
+    </ImagePicker>
   );
 }
 

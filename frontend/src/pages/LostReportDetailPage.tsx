@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { Camera, Image as ImageIcon } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
@@ -19,6 +20,8 @@ import {
   contactReporter,
 } from '../api/lost';
 import { useAuth } from '../store/AuthContext';
+import ImagePicker from '../components/ImagePicker';
+import { normalizeImageFile } from '../utils/image';
 import { photoUrl } from '../utils/time';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -57,6 +60,16 @@ export default function LostReportDetailPage() {
 
   const [showContactForm, setShowContactForm] = useState(false);
   const [contactMessage, setContactMessage] = useState('');
+
+  // This one goes straight to the server, so re-encode here — the picker now
+  // offers the camera (and every other image format the phone has).
+  const pickSightingPhoto = async (file: File) => {
+    try {
+      setSightPhoto(await normalizeImageFile(file));
+    } catch {
+      toast.error('Couldn’t read that photo — try a JPEG, PNG, or WebP.');
+    }
+  };
 
   const resolveMutation = useMutation({
     mutationFn: () => resolveLostReport(id!),
@@ -335,12 +348,22 @@ export default function LostReportDetailPage() {
             <Input label="Note" value={sightNote} onChange={(e) => setSightNote(e.target.value)} placeholder="Any details..." />
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Photo (optional)</label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => setSightPhoto(e.target.files?.[0] ?? null)}
-                className="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 dark:file:bg-brand-500/15 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-500/20"
-              />
+              <ImagePicker onPick={pickSightingPhoto}>
+                {({ openGallery, openCamera }) => (
+                  <div className="flex items-center gap-2">
+                    {openCamera && (
+                      <Button type="button" variant="secondary" size="sm" onClick={openCamera} className="flex-1">
+                        <Camera size={15} aria-hidden className="mr-1.5" />
+                        Take photo
+                      </Button>
+                    )}
+                    <Button type="button" variant="secondary" size="sm" onClick={openGallery} className="flex-1">
+                      <ImageIcon size={15} aria-hidden className="mr-1.5" />
+                      {openCamera ? 'Choose photo' : 'Choose a photo'}
+                    </Button>
+                  </div>
+                )}
+              </ImagePicker>
               {sightPhoto && (
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">{sightPhoto.name}</p>
               )}

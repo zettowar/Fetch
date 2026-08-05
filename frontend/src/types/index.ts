@@ -15,12 +15,15 @@ export interface User {
 export interface Photo {
   id: string;
   storage_key: string;
-  url?: string;
+  /** Unset while a photo is in review — fetch it via getOwnPhotoBlob instead. */
+  url?: string | null;
   width: number;
   height: number;
   content_type: string;
   sort_order: number;
   created_at: string;
+  /** Only ever non-"approved" on the owner's own view of their pet. */
+  moderation_status?: string;
 }
 
 export type MixType = 'purebred' | 'cross' | 'mixed' | 'mystery_mutt';

@@ -197,7 +197,8 @@ Key vars (see `.env.example` for full list):
 - `SENTRY_DSN` — Sentry error tracking (empty = disabled)
 - `SIGHTENGINE_API_USER` / `SIGHTENGINE_API_SECRET` — Image moderation (empty =
   auto-approve; with keys set, API errors fail CLOSED to "flagged" and land in
-  the admin review queue at Admin → Content)
+  the admin review queue at Admin → Content). A flagged photo stays visible to
+  **its owner only**, badged "In review" — see Photo moderation visibility
 - `RESEND_API_KEY` / `EMAIL_FROM` / `FRONTEND_BASE_URL` — Transactional email
   via Resend's HTTPS API (`app/services/email.py`; API-only, so it works on
   SMTP-blocking hosts like DigitalOcean). Empty key = email disabled: sends
@@ -300,6 +301,42 @@ emits `donation_thanks` / `donation_received` inbox notifications —
 guard). Donation rows survive account deletion (SET NULL FKs +
 `recipient_name` snapshot). Local testing:
 `stripe listen --forward-to localhost:9001/api/v1/donations/webhook`.
+
+## Photo moderation visibility (owner-only, not public)
+
+A photo held by moderation is withheld from everyone *except the owner*.
+`pet_to_out(pet, viewer_id=...)` opts into the owner's private view: pass
+`viewer_id` only from routes serving the owner their own pet (all of `pets.py`
+except `explore`). Leave it off — the default — for the feed, `public.py`,
+`social.py` and `rescues.py`, which must never include a withheld photo.
+
+Withheld photos come back with `url: null`, because `/photos/file/{key}` still
+404s anything not approved; the owner's own copy is served by the authenticated
+`GET /photos/{id}/file` and rendered from a blob by `components/PetPhoto.tsx`.
+The point is that an upload held for review used to vanish silently and read as
+a failed upload — the upload toast, the "In review" badge and this rule exist to
+say what actually happened. A non-approved photo can never be `primary_photo_id`
+(upload skips the slot, `admin.approve_photo` claims it later, and
+`set_primary_photo` 400s) — a withheld primary would blank the pet's hero
+everywhere.
+
+## Personality traits (free-form + admin-curated)
+
+Traits are **not** a fixed enum. Owners type whatever they like in the pet
+editor; the `pet_traits` table is the *suggestion* vocabulary and the review
+queue behind it (`services/traits.py`, Admin → Traits,
+`/api/v1/admin/pet-traits`). An unknown label is normalized
+(`normalize_trait`: trim, collapse whitespace, sentence-case, reject
+punctuation/emoji/over-30-chars), deduped by slug so casing variants converge,
+and inserted as `status="pending"` — it lands on the owner's pet immediately
+but isn't offered to anyone else until an admin approves it. `GET /pets/traits`
+serves the approved chips, scoped by `species` (`dog` / `cat` / `both`); the
+scope filters *suggestions* only and never strips a label off a pet.
+
+The catch to remember: pets store trait **labels** in `pets.traits` (a text
+array), not FKs. So editing the vocabulary has to rewrite those arrays —
+renaming propagates (`array_replace`), rejecting or deleting purges
+(`array_remove`). Max 12 traits per pet.
 
 ## Shop (Shopify-only — no backend)
 

@@ -1,13 +1,21 @@
 import { API_BASE } from '../api/client';
 
-export function photoUrl(photo: { url?: string; storage_key: string }): string {
+export function photoUrl(photo: { url?: string | null; storage_key: string }): string {
   return photo.url || `${API_BASE}/photos/file/${photo.storage_key}`;
 }
 
-export function petHeroPhoto(pet: { primary_photo_url?: string | null; photos: Array<{ url?: string; storage_key: string }> }): string | null {
+export function petHeroPhoto(pet: {
+  primary_photo_url?: string | null;
+  photos: Array<{ url?: string | null; storage_key: string; moderation_status?: string }>;
+}): string | null {
   if (pet.primary_photo_url) return pet.primary_photo_url;
-  if (pet.photos[0]) return photoUrl(pet.photos[0]);
-  return null;
+  // Owners get their in-review photos in `photos`, but the public file route
+  // won't serve them — falling back to one would render a broken hero. Those
+  // stay in the gallery (badged) until a reviewer clears them.
+  const usable = pet.photos.find(
+    (p) => !p.moderation_status || p.moderation_status === 'approved',
+  );
+  return usable ? photoUrl(usable) : null;
 }
 
 export function relativeTime(dateStr: string): string {

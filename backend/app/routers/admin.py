@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import select, func, or_, cast, delete, update, Date
+from sqlalchemy import select, func, or_, case, cast, delete, update, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -42,7 +42,15 @@ from app.schemas.admin import (
 )
 from app.storage import get_storage
 from app.breed_data import slugify
+from app.models.pet_trait import PetTrait
 from app.schemas.breed import BreedAdminOut, BreedCreate, BreedUpdate
+from app.schemas.pet_trait import PetTraitAdminOut, PetTraitCreate, PetTraitUpdate
+from app.services.traits import (
+    remove_trait_from_pets,
+    rename_trait_on_pets,
+    trait_slug,
+    trait_usage_counts,
+)
 from app.schemas.report import ReportOut, ReportReview, StrikeOut
 from app.services.breed_display import breed_display
 from app.schemas.park_import import (
@@ -1157,6 +1165,11 @@ async def approve_photo(
     pet_result = await db.execute(select(Pet).where(Pet.id == photo.pet_id))
     pet = pet_result.scalar_one_or_none()
     if pet:
+        # Upload skips the primary slot for photos held in review, so the first
+        # one to clear moderation claims it — otherwise a pet whose only photo
+        # was flagged stays without a primary after approval.
+        if pet.primary_photo_id is None:
+            pet.primary_photo_id = photo.id
         await notify(
             db, pet.owner_id,
             type="photo_moderated",
@@ -1424,6 +1437,169 @@ async def delete_breed(
     await db.delete(breed)
     await db.commit()
     return {"detail": "Breed deleted"}
+
+
+# --- Personality traits ---
+#
+# Pets store trait *labels* in `pets.traits`, not FKs, so editing the vocabulary
+# means rewriting those arrays too: a rename propagates, a rejection or delete
+# purges. See services/traits.py.
+
+def _trait_out(trait: PetTrait, pet_count: int, author: str | None) -> PetTraitAdminOut:
+    return PetTraitAdminOut(
+        id=trait.id,
+        label=trait.label,
+        slug=trait.slug,
+        species=trait.species,
+        status=trait.status,
+        sort_order=trait.sort_order,
+        pet_count=pet_count,
+        created_by_name=author,
+        created_at=trait.created_at,
+    )
+
+
+@router.get("/pet-traits", response_model=list[PetTraitAdminOut])
+async def list_pet_traits(
+    response: Response,
+    q: str = Query(default=""),
+    status_filter: str | None = Query(None, alias="status"),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(DEFAULT_PAGE_LIMIT, ge=1, le=MAX_PAGE_LIMIT),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """The trait vocabulary, pending submissions first (that's the work queue)."""
+    filters = []
+    if status_filter in ("approved", "pending", "rejected"):
+        filters.append(PetTrait.status == status_filter)
+    if q:
+        filters.append(PetTrait.label.ilike(f"%{q.strip()}%"))
+
+    total = (await db.execute(
+        select(func.count()).select_from(PetTrait).where(*filters)
+    )).scalar() or 0
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+    result = await db.execute(
+        select(PetTrait, User.display_name)
+        .join(User, User.id == PetTrait.created_by, isouter=True)
+        .where(*filters)
+        .order_by(
+            # pending → approved → rejected, so the queue is always on top.
+            case({"pending": 0, "approved": 1}, value=PetTrait.status, else_=2),
+            PetTrait.sort_order.asc(),
+            PetTrait.label.asc(),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = result.all()
+    counts = await trait_usage_counts(db)
+    return [_trait_out(t, counts.get(t.label, 0), author) for t, author in rows]
+
+
+@router.post("/pet-traits", response_model=PetTraitAdminOut, status_code=201)
+async def create_pet_trait(
+    body: PetTraitCreate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    slug = trait_slug(body.label)
+    existing = await db.execute(select(PetTrait).where(PetTrait.slug == slug))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="That trait already exists")
+    trait = PetTrait(
+        label=body.label,
+        slug=slug,
+        species=body.species,
+        status=body.status,
+        sort_order=body.sort_order,
+        created_by=admin.id,
+    )
+    db.add(trait)
+    await db.flush()
+    await _log(db, actor_id=admin.id, action="pet_trait.create", target_type="pet_trait",
+               target_id=trait.id, metadata={"label": trait.label})
+    await db.commit()
+    await db.refresh(trait)
+    return _trait_out(trait, 0, admin.display_name)
+
+
+@router.patch("/pet-traits/{trait_id}", response_model=PetTraitAdminOut)
+async def update_pet_trait(
+    trait_id: UUID,
+    body: PetTraitUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(PetTrait).where(PetTrait.id == trait_id))
+    trait = result.scalar_one_or_none()
+    if not trait:
+        raise HTTPException(status_code=404, detail="Trait not found")
+
+    changes = body.model_dump(exclude_unset=True)
+    old_label = trait.label
+
+    if "label" in changes and changes["label"] != old_label:
+        new_slug = trait_slug(changes["label"])
+        conflict = await db.execute(
+            select(PetTrait).where(PetTrait.slug == new_slug, PetTrait.id != trait_id)
+        )
+        if conflict.scalar_one_or_none():
+            raise HTTPException(status_code=409, detail="Another trait with that name exists")
+        trait.slug = new_slug
+
+    for field, value in changes.items():
+        setattr(trait, field, value)
+
+    # A rename has to follow the label onto every pet carrying it, or those
+    # pets keep a label the vocabulary no longer knows about.
+    if trait.label != old_label:
+        changes["pets_renamed"] = await rename_trait_on_pets(db, old_label, trait.label)
+    # Rejecting pulls it off pets too — otherwise it stays visible everywhere
+    # and only stops being *suggested*, which isn't what "reject" means.
+    if changes.get("status") == "rejected":
+        changes["pets_stripped"] = await remove_trait_from_pets(db, trait.label)
+
+    await _log(db, actor_id=admin.id, action="pet_trait.update", target_type="pet_trait",
+               target_id=trait_id, metadata=changes)
+    await db.commit()
+    await db.refresh(trait)
+
+    counts = await trait_usage_counts(db)
+    author = None
+    if trait.created_by:
+        author = (await db.execute(
+            select(User.display_name).where(User.id == trait.created_by)
+        )).scalar_one_or_none()
+    return _trait_out(trait, counts.get(trait.label, 0), author)
+
+
+@router.delete("/pet-traits/{trait_id}")
+async def delete_pet_trait(
+    trait_id: UUID,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a trait and strip the label from every pet using it.
+
+    Unlike breeds (which 409 while in use) there's nothing to protect here —
+    a trait is a tag, and removing the row without removing the label would
+    leave pets carrying a word the vocabulary can no longer manage.
+    """
+    result = await db.execute(select(PetTrait).where(PetTrait.id == trait_id))
+    trait = result.scalar_one_or_none()
+    if not trait:
+        raise HTTPException(status_code=404, detail="Trait not found")
+
+    stripped = await remove_trait_from_pets(db, trait.label)
+    await _log(db, actor_id=admin.id, action="pet_trait.delete", target_type="pet_trait",
+               target_id=trait_id, metadata={"label": trait.label, "pets_stripped": stripped})
+    await db.delete(trait)
+    await db.commit()
+    return {"detail": "Trait deleted", "pets_stripped": stripped}
 
 
 # --- Parks: external-dataset import ---

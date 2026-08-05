@@ -13,6 +13,7 @@ import FollowButton from '../components/FollowButton';
 import ReactionBar from '../components/ReactionBar';
 import CommentSection from '../components/CommentSection';
 import PhotoUploader from '../components/PhotoUploader';
+import PetPhoto, { InReviewBadge, isInReview } from '../components/PetPhoto';
 import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
@@ -21,7 +22,7 @@ import PetIllustration from '../components/flair/PetIllustration';
 import { usePawBurst } from '../components/flair/PawBurst';
 import Linkify from '../components/Linkify';
 import TimeAgo from '../components/TimeAgo';
-import { petAge, photoUrl, petHeroPhoto } from '../utils/time';
+import { petAge, petHeroPhoto } from '../utils/time';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
 import { apiErrorMessage, isNotFound } from '../utils/apiError';
@@ -150,6 +151,8 @@ export default function PetDetailPage() {
 
   const heroPhotoUrl = petHeroPhoto(pet);
   const hasPhotos = pet.photos.length > 0;
+  // Only ever non-zero on the owner's own view — nobody else is sent them.
+  const reviewCount = pet.photos.filter(isInReview).length;
   const age = petAge(pet.birthday);
   const openHeroLightbox = () => {
     if (!hasPhotos) return;
@@ -180,8 +183,8 @@ export default function PetDetailPage() {
             className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
             onClick={() => setFullscreenIndex(null)}
           >
-            <img
-              src={photoUrl(current)}
+            <PetPhoto
+              photo={current}
               alt={`${pet.name} photo ${fullscreenIndex + 1} of ${total}`}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
@@ -373,10 +376,17 @@ export default function PetDetailPage() {
             <h2 className="text-lg font-semibold mb-2">
               Photos <span className="text-gray-400 dark:text-gray-500 font-normal">({pet.photos.length})</span>
             </h2>
+            {isOwner && reviewCount > 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                {reviewCount === 1 ? 'One photo is' : `${reviewCount} photos are`} being
+                reviewed. Only you can see {reviewCount === 1 ? 'it' : 'them'} until
+                that's done — usually just a few minutes.
+              </p>
+            )}
             <div className="grid grid-cols-3 gap-2">
               {pet.photos.map((photo, idx) => {
-                const url = photoUrl(photo);
                 const isPrimary = photo.id === pet.primary_photo_id;
+                const inReview = isInReview(photo);
                 return (
                   <div key={photo.id} className="relative group">
                     <button
@@ -385,30 +395,36 @@ export default function PetDetailPage() {
                       className="block w-full aspect-square rounded-lg overflow-hidden ring-1 ring-gray-100 hover:ring-2 hover:ring-brand-400 focus-visible:ring-2 focus-visible:ring-brand-500 transition-all active:scale-[0.98]"
                       aria-label={`View photo ${idx + 1} fullscreen`}
                     >
-                      <img
-                        src={url}
+                      <PetPhoto
+                        photo={photo}
                         alt={`${pet.name} photo ${idx + 1}`}
                         loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
                       />
                     </button>
+                    {inReview && <InReviewBadge className="absolute bottom-1 left-1" />}
                     {isOwner && (
                       <>
-                        <button
-                          className={`absolute top-1 right-1 rounded-full w-6 h-6 flex items-center justify-center text-xs transition-opacity shadow ${
-                            isPrimary
-                              ? 'bg-brand-500 text-white opacity-100'
-                              : 'bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-brand-500'
-                          }`}
-                          title={isPrimary ? 'Primary photo' : 'Set as primary'}
-                          aria-label={isPrimary ? 'Primary photo' : 'Set as primary'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isPrimary) setPrimaryMutation.mutate(photo.id.toString());
-                          }}
-                        >
-                          <Star size={12} aria-hidden fill={isPrimary ? 'currentColor' : 'none'} />
-                        </button>
+                        {/* No "make primary" while in review — a withheld
+                            primary blanks the pet's hero for everyone else, and
+                            the backend refuses it. Delete stays available. */}
+                        {!inReview && (
+                          <button
+                            className={`absolute top-1 right-1 rounded-full w-6 h-6 flex items-center justify-center text-xs transition-opacity shadow ${
+                              isPrimary
+                                ? 'bg-brand-500 text-white opacity-100'
+                                : 'bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-brand-500'
+                            }`}
+                            title={isPrimary ? 'Primary photo' : 'Set as primary'}
+                            aria-label={isPrimary ? 'Primary photo' : 'Set as primary'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isPrimary) setPrimaryMutation.mutate(photo.id.toString());
+                            }}
+                          >
+                            <Star size={12} aria-hidden fill={isPrimary ? 'currentColor' : 'none'} />
+                          </button>
+                        )}
                         <button
                           className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-danger-500 dark:hover:text-danger-400 transition-opacity shadow"
                           title="Delete photo"

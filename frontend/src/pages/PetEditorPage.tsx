@@ -6,14 +6,21 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { claimTag, getTagsForPet, unlinkTag } from '../api/tags';
 import { usePawBurst } from '../components/flair/PawBurst';
-import { createPet, getPet, updatePet, deletePet, TRAITS_BY_SPECIES, MIX_TYPES, MAX_BREEDS_PER_PET } from '../api/pets';
+import { createPet, getPet, updatePet, deletePet, MIX_TYPES, MAX_BREEDS_PER_PET } from '../api/pets';
+import {
+  getTraitOptions,
+  normalizeTrait,
+  validateTrait,
+  MAX_TRAITS_PER_PET,
+  MAX_TRAIT_LENGTH,
+} from '../api/traits';
 import { deletePhoto, uploadPhoto } from '../api/photos';
 import PhotoUploader from '../components/PhotoUploader';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import BreedMultiSelect from '../components/ui/BreedMultiSelect';
 import type { Breed, MixType, Species } from '../types';
-import { photoUrl } from '../utils/time';
+import PetPhoto, { InReviewBadge, isInReview } from '../components/PetPhoto';
 import { apiErrorMessage } from '../utils/apiError';
 
 interface PendingPhoto {
@@ -35,6 +42,8 @@ export default function PetEditorPage() {
   const [bio, setBio] = useState('');
   const [birthday, setBirthday] = useState('');
   const [traits, setTraits] = useState<string[]>([]);
+  const [traitDraft, setTraitDraft] = useState('');
+  const [traitError, setTraitError] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(true);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [saving, setSaving] = useState(false);
@@ -46,6 +55,52 @@ export default function PetEditorPage() {
     queryFn: () => getPet(id!),
     enabled: isEditing,
   });
+
+  // The suggested chips. Owners aren't limited to them — anything they type in
+  // the box below is accepted and queued for admin review.
+  const { data: traitOptions = [] } = useQuery({
+    queryKey: ['trait-options', species],
+    queryFn: () => getTraitOptions(species),
+    staleTime: 5 * 60_000,
+  });
+
+  const suggested = traitOptions.map((t) => t.label);
+  // Traits the owner made up (or that are still pending) have no chip of their
+  // own, so render them alongside the suggestions as already-selected.
+  const customTraits = traits.filter((t) => !suggested.includes(t));
+  const atTraitCap = traits.length >= MAX_TRAITS_PER_PET;
+
+  const addTrait = () => {
+    const problem = validateTrait(traitDraft);
+    if (problem) {
+      setTraitError(problem);
+      return;
+    }
+    const label = normalizeTrait(traitDraft);
+    if (traits.some((t) => t.toLowerCase() === label.toLowerCase())) {
+      setTraitError(`${label} is already on the list`);
+      return;
+    }
+    if (atTraitCap) {
+      setTraitError(`Up to ${MAX_TRAITS_PER_PET} traits`);
+      return;
+    }
+    setTraits((prev) => [...prev, label]);
+    setTraitDraft('');
+    setTraitError(null);
+  };
+
+  const toggleTrait = (trait: string) => {
+    setTraitError(null);
+    setTraits((prev) => {
+      if (prev.includes(trait)) return prev.filter((t) => t !== trait);
+      if (prev.length >= MAX_TRAITS_PER_PET) {
+        setTraitError(`Up to ${MAX_TRAITS_PER_PET} traits`);
+        return prev;
+      }
+      return [...prev, trait];
+    });
+  };
 
   useEffect(() => {
     if (pet) {
@@ -73,12 +128,15 @@ export default function PetEditorPage() {
 
   const handleSpeciesChange = (next: Species) => {
     if (next === species) return;
+    // Breeds are species-specific, so clear them. For traits, drop only the
+    // ones scoped to the species we're leaving ("Loves fetch" on a cat) —
+    // shared suggestions and the owner's own entries carry over.
+    const speciesOnly = new Set(
+      traitOptions.filter((t) => t.species === species).map((t) => t.label),
+    );
     setSpecies(next);
-    // Breeds are species-specific, so clear them; drop any traits that don't
-    // apply to the new species.
     setBreeds([]);
-    const allowed = new Set(TRAITS_BY_SPECIES[next]);
-    setTraits((prev) => prev.filter((t) => allowed.has(t)));
+    setTraits((prev) => prev.filter((t) => !speciesOnly.has(t)));
   };
 
   const handleMixChange = (next: MixType) => {
@@ -133,11 +191,15 @@ export default function PetEditorPage() {
         const newDog = await createPet(payload);
         fire();
         let uploadFailures = 0;
+        let inReview = 0;
         for (let i = 0; i < pendingPhotos.length; i++) {
           setUploadingPhotoIndex(i);
           try {
             const file = new File([pendingPhotos[i].blob], 'photo.jpg', { type: 'image/jpeg' });
-            await uploadPhoto(newDog.id, file);
+            const photo = await uploadPhoto(newDog.id, file);
+            if (photo.moderation_status && photo.moderation_status !== 'approved') {
+              inReview += 1;
+            }
           } catch {
             uploadFailures += 1;
           }
@@ -146,7 +208,14 @@ export default function PetEditorPage() {
         // Release blob URLs now that they're no longer needed.
         pendingPhotos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
 
-        if (uploadFailures === 0) {
+        if (uploadFailures === 0 && inReview > 0) {
+          // Uploaded fine, just held by moderation — say so, or the photos look
+          // like they never made it.
+          toast(
+            `Pet created. ${inReview === 1 ? 'Your photo is' : `${inReview} photos are`} being reviewed before going live.`,
+            { icon: '⏳' },
+          );
+        } else if (uploadFailures === 0) {
           toast.success(pendingPhotos.length > 0 ? 'Pet created with photos!' : 'Pet created!');
         } else {
           toast.error(
@@ -287,17 +356,14 @@ export default function PetEditorPage() {
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Personality traits</label>
           <div className="flex flex-wrap gap-2">
-            {TRAITS_BY_SPECIES[species].map((trait) => {
+            {suggested.map((trait) => {
               const selected = traits.includes(trait);
               return (
                 <button
                   key={trait}
                   type="button"
-                  onClick={() =>
-                    setTraits((prev) =>
-                      selected ? prev.filter((t) => t !== trait) : [...prev, trait]
-                    )
-                  }
+                  aria-pressed={selected}
+                  onClick={() => toggleTrait(trait)}
                   className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
                     selected
                       ? 'bg-brand-500 text-white border-brand-500'
@@ -308,7 +374,63 @@ export default function PetEditorPage() {
                 </button>
               );
             })}
+            {customTraits.map((trait) => (
+              <span
+                key={trait}
+                className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full text-sm font-medium border border-dashed border-brand-400 bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300"
+              >
+                {trait}
+                <button
+                  type="button"
+                  onClick={() => toggleTrait(trait)}
+                  aria-label={`Remove ${trait}`}
+                  className="rounded-full p-0.5 hover:bg-brand-500/20 transition-colors"
+                >
+                  <X size={12} aria-hidden />
+                </button>
+              </span>
+            ))}
           </div>
+
+          <div className="flex items-center gap-2 mt-1.5">
+            <input
+              value={traitDraft}
+              maxLength={MAX_TRAIT_LENGTH}
+              placeholder="Add your own…"
+              aria-label="Add your own trait"
+              onChange={(e) => {
+                setTraitDraft(e.target.value);
+                if (traitError) setTraitError(null);
+              }}
+              onKeyDown={(e) => {
+                // The editor is one big form — Enter here means "add the
+                // trait", not "create the pet".
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addTrait();
+                }
+              }}
+              className="flex-1 min-w-0 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3.5 py-1.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30"
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={addTrait}
+              disabled={!traitDraft.trim() || atTraitCap}
+            >
+              Add
+            </Button>
+          </div>
+          {traitError ? (
+            <p className="text-xs text-danger-500 dark:text-danger-400">{traitError}</p>
+          ) : (
+            <p className="text-2xs text-gray-400 dark:text-gray-500">
+              {traits.length}/{MAX_TRAITS_PER_PET} picked. Can't find the right
+              one? Type it in — we'll review it and it may become a suggestion
+              for everyone.
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5">
@@ -422,11 +544,14 @@ export default function PetEditorPage() {
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {pet.photos.map((photo) => (
                   <div key={photo.id} className="relative group">
-                    <img
-                      src={photoUrl(photo)}
+                    <PetPhoto
+                      photo={photo}
                       alt=""
                       className="w-full h-24 object-cover rounded-lg"
                     />
+                    {isInReview(photo) && (
+                      <InReviewBadge className="absolute bottom-1 left-1" />
+                    )}
                     <button
                       onClick={() => handleDeletePhoto(photo.id)}
                       className="absolute top-1 right-1 bg-danger-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"

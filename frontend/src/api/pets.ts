@@ -1,23 +1,8 @@
 import client from './client';
 import type { Pet, MixType, Species } from '../types';
 
-// Keep in sync with backend/app/schemas/pet.py (DOG_TRAITS / CAT_TRAITS).
-const SHARED_TRAITS = [
-  'Playful', 'Calm', 'Energetic', 'Good with kids', 'Cuddly',
-  'Independent', 'Senior', 'Couch potato', 'House trained',
-] as const;
-export const DOG_TRAITS = [
-  ...SHARED_TRAITS,
-  'Good with dogs', 'Good with cats', 'Loves fetch', 'Swimmer', 'Leash trained',
-] as const;
-export const CAT_TRAITS = [
-  ...SHARED_TRAITS,
-  'Good with cats', 'Good with dogs', 'Lap cat', 'Mouser', 'Indoor only',
-] as const;
-export const TRAITS_BY_SPECIES: Record<Species, readonly string[]> = {
-  dog: DOG_TRAITS,
-  cat: CAT_TRAITS,
-};
+// Personality traits live in ./traits.ts — they're free-form and
+// admin-curated rather than a constant.
 
 export const MIX_TYPES: { value: MixType; label: string; hint: string }[] = [
   { value: 'purebred', label: 'Purebred', hint: 'A single recognized breed' },
