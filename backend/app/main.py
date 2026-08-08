@@ -108,13 +108,32 @@ async def healthz():
 
 @app.get("/readyz")
 async def readyz():
+    import uuid as _uuid
+
     from sqlalchemy import text
 
     from app.db import engine
+    from app.storage import get_storage
 
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
     except Exception:
-        return JSONResponse(status_code=503, content={"status": "unavailable"})
+        return JSONResponse(status_code=503, content={"status": "unavailable", "reason": "db"})
+
+    # Storage write probe. A non-writable uploads volume (e.g. one initialized
+    # root-owned by the dev stack, which runs as root, while prod runs as
+    # appuser) 500s every photo upload while the rest of the app looks healthy.
+    # The prod healthcheck gates on this endpoint and `make deploy` waits on
+    # container health, so failing readiness here turns that silent breakage
+    # into a failed deploy. Unique key per probe: concurrent workers must not
+    # race each other's delete.
+    try:
+        storage = get_storage()
+        probe_key = f".readyz-probe-{_uuid.uuid4().hex}"
+        await storage.put(probe_key, b"ok", "text/plain")
+        await storage.delete(probe_key)
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "unavailable", "reason": "storage"})
+
     return {"status": "ready"}
