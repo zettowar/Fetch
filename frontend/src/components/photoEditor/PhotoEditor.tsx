@@ -75,6 +75,30 @@ export default function PhotoEditor({
     [state.filter, state.adjustments],
   );
 
+  // Cropper overwrites `mediaStyle.transform` with its own
+  // `translate() rotate() scale()` string, so the flips have to ride along in
+  // the `transform` prop instead — otherwise they never render in the preview
+  // while still applying at export, and the saved photo comes out mirrored
+  // relative to what the user framed. Mirror innermost (right of scale(zoom))
+  // to match the export order: translate → rotate → flip → draw centred.
+  const mediaTransform = useMemo(
+    () =>
+      `translate(${state.crop.x}px, ${state.crop.y}px) rotate(${
+        state.rotation + state.straighten
+      }deg) scale(${state.zoom}) scaleX(${state.flipH ? -1 : 1}) scaleY(${
+        state.flipV ? -1 : 1
+      })`,
+    [
+      state.crop.x,
+      state.crop.y,
+      state.rotation,
+      state.straighten,
+      state.zoom,
+      state.flipH,
+      state.flipV,
+    ],
+  );
+
   // Vignette preview: a radial inset shadow over the cropped area. Strength
   // matches the exporter's falloff envelope closely enough for a visual
   // sanity check while editing.
@@ -152,6 +176,7 @@ export default function PhotoEditor({
           crop={state.crop}
           zoom={state.zoom}
           rotation={state.rotation + state.straighten}
+          transform={mediaTransform}
           aspect={ASPECT_RATIOS[state.aspect]}
           onCropChange={(crop) => dispatch({ type: 'SET_CROP', crop })}
           onZoomChange={(zoom) => dispatch({ type: 'SET_ZOOM', zoom })}
@@ -169,9 +194,6 @@ export default function PhotoEditor({
             },
             mediaStyle: {
               filter: cssFilter,
-              transform: `scale(${state.flipH ? -1 : 1}, ${
-                state.flipV ? -1 : 1
-              })`,
               transformOrigin: 'center',
               transition: 'none',
             },
