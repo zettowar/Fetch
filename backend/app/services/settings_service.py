@@ -88,6 +88,23 @@ async def get_setting(db: AsyncSession, key: str) -> Any:
     return default
 
 
+async def set_setting(db: AsyncSession, key: str, value: Any) -> None:
+    """Upsert a setting. Adds to the caller's session WITHOUT committing, so a
+    marker written alongside other work commits (or rolls back) atomically
+    with it. Invalidates the memo so the next read sees the new value.
+    """
+    global _cache_at
+
+    row = (await db.execute(
+        select(AppSetting).where(AppSetting.key == key)
+    )).scalar_one_or_none()
+    if row is None:
+        db.add(AppSetting(key=key, value=value))
+    else:
+        row.value = value
+    _cache_at = 0.0
+
+
 async def all_settings(db: AsyncSession) -> list[dict[str, Any]]:
     """Every known key with its effective value + whether it's overridden.
     Used by the admin settings page."""

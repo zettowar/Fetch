@@ -54,22 +54,59 @@ describe('Modal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('keeps Tab inside the panel', async () => {
+  /** The Modal focuses its first control on open via requestAnimationFrame.
+   *  Asserting before that lands makes a trap test pass on the autofocus
+   *  instead of on the trap — which is exactly how the first version of these
+   *  tests passed against a broken trap. */
+  async function settleAutofocus(dialog: HTMLElement) {
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+  }
+
+  it('wraps Tab forwards at the end of the panel', async () => {
     render(<Harness />);
     const dialog = screen.getByRole('dialog');
+    await settleAutofocus(dialog);
+
     const inPanel = Array.from(dialog.querySelectorAll('button'));
+    const first = inPanel[0];
     const last = inPanel[inPanel.length - 1];
 
     last.focus();
     expect(document.activeElement).toBe(last);
-
-    // Tabbing off the last control wraps to the first, rather than escaping to
-    // the "outside button" behind the overlay.
     fireEvent.keyDown(document, { key: 'Tab' });
-    await waitFor(() => {
-      expect(dialog.contains(document.activeElement)).toBe(true);
-    });
-    expect(document.activeElement?.textContent).not.toBe('outside button');
+    expect(document.activeElement).toBe(first);
+  });
+
+  it('wraps Tab backwards at the start of the panel', async () => {
+    render(<Harness />);
+    const dialog = screen.getByRole('dialog');
+    await settleAutofocus(dialog);
+
+    const inPanel = Array.from(dialog.querySelectorAll('button'));
+    const first = inPanel[0];
+    const last = inPanel[inPanel.length - 1];
+
+    first.focus();
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(last);
+  });
+
+  it('pulls focus back when it is outside the panel', async () => {
+    // The case the original trap missed: a forward Tab while focus sat on the
+    // page behind walked into that page instead of back into the dialog.
+    render(<Harness />);
+    const dialog = screen.getByRole('dialog');
+    await settleAutofocus(dialog);
+
+    const outside = screen.getByRole('button', { name: 'outside button' });
+    const first = dialog.querySelectorAll('button')[0] as HTMLElement;
+
+    outside.focus();
+    expect(document.activeElement).toBe(outside);
+
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(first);
   });
 
   it('locks body scroll while open and restores it on close', async () => {

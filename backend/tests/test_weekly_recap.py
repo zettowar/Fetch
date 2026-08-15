@@ -18,6 +18,7 @@ from app.models.notification import Notification, NotificationPreference
 from app.models.pet import Pet
 from app.models.user import User
 from app.models.vote import Vote
+from app.services import settings_service
 from app.services.feed_service import current_week_bucket
 from app.services.ranking_service import get_week_standings
 
@@ -94,7 +95,13 @@ async def _clean(db_session):
         await db_session.execute(
             delete(Notification).where(Notification.type == "weekly_recap")
         )
+        # The task records the week it sent so a re-run is a no-op; clear it or
+        # the first test in the file consumes the week for all the others.
+        await db_session.execute(
+            delete(AppSetting).where(AppSetting.key == recap_task.SENT_MARKER_KEY)
+        )
         await db_session.commit()
+        settings_service._cache.clear()
 
     await _wipe()
     yield
@@ -383,3 +390,55 @@ async def test_outright_winner_still_reads_as_a_win(db_session):
 
     assert "Solo finished #1 last week" in captured_html["subject"]
     assert "joint" not in captured_html["html"]
+
+
+# --- idempotency ---
+
+
+@pytest.mark.asyncio
+async def test_second_run_for_the_same_week_sends_nothing(
+    db_session, captured_mail
+):
+    """An admin pressing "Run now", or Celery redelivering the task after a
+    worker restart (task_acks_late is on), must not re-mail every owner."""
+    owner, _ = await _owner_with_voted_pet(db_session, likes=2, name="Once")
+    await _set_flag(db_session, True)
+
+    first = await recap_task._run(session_factory)
+    assert first >= 1
+    before = len(captured_mail)
+
+    second = await recap_task._run(session_factory)
+    assert second == 0
+    assert len(captured_mail) == before, "no owner may be emailed twice"
+
+    inbox = (await db_session.execute(
+        select(Notification).where(
+            Notification.user_id == owner.id,
+            Notification.type == "weekly_recap",
+        )
+    )).scalars().all()
+    assert len(inbox) == 1, "and no duplicate inbox entry either"
+
+
+@pytest.mark.asyncio
+async def test_in_app_recap_survives_an_email_unsubscribe(
+    db_session, captured_mail
+):
+    """Unsubscribing from the recap EMAIL must not silence the app's own
+    surface — the two channels are separate consents."""
+    owner, _ = await _owner_with_voted_pet(db_session, likes=2, name="OptOut")
+    db_session.add(NotificationPreference(user_id=owner.id, weekly_recap=False))
+    await db_session.commit()
+    await _set_flag(db_session, True)
+
+    await recap_task._run(session_factory)
+
+    assert [m for m in captured_mail if m["to"] == owner.email] == []
+    inbox = (await db_session.execute(
+        select(Notification).where(
+            Notification.user_id == owner.id,
+            Notification.type == "weekly_recap",
+        )
+    )).scalars().all()
+    assert len(inbox) == 1

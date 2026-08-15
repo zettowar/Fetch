@@ -23,6 +23,7 @@ class NotificationPrefsOut(BaseModel):
     lost_dog_alerts: bool = True
     announcement_emails: bool = True
     weekly_winner: bool = True
+    # Governs the weekly recap EMAIL only; the in-app entry always lands.
     weekly_recap: bool = True
     comments_on_dogs: bool = True
     new_followers: bool = True

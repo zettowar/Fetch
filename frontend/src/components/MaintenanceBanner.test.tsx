@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import client from '../api/client';
 import MaintenanceBanner from './MaintenanceBanner';
 
@@ -18,6 +18,17 @@ function renderBanner() {
   );
 }
 
+/** The container is empty on the very first render, before the query resolves,
+ *  so `waitFor(empty)` succeeds instantly no matter what the API returned.
+ *  Settle the query first, then assert synchronously. */
+async function settleQuery(get: { mock: { calls: unknown[] } }) {
+  await waitFor(() => expect(get.mock.calls.length).toBeGreaterThan(0));
+  // Let react-query commit the resolved value to the component.
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
 describe('MaintenanceBanner', () => {
   it('shows the admin-set message', async () => {
     vi.spyOn(client, 'get').mockResolvedValue({ data: { banner: 'Down at 9pm' } });
@@ -26,15 +37,17 @@ describe('MaintenanceBanner', () => {
   });
 
   it('renders nothing when no banner is set', async () => {
-    vi.spyOn(client, 'get').mockResolvedValue({ data: { banner: '' } });
+    const get = vi.spyOn(client, 'get').mockResolvedValue({ data: { banner: '' } });
     const { container } = renderBanner();
-    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    await settleQuery(get);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renders nothing when only whitespace is set', async () => {
-    vi.spyOn(client, 'get').mockResolvedValue({ data: { banner: '   ' } });
+    const get = vi.spyOn(client, 'get').mockResolvedValue({ data: { banner: '   ' } });
     const { container } = renderBanner();
-    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    await settleQuery(get);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('stays dismissed for the same message', async () => {
@@ -61,8 +74,9 @@ describe('MaintenanceBanner', () => {
   });
 
   it('stays silent when the endpoint fails', async () => {
-    vi.spyOn(client, 'get').mockRejectedValue(new Error('offline'));
+    const get = vi.spyOn(client, 'get').mockRejectedValue(new Error('offline'));
     const { container } = renderBanner();
-    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    await settleQuery(get);
+    expect(container).toBeEmptyDOMElement();
   });
 });

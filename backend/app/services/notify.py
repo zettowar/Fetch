@@ -13,12 +13,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notification import Notification, NotificationPreference
 
-# type -> NotificationPreference field that can switch it off
+# type -> NotificationPreference field that can switch it off.
+# `weekly_recap` is deliberately absent: that preference governs the recap
+# EMAIL, and the one-click unsubscribe link writes it. Gating the inbox entry
+# on it too would mean "stop emailing me" silently also stopped the in-app
+# notification, which is not what the reader asked for.
 _PREF_FIELD = {
     "comment": "comments_on_dogs",
     "follow": "new_followers",
     "weekly_winner": "weekly_winner",
-    "weekly_recap": "weekly_recap",
 }
 
 

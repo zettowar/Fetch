@@ -22,6 +22,12 @@ logger = structlog.stdlib.get_logger()
 # Below this, a recap reads as "nobody looked at your pet" — worse than silence.
 MIN_LIKES_TO_SEND = 1
 
+# Remembers the last week actually sent, so a second run for the same week is a
+# no-op. Without it, an admin pressing "Run now" in Admin -> System, or Celery
+# redelivering the task after a worker restart (task_acks_late is on), re-emails
+# and re-notifies every owner.
+SENT_MARKER_KEY = "weekly_recap_last_sent_week"
+
 
 @celery_app.task(name="app.tasks.weekly_recap.send_weekly_recap_task")
 def send_weekly_recap_task():
@@ -57,6 +63,11 @@ async def _run(session_factory=None) -> int:
 
         # Two queries total, not per-pet: bounded by pets that were voted on
         # that week rather than by the size of the user base.
+        already = await settings_service.get_setting(db, SENT_MARKER_KEY)
+        if already == str(last_week):
+            logger.info("weekly_recap_already_sent", week=str(last_week))
+            return 0
+
         standings = await get_week_standings(db, last_week)
         if not standings:
             logger.info("weekly_recap_no_activity", week=str(last_week))
@@ -108,8 +119,8 @@ async def _run(session_factory=None) -> int:
         sent = 0
         for owner_id, pets in by_owner.items():
             user = users.get(owner_id)
-            if user is None or owner_id in opted_out:
-                continue
+            if user is None:
+                continue  # deactivated or deleted since the votes were cast
 
             # Sort by rank, then prefer an outright placing over a shared one.
             pets.sort(key=lambda p: (p["rank"], p["tied_with"]))
@@ -121,8 +132,9 @@ async def _run(session_factory=None) -> int:
                 else f"joint #{best['rank']}"
             )
 
-            # The inbox entry lands for everyone; notify() applies the same
-            # preference itself, and email is the second channel on top.
+            # The inbox entry lands for everyone whose pets were rated. Only
+            # the email honours `weekly_recap` — unsubscribing from a mail
+            # should not also silence the app's own surface.
             await notify(
                 db, owner_id,
                 type="weekly_recap",
@@ -131,11 +143,20 @@ async def _run(session_factory=None) -> int:
                 link="/app/rankings",
             )
 
+            # The opt-out gates the EMAIL only; the inbox entry above is the
+            # app's own surface and is not what an unsubscribe link asked to
+            # stop.
+            if owner_id in opted_out:
+                continue
+
             if settings.RESEND_API_KEY and await send_weekly_recap_email(
                 user.email, user_id=owner_id, week_label=week_label, pets=pets,
             ):
                 sent += 1
 
+        # Marked inside the same transaction as the notifications, so a crash
+        # before the commit leaves the week unmarked and safely retryable.
+        await settings_service.set_setting(db, SENT_MARKER_KEY, str(last_week))
         await db.commit()
 
     logger.info(

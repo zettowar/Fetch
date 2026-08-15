@@ -54,18 +54,36 @@ export default function Modal({
       }
       if (e.key !== 'Tab' || !panelRef.current) return;
 
-      const nodes = Array.from(
+      const all = Array.from(
         panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
-      ).filter((n) => n.offsetParent !== null);
+      );
+      // offsetParent skips hidden controls in a browser, but jsdom reports null
+      // for everything — which emptied the list and turned the trap into a
+      // no-op under test, so its own test could not detect a broken trap.
+      // Falling back to the unfiltered list keeps behaviour identical in a
+      // browser and exercisable in tests.
+      const visible = all.filter((n) => n.offsetParent !== null);
+      const nodes = visible.length > 0 ? visible : all;
       if (nodes.length === 0) {
         e.preventDefault();
         return;
       }
+
       const first = nodes[0];
       const last = nodes[nodes.length - 1];
-      const active = document.activeElement;
+      const active = document.activeElement as HTMLElement | null;
+
+      // Focus outside the panel entirely (the page behind, or the panel
+      // container itself): pull it back in whichever direction Tab is moving.
+      // Previously only the shift-Tab case handled this, so a forward Tab from
+      // outside walked straight into the page the dialog was meant to block.
+      if (!active || !panelRef.current.contains(active) || active === panelRef.current) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+        return;
+      }
       // Wrap at both ends so focus can never leave the panel.
-      if (e.shiftKey && (active === first || !panelRef.current.contains(active))) {
+      if (e.shiftKey && active === first) {
         e.preventDefault();
         last.focus();
       } else if (!e.shiftKey && active === last) {
