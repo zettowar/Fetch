@@ -21,6 +21,7 @@ class PushSubscriptionOut(BaseModel):
 
 class NotificationPrefsOut(BaseModel):
     lost_dog_alerts: bool = True
+    announcement_emails: bool = True
     weekly_winner: bool = True
     comments_on_dogs: bool = True
     new_followers: bool = True
@@ -31,6 +32,7 @@ class NotificationPrefsOut(BaseModel):
 
 class NotificationPrefsUpdate(BaseModel):
     lost_dog_alerts: bool | None = None
+    announcement_emails: bool | None = None
     weekly_winner: bool | None = None
     comments_on_dogs: bool | None = None
     new_followers: bool | None = None

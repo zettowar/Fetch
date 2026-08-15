@@ -101,3 +101,24 @@ export async function lookupInvite(code: string): Promise<InviteLookup> {
   const res = await client.get(`/public/invite/${encodeURIComponent(code)}`);
   return res.data;
 }
+
+export interface UnsubscribeResult {
+  status: 'ok' | 'invalid';
+  list_name: string | null;
+  label: string | null;
+}
+
+/** Opt out of one mailing list. The signed token from the email is the only
+ *  credential — no session required, because mail clients have none. */
+export async function unsubscribe(token: string): Promise<UnsubscribeResult> {
+  return (await client.post(`/public/unsubscribe/${token}`)).data;
+}
+
+export interface SiteBanner {
+  banner: string;
+}
+
+/** Admin-set maintenance/announcement strip. Empty string = nothing to show. */
+export async function getSiteBanner(): Promise<SiteBanner> {
+  return (await client.get('/public/banner')).data;
+}

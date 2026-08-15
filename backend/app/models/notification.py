@@ -61,6 +61,11 @@ class NotificationPreference(Base, UUIDPrimaryKey, TimestampMixin):
         nullable=False, unique=True,
     )
     lost_dog_alerts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Admin broadcasts are commercial electronic messages, so they need their
+    # own opt-out that the one-click unsubscribe link can flip.
+    announcement_emails: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="true"
+    )
     weekly_winner: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     comments_on_dogs: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     new_followers: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

@@ -40,7 +40,9 @@ async def _run() -> int:
     from app.db import async_session
     from app.models.notification import Notification, NotificationPreference
     from app.models.user import User
-    from app.services.email import send_email, _layout
+    from app.services.email import (
+        send_email, unsubscribe_footer, unsubscribe_headers, _layout,
+    )
 
     if not settings.RESEND_API_KEY:
         logger.info("digest_skipped_no_provider")
@@ -85,11 +87,18 @@ async def _run() -> int:
             heading = f"You have {len(unread)} new notification" + ("s" if len(unread) != 1 else "")
             html = _layout(
                 heading,
-                f"<ul style='padding-left:18px'>{items}</ul>",
+                f"<ul style='padding-left:18px'>{items}</ul>"
+                # Recurring scheduled mail, so it carries a visible opt-out and
+                # the one-click headers Gmail/Yahoo expect from bulk senders.
+                + unsubscribe_footer(user_id, "digest"),
                 cta_url=f"{settings.FRONTEND_BASE_URL}/app/notifications",
                 cta_label="Open your inbox",
             )
-            if await send_email(user.email, f"Fetchpawz — {heading.lower()}", html):
+            if await send_email(
+                user.email, f"Fetchpawz — {heading.lower()}", html,
+                headers=unsubscribe_headers(user_id, "digest"),
+                kind="digest",
+            ):
                 sent += 1
 
     logger.info("digest_sent", count=sent)

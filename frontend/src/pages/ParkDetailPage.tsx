@@ -22,6 +22,7 @@ import {
   checkinPark,
   checkoutPark,
 } from '../api/parks';
+import IncidentReporter from '../components/IncidentReporter';
 import { getMyPets } from '../api/pets';
 import Button from '../components/ui/Button';
 import Linkify from '../components/Linkify';
@@ -318,11 +319,22 @@ export default function ParkDetailPage() {
       {/* Play dates */}
       <PlayDatesSection parkId={id!} />
 
-      {/* Incidents */}
-      {incidents.length > 0 && (
-        <div className="mt-6">
-          <h2 className="font-semibold mb-2 text-danger-600 dark:text-danger-400">Active Warnings</h2>
-          {incidents.map((inc) => (
+      {/* Incidents. Previously this whole section was hidden whenever the list
+          was empty — and nothing could create one, so it never appeared at
+          all. Now it always shows, with the control that fills it. */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h2 className="font-semibold text-danger-600 dark:text-danger-400">
+            Active warnings
+          </h2>
+          <IncidentReporter parkId={id!} />
+        </div>
+        {incidents.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            Nothing reported here in the last two weeks.
+          </p>
+        ) : (
+          incidents.map((inc) => (
             <div key={inc.id} className="p-3 bg-danger-50 border border-danger-100 dark:bg-danger-500/10 dark:border-danger-500/30 rounded-xl mb-2">
               <p className="text-sm font-medium text-danger-700 dark:text-danger-300">{inc.kind.replace(/_/g, ' ')}</p>
               <p className="text-sm text-gray-600 dark:text-gray-300">{inc.description}</p>
@@ -330,9 +342,9 @@ export default function ParkDetailPage() {
                 Expires {relativeTime(inc.expires_at)}
               </p>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       {/* Reviews */}
       <div className="mt-6">

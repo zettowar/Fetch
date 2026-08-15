@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Heart,
   HeartHandshake,
+  LifeBuoy,
   PawPrint,
   Pencil,
   Share2,
@@ -208,6 +209,7 @@ export default function UserProfilePage() {
           <MenuLink to="/app/transfers" label="Pet transfers" icon={<ArrowLeftRight size={18} />} />
           <MenuLink to="/app/donations" label="My donations" icon={<HeartHandshake size={18} />} />
           <MenuLink to="/app/notifications" label="Notifications" icon={<Bell size={18} />} />
+          <MenuLink to="/app/support" label="Help & support" icon={<LifeBuoy size={18} />} />
         </section>
       )}
 

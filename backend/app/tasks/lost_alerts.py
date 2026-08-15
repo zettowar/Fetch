@@ -46,6 +46,19 @@ async def _send_alerts(report_id: str, session_factory=None):
         # Filter out the reporter themselves
         subscribers = [s for s in subscribers if s.user_id != report.reporter_id]
 
+        # …and anyone who turned lost-pet alerts off. The settings toggle and
+        # the one-click unsubscribe both write this preference; until now
+        # nothing read it, so switching it off changed nothing.
+        from app.models.notification import NotificationPreference
+
+        opted_out = set((await db.execute(
+            select(NotificationPreference.user_id).where(
+                NotificationPreference.user_id.in_({s.user_id for s in subscribers}),
+                NotificationPreference.lost_dog_alerts == False,  # noqa: E712
+            )
+        )).scalars().all()) if subscribers else set()
+        subscribers = [s for s in subscribers if s.user_id not in opted_out]
+
         logger.info(
             "Sending proximity alerts for report %s to %d subscribers",
             report_id,
@@ -82,6 +95,7 @@ async def _send_alerts(report_id: str, session_factory=None):
                     report_id=report_id,
                     description=report.description,
                     area_hint=None,
+                    user_id=sub.user_id,
                 )
                 logger.info(
                     "Notified user %s about report %s (email_sent=%s)",

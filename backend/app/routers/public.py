@@ -20,9 +20,11 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.db import get_db
 from app.limiter import limiter
+from app.security import decode_unsubscribe_token
 from app.services.email import send_tag_found_email
 from app.models.beta import InviteCode, WaitlistEntry
 from app.models.news import NewsPost
+from app.models.notification import NotificationPreference
 from app.models.pet import Pet
 from app.models.qr_tag import QRTag
 from app.models.rescue import RescueProfile
@@ -345,6 +347,80 @@ async def contact_tag_owner(
     )
     logger.info("tag_contact", tag_code=tag.code, pet_id=str(pet.id))
     return {"detail": f"Message sent to {pet.name}'s owner"}
+
+
+class UnsubscribeOut(BaseModel):
+    status: Literal["ok", "invalid"]
+    list_name: str | None = None
+    label: str | None = None
+
+
+# Which preference each mailing list maps onto. `digest` is a mode rather than
+# a boolean, so it is special-cased below.
+_UNSUB_LISTS = {
+    "digest": "Notification digests",
+    "announcements": "Product announcements",
+    "lost_alerts": "Lost-pet alerts near you",
+}
+
+
+async def _apply_unsubscribe(token: str, db: AsyncSession) -> UnsubscribeOut:
+    payload = decode_unsubscribe_token(token)
+    if not payload or payload.get("list") not in _UNSUB_LISTS:
+        return UnsubscribeOut(status="invalid")
+    list_name = payload["list"]
+
+    try:
+        user_id = UUID(payload["sub"])
+    except (KeyError, ValueError):
+        return UnsubscribeOut(status="invalid")
+
+    prefs = (await db.execute(
+        select(NotificationPreference).where(
+            NotificationPreference.user_id == user_id
+        )
+    )).scalar_one_or_none()
+    if prefs is None:
+        # Never opened settings, so the row does not exist yet — create it
+        # already opted out rather than silently doing nothing.
+        prefs = NotificationPreference(user_id=user_id)
+        db.add(prefs)
+
+    if list_name == "digest":
+        prefs.digest_mode = "off"
+    elif list_name == "announcements":
+        prefs.announcement_emails = False
+    elif list_name == "lost_alerts":
+        prefs.lost_dog_alerts = False
+
+    await db.commit()
+    logger.info("unsubscribed", user_id=str(user_id), list_name=list_name)
+    return UnsubscribeOut(status="ok", list_name=list_name, label=_UNSUB_LISTS[list_name])
+
+
+@router.post("/unsubscribe/{token}", response_model=UnsubscribeOut)
+@limiter.limit("60/hour")
+async def unsubscribe(
+    token: str, request: Request, db: AsyncSession = Depends(get_db)
+):
+    """One-click opt-out (RFC 8058).
+
+    Unauthenticated by design: the mail client POSTs this on the recipient's
+    behalf, with no session and no CSRF token. The signed token is the
+    credential, and it can only ever turn a preference *off* for the one user
+    it names — worst case for a leaked token is someone gets fewer emails.
+    """
+    return await _apply_unsubscribe(token, db)
+
+
+@router.get("/unsubscribe/{token}", response_model=UnsubscribeOut)
+@limiter.limit("60/hour")
+async def unsubscribe_via_link(
+    token: str, request: Request, db: AsyncSession = Depends(get_db)
+):
+    """The footer link. Same effect as the one-click POST, so someone who
+    clicks through in a browser is opted out without a second confirmation."""
+    return await _apply_unsubscribe(token, db)
 
 
 @router.get("/top-pet", response_model=PublicTopPetOut | None)

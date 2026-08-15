@@ -80,6 +80,34 @@ def create_signed_state(payload: dict, ttl_seconds: int = 600) -> str:
     )
 
 
+def create_unsubscribe_token(user_id: str, list_name: str) -> str:
+    """A stateless opt-out token for one user and one mailing list.
+
+    Signed rather than stored: the link has to keep working for as long as the
+    email sits in someone's inbox, and a row per recipient per send would be a
+    table that only ever grows. No expiry for the same reason — CASL expects an
+    unsubscribe mechanism that stays live for at least 60 days, and there is no
+    upside to breaking it after that.
+    """
+    return jwt.encode(
+        {"sub": user_id, "list": list_name, "type": "unsubscribe"},
+        settings.JWT_SECRET,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+
+def decode_unsubscribe_token(token: str) -> dict | None:
+    try:
+        payload = jwt.decode(
+            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
+        )
+        if payload.get("type") != "unsubscribe":
+            return None
+        return payload
+    except jwt.PyJWTError:
+        return None
+
+
 def decode_signed_state(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])

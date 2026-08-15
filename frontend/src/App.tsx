@@ -8,6 +8,7 @@ import AdminLayout from './components/AdminLayout';
 import AppShell from './components/AppShell';
 import ScrollToTop from './components/ScrollToTop';
 import ImpersonationBanner from './components/ImpersonationBanner';
+import MaintenanceBanner from './components/MaintenanceBanner';
 import FlagGate from './components/FlagGate';
 
 // Marketing website (web-first, unauthenticated front door)
@@ -67,6 +68,8 @@ import NotFoundPage from './pages/NotFoundPage';
 // pulled out of the main bundle: maplibre-gl alone is ~1 MB, and an
 // unauthenticated visitor reading the marketing site was downloading it (plus
 // the whole admin tree) before anything rendered.
+const SupportPage = lazy(() => import('./pages/SupportPage'));
+const UnsubscribePage = lazy(() => import('./marketing/UnsubscribePage'));
 const PostsPage = lazy(() => import('./pages/PostsPage'));
 const PostDetailPage = lazy(() => import('./pages/PostDetailPage'));
 const AdminAnnouncementsPage = lazy(() => import('./pages/admin/AdminAnnouncementsPage'));
@@ -144,6 +147,7 @@ function AppContent() {
     <>
       <ScrollToTop />
       <ImpersonationBanner />
+      <MaintenanceBanner />
       <Suspense fallback={<RouteFallback />}>
       <Routes>
         {/* ── Marketing website — web-first, for everyone (logged out) ── */}
@@ -154,6 +158,7 @@ function AppContent() {
           <Route path="/news" element={<NewsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/unsubscribe/:token" element={<UnsubscribePage />} />
           {/* Public read-only share pages — no session required. */}
           <Route path="/pets/:petId" element={<PublicPetPage />} />
           <Route path="/rescue/:slug" element={<PublicRescuePage />} />
@@ -208,6 +213,7 @@ function AppContent() {
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="following" element={<FollowingPage />} />
           <Route path="explore" element={<FlagGate flag="explore_pack_enabled"><ExplorePage /></FlagGate>} />
+          <Route path="support" element={<SupportPage />} />
           <Route path="community" element={<FlagGate flag="explore_community_enabled"><PostsPage /></FlagGate>} />
           <Route path="community/:id" element={<FlagGate flag="explore_community_enabled"><PostDetailPage /></FlagGate>} />
           <Route path="rescues" element={<RescuesHubPage />} />

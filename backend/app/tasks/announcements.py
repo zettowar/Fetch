@@ -48,7 +48,10 @@ async def _dispatch(announcement_id: uuid.UUID) -> int:
     from app.db import async_session
     from app.models.announcement import Announcement
     from app.models.notification import Notification
-    from app.services.email import send_email, _layout
+    from app.models.notification import NotificationPreference
+    from app.services.email import (
+        send_email, unsubscribe_footer, unsubscribe_headers, _layout,
+    )
 
     async with async_session() as db:
         ann = (await db.execute(
@@ -89,12 +92,36 @@ async def _dispatch(announcement_id: uuid.UUID) -> int:
     # Email fan-out (best-effort, outside the DB transaction). Skipped entirely
     # when no email provider is configured.
     if ann.send_email:
-        html = _layout(ann.title, ann.body)
+        # The in-app notification above goes to the whole segment; the *email*
+        # is a commercial electronic message, so it additionally honours the
+        # recipient's announcement opt-out.
+        async with async_session() as db:
+            opted_out = set((await db.execute(
+                select(NotificationPreference.user_id).where(
+                    NotificationPreference.announcement_emails == False  # noqa: E712
+                )
+            )).scalars().all())
+
         sent = 0
-        for _uid, email in rows:
-            if await send_email(email, ann.title, html):
+        skipped = 0
+        for uid, email in rows:
+            if uid in opted_out:
+                skipped += 1
+                continue
+            html = _layout(
+                ann.title,
+                ann.body + unsubscribe_footer(uid, "announcements"),
+            )
+            if await send_email(
+                email, ann.title, html,
+                headers=unsubscribe_headers(uid, "announcements"),
+                kind="announcement",
+            ):
                 sent += 1
-        logger.info("announcement_emailed", id=str(announcement_id), sent=sent)
+        logger.info(
+            "announcement_emailed", id=str(announcement_id),
+            sent=sent, opted_out=skipped,
+        )
 
     logger.info("announcement_dispatched", id=str(announcement_id), recipients=total)
     return total

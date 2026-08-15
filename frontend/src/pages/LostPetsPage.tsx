@@ -9,6 +9,7 @@ import DogIllustration from '../components/flair/DogIllustration';
 import PawSpinner from '../components/flair/PawSpinner';
 import TimeAgo from '../components/TimeAgo';
 import ErrorState from '../components/ui/ErrorState';
+import LostAlertSubscription from '../components/LostAlertSubscription';
 import { useUserLocation } from '../utils/useUserLocation';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // fallback: San Francisco
@@ -263,6 +264,7 @@ export default function LostPetsPage() {
       </div>
 
       <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <LostAlertSubscription center={viewCenter} />
         <div className="px-4 py-2 flex items-center justify-around text-xs text-gray-600 dark:text-gray-300">
           {/* A dash, not a zero: "0 missing" when the request failed reads as
               an all-clear we have not actually verified. */}

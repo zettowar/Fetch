@@ -11,7 +11,7 @@ cp .env.example .env
 make up          # Start all 6 Docker services
 make migrate     # Run database migrations
 make seed        # Create 10 test users + 20 dogs
-make test        # Run all tests (~431 backend + ~101 frontend)
+make test        # Run all tests (~476 backend + ~122 frontend)
 ```
 
 - **Frontend:** http://localhost:3174
@@ -55,8 +55,8 @@ Fetchpawz/
 │   │   └── tasks/            # 6 Celery tasks (weekly_winner, lost_alerts,
 │   │                         #   token_cleanup, digest, announcements,
 │   │                         #   schedule_defaults)
-│   ├── tests/                # backend test suite (~431 tests)
-│   ├── alembic/              # ~44 migrations (linear chain)
+│   ├── tests/                # backend test suite (~476 tests)
+│   ├── alembic/              # ~46 migrations (linear chain)
 │   └── pyproject.toml
 ├── frontend/
 │   └── src/
@@ -416,20 +416,34 @@ These are scaffolded but not fully wired — marked with `PHASEn` comments in co
   `db-backup` sidecar now archives the uploads volume alongside the `pg_dump`,
   so photos survive a host loss; S3 would remove the volume dependency.
 
-**Built server-side but with no user-facing UI** (the backend is done and
-tested; the frontend half is missing):
+All of the "built server-side but unreachable" backends now have a UI: abuse
+reports (`components/ReportDialog.tsx`), support + FAQ (`/app/support`),
+lost-pet proximity subscriptions (`components/LostAlertSubscription.tsx`),
+park incidents (`components/IncidentReporter.tsx`), the maintenance banner
+(`components/MaintenanceBanner.tsx`), and community posts (`/app/community`).
 
-- **Abuse reports** — `POST /reports` exists, the admin triage queue and strike
-  pipeline are complete, but nothing in the app can file one.
-- **Support tickets + FAQ** — `/support/faq`, `/support/tickets`,
-  `/support/tickets/mine` all accept ordinary users; there is no page.
-- **Lost-pet proximity alert subscriptions** — `createSubscription` in
-  `api/lost.ts` has no caller, so `tasks/lost_alerts.py` has no subscribers.
-- **Park incidents** — `createParkIncident` has no caller.
-- **Maintenance banner** — settable in admin, served at `/public/banner`,
-  rendered nowhere.
-- **Community posts** — full router, model and GIN full-text index; no frontend
-  and no tests.
+## Email: transactional vs bulk
+
+`services/email.py` splits two categories, and the distinction is legal, not
+cosmetic:
+
+- **Transactional** (verification, password reset, email change, contact relay,
+  tag-found, transfer invite) — no unsubscribe. An opt-out link on a password
+  reset is both nonsense and non-compliant.
+- **Bulk** (digest, admin announcements, lost-pet proximity alerts) — MUST call
+  `unsubscribe_headers()` (RFC 8058 one-click, which Gmail/Yahoo require of
+  bulk senders) and append `unsubscribe_footer()`. Both take `(user_id,
+  list_name)` where list_name is one of `digest` / `announcements` /
+  `lost_alerts`, mapping onto `NotificationPreference`.
+
+Opt-out is a stateless signed token (`create_unsubscribe_token`) resolved by
+`POST|GET /public/unsubscribe/{token}` — unauthenticated, because a mail client
+has no session, and safe because the token can only ever turn a preference
+*off* for the one user it names.
+
+Every send passes `kind=` so `fetchpawz_email_sends_total{kind,outcome}` on
+`/metrics` shows a single broken flow without reading logs. **Nothing scrapes
+`/metrics` yet** — wiring that up is still open.
 
 No longer stubs: invite codes are enforced at signup when `INVITE_REQUIRED=true`;
 flagged photos have a full admin review queue (list/view/approve/reject under

@@ -11,8 +11,10 @@ import html
 
 import httpx
 import structlog
+from prometheus_client import Counter
 
 from app.config import settings
+from app.security import create_unsubscribe_token
 
 logger = structlog.stdlib.get_logger()
 
@@ -32,12 +34,25 @@ def _resend_error(resp: httpx.Response) -> str:
     return resp.text[:200].strip() or "no response body"
 
 
+# Scrape these to find out that delivery broke *before* a user tells you.
+# `kind` is the message family (verification, digest, transfer_invite, …) so a
+# single failing flow is visible without reading logs; `outcome` separates a
+# provider rejection from an unreachable provider from a missing key.
+EMAIL_SENDS = Counter(
+    "fetchpawz_email_sends_total",
+    "Outbound transactional/bulk email attempts.",
+    ("kind", "outcome"),
+)
+
+
 async def _deliver(
     to: str,
     subject: str,
     body_html: str,
     *,
     reply_to: str | None = None,
+    headers: dict[str, str] | None = None,
+    kind: str = "other",
 ) -> tuple[bool, str]:
     """POST one message to Resend. Returns (accepted, human-readable reason).
 
@@ -47,7 +62,8 @@ async def _deliver(
     unverified sender domain.
     """
     if not settings.RESEND_API_KEY:
-        logger.info("email_skipped_no_provider", to=to, subject=subject)
+        logger.info("email_skipped_no_provider", to=to, subject=subject, kind=kind)
+        EMAIL_SENDS.labels(kind=kind, outcome="skipped_no_provider").inc()
         return False, "RESEND_API_KEY is not set — email delivery is disabled."
 
     payload: dict = {
@@ -58,6 +74,8 @@ async def _deliver(
     }
     if reply_to:
         payload["reply_to"] = [reply_to]
+    if headers:
+        payload["headers"] = headers
 
     try:
         async with httpx.AsyncClient(timeout=settings.EMAIL_TIMEOUT_S) as client:
@@ -67,18 +85,53 @@ async def _deliver(
                 json=payload,
             )
     except Exception as exc:  # noqa: BLE001
-        logger.warning("email_send_failed", to=to, subject=subject, error=str(exc))
+        logger.warning(
+            "email_send_failed", to=to, subject=subject, kind=kind, error=str(exc)
+        )
+        EMAIL_SENDS.labels(kind=kind, outcome="unreachable").inc()
         return False, f"Could not reach Resend: {exc}"
 
     if resp.status_code >= 400:
         logger.warning(
-            "email_send_rejected", to=to, subject=subject,
+            "email_send_rejected", to=to, subject=subject, kind=kind,
             status=resp.status_code, body=resp.text[:500],
         )
+        EMAIL_SENDS.labels(kind=kind, outcome="rejected").inc()
         return False, f"Resend rejected it (HTTP {resp.status_code}): {_resend_error(resp)}"
 
-    logger.info("email_sent", to=to, subject=subject)
+    logger.info("email_sent", to=to, subject=subject, kind=kind)
+    EMAIL_SENDS.labels(kind=kind, outcome="sent").inc()
     return True, "Resend accepted the message."
+
+
+def unsubscribe_headers(user_id, list_name: str) -> dict[str, str]:
+    """RFC 8058 one-click opt-out headers for a bulk send.
+
+    Gmail and Yahoo require these above a modest volume; without them the
+    sending domain's reputation degrades, which would take password resets and
+    lost-pet alerts down alongside the marketing. Transactional mail must NOT
+    carry them — an unsubscribe link on a password reset is nonsense.
+    """
+    token = create_unsubscribe_token(str(user_id), list_name)
+    return {
+        "List-Unsubscribe": (
+            f"<{settings.FRONTEND_BASE_URL}/unsubscribe/{token}>, "
+            f"<mailto:{settings.EMAIL_FROM}?subject=unsubscribe>"
+        ),
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    }
+
+
+def unsubscribe_footer(user_id, list_name: str) -> str:
+    """The visible opt-out a person can actually find and click."""
+    token = create_unsubscribe_token(str(user_id), list_name)
+    url = f"{settings.FRONTEND_BASE_URL}/unsubscribe/{token}"
+    return (
+        '<p style="margin:24px 0 0;font-size:12px;line-height:18px;color:#9ca3af;">'
+        f'You are receiving this because you have a Fetchpawz account. '
+        f'<a href="{url}" style="color:#9ca3af;text-decoration:underline;">'
+        "Unsubscribe from these emails</a>.</p>"
+    )
 
 
 async def send_email(
@@ -87,9 +140,13 @@ async def send_email(
     body_html: str,
     *,
     reply_to: str | None = None,
+    headers: dict[str, str] | None = None,
+    kind: str = "other",
 ) -> bool:
     """Send one email. Returns True only when Resend accepted the message."""
-    accepted, _ = await _deliver(to, subject, body_html, reply_to=reply_to)
+    accepted, _ = await _deliver(
+        to, subject, body_html, reply_to=reply_to, headers=headers, kind=kind
+    )
     return accepted
 
 
@@ -223,6 +280,7 @@ async def send_password_reset_email(to: str, raw_token: str) -> bool:
             cta_label="Choose a new password",
             preheader="Your reset link is valid for one use.",
         ),
+        kind="password_reset",
     )
 
 
@@ -239,6 +297,7 @@ async def send_verification_email(to: str, raw_token: str) -> bool:
             cta_label="Verify my email",
             preheader="One tap to confirm your address and unlock everything.",
         ),
+        kind="verification",
     )
 
 
@@ -256,6 +315,7 @@ async def send_email_change_email(to: str, raw_token: str) -> bool:
             cta_label="Use this address",
             preheader="Confirm the switch, or ignore this and nothing changes.",
         ),
+        kind="email_change",
     )
 
 
@@ -292,6 +352,7 @@ async def send_invite_email(to: str, code: str) -> bool:
             cta_label="Accept your invite",
             preheader="A spot opened up and your code is already applied.",
         ),
+        kind="invite",
     )
 
 
@@ -317,6 +378,7 @@ async def send_contact_relay_email(
             preheader="Reply to this email to answer them directly.",
         ),
         reply_to=sender_email,
+        kind="contact_relay",
     )
 
 
@@ -368,6 +430,7 @@ async def send_transfer_invite_email(
             cta_label=cta,
             preheader=f"{safe_rescue} is transferring {safe_pet} to you.",
         ),
+        kind="transfer_invite",
     )
 
 
@@ -404,6 +467,7 @@ async def send_tag_found_email(
             "take the usual care when arranging to meet.</p>",
             preheader=f"{html.escape(finder_name)} may have found {safe_pet}.",
         ),
+        kind="tag_found",
     )
 
 
@@ -429,19 +493,30 @@ async def send_test_email(to: str) -> tuple[bool, str]:
 
 
 async def send_lost_alert_email(
-    to: str, *, report_id: str, description: str, area_hint: str | None
+    to: str, *, report_id: str, description: str, area_hint: str | None,
+    user_id=None,
 ) -> bool:
+    """Proximity alert for a subscriber.
+
+    Recurring opt-in mail rather than a reply to something they did, so it
+    carries the opt-out — the subscription's own toggle and this link write the
+    same preference.
+    """
     url = f"{settings.FRONTEND_BASE_URL}/app/lost/{report_id}"
     where = f" near {html.escape(area_hint)}" if area_hint else " in your area"
+    footer = unsubscribe_footer(user_id, "lost_alerts") if user_id else ""
     return await send_email(
         to,
         "A pet was reported lost near you",
         _layout(
             f"Lost pet reported{where}",
             f"<p>{html.escape(description[:300])}</p>"
-            "<p>If you spot them, add a sighting — it goes straight to the owner.</p>",
+            "<p>If you spot them, add a sighting — it goes straight to the owner.</p>"
+            + footer,
             cta_url=url,
             cta_label="View the report",
             preheader="Spotted them? Add a sighting and the owner hears instantly.",
         ),
+        headers=unsubscribe_headers(user_id, "lost_alerts") if user_id else None,
+        kind="lost_alert",
     )
