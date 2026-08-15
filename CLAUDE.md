@@ -2,7 +2,7 @@
 
 ## What is Fetchpawz?
 
-A mobile-first web app where dog owners create profiles for their dogs, rate other dogs via a Tinder-style swipe interface, and compete for the weekly "top dog" crown. Extended with lost & found dogs, dog parks (reviews, check-ins, play dates), vets, rescues + adoption inquiries, dog transfers, social (follows/comments/reactions, user blocks), community posts, a notification inbox, public dog share pages (`/dogs/{id}`, opt-out via `dogs.is_public`), member + admin invite codes, liked-dogs history, crown badges/weekly rank on dog pages, account management (password/email change), support tickets + FAQ, beta feedback, billing entitlements, and a full admin panel. Donations are in-app via Stripe Checkout — to the platform and (via Stripe Connect Express) to rescues, with external donation links as the fallback (see Donations below); the shop is Shopify-only (see below).
+A mobile-first web app where owners create profiles for their **cats and dogs**, rate other pets via a Tinder-style swipe interface, and compete for the weekly "top pet" crown — one crown per species (Top Dog and Top Cat). Extended with lost & found pets, dog parks (reviews, check-ins, play dates), vets, rescues + adoption inquiries, pet transfers, social (follows/comments/reactions, user blocks), community posts, a notification inbox, public pet share pages (`/pets/{id}`, opt-out via `pets.is_public`), **QR collar tags** (`routers/tags.py` + `/t/{code}` landing), member + admin invite codes, liked-pets history, crown badges/weekly rank on pet pages, account management (password/email change, **TOTP two-factor**, **Google/GitHub SSO**), support tickets + FAQ, beta feedback, billing entitlements, daily/weekly digest email, a waitlist, swipe allowance + rewarded ads, and a full admin panel. Donations are in-app via Stripe Checkout — to the platform and (via Stripe Connect Express) to rescues, with external donation links as the fallback (see Donations below); the shop is Shopify-only (see below).
 
 ## Quick Start
 
@@ -11,7 +11,7 @@ cp .env.example .env
 make up          # Start all 6 Docker services
 make migrate     # Run database migrations
 make seed        # Create 10 test users + 20 dogs
-make test        # Run all tests (~260 backend + ~63 frontend)
+make test        # Run all tests (~431 backend + ~101 frontend)
 ```
 
 - **Frontend:** http://localhost:3174
@@ -45,23 +45,26 @@ Fetchpawz/
 │   │   ├── logging.py        # structlog setup
 │   │   ├── middleware.py      # RequestID, logging, security headers
 │   │   ├── seed.py           # Dev seed data
-│   │   ├── models/           # ~22 SQLAlchemy model files
-│   │   ├── schemas/          # ~23 Pydantic schema files
-│   │   ├── routers/          # ~23 FastAPI router files
-│   │   ├── services/         # feed, ranking, lost, moderation, dog_serializer,
-│   │   │                     #   breed_display, osm_import (+ park/vet configs)
-│   │   └── tasks/            # 3 Celery tasks (weekly_winner, lost_alerts,
-│   │                         #   token_cleanup)
-│   ├── tests/                # backend test suite (~232 tests)
-│   ├── alembic/              # ~26 migrations (linear chain)
+│   │   ├── models/           # ~32 SQLAlchemy model files
+│   │   ├── schemas/          # ~29 Pydantic schema files
+│   │   ├── routers/          # ~30 FastAPI router files
+│   │   ├── services/         # ~20 modules: feed, ranking, lost, moderation,
+│   │   │                     #   pet_serializer, breed_display, blocks, geo,
+│   │   │                     #   email, notify, quota, traits, totp, qr,
+│   │   │                     #   stripe, settings, rescue, osm/park/vet import
+│   │   └── tasks/            # 6 Celery tasks (weekly_winner, lost_alerts,
+│   │                         #   token_cleanup, digest, announcements,
+│   │                         #   schedule_defaults)
+│   ├── tests/                # backend test suite (~431 tests)
+│   ├── alembic/              # ~44 migrations (linear chain)
 │   └── pyproject.toml
 ├── frontend/
 │   └── src/
 │       ├── App.tsx            # Routing (marketing + consumer + admin shells)
 │       ├── marketing/         # public marketing site (Home/About/Mission/News)
-│       ├── pages/             # ~37 consumer pages + admin/ (15 admin pages)
+│       ├── pages/             # ~44 consumer pages + admin/ (24 admin pages)
 │       ├── components/        # shared components + ui/ primitives
-│       ├── api/               # ~20 typed API client modules
+│       ├── api/               # ~26 typed API client modules
 │       ├── store/             # AuthContext (React Context)
 │       ├── utils/             # time.ts (relativeTime, dogAge, photoUrl)
 │       └── types/             # TypeScript interfaces
@@ -108,10 +111,14 @@ user: User = Depends(require_approved_rescue)
 The frontend serves two distinct experiences, split by route tree:
 - **Marketing website** (`src/marketing/*`) — the web-first, full-width,
   responsive site every *unauthenticated* visitor sees. Routes: `/` (Home),
-  `/about`, `/mission`, `/news`, wrapped in `MarketingLayout` (site header +
-  footer). NOT constrained to the app's mobile column. The app is invite/beta
-  gated ("coming soon"), so the site funnels to **Log in** only — public
-  sign-up is not surfaced (the `/signup` routes still work by direct link).
+  `/about`, `/mission`, `/news`, `/privacy`, `/terms`, plus the public share
+  pages (`/pets/:id`, `/rescue/:slug`, `/t/:code`), wrapped in
+  `MarketingLayout` (site header + footer). NOT constrained to the app's mobile
+  column. The app is invite/beta gated ("coming soon"), so the site funnels to
+  **Log in** and a **waitlist email capture** ("Get an invite",
+  `api/waitlist.ts`) — open public sign-up is not surfaced (the `/signup`
+  routes still work by direct link, and admins convert waitlist entries to
+  invites from Admin → Invites).
   The gate is enforced server-side: with `INVITE_REQUIRED=true` (prod default)
   `/auth/signup` requires an unused admin-generated invite code and consumes
   it atomically. Rescue signups stay open — they are approval-gated instead.
@@ -366,6 +373,33 @@ jobs (canonical defs in `app/tasks/schedule_defaults.py`) are seeded into the
 table by the `periodic_tasks` migration, so a fresh install schedules exactly as
 before. Times are UTC. Run a single beat replica — two would double-schedule.
 
+## QR collar tags
+
+`routers/tags.py` + `services/qr_service.py` mint short codes that map to a pet.
+A tag is claimed by its owner from the pet editor, and scanning it hits
+`/t/{code}` (`marketing/TagLandingPage.tsx`) which resolves via
+`public.py` to the pet's public share page. Admin → Tags lists and revokes them.
+**Known gap:** the public payload (`PublicPetOut`) exposes no contact channel,
+so a finder currently has no way to reach the owner — see the audit backlog.
+
+## Two-factor and SSO
+
+`services/totp.py` implements TOTP enrolment (`/auth/2fa/setup` → `/enable`),
+and `auth.login` requires the code when `user.totp_enabled`. SSO
+(`routers/oauth.py`, Google + GitHub) uses a single-use handoff code exchanged
+for tokens. **Known gap:** the SSO path does not check `totp_enabled`, so 2FA is
+bypassable via SSO.
+
+## Notification delivery — one channel, and it is not the inbox
+
+Worth knowing before adding a feature that "notifies" someone:
+`services/notify.py` writes to the **in-app inbox only** — it never sends email.
+Email is sent from exactly three places: `routers/auth.py` (verify/reset),
+`routers/lost.py` (contact relay + proximity alerts), and the
+`tasks/digest.py` / `tasks/announcements.py` jobs. `digest_mode` defaults to
+`"off"`, and push is a stub — so by default a user is told about nothing unless
+they open the app.
+
 ## Phased / stub features (intentionally incomplete)
 
 These are scaffolded but not fully wired — marked with `PHASEn` comments in code:
@@ -374,10 +408,28 @@ These are scaffolded but not fully wired — marked with `PHASEn` comments in co
   (`routers/notifications.py`) but never dispatched. (The in-app notification
   inbox IS real: `services/notify.py` emits on follows, comments, sightings,
   transfers, inquiries, weekly wins, and photo moderation; push would be a
-  second delivery channel for the same events.)
+  second delivery channel for the same events.) The PWA manifest now exists,
+  which iOS requires before Web Push can work at all.
 - **Billing checkout** — entitlements can be granted/revoked by an admin
   (`routers/billing.py`); there is no self-serve payment flow.
-- **S3 storage** (`storage.py`) — only `LocalStorage` is implemented.
+- **S3 storage** (`storage.py`) — only `LocalStorage` is implemented. The
+  `db-backup` sidecar now archives the uploads volume alongside the `pg_dump`,
+  so photos survive a host loss; S3 would remove the volume dependency.
+
+**Built server-side but with no user-facing UI** (the backend is done and
+tested; the frontend half is missing):
+
+- **Abuse reports** — `POST /reports` exists, the admin triage queue and strike
+  pipeline are complete, but nothing in the app can file one.
+- **Support tickets + FAQ** — `/support/faq`, `/support/tickets`,
+  `/support/tickets/mine` all accept ordinary users; there is no page.
+- **Lost-pet proximity alert subscriptions** — `createSubscription` in
+  `api/lost.ts` has no caller, so `tasks/lost_alerts.py` has no subscribers.
+- **Park incidents** — `createParkIncident` has no caller.
+- **Maintenance banner** — settable in admin, served at `/public/banner`,
+  rendered nowhere.
+- **Community posts** — full router, model and GIN full-text index; no frontend
+  and no tests.
 
 No longer stubs: invite codes are enforced at signup when `INVITE_REQUIRED=true`;
 flagged photos have a full admin review queue (list/view/approve/reject under

@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from 'react';
+import { Component, lazy, Suspense, type ReactNode } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './store/AuthContext';
 import { ThemeProvider } from './store/ThemeContext';
@@ -36,7 +36,6 @@ import LikedPetsPage from './pages/LikedPetsPage';
 
 // Authenticated app pages
 import RescueDashboardPage from './pages/RescueDashboardPage';
-import RescueDetailPage from './pages/RescueDetailPage';
 import TransfersPage from './pages/TransfersPage';
 import HomePage from './pages/HomePage';
 import SwipePage from './pages/SwipePage';
@@ -44,16 +43,7 @@ import MyPetsPage from './pages/MyPetsPage';
 import PetEditorPage from './pages/PetEditorPage';
 import PetDetailPage from './pages/PetDetailPage';
 import RankingsPage from './pages/RankingsPage';
-import LostPetsPage from './pages/LostPetsPage';
-import ReportMissingPage from './pages/ReportMissingPage';
-import ReportFoundPage from './pages/ReportFoundPage';
-import LostReportDetailPage from './pages/LostReportDetailPage';
 import UserProfilePage from './pages/UserProfilePage';
-import ParksPage from './pages/ParksPage';
-import ParkDetailPage from './pages/ParkDetailPage';
-import ParkEditorPage from './pages/ParkEditorPage';
-import VetsPage from './pages/VetsPage';
-import VetDetailPage from './pages/VetDetailPage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import SecurityPage from './pages/SecurityPage';
 import NotificationsPage from './pages/NotificationsPage';
@@ -61,7 +51,6 @@ import FollowingPage from './pages/FollowingPage';
 import ExplorePage from './pages/ExplorePage';
 import RescuesHubPage from './pages/RescuesHubPage';
 import RescuesPage from './pages/RescuesPage';
-import RescuesMapPage from './pages/RescuesMapPage';
 import BillingPage from './pages/BillingPage';
 import DonatePage from './pages/DonatePage';
 import DonateReturnPage from './pages/DonateReturnPage';
@@ -71,31 +60,47 @@ import ShopProductPage from './pages/ShopProductPage';
 import CartPage from './pages/CartPage';
 
 // Admin pages
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
-import AdminReportsPage from './pages/admin/AdminReportsPage';
-import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
-import AdminContentPage from './pages/admin/AdminContentPage';
-import AdminLostReportsPage from './pages/admin/AdminLostReportsPage';
-import AdminTicketsPage from './pages/admin/AdminTicketsPage';
-import AdminRescuesPage from './pages/admin/AdminRescuesPage';
-import AdminFeedbackPage from './pages/admin/AdminFeedbackPage';
-import AdminInvitesPage from './pages/admin/AdminInvitesPage';
-import AdminFAQPage from './pages/admin/AdminFAQPage';
-import AdminBreedsPage from './pages/admin/AdminBreedsPage';
-import AdminTraitsPage from './pages/admin/AdminTraitsPage';
-import AdminTagsPage from './pages/admin/AdminTagsPage';
-import AdminParksPage from './pages/admin/AdminParksPage';
-import AdminVetsPage from './pages/admin/AdminVetsPage';
-import AdminAuditPage from './pages/admin/AdminAuditPage';
-import AdminDonationsPage from './pages/admin/AdminDonationsPage';
-import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage';
-import AdminNewsPage from './pages/admin/AdminNewsPage';
-import AdminSettingsPage from './pages/admin/AdminSettingsPage';
-import AdminSystemPage from './pages/admin/AdminSystemPage';
-import AdminInquiriesPage from './pages/admin/AdminInquiriesPage';
 
 import NotFoundPage from './pages/NotFoundPage';
+
+// Route-level code splitting. The admin panel and every map-bearing page are
+// pulled out of the main bundle: maplibre-gl alone is ~1 MB, and an
+// unauthenticated visitor reading the marketing site was downloading it (plus
+// the whole admin tree) before anything rendered.
+const AdminAnnouncementsPage = lazy(() => import('./pages/admin/AdminAnnouncementsPage'));
+const AdminAuditPage = lazy(() => import('./pages/admin/AdminAuditPage'));
+const AdminBreedsPage = lazy(() => import('./pages/admin/AdminBreedsPage'));
+const AdminContentPage = lazy(() => import('./pages/admin/AdminContentPage'));
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
+const AdminDonationsPage = lazy(() => import('./pages/admin/AdminDonationsPage'));
+const AdminFAQPage = lazy(() => import('./pages/admin/AdminFAQPage'));
+const AdminFeedbackPage = lazy(() => import('./pages/admin/AdminFeedbackPage'));
+const AdminInquiriesPage = lazy(() => import('./pages/admin/AdminInquiriesPage'));
+const AdminInvitesPage = lazy(() => import('./pages/admin/AdminInvitesPage'));
+const AdminLostReportsPage = lazy(() => import('./pages/admin/AdminLostReportsPage'));
+const AdminNewsPage = lazy(() => import('./pages/admin/AdminNewsPage'));
+const AdminParksPage = lazy(() => import('./pages/admin/AdminParksPage'));
+const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage'));
+const AdminRescuesPage = lazy(() => import('./pages/admin/AdminRescuesPage'));
+const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
+const AdminSystemPage = lazy(() => import('./pages/admin/AdminSystemPage'));
+const AdminTagsPage = lazy(() => import('./pages/admin/AdminTagsPage'));
+const AdminTicketsPage = lazy(() => import('./pages/admin/AdminTicketsPage'));
+const AdminTraitsPage = lazy(() => import('./pages/admin/AdminTraitsPage'));
+const AdminUserDetailPage = lazy(() => import('./pages/admin/AdminUserDetailPage'));
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
+const AdminVetsPage = lazy(() => import('./pages/admin/AdminVetsPage'));
+const LostPetsPage = lazy(() => import('./pages/LostPetsPage'));
+const LostReportDetailPage = lazy(() => import('./pages/LostReportDetailPage'));
+const ParkDetailPage = lazy(() => import('./pages/ParkDetailPage'));
+const ParkEditorPage = lazy(() => import('./pages/ParkEditorPage'));
+const ParksPage = lazy(() => import('./pages/ParksPage'));
+const ReportFoundPage = lazy(() => import('./pages/ReportFoundPage'));
+const ReportMissingPage = lazy(() => import('./pages/ReportMissingPage'));
+const RescueDetailPage = lazy(() => import('./pages/RescueDetailPage'));
+const RescuesMapPage = lazy(() => import('./pages/RescuesMapPage'));
+const VetDetailPage = lazy(() => import('./pages/VetDetailPage'));
+const VetsPage = lazy(() => import('./pages/VetsPage'));
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -126,11 +131,18 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   }
 }
 
+/** Shown while a lazily-loaded route chunk is fetched. Deliberately quiet —
+ *  on a warm cache these resolve in a frame and a spinner would only flash. */
+function RouteFallback() {
+  return <div className="min-h-[50vh]" aria-busy="true" aria-live="polite" />;
+}
+
 function AppContent() {
   return (
     <>
       <ScrollToTop />
       <ImpersonationBanner />
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         {/* ── Marketing website — web-first, for everyone (logged out) ── */}
         <Route element={<MarketingLayout />}>
@@ -246,6 +258,7 @@ function AppContent() {
           <Route path="audit" element={<AdminAuditPage />} />
         </Route>
       </Routes>
+      </Suspense>
     </>
   );
 }

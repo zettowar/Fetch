@@ -40,6 +40,14 @@ export default function FollowButton({ petId }: FollowButtonProps) {
     if (ctx?.previous) queryClient.setQueryData(key, ctx.previous);
   };
 
+  // Following a pet changes this button's count *and* the viewer's follow list,
+  // which the Following page and the Home strip both render. Invalidating only
+  // the count left those two screens showing a stale list until a hard reload.
+  const invalidateAffected = () => {
+    queryClient.invalidateQueries({ queryKey: key });
+    queryClient.invalidateQueries({ queryKey: ['my-follows'] });
+  };
+
   const followMutation = useMutation({
     mutationFn: () => followDog(petId),
     onMutate: () => applyOptimistic(true),
@@ -47,7 +55,7 @@ export default function FollowButton({ petId }: FollowButtonProps) {
       rollback(ctx);
       toast.error(apiErrorMessage(err, 'Failed to follow'));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSettled: invalidateAffected,
   });
 
   const unfollowMutation = useMutation({
@@ -57,7 +65,7 @@ export default function FollowButton({ petId }: FollowButtonProps) {
       rollback(ctx);
       toast.error(apiErrorMessage(err, 'Failed to unfollow'));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSettled: invalidateAffected,
   });
 
   const isFollowing = data?.is_following ?? false;

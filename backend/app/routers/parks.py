@@ -254,15 +254,33 @@ async def create_review(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Park not found")
 
-    review = ParkReview(
-        park_id=park_id,
-        author_id=user.id,
-        rating=body.rating,
-        body=body.body,
-        visit_time_of_day=body.visit_time_of_day,
-        crowd_level=body.crowd_level,
-    )
-    db.add(review)
+    # One review per author per park (uq_park_review_author). Re-reviewing
+    # updates the existing row rather than 409ing or stacking duplicates that
+    # would skew the park's average.
+    existing = (
+        await db.execute(
+            select(ParkReview).where(
+                ParkReview.park_id == park_id, ParkReview.author_id == user.id
+            )
+        )
+    ).scalar_one_or_none()
+
+    if existing is not None:
+        existing.rating = body.rating
+        existing.body = body.body
+        existing.visit_time_of_day = body.visit_time_of_day
+        existing.crowd_level = body.crowd_level
+        review = existing
+    else:
+        review = ParkReview(
+            park_id=park_id,
+            author_id=user.id,
+            rating=body.rating,
+            body=body.body,
+            visit_time_of_day=body.visit_time_of_day,
+            crowd_level=body.crowd_level,
+        )
+        db.add(review)
     await db.commit()
     await db.refresh(review)
     return _review_to_out(review, user.display_name)

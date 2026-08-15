@@ -20,6 +20,7 @@ from app.schemas.playdate import (
     PlayDateRsvpCreate,
     PlayDateRsvpOut,
 )
+from app.services.blocks import is_blocked_between
 from app.services.pet_serializer import display_photo_url
 
 router = APIRouter()
@@ -212,6 +213,10 @@ async def rsvp_playdate(
         raise HTTPException(status_code=404, detail="Play date not found")
     if pd.status != "scheduled":
         raise HTTPException(status_code=400, detail="Play date is not open for RSVPs")
+    # An RSVP puts two people in the same place and notifies the host, so a
+    # block has to stop it in both directions.
+    if await is_blocked_between(db, user.id, pd.host_id):
+        raise HTTPException(status_code=404, detail="Play date not found")
 
     # Verify user owns the pet
     pet_result = await db.execute(

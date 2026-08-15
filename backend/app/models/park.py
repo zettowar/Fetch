@@ -1,7 +1,10 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy import (
+    Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text,
+    UniqueConstraint, text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,6 +21,9 @@ class Park(Base, UUIDPrimaryKey, TimestampMixin):
             unique=True,
             postgresql_where=text("external_id IS NOT NULL"),
         ),
+        # /parks/nearby filters on a lat/lng bounding box before the haversine
+        # pass; without this it sequentially scans every park.
+        Index("ix_parks_lat_lng", "lat", "lng"),
     )
 
     name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -46,6 +52,12 @@ class Park(Base, UUIDPrimaryKey, TimestampMixin):
 
 class ParkReview(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "park_reviews"
+    __table_args__ = (
+        # One review per person per park — the rating average is a public
+        # signal, and without this a single account can post unlimited reviews
+        # of the same park and move it at will.
+        UniqueConstraint("park_id", "author_id", name="uq_park_review_author"),
+    )
 
     park_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("parks.id", ondelete="CASCADE"),

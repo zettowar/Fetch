@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.urls import normalise_url
+
 
 class VetCreate(BaseModel):
     name: str
@@ -30,6 +32,11 @@ class VetUpdate(BaseModel):
     hours: str | None = None
     attributes: dict | None = None
     verified: bool | None = None
+
+    @field_validator("website")
+    @classmethod
+    def clean_website(cls, v: str | None) -> str | None:
+        return normalise_url(v)
 
 
 class VetOut(BaseModel):

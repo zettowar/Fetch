@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge';
 import DogIllustration from '../components/flair/DogIllustration';
 import PawSpinner from '../components/flair/PawSpinner';
 import TimeAgo from '../components/TimeAgo';
+import ErrorState from '../components/ui/ErrorState';
 import { useUserLocation } from '../utils/useUserLocation';
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // fallback: San Francisco
@@ -36,7 +37,7 @@ export default function LostPetsPage() {
     retry: false,
   });
 
-  const { data: reports = [], isLoading } = useQuery({
+  const { data: reports = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['lost-nearby', viewCenter[1], viewCenter[0], filter],
     queryFn: () =>
       getNearbyReports(
@@ -47,7 +48,7 @@ export default function LostPetsPage() {
       ),
   });
 
-  const { data: allReports = [] } = useQuery({
+  const { data: allReports = [], isError: countsFailed } = useQuery({
     queryKey: ['lost-nearby', viewCenter[1], viewCenter[0], 'all'],
     queryFn: () => getNearbyReports(viewCenter[1], viewCenter[0], 25),
   });
@@ -215,7 +216,15 @@ export default function LostPetsPage() {
 
         {/* Recent reports strip — keeps the area below the (smaller) map useful */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-gray-50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800">
-          {reports.length === 0 ? (
+          {isError ? (
+            // Never fall through to "no missing pets reported here — good
+            // news" when the query actually failed: on this screen a false
+            // all-clear is the worst thing we can show.
+            <ErrorState
+              message="Couldn't load nearby reports"
+              onRetry={() => refetch()}
+            />
+          ) : reports.length === 0 ? (
             <p className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 text-center">
               {filterMeta[filter].emptyMsg}
             </p>
@@ -255,11 +264,13 @@ export default function LostPetsPage() {
 
       <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="px-4 py-2 flex items-center justify-around text-xs text-gray-600 dark:text-gray-300">
-          <span><span className="font-semibold text-gray-800 dark:text-gray-100">{counts.all}</span> total</span>
+          {/* A dash, not a zero: "0 missing" when the request failed reads as
+              an all-clear we have not actually verified. */}
+          <span><span className="font-semibold text-gray-800 dark:text-gray-100">{countsFailed ? '—' : counts.all}</span> total</span>
           <span aria-hidden className="text-gray-300 dark:text-gray-700">·</span>
-          <span><span className="font-semibold text-danger-500 dark:text-danger-400">{counts.missing}</span> missing</span>
+          <span><span className="font-semibold text-danger-500 dark:text-danger-400">{countsFailed ? '—' : counts.missing}</span> missing</span>
           <span aria-hidden className="text-gray-300 dark:text-gray-700">·</span>
-          <span><span className="font-semibold text-blue-500 dark:text-blue-400">{counts.found}</span> found</span>
+          <span><span className="font-semibold text-blue-500 dark:text-blue-400">{countsFailed ? '—' : counts.found}</span> found</span>
         </div>
         <p className="px-4 pb-2 text-2xs text-center text-gray-400 dark:text-gray-500">
           A community tool — please also contact your local animal control.

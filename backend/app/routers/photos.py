@@ -2,14 +2,16 @@ import io
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
 from fastapi.responses import Response
+from fastapi.concurrency import run_in_threadpool
 from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.deps import get_current_user
+from app.limiter import limiter
 from app.models.pet import Pet
 from app.models.photo import Photo
 from app.models.user import User
@@ -23,6 +25,70 @@ router = APIRouter()
 
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_SIZE = 10 * 1024 * 1024  # 10 MB
+
+# Stored bytes are immutable (the key is a fresh UUID per upload), so images are
+# safe to cache — but an approved photo can still be rejected or deleted later,
+# and a long-lived cache entry would outlive the takedown. An hour of freshness
+# kills the per-render refetch that dominates the swipe deck, while bounding how
+# long a removed image can linger; the ETag then makes each revalidation a 304.
+_PHOTO_MAX_AGE = 3600
+
+
+def _process_upload(
+    data: bytes, fallback_content_type: str | None
+) -> tuple[str, bytes, tuple[int, int]]:
+    """Validate, resize and re-encode an upload. Runs in a worker thread.
+
+    Returns ``(content_type, encoded_bytes, (width, height))``. Raises
+    ``HTTPException`` for anything the client got wrong, exactly as before —
+    Starlette propagates it out of the threadpool unchanged.
+    """
+    try:
+        img = Image.open(io.BytesIO(data))
+        img.verify()
+        img = Image.open(io.BytesIO(data))  # re-open after verify
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    content_type = f"image/{img.format.lower()}" if img.format else fallback_content_type
+    if content_type not in ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP are allowed")
+
+    # Image.resize() returns a copy with format=None, so capture the source
+    # format before scaling or every large upload would fall back to JPEG
+    # (500ing on RGBA PNGs and storing mislabeled bytes otherwise).
+    save_format = (img.format or "JPEG").upper()
+
+    img = _resize_image(img, MAX_DIMENSION)
+
+    buf = io.BytesIO()
+    if save_format == "WEBP":
+        if img.mode == "P":
+            img = img.convert("RGBA")
+        img.save(buf, format="WEBP", quality=85)
+    elif save_format == "PNG":
+        img.save(buf, format="PNG")
+    else:
+        if img.mode not in ("RGB", "L", "CMYK"):
+            img = img.convert("RGB")
+        img.save(buf, format="JPEG", quality=85)
+    buf.seek(0)
+    return content_type, buf.read(), img.size
+
+
+def _cached_image(
+    request: Request, data: bytes, media_type: str, key: str, *, private: bool
+) -> Response:
+    """Return an image with validators, or 304 when the client's copy is current."""
+    etag = f'"{key}"'
+    scope = "private" if private else "public"
+    headers = {
+        "Cache-Control": f"{scope}, max-age={_PHOTO_MAX_AGE}",
+        "ETag": etag,
+    }
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers=headers)
+    return Response(content=data, media_type=media_type, headers=headers)
 MAX_DIMENSION = 1600
 
 
@@ -40,8 +106,13 @@ def _resize_image(img: Image.Image, max_dim: int) -> Image.Image:
 
 
 @router.post("/pets/{pet_id}/photos", response_model=PhotoOut, status_code=status.HTTP_201_CREATED)
+# The most expensive endpoint in the app: a 10 MB read, a CPU-bound decode and
+# resize, and a billed third-party moderation call — and it was the only
+# user-facing write with no limit at all.
+@limiter.limit("30/hour")
 async def upload_photo(
     pet_id: UUID,
+    request: Request,
     file: UploadFile = File(...),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -59,25 +130,12 @@ async def upload_photo(
     if len(data) > MAX_SIZE:
         raise HTTPException(status_code=400, detail="File too large (max 10MB)")
 
-    # Validate with Pillow (magic bytes check)
-    try:
-        img = Image.open(io.BytesIO(data))
-        img.verify()
-        img = Image.open(io.BytesIO(data))  # re-open after verify
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid image file")
-
-    content_type = f"image/{img.format.lower()}" if img.format else file.content_type
-    if content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP are allowed")
-
-    # Image.resize() returns a copy with format=None, so capture the source
-    # format before scaling or every large upload would fall back to JPEG
-    # (500ing on RGBA PNGs and storing mislabeled bytes otherwise).
-    save_format = (img.format or "JPEG").upper()
-
-    # Resize
-    img = _resize_image(img, MAX_DIMENSION)
+    # Decode, validate, resize and re-encode in a worker thread — Pillow is
+    # CPU-bound and synchronous, and doing it inline blocks the event loop for
+    # every other request on the worker for the duration of the upload.
+    content_type, saved_data, dimensions = await run_in_threadpool(
+        _process_upload, data, file.content_type
+    )
 
     # Content moderation
     mod_result = await check_image(data)
@@ -86,21 +144,6 @@ async def upload_photo(
 
     moderation_status = "approved" if mod_result.status == "approved" else "flagged"
 
-    # Save to storage
-    buf = io.BytesIO()
-    if save_format == "WEBP":
-        if img.mode == "P":
-            img = img.convert("RGBA")
-        img.save(buf, format="WEBP", quality=85)
-    elif save_format == "PNG":
-        img.save(buf, format="PNG")
-    else:
-        if img.mode not in ("RGB", "L", "CMYK"):
-            img = img.convert("RGB")
-        img.save(buf, format="JPEG", quality=85)
-    buf.seek(0)
-    saved_data = buf.read()
-
     storage = get_storage()
     key = generate_storage_key(content_type)
     await storage.put(key, saved_data, content_type)
@@ -108,8 +151,8 @@ async def upload_photo(
     photo = Photo(
         pet_id=pet_id,
         storage_key=key,
-        width=img.size[0],
-        height=img.size[1],
+        width=dimensions[0],
+        height=dimensions[1],
         content_type=content_type,
         moderation_status=moderation_status,
     )
@@ -166,6 +209,7 @@ async def delete_photo(
 @router.get("/photos/{photo_id}/file")
 async def get_own_photo_file(
     photo_id: UUID,
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -192,11 +236,17 @@ async def get_own_photo_file(
         data = await storage.get(photo.storage_key)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found")
-    return Response(content=data, media_type=photo.content_type)
+    # private: this is the owner-only view of a possibly-withheld photo, so it
+    # must never land in a shared/proxy cache.
+    return _cached_image(
+        request, data, photo.content_type, photo.storage_key, private=True
+    )
 
 
 @router.get("/photos/file/{key:path}")
-async def get_photo_file(key: str, db: AsyncSession = Depends(get_db)):
+async def get_photo_file(
+    key: str, request: Request, db: AsyncSession = Depends(get_db)
+):
     # Withhold pet photos that haven't passed moderation — otherwise sharing
     # the direct file URL bypasses every feed-level filter. Keys with no Photo
     # row (e.g. sighting photos, which are reject-on-upload) pass through.
@@ -219,4 +269,4 @@ async def get_photo_file(key: str, db: AsyncSession = Depends(get_db)):
         media_type = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(
             ext, "image/jpeg"
         )
-    return Response(content=data, media_type=media_type)
+    return _cached_image(request, data, media_type, key, private=False)

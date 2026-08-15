@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#ee7a10" />
+    <!-- Installable web app: there is no native build, so Add to Home Screen is
+         how this lives on a phone. Without the manifest it opens in a browser
+         tab with chrome eating the mobile column, and iOS falls back to a
+         screenshot for the icon. iOS also only grants Web Push to installed
+         PWAs, so this is a prerequisite for finishing push delivery. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Fetchpawz" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Fetchpawz · The pet app with a rescue mission</title>
     <meta
       name="description"

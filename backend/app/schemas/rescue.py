@@ -3,19 +3,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, field_validator
 
+from app.schemas.urls import normalise_url as _normalise_url
 
 RESCUE_STATUSES = {"pending", "approved", "rejected"}
-
-
-def _normalise_url(v: str | None) -> str | None:
-    if v is None:
-        return v
-    v = v.strip()
-    if not v:
-        return None
-    if not v.startswith(("http://", "https://")):
-        return f"https://{v}"
-    return v
 
 
 class RescueSignupRequest(BaseModel):

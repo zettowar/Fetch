@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
-from app.deps import require_admin, require_staff
+from app.deps import STAFF_ROLES, require_admin, require_staff
 from app.models.adoption import AdoptionInquiry
 from app.models.audit_log import AuditLog
 from app.models.beta import Feedback, InviteCode
@@ -21,6 +21,7 @@ from app.models.park import Park
 from app.models.photo import Photo
 from app.models.report import Report, Strike
 from app.models.rescue import RescueProfile
+from app.models.social import Comment
 from app.models.support import FAQEntry, SupportTicket
 from app.models.user import User
 from app.models.qr_tag import QRTag
@@ -374,16 +375,40 @@ async def _suspend_with_dogs(user: User, db: AsyncSession) -> list[str]:
     return [str(pet_id) for pet_id in result.scalars().all()]
 
 
+def _guard_staff_target(target: User, actor: User, verb: str) -> None:
+    """Refuse staff-on-staff and self-targeted account-state actions.
+
+    Mirrors the guards on ``delete_user``: without this a moderator can lock an
+    admin out of the panel, and an admin can lock themselves out.
+    """
+    if target.id == actor.id:
+        raise HTTPException(
+            status_code=400, detail=f"You cannot {verb} your own account"
+        )
+    if target.role in STAFF_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Demote this {target.role} before you {verb} their account",
+        )
+
+
 @router.post("/users/{user_id}/suspend")
 async def suspend_user(
     user_id: UUID,
     admin: User = Depends(require_staff),
     db: AsyncSession = Depends(get_db),
 ):
+    """Suspend an account and deactivate its pets.
+
+    Guarded like ``delete_user``: suspension locks a colleague out of the admin
+    panel, so a moderator must not be able to apply it to staff, and nobody
+    should be able to lock themselves out.
+    """
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    _guard_staff_target(user, admin, "suspend")
     deactivated = await _suspend_with_dogs(user, db)
     await _log(db, actor_id=admin.id, action="user.suspend", target_type="user", target_id=user_id,
                metadata={"email": user.email, "deactivated_dogs": deactivated})
@@ -596,6 +621,13 @@ async def review_report(
     strike_applied = False
     if body.apply_strike and body.status == "reviewed":
         target_user_id = await _resolve_target_user(report, db)
+        if not target_user_id:
+            # Previously this fell through and returned 200, so a moderator who
+            # struck a reported comment saw success while nothing happened.
+            raise HTTPException(
+                status_code=422,
+                detail="Cannot apply a strike: this report has no resolvable author",
+            )
         if target_user_id:
             strike = Strike(
                 user_id=target_user_id,
@@ -613,7 +645,9 @@ async def review_report(
             if strike_count >= STRIKE_THRESHOLD:
                 user_result = await db.execute(select(User).where(User.id == target_user_id))
                 target_user = user_result.scalar_one_or_none()
-                if target_user:
+                # Staff are never auto-suspended by the strike threshold, for
+                # the same reason _guard_staff_target blocks it manually.
+                if target_user and target_user.role not in STAFF_ROLES:
                     deactivated = await _suspend_with_dogs(target_user, db)
                     # Logged as user.suspend so reinstatement can find the
                     # pet list, same as a manual suspension.
@@ -1936,4 +1970,10 @@ async def _resolve_target_user(report: Report, db: AsyncSession) -> UUID | None:
             pet_result = await db.execute(select(Pet.owner_id).where(Pet.id == row[0]))
             dog_row = pet_result.first()
             return dog_row[0] if dog_row else None
+    if report.target_type == "comment":
+        result = await db.execute(
+            select(Comment.author_id).where(Comment.id == report.target_id)
+        )
+        row = result.first()
+        return row[0] if row else None
     return None

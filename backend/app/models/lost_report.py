@@ -6,9 +6,11 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -18,6 +20,10 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKey
 
 class LostReport(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "lost_reports"
+    __table_args__ = (
+        # Proximity search always narrows to open reports inside a bounding box.
+        Index("ix_lost_reports_status_lat_lng", "status", "last_seen_lat", "last_seen_lng"),
+    )
 
     reporter_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
@@ -98,6 +104,12 @@ class LostReportSighting(Base, UUIDPrimaryKey, TimestampMixin):
 
 class LostReportSubscription(Base, UUIDPrimaryKey, TimestampMixin):
     __tablename__ = "lost_report_subscriptions"
+    __table_args__ = (
+        # create/get/patch all treat this as one-row-per-user and call
+        # scalar_one_or_none(), which raises on a second row. Enforce the
+        # assumption in the schema rather than hoping.
+        UniqueConstraint("user_id", name="uq_lost_sub_user"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True

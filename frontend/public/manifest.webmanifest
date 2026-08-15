@@ -1,0 +1,32 @@
+{
+  "name": "Fetchpawz",
+  "short_name": "Fetchpawz",
+  "description": "Rate good cats and dogs. Crown the weekly top pet.",
+  "start_url": "/app/home",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#ee7a10",
+  "background_color": "#ffffff",
+  "categories": ["lifestyle", "social"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

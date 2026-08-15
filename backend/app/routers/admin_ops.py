@@ -9,7 +9,7 @@ from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
@@ -20,7 +20,6 @@ from app.limiter import limiter
 from app.models.adoption import AdoptionInquiry
 from app.models.announcement import Announcement
 from app.models.app_setting import AppSetting
-from app.models.audit_log import AuditLog
 from app.models.donation import Donation
 from app.models.rescue import RescueProfile
 from app.models.user import EmailVerificationToken, PasswordResetToken, User

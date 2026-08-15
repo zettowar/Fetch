@@ -19,8 +19,10 @@ class Photo(Base, UUIDPrimaryKey, TimestampMixin):
     width: Mapped[int] = mapped_column(Integer, nullable=False)
     height: Mapped[int] = mapped_column(Integer, nullable=False)
     content_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    # Indexed: the feed's "pets with an approved photo" subquery and the admin
+    # flagged-review queue both filter on this across every photo row.
     moderation_status: Mapped[str] = mapped_column(
-        String(20), default="approved", nullable=False
+        String(20), default="approved", nullable=False, index=True
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 

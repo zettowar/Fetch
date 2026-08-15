@@ -86,7 +86,7 @@ async def _run() -> int:
             html = _layout(
                 heading,
                 f"<ul style='padding-left:18px'>{items}</ul>",
-                cta_url=f"{settings.FRONTEND_BASE_URL}/app/inbox",
+                cta_url=f"{settings.FRONTEND_BASE_URL}/app/notifications",
                 cta_label="Open your inbox",
             )
             if await send_email(user.email, f"Fetchpawz — {heading.lower()}", html):

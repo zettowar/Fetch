@@ -13,7 +13,11 @@ from app.models.user import User
 from app.models.weekly_winner import WeeklyWinner
 from app.schemas.ranking import PetStats, LeaderboardEntry, WeeklyWinnerOut
 from app.services.breed_display import breed_display
-from app.services.ranking_service import get_current_leaderboard, get_pet_stats
+from app.services.ranking_service import (
+    current_week_bucket,
+    get_current_leaderboard,
+    get_pet_stats,
+)
 from app.storage import get_storage
 
 router = APIRouter()
@@ -36,10 +40,14 @@ async def current_winner(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = select(WeeklyWinner).order_by(WeeklyWinner.week_bucket.desc())
+    # Scope to the week in progress. Without this the newest row of *any* week
+    # is served as "current", so a quiet week (or any Monday before the first
+    # vote) presents a stale crown as this week's — and the client's
+    # "No winner yet" state becomes unreachable once one winner has ever existed.
+    q = select(WeeklyWinner).where(WeeklyWinner.week_bucket == current_week_bucket())
     if species in ("dog", "cat"):
         q = q.where(WeeklyWinner.species == species)
-    result = await db.execute(q.limit(1))
+    result = await db.execute(q.order_by(WeeklyWinner.week_bucket.desc()).limit(1))
     winner = result.scalar_one_or_none()
     if not winner:
         return None

@@ -43,6 +43,7 @@ from app.schemas.lost_report import (
     SubscriptionUpdate,
 )
 from app.config import settings
+from app.services.blocks import is_blocked_between
 from app.services.breed_display import breed_display
 from app.services.email import send_contact_relay_email
 from app.services.lost_service import fuzz_coordinate, get_nearby_reports
@@ -380,6 +381,11 @@ async def add_sighting(
         raise HTTPException(status_code=404, detail="Report not found")
     if report.status != "open":
         raise HTTPException(status_code=400, detail="Report is not open")
+    # A sighting notifies the reporter and carries free-text plus a photo, so it
+    # is a message in everything but name — the contact relay already refuses
+    # across a block and this must too.
+    if report.reporter_id and await is_blocked_between(db, user.id, report.reporter_id):
+        raise HTTPException(status_code=404, detail="Report not found")
 
     photo_key: str | None = None
     photo_content_type: str | None = None
@@ -568,7 +574,6 @@ async def contact_reporter(
     reporter = reporter_result.scalar_one_or_none()
     if not reporter:
         raise HTTPException(status_code=400, detail="Reporter is no longer reachable")
-    from app.services.blocks import is_blocked_between
     if await is_blocked_between(db, user.id, reporter.id):
         # Same message as an unreachable reporter — a block is not disclosed.
         raise HTTPException(status_code=400, detail="Reporter is no longer reachable")

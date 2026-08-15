@@ -141,7 +141,7 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
     app_url = f"{_base()}/app/lost/{report.id}"
 
     # --- share targets ---
-    where_bit = f" near this area" if map_link else ""
+    where_bit = " near this area" if map_link else ""
     share_line = f"{emoji} {kind_label.upper()}: {name}{where_bit} — please share to help!"
     nd_body = quote(f"{share_line} {public_url}")
     nextdoor = f"https://nextdoor.com/sharekit/?source=fetchpawz&body={nd_body}"

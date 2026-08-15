@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Check, PawPrint as DogIcon, Pencil, QrCode, X } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
@@ -102,25 +102,32 @@ export default function PetEditorPage() {
     });
   };
 
+  // Seed the form from the loaded pet exactly once. Keying this on the whole
+  // `pet` object re-ran it on every refetch — and uploading or deleting a photo
+  // refetches — so any unsaved text the user had typed was silently reverted.
+  const seededPetId = useRef<string | null>(null);
   useEffect(() => {
-    if (pet) {
-      setName(pet.name);
-      setSpecies(pet.species);
-      setMixType(pet.mix_type);
-      setBreeds(pet.breeds || []);
-      setBio(pet.bio || '');
-      setBirthday(pet.birthday || '');
-      setTraits(pet.traits || []);
-      setIsPublic(pet.is_public);
-    }
+    if (!pet || seededPetId.current === pet.id) return;
+    seededPetId.current = pet.id;
+    setName(pet.name);
+    setSpecies(pet.species);
+    setMixType(pet.mix_type);
+    setBreeds(pet.breeds || []);
+    setBio(pet.bio || '');
+    setBirthday(pet.birthday || '');
+    setTraits(pet.traits || []);
+    setIsPublic(pet.is_public);
   }, [pet]);
 
-  // Release object URLs when pending photos go away (on unmount or removal).
+  // Release object URLs on unmount. The cleanup has to read through a ref:
+  // with an empty dep array it closed over the *initial* (empty) pendingPhotos,
+  // so every preview URL leaked for the lifetime of the page.
+  const pendingPhotosRef = useRef(pendingPhotos);
+  pendingPhotosRef.current = pendingPhotos;
   useEffect(() => {
     return () => {
-      pendingPhotos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      pendingPhotosRef.current.forEach((p) => URL.revokeObjectURL(p.previewUrl));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const allowedBreedCap =

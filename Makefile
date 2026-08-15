@@ -86,8 +86,28 @@ prod-backups: ## List backups stored in the db_backups volume
 prod-restore: ## Restore a backup: make prod-restore FILE=<name-in-db_backups> (DESTRUCTIVE)
 	@test -n "$(FILE)" || { echo "usage: make prod-restore FILE=<name>  (see: make prod-backups)"; exit 1; }
 	@printf 'This OVERWRITES the live database with %s. Ctrl-C to abort; Enter to proceed. ' "$(FILE)"; read _
+	@echo "==> 1/3 Stopping app writers so nothing writes mid-restore..."
+	docker compose -f $(PROD) stop backend celery-worker celery-beat
+	@echo "==> 2/3 Restoring..."
 	docker compose -f $(PROD) run --rm --no-deps -T --entrypoint sh db-backup -c \
 	  'pg_restore --clean --if-exists --no-owner -d "$$PGDATABASE" "/backups/$(FILE)"'
+	@echo "==> 3/3 Bringing the app back up..."
+	docker compose -f $(PROD) up -d --wait backend celery-worker celery-beat
+
+prod-restore-uploads: ## Restore the photo volume: make prod-restore-uploads FILE=uploads-<stamp>.tgz (DESTRUCTIVE)
+	@test -n "$(FILE)" || { echo "usage: make prod-restore-uploads FILE=<name>  (see: make prod-backups)"; exit 1; }
+	@printf 'This REPLACES every uploaded photo with %s. Ctrl-C to abort; Enter to proceed. ' "$(FILE)"; read _
+	@echo "==> 1/3 Pausing photo writers (backend stays up to receive the stream)..."
+	docker compose -f $(PROD) stop celery-worker
+	@echo "==> 2/3 Streaming the archive from db_backups into the uploads volume..."
+	@# Piped through the host so neither side needs the project-prefixed volume
+	@# name, which changes with the checkout directory.
+	docker compose -f $(PROD) run --rm --no-deps -T --entrypoint sh db-backup \
+	    -c 'cat "/backups/$(FILE)"' \
+	  | docker compose -f $(PROD) exec -T backend sh \
+	    -c 'rm -rf /app/uploads/* && tar xzf - -C /app/uploads && echo restored'
+	@echo "==> 3/3 Bringing the worker back up..."
+	docker compose -f $(PROD) up -d --wait celery-worker
 
 prod-create-admin: ## Create/promote ONE admin (prompts for password; or set ADMIN_EMAIL/ADMIN_PASSWORD)
 	docker compose -f $(PROD) exec backend python -m app.scripts.create_admin

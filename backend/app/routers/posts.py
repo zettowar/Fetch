@@ -11,6 +11,7 @@ from app.limiter import limiter
 from app.models.post import Post
 from app.models.user import User
 from app.schemas.post import PostCreate, PostOut
+from app.services.blocks import blocked_user_ids_subquery, is_blocked_between
 
 router = APIRouter()
 
@@ -53,6 +54,9 @@ async def list_posts(
     query = (
         select(Post)
         .options(selectinload(Post.author))
+        # Blocks apply here as they do in the feed and comment list — otherwise
+        # a blocked author's posts still reach the person who blocked them.
+        .where(Post.author_id.notin_(blocked_user_ids_subquery(user.id)))
         .order_by(Post.pinned.desc(), Post.created_at.desc())
     )
     if kind:
@@ -89,6 +93,9 @@ async def get_post(
     )
     post = result.scalar_one_or_none()
     if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    # Same 404 the list filter implies — mirrors pets.get_pet.
+    if await is_blocked_between(db, user.id, post.author_id):
         raise HTTPException(status_code=404, detail="Post not found")
     return PostOut(
         id=post.id, author_id=post.author_id,

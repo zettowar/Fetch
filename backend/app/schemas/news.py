@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.urls import normalise_url
+
 
 class NewsPostCreate(BaseModel):
     title: str = Field(..., max_length=200)
@@ -19,6 +21,12 @@ class NewsPostCreate(BaseModel):
             raise ValueError("Field is required")
         return v.strip()
 
+    # Rendered straight into an <a href> on the public news page.
+    @field_validator("link_url")
+    @classmethod
+    def clean_link(cls, v: str | None) -> str | None:
+        return normalise_url(v)
+
 
 class NewsPostUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=200)
@@ -28,6 +36,11 @@ class NewsPostUpdate(BaseModel):
     link_label: str | None = Field(default=None, max_length=100)
     is_published: bool | None = None
     published_at: datetime | None = None
+
+    @field_validator("link_url")
+    @classmethod
+    def clean_link(cls, v: str | None) -> str | None:
+        return normalise_url(v)
 
 
 class NewsPostOut(BaseModel):

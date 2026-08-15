@@ -27,9 +27,12 @@ def _segment_user_query(segment: str):
     from app.models.user import User
     from app.models.pet import Pet
 
-    stmt = select(User.id, User.email)
+    # Deactivated/suspended accounts never receive a broadcast, whatever the
+    # segment — mailing someone you just suspended is both a bad look and a
+    # deliverability risk.
+    stmt = select(User.id, User.email).where(User.is_active == True)  # noqa: E712
     if segment == "active":
-        stmt = stmt.where(User.is_active == True)  # noqa: E712
+        pass
     elif segment == "with_pets":
         stmt = stmt.where(User.id.in_(select(Pet.owner_id).distinct()))
     elif segment == "rescues":

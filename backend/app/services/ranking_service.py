@@ -28,13 +28,24 @@ async def get_current_leaderboard(
             func.count().label("total_votes"),
         )
         .join(Pet, Pet.id == Vote.pet_id)
-        .where(Vote.week_bucket == week)
+        # Match the feed's eligibility rules: a pet deactivated by a suspension
+        # (or deleted, or already adopted) must not keep ranking or win a crown.
+        .where(
+            Vote.week_bucket == week,
+            Pet.is_active == True,  # noqa: E712
+            Pet.adopted_at.is_(None),
+        )
     )
     if species:
         query = query.where(Pet.species == species)
     query = (
         query.group_by(Vote.pet_id)
-        .order_by(func.sum(Vote.value).desc())
+        # Deterministic ties, matching _pick_winner_for_week.
+        .order_by(
+            func.sum(Vote.value).desc(),
+            func.min(Vote.created_at).asc(),
+            Vote.pet_id.asc(),
+        )
         .limit(limit)
     )
     result = await db.execute(query)
@@ -82,7 +93,12 @@ async def get_pet_stats(pet_id: UUID, db: AsyncSession) -> dict:
     scores_sq = (
         select(Vote.pet_id, func.sum(Vote.value).label("score"))
         .join(Pet, Pet.id == Vote.pet_id)
-        .where(Vote.week_bucket == week, Pet.species == species)
+        .where(
+            Vote.week_bucket == week,
+            Pet.species == species,
+            Pet.is_active == True,  # noqa: E712
+            Pet.adopted_at.is_(None),
+        )
         .group_by(Vote.pet_id)
         .subquery()
     )
@@ -157,7 +173,12 @@ async def _pick_winner_for_week(
     query = (
         select(Vote.pet_id, func.sum(Vote.value).label("score"))
         .join(Pet, Pet.id == Vote.pet_id)
-        .where(Vote.week_bucket == week, Pet.species == species)
+        .where(
+            Vote.week_bucket == week,
+            Pet.species == species,
+            Pet.is_active == True,  # noqa: E712
+            Pet.adopted_at.is_(None),
+        )
         .group_by(Vote.pet_id)
         .order_by(
             func.sum(Vote.value).desc(),

@@ -72,6 +72,19 @@ async def setup_db():
     await test_engine.dispose()
 
 
+@pytest_asyncio.fixture
+async def db_session(setup_db):
+    """A session against the test database, for tests that need to set up rows
+    or call a service directly rather than going through the API.
+
+    Deliberately NOT loop_scope="session": the session is opened and closed
+    inside the test's own event loop, otherwise asyncpg's connection teardown
+    runs on a different loop and raises at fixture exit.
+    """
+    async with test_session_factory() as session:
+        yield session
+
+
 @pytest_asyncio.fixture(loop_scope="session")
 async def client(setup_db):
     from app.main import app

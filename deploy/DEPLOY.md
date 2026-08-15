@@ -113,10 +113,41 @@ make prod-migrate                  # run migrations by hand (normally automatic 
 make prod-down                     # stop the stack (volumes/data preserved)
 ```
 
+## Map tiles
+
+The parks, vets, rescues and lost-pet maps render raster tiles. With
+`VITE_MAP_TILE_URL` unset they fall back to `tile.openstreetmap.org`, which is
+fine for development but whose [tile usage policy][osm-tiles] prohibits
+production and commercial traffic — offenders get throttled or blocked, which
+would take the lost-pet map down with it.
+
+Set a paid provider in `.env` **before launch**:
+
+```bash
+VITE_MAP_TILE_URL=https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=YOURKEY
+```
+
+Like every `VITE_*` value this is baked at build time, so it only takes effect
+on the next `make deploy` (not a restart).
+
+[osm-tiles]: https://operations.osmfoundation.org/policies/tiles/
+
 ## Backups
 
-A `db-backup` sidecar already takes a **daily** rotated `pg_dump` into the
-`db_backups` volume (`BACKUP_KEEP_DAYS`, default 14). On top of that:
+A `db-backup` sidecar takes a **daily** rotated backup into the `db_backups`
+volume (`BACKUP_KEEP_DAYS`, default 14) — **two** artifacts per run:
+
+| File | What it holds |
+|------|---------------|
+| `<db>-<stamp>.dump` | custom-format `pg_dump` |
+| `uploads-<stamp>.tgz` | every uploaded pet photo |
+
+Photos live on disk, not in Postgres, so restoring only the database gives you
+every pet with a blank hero image. **Keep and restore the pair together.**
+Rotation also covers the `predeploy-*` and `manual-*` dumps, which previously
+accumulated forever.
+
+On top of that:
 
 ```bash
 make prod-backup     # on-demand dump -> db_backups volume
@@ -136,13 +167,20 @@ make prod-backups    # list stored dumps
 ## Restore
 
 ```bash
-make prod-backups                              # find the file name
-make prod-restore FILE=predeploy-20260704-120000.dump
+make prod-backups                                          # find the file names
+make prod-restore FILE=fetch-20260704-120000.dump          # database
+make prod-restore-uploads FILE=uploads-20260704-120000.tgz # photos
 ```
 
-`prod-restore` is **destructive** — it drops and recreates objects in the live
-database (`pg_restore --clean --if-exists`) and prompts for confirmation first.
-Consider `make prod-backup` immediately beforehand.
+Restore **both** from the same timestamp — a database restored without its
+photos leaves every pet with a blank hero image.
+
+Both targets are **destructive** and prompt for confirmation first.
+`prod-restore` drops and recreates objects in the live database
+(`pg_restore --clean --if-exists`); `prod-restore-uploads` replaces the entire
+uploads volume. Each one stops the relevant writers (backend / celery) for the
+duration and brings them back with `--wait`, so nothing writes into a
+half-restored state. Consider `make prod-backup` immediately beforehand.
 
 ## Resetting production to a clean slate
 

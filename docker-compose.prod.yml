@@ -149,6 +149,7 @@ services:
         VITE_SHOPIFY_DOMAIN: ${VITE_SHOPIFY_DOMAIN:-}
         VITE_SHOPIFY_STOREFRONT_TOKEN: ${VITE_SHOPIFY_STOREFRONT_TOKEN:-}
         VITE_SITE_URL: ${VITE_SITE_URL:-https://${DOMAIN:-}}
+        VITE_MAP_TILE_URL: ${VITE_MAP_TILE_URL:-}
     # Not published — caddy is the only public entry point, so nothing is
     # reachable over cleartext HTTP.
     depends_on:
@@ -192,7 +193,9 @@ services:
         limits:
           memory: 128m
 
-  # Daily pg_dump with rotation into the db_backups volume (deploy/backup.sh).
+  # Daily pg_dump + uploads tarball with rotation into the db_backups volume
+  # (deploy/backup.sh). Photos are on disk, not in Postgres, so both are needed
+  # for a restore to actually restore anything users can see.
   # Off-box copies are still on you — sync the volume to DO Spaces or similar.
   db-backup:
     image: postgres:15
@@ -205,6 +208,8 @@ services:
     volumes:
       - ./deploy/backup.sh:/backup.sh:ro
       - db_backups:/backups
+      # Read-only: this sidecar archives user photos, it must never mutate them.
+      - uploads:/uploads:ro
     entrypoint: ["/bin/sh", "/backup.sh"]
     depends_on:
       db:
