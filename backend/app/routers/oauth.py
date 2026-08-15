@@ -34,7 +34,7 @@ from app.security import (
     generate_handoff_token,
     hash_handoff_token,
 )
-from app.services import settings_service
+from app.services import settings_service, totp
 from app.services.oauth import (
     NormalizedIdentity,
     OAuthError,
@@ -235,6 +235,8 @@ async def oauth_callback(
 
 class OAuthExchangeRequest(BaseModel):
     code: str
+    # Required only when the account has TOTP 2FA enabled, mirroring LoginRequest.
+    otp: str | None = None
 
 
 @router.post("/exchange", response_model=AuthResponse)
@@ -244,7 +246,13 @@ async def oauth_exchange(
     body: OAuthExchangeRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Trade the one-time handoff code for a real token pair."""
+    """Trade the one-time handoff code for a real token pair.
+
+    Enforces TOTP exactly as password login does. Without this an account with
+    2FA enabled could be entered with just the linked Google/GitHub account —
+    which is precisely the takeover 2FA exists to stop, so a second factor that
+    only guards one of two doors is not a second factor.
+    """
     row = (await db.execute(
         select(OAuthHandoff).where(
             OAuthHandoff.token_hash == hash_handoff_token(body.code),
@@ -254,7 +262,6 @@ async def oauth_exchange(
     )).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=400, detail="Invalid or expired sign-in code")
-    row.used = True
 
     user = (await db.execute(
         select(User).where(User.id == row.user_id, User.is_active == True)  # noqa: E712
@@ -262,5 +269,22 @@ async def oauth_exchange(
     if user is None:
         raise HTTPException(status_code=401, detail="Account unavailable")
 
+    # Checked BEFORE the handoff is consumed: this code is single-use, so
+    # burning it on a mistyped digit would strand the user back at "sign in
+    # with Google" instead of letting them retype. The short HANDOFF_TTL_S
+    # window plus the route's rate limit bound the retries.
+    if user.totp_enabled:
+        if not body.otp:
+            raise HTTPException(
+                status_code=401, detail="2FA code required",
+                headers={"X-2FA-Required": "1"},
+            )
+        if not totp.verify(user.totp_secret or "", body.otp):
+            raise HTTPException(
+                status_code=401, detail="Invalid 2FA code",
+                headers={"X-2FA-Required": "1"},
+            )
+
+    row.used = True
     tokens = await _create_tokens(user, db)  # commits (marks the handoff used too)
     return AuthResponse(tokens=tokens, user=UserOut.model_validate(user))

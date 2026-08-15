@@ -11,6 +11,7 @@ const DEFAULT_FLAGS: PublicFlags = {
   explore_donate_enabled: true,
   explore_shop_enabled: true,
   explore_vets_enabled: true,
+  explore_community_enabled: true,
 };
 
 export function usePublicFlags(): PublicFlags {

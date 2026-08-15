@@ -67,6 +67,8 @@ import NotFoundPage from './pages/NotFoundPage';
 // pulled out of the main bundle: maplibre-gl alone is ~1 MB, and an
 // unauthenticated visitor reading the marketing site was downloading it (plus
 // the whole admin tree) before anything rendered.
+const PostsPage = lazy(() => import('./pages/PostsPage'));
+const PostDetailPage = lazy(() => import('./pages/PostDetailPage'));
 const AdminAnnouncementsPage = lazy(() => import('./pages/admin/AdminAnnouncementsPage'));
 const AdminAuditPage = lazy(() => import('./pages/admin/AdminAuditPage'));
 const AdminBreedsPage = lazy(() => import('./pages/admin/AdminBreedsPage'));
@@ -206,6 +208,8 @@ function AppContent() {
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="following" element={<FollowingPage />} />
           <Route path="explore" element={<FlagGate flag="explore_pack_enabled"><ExplorePage /></FlagGate>} />
+          <Route path="community" element={<FlagGate flag="explore_community_enabled"><PostsPage /></FlagGate>} />
+          <Route path="community/:id" element={<FlagGate flag="explore_community_enabled"><PostDetailPage /></FlagGate>} />
           <Route path="rescues" element={<RescuesHubPage />} />
           <Route path="rescues/browse" element={<RescuesPage />} />
           <Route path="rescues/map" element={<RescuesMapPage />} />

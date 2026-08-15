@@ -15,8 +15,13 @@ export function oauthStartUrl(provider: string, returnTo = '/app/home'): string 
 }
 
 // Trade the one-time handoff code (from the callback URL) for real tokens.
-export async function oauthExchange(code: string): Promise<AuthResponse> {
-  const res = await client.post('/auth/oauth/exchange', { code });
+// `otp` is required when the account has 2FA on — the backend answers 401 with
+// X-2FA-Required and leaves the handoff code unspent so it can be retried.
+export async function oauthExchange(
+  code: string,
+  otp?: string,
+): Promise<AuthResponse> {
+  const res = await client.post('/auth/oauth/exchange', { code, otp });
   return res.data;
 }
 

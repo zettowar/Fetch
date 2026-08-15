@@ -81,6 +81,7 @@ export interface PublicFlags {
   explore_donate_enabled: boolean;
   explore_shop_enabled: boolean;
   explore_vets_enabled: boolean;
+  explore_community_enabled: boolean;
 }
 
 export async function getPublicFlags(): Promise<PublicFlags> {

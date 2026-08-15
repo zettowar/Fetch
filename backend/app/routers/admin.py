@@ -19,6 +19,7 @@ from app.models.lost_report import LostReport, LostReportPhoto, LostReportSighti
 from app.models.news import NewsPost
 from app.models.park import Park
 from app.models.photo import Photo
+from app.models.post import Post
 from app.models.report import Report, Strike
 from app.models.rescue import RescueProfile
 from app.models.social import Comment
@@ -1973,6 +1974,12 @@ async def _resolve_target_user(report: Report, db: AsyncSession) -> UUID | None:
     if report.target_type == "comment":
         result = await db.execute(
             select(Comment.author_id).where(Comment.id == report.target_id)
+        )
+        row = result.first()
+        return row[0] if row else None
+    if report.target_type == "post":
+        result = await db.execute(
+            select(Post.author_id).where(Post.id == report.target_id)
         )
         row = result.first()
         return row[0] if row else None

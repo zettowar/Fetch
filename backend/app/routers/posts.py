@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
-from app.deps import get_current_user
+from app.deps import STAFF_ROLES, get_current_user
 from app.limiter import limiter
 from app.models.post import Post
 from app.models.user import User
@@ -14,6 +14,27 @@ from app.schemas.post import PostCreate, PostOut
 from app.services.blocks import blocked_user_ids_subquery, is_blocked_between
 
 router = APIRouter()
+
+MAX_TAGS = 5
+MAX_TAG_LEN = 30
+
+
+def _clean_tags(tags: list[str] | None) -> list[str] | None:
+    """Normalise free-text tags: trimmed, lowercased, deduped, bounded.
+
+    Tags are filtered on exactly (`Post.tags.contains`), so "Dogs" and "dogs "
+    would otherwise be different facets and the filter list would fragment.
+    """
+    if not tags:
+        return None
+    seen: list[str] = []
+    for raw in tags:
+        t = " ".join(raw.split()).lower()[:MAX_TAG_LEN]
+        if t and t not in seen:
+            seen.append(t)
+        if len(seen) >= MAX_TAGS:
+            break
+    return seen or None
 
 
 @router.post("", response_model=PostOut, status_code=status.HTTP_201_CREATED)
@@ -24,12 +45,20 @@ async def create_post(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # `sponsor` and `rescue_spotlight` are editorial slots that render
+    # differently from ordinary posts, so they are staff-only. The schema
+    # validates the value is *known*; this decides who may use it.
+    if body_data.kind != "community" and user.role not in STAFF_ROLES:
+        raise HTTPException(
+            status_code=403, detail="Only staff can create that kind of post"
+        )
+
     post = Post(
         author_id=user.id,
         kind=body_data.kind,
         title=body_data.title,
         body=body_data.body,
-        tags=body_data.tags,
+        tags=_clean_tags(body_data.tags),
     )
     db.add(post)
     await db.commit()

@@ -1,6 +1,6 @@
 import client from './client';
 
-export type ReportTargetType = 'photo' | 'pet' | 'user' | 'comment';
+export type ReportTargetType = 'photo' | 'pet' | 'user' | 'comment' | 'post';
 
 export interface Report {
   id: string;

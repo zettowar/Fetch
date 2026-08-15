@@ -9,11 +9,14 @@ from app.limiter import limiter
 from app.models.pet import Pet
 from app.models.photo import Photo
 from app.models.report import Report
+from app.models.post import Post
 from app.models.social import Comment
 from app.models.user import User
 from app.schemas.report import ReportCreate, ReportOut
 
-_TARGET_MODELS = {"photo": Photo, "pet": Pet, "user": User, "comment": Comment}
+_TARGET_MODELS = {
+    "photo": Photo, "pet": Pet, "user": User, "comment": Comment, "post": Post,
+}
 
 router = APIRouter()
 

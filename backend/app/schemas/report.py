@@ -12,8 +12,8 @@ class ReportCreate(BaseModel):
     @field_validator("target_type")
     @classmethod
     def valid_target_type(cls, v: str) -> str:
-        if v not in ("photo", "pet", "user", "comment"):
-            raise ValueError("target_type must be one of: photo, pet, user, comment")
+        if v not in ("photo", "pet", "user", "comment", "post"):
+            raise ValueError("target_type must be one of: photo, pet, user, comment, post")
         return v
 
     @field_validator("reason")

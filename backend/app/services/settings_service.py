@@ -28,6 +28,7 @@ DEFAULTS: dict[str, tuple[Any, str]] = {
     "explore_donate_enabled": (True, "Show Donate inside Explore."),
     "explore_shop_enabled": (True, "Show Shop inside Explore."),
     "explore_vets_enabled": (True, "Show Vets inside Explore."),
+    "explore_community_enabled": (True, "Show Community posts inside Explore."),
     # SSO master switch — off hides the Google/GitHub buttons and 404s the OAuth
     # endpoints, so the feature stays invisible to real users until launch.
     "sso_enabled": (False, "Enable Sign in with Google/GitHub. Off = hidden from users."),
@@ -42,6 +43,7 @@ PUBLIC_FLAG_KEYS = (
     "explore_donate_enabled",
     "explore_shop_enabled",
     "explore_vets_enabled",
+    "explore_community_enabled",
 )
 
 _TTL_SECONDS = 30.0

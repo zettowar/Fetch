@@ -320,6 +320,57 @@ async def send_contact_relay_email(
     )
 
 
+async def send_transfer_invite_email(
+    to: str,
+    *,
+    pet_name: str,
+    rescue_name: str,
+    signup_code: str | None,
+    expires_days: int,
+) -> bool:
+    """Tell an adopter a rescue is handing them a pet.
+
+    ``signup_code`` is set only when the address has no account yet: the beta
+    gate would otherwise stop them creating one, so the transfer would sit
+    pending until it expired and nobody would ever know. With a code the link
+    lands on signup with it pre-applied; without one it goes to the transfers
+    inbox.
+    """
+    safe_pet = html.escape(pet_name)
+    safe_rescue = html.escape(rescue_name)
+
+    if signup_code:
+        # Code only — /public/invite/{code} resolves it back to this address so
+        # the email never lands in access logs, Referer headers, or history.
+        url = f"{settings.FRONTEND_BASE_URL}/signup?invite={signup_code}"
+        cta = "Create your account"
+        extra = (
+            '<p style="color:#6b7280;font-size:13px;">Your invite code '
+            f"<strong>{html.escape(signup_code)}</strong> is already applied — "
+            "sign up with this email address and the transfer will be waiting.</p>"
+        )
+    else:
+        url = f"{settings.FRONTEND_BASE_URL}/app/transfers"
+        cta = "Review the transfer"
+        extra = ""
+
+    return await send_email(
+        to,
+        f"{pet_name} is waiting for you 🐾",
+        _layout(
+            f"{safe_rescue} wants to transfer {safe_pet} to you",
+            f"<p><strong>{safe_rescue}</strong> has started transferring "
+            f"{safe_pet}&rsquo;s profile to you on Fetchpawz. Once you accept, "
+            f"{safe_pet} is yours to look after here.</p>" + extra +
+            f'<p style="color:#6b7280;font-size:13px;">This invitation expires '
+            f"in {expires_days} days.</p>",
+            cta_url=url,
+            cta_label=cta,
+            preheader=f"{safe_rescue} is transferring {safe_pet} to you.",
+        ),
+    )
+
+
 async def send_tag_found_email(
     to: str,
     *,

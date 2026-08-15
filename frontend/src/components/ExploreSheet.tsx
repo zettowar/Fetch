@@ -46,6 +46,13 @@ const ITEMS: ExploreItem[] = [
     flagKey: 'explore_shop_enabled',
   },
   {
+    label: 'Community',
+    description: 'Questions, tips and good news from other humans.',
+    icon: '💬',
+    to: '/app/community',
+    flagKey: 'explore_community_enabled',
+  },
+  {
     label: 'Vets',
     description: 'Find a vet near you.',
     icon: '🩺',

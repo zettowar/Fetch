@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -156,9 +156,21 @@ async def signup(
     if settings.INVITE_REQUIRED:
         # Atomic claim: the WHERE on is_used makes concurrent signups with the
         # same code race safely — exactly one UPDATE wins.
+        #
+        # A code carrying `invited_email` was minted for one person (a rescue
+        # transferring a pet to a specific adopter), so it only claims for that
+        # address; forwarding the email gets you nothing. Codes with a NULL
+        # invited_email — admin and member invites — stay usable by anyone.
         claimed = await db.execute(
             update(InviteCode)
-            .where(InviteCode.code == invite_code, InviteCode.is_used == False)
+            .where(
+                InviteCode.code == invite_code,
+                InviteCode.is_used == False,  # noqa: E712
+                or_(
+                    InviteCode.invited_email.is_(None),
+                    InviteCode.invited_email == user.email,
+                ),
+            )
             .values(is_used=True, used_by=user.id, used_at=datetime.now(timezone.utc))
         )
         if claimed.rowcount == 0:

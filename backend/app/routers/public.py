@@ -420,6 +420,12 @@ async def lookup_invite(
     if invite.is_used:
         return PublicInviteOut(status="used")
 
+    # A transfer invite carries its address on the code itself; waitlist
+    # invites carry it on the entry. Admin/member codes have neither and
+    # simply prefill nothing.
+    if invite.invited_email:
+        return PublicInviteOut(status="valid", email=invite.invited_email)
+
     # Only waitlist invites carry an address; admin-minted codes have none, and
     # those simply prefill nothing.
     email = (

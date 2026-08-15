@@ -201,3 +201,100 @@ async def test_github_flow_works(client: AsyncClient, monkeypatch):
     ex = await client.post("/api/v1/auth/oauth/exchange", json={"code": q["code"][0]})
     assert ex.status_code == 200
     assert ex.json()["user"]["email"] == ident.email
+
+
+# --- SSO must honour TOTP, or 2FA is bypassable via the second door ---
+
+
+def _otp_now(secret: str) -> str:
+    """The code an authenticator app would be showing right now."""
+    import time as _time
+    from app.services import totp as totp_service
+
+    return totp_service._hotp(secret, int(_time.time() // 30))
+
+
+async def _sso_user_with_2fa(client: AsyncClient, db_session, monkeypatch):
+    """Sign in via SSO once to create the account, then turn 2FA on."""
+    from sqlalchemy import select
+    from app.models.user import User
+    from app.services import totp as totp_service
+
+    email = f"twofa-{uuid.uuid4().hex[:6]}@fetchpawz.com"
+    _enable_provider(monkeypatch, _identity(email=email))
+    q, _ = await _run_callback(client)
+    first = await client.post("/api/v1/auth/oauth/exchange", json={"code": q["code"][0]})
+    assert first.status_code == 200
+
+    user = (await db_session.execute(
+        select(User).where(User.email == email)
+    )).scalar_one()
+    secret = totp_service.generate_secret()
+    user.totp_secret = secret
+    user.totp_enabled = True
+    await db_session.commit()
+    return email, secret
+
+
+@pytest.mark.asyncio
+async def test_sso_exchange_requires_totp_when_enabled(
+    client: AsyncClient, db_session, monkeypatch
+):
+    email, secret = await _sso_user_with_2fa(client, db_session, monkeypatch)
+
+    _enable_provider(monkeypatch, _identity(email=email))
+    q, _ = await _run_callback(client)
+    code = q["code"][0]
+
+    # No OTP: refused, and the client is told to prompt.
+    blocked = await client.post("/api/v1/auth/oauth/exchange", json={"code": code})
+    assert blocked.status_code == 401
+    assert blocked.headers.get("x-2fa-required") == "1"
+
+    # Wrong OTP: still refused — and crucially the handoff is NOT spent, so a
+    # typo doesn't force the whole provider round-trip again.
+    wrong = await client.post(
+        "/api/v1/auth/oauth/exchange", json={"code": code, "otp": "000000"}
+    )
+    assert wrong.status_code == 401
+    assert wrong.headers.get("x-2fa-required") == "1"
+
+    # Correct OTP on the same handoff code completes the sign-in.
+    ok = await client.post(
+        "/api/v1/auth/oauth/exchange",
+        json={"code": code, "otp": _otp_now(secret)},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["user"]["email"] == email
+
+
+@pytest.mark.asyncio
+async def test_handoff_is_spent_only_after_2fa_succeeds(
+    client: AsyncClient, db_session, monkeypatch
+):
+    email, secret = await _sso_user_with_2fa(client, db_session, monkeypatch)
+    _enable_provider(monkeypatch, _identity(email=email))
+    q, _ = await _run_callback(client)
+    code = q["code"][0]
+
+    await client.post("/api/v1/auth/oauth/exchange", json={"code": code})
+    ok = await client.post(
+        "/api/v1/auth/oauth/exchange",
+        json={"code": code, "otp": _otp_now(secret)},
+    )
+    assert ok.status_code == 200
+
+    # Now it is spent.
+    again = await client.post(
+        "/api/v1/auth/oauth/exchange",
+        json={"code": code, "otp": _otp_now(secret)},
+    )
+    assert again.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_sso_without_2fa_is_unchanged(client: AsyncClient, monkeypatch):
+    _enable_provider(monkeypatch, _identity(email=f"plain-{uuid.uuid4().hex[:6]}@fetchpawz.com"))
+    q, _ = await _run_callback(client)
+    res = await client.post("/api/v1/auth/oauth/exchange", json={"code": q["code"][0]})
+    assert res.status_code == 200

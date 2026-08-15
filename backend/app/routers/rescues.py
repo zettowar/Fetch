@@ -8,10 +8,14 @@
 - `/api/v1/rescues/pets/:pet_id/mark-adopted` rescue flags pet as adopted (no transfer)
 - `/api/v1/rescues/pets/:pet_id/transfer`    rescue initiates a transfer to a Fetchpawz user
 """
+import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi import (
+    APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Request,
+    UploadFile, status,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -23,6 +27,7 @@ from app.db import get_db
 from app.deps import get_current_user, require_approved_rescue
 from app.limiter import limiter
 from app.models.audit_log import AuditLog
+from app.models.beta import InviteCode
 from app.models.pet import Pet
 from app.models.pet_transfer import PetTransfer
 from app.models.rescue import RescueProfile
@@ -33,6 +38,7 @@ from app.services.pet_serializer import (
     get_pet_full as _get_pet_full,
 )
 from app.services.notify import notify
+from app.services.email import send_transfer_invite_email
 from app.services.geo import bounding_box
 from app.schemas.pet import PetOut
 from app.schemas.pet_transfer import PetTransferCreate, PetTransferOut
@@ -302,6 +308,7 @@ async def transfer_dog(
     request: Request,
     pet_id: UUID,
     body: PetTransferCreate,
+    background_tasks: BackgroundTasks,
     user: User = Depends(require_approved_rescue),
     db: AsyncSession = Depends(get_db),
 ):
@@ -360,6 +367,9 @@ async def transfer_dog(
         expires_at=datetime.now(timezone.utc) + timedelta(days=TRANSFER_TTL_DAYS),
     )
     db.add(transfer)
+
+    rescue_name = await _rescue_name_for_user(user.id, db) or user.display_name
+
     if to_user_id is not None:
         await notify(
             db, to_user_id,
@@ -367,6 +377,42 @@ async def transfer_dog(
             title=f"{pet.name} is waiting for you",
             body="Review the transfer invitation to take ownership.",
             link="/app/transfers",
+        )
+        # The in-app inbox is the only channel notify() has, and nobody is told
+        # to open it — so the transfer also goes out by email. Existing member,
+        # so no invite code is needed.
+        target_email = target.email if target else None
+        if target_email:
+            background_tasks.add_task(
+                send_transfer_invite_email,
+                target_email,
+                pet_name=pet.name,
+                rescue_name=rescue_name,
+                signup_code=None,
+                expires_days=TRANSFER_TTL_DAYS,
+            )
+    elif invited_email:
+        # Nobody by this address yet. Previously this branch sent nothing at
+        # all: the adopter was never told, and with INVITE_REQUIRED they could
+        # not have signed up to discover it either — the transfer just expired.
+        #
+        # Mint a single-use invite so the link actually works through the beta
+        # gate. It is one code for one seat, the same trade the admin waitlist
+        # flow already makes, and it dies when it is used or when the person
+        # never shows up.
+        signup_code = f"FETCH-{secrets.token_hex(4).upper()}"
+        # Bound to the invited address: forwarding the email does not hand
+        # someone else a way through the beta gate.
+        db.add(InviteCode(
+            code=signup_code, created_by=user.id, invited_email=invited_email,
+        ))
+        background_tasks.add_task(
+            send_transfer_invite_email,
+            invited_email,
+            pet_name=pet.name,
+            rescue_name=rescue_name,
+            signup_code=signup_code,
+            expires_days=TRANSFER_TTL_DAYS,
         )
     db.add(AuditLog(
         actor_id=user.id,
