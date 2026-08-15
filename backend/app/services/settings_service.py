@@ -31,6 +31,13 @@ DEFAULTS: dict[str, tuple[Any, str]] = {
     "explore_community_enabled": (True, "Show Community posts inside Explore."),
     # SSO master switch — off hides the Google/GitHub buttons and 404s the OAuth
     # endpoints, so the feature stays invisible to real users until launch.
+    # Off by default: this mails every active pet owner, so it should not
+    # start sending the moment the code lands. Flip it in Admin → Settings once
+    # there is enough weekly voting for a recap to be worth receiving.
+    "weekly_recap_enabled": (
+        False,
+        "Email pet owners a Monday recap of last week's likes and rank.",
+    ),
     "sso_enabled": (False, "Enable Sign in with Google/GitHub. Off = hidden from users."),
 }
 

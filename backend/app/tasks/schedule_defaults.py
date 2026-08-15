@@ -49,6 +49,19 @@ DEFAULT_PERIODIC_TASKS: list[dict] = [
         description="Upsert this week's winner from current votes every 10 minutes.",
     ),
     _job(
+        name="weekly-recap",
+        task="app.tasks.weekly_recap.send_weekly_recap_task",
+        schedule_type="crontab",
+        minute="20",
+        hour="0",
+        day_of_week="monday",
+        description=(
+            "Email each owner how their pets did last week (00:20 UTC Monday, "
+            "after the crown is computed). No-ops unless the "
+            "weekly_recap_enabled setting is on."
+        ),
+    ),
+    _job(
         name="purge-refresh-tokens",
         task="app.tasks.token_cleanup.purge_refresh_tokens_task",
         schedule_type="crontab",

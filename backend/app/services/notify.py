@@ -18,6 +18,7 @@ _PREF_FIELD = {
     "comment": "comments_on_dogs",
     "follow": "new_followers",
     "weekly_winner": "weekly_winner",
+    "weekly_recap": "weekly_recap",
 }
 
 

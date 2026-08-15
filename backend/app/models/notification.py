@@ -67,6 +67,12 @@ class NotificationPreference(Base, UUIDPrimaryKey, TimestampMixin):
         Boolean, default=True, nullable=False, server_default="true"
     )
     weekly_winner: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Separate from weekly_winner on purpose: wanting to hear that you won is
+    # not the same as wanting a stats email every Monday, and the unsubscribe
+    # link must switch off exactly the thing that was sent.
+    weekly_recap: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="true"
+    )
     comments_on_dogs: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     new_followers: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     digest_mode: Mapped[str] = mapped_column(

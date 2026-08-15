@@ -2,7 +2,7 @@ import logging
 from datetime import date, timedelta
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -163,6 +163,43 @@ async def pick_current_winner(db: AsyncSession) -> list[WeeklyWinner]:
         if w:
             winners.append(w)
     return winners
+
+
+_RECAP_SQL = text(
+    """
+    WITH scored AS (
+        SELECT
+            v.pet_id,
+            p.owner_id,
+            p.name AS pet_name,
+            p.species,
+            SUM(v.value)                              AS score,
+            COUNT(*) FILTER (WHERE v.value = 1)       AS likes
+        FROM votes v
+        JOIN pets p ON p.id = v.pet_id
+        WHERE v.week_bucket = :week
+          AND p.is_active
+          AND p.adopted_at IS NULL
+        GROUP BY v.pet_id, p.owner_id, p.name, p.species
+    )
+    SELECT
+        pet_id, owner_id, pet_name, species, score, likes,
+        RANK() OVER (PARTITION BY species ORDER BY score DESC) AS rank
+    FROM scored
+    """
+)
+
+
+async def get_week_standings(db: AsyncSession, week: date) -> dict:
+    """Every pet that received a vote in `week`, ranked within its species.
+
+    One query for the whole week rather than per-pet `get_pet_stats` calls:
+    the recap job would otherwise issue several queries per pet across the
+    entire user base. Ranking is done in SQL so it stays consistent with the
+    leaderboard's ordering.
+    """
+    rows = (await db.execute(_RECAP_SQL, {"week": week})).mappings().all()
+    return {r["pet_id"]: dict(r) for r in rows}
 
 
 async def _pick_winner_for_week(

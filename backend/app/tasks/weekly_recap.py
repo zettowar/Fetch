@@ -1,0 +1,136 @@
+"""Monday recap: tell each owner how their pets did last week.
+
+The product's loop is rate → crown, but until now only the two crown winners
+heard anything, and only in an inbox nobody is prompted to open. Everyone else
+swiped, was swiped on, and got no signal at all — which is the retention half
+of the loop simply missing.
+
+Gated by the `weekly_recap_enabled` admin setting, default OFF: this mails every
+active pet owner, so it must not start sending the moment the code ships. Turn
+it on in Admin → Settings when weekly voting is dense enough that a recap is
+worth receiving.
+"""
+import asyncio
+from datetime import timedelta
+
+import structlog
+
+from app.worker import celery_app
+
+logger = structlog.stdlib.get_logger()
+
+# Below this, a recap reads as "nobody looked at your pet" — worse than silence.
+MIN_LIKES_TO_SEND = 1
+
+
+@celery_app.task(name="app.tasks.weekly_recap.send_weekly_recap_task")
+def send_weekly_recap_task():
+    """Runs Monday, after compute_weekly_winner has crowned the week."""
+    return asyncio.run(_run())
+
+
+async def _run(session_factory=None) -> int:
+    """`session_factory` is injectable so tests can drive this against the test
+    database — the app's default factory points at the real one."""
+    from sqlalchemy import select
+
+    from app.config import settings
+    from app.db import async_session
+    from app.models.notification import NotificationPreference
+    from app.models.user import User
+    from app.services import settings_service
+    from app.services.email import send_weekly_recap_email
+    from app.services.feed_service import current_week_bucket
+    from app.services.notify import notify
+    from app.services.ranking_service import get_week_standings
+
+    if session_factory is None:
+        session_factory = async_session
+
+    last_week = current_week_bucket() - timedelta(days=7)
+    week_before = last_week - timedelta(days=7)
+
+    async with session_factory() as db:
+        if not await settings_service.get_setting(db, "weekly_recap_enabled"):
+            logger.info("weekly_recap_disabled")
+            return 0
+
+        # Two queries total, not per-pet: bounded by pets that were voted on
+        # that week rather than by the size of the user base.
+        standings = await get_week_standings(db, last_week)
+        if not standings:
+            logger.info("weekly_recap_no_activity", week=str(last_week))
+            return 0
+        previous = await get_week_standings(db, week_before)
+
+        totals: dict[str, int] = {}
+        for row in standings.values():
+            totals[row["species"]] = totals.get(row["species"], 0) + 1
+
+        # Group each owner's pets into one email rather than one per pet.
+        by_owner: dict = {}
+        for pet_id, row in standings.items():
+            if row["likes"] < MIN_LIKES_TO_SEND:
+                continue
+            prior = previous.get(pet_id)
+            # A rank *number* going down is an improvement, hence prior - now.
+            delta = (prior["rank"] - row["rank"]) if prior else None
+            by_owner.setdefault(row["owner_id"], []).append({
+                "name": row["pet_name"],
+                "species": row["species"],
+                "likes": int(row["likes"]),
+                "rank": int(row["rank"]),
+                "total": totals[row["species"]],
+                "delta": delta,
+            })
+
+        if not by_owner:
+            logger.info("weekly_recap_nothing_worth_sending", week=str(last_week))
+            return 0
+
+        owner_ids = list(by_owner)
+        users = {
+            u.id: u for u in (await db.execute(
+                select(User).where(
+                    User.id.in_(owner_ids), User.is_active == True,  # noqa: E712
+                )
+            )).scalars().all()
+        }
+        opted_out = set((await db.execute(
+            select(NotificationPreference.user_id).where(
+                NotificationPreference.user_id.in_(owner_ids),
+                NotificationPreference.weekly_recap == False,  # noqa: E712
+            )
+        )).scalars().all())
+
+        week_label = last_week.strftime("%b %-d")
+        sent = 0
+        for owner_id, pets in by_owner.items():
+            user = users.get(owner_id)
+            if user is None or owner_id in opted_out:
+                continue
+
+            pets.sort(key=lambda p: p["rank"])
+            best = pets[0]
+
+            # The inbox entry lands for everyone; notify() applies the same
+            # preference itself, and email is the second channel on top.
+            await notify(
+                db, owner_id,
+                type="weekly_recap",
+                title=f"{best['name']} ranked #{best['rank']} last week",
+                body=f"{best['likes']} like" + ("s" if best["likes"] != 1 else ""),
+                link="/app/rankings",
+            )
+
+            if settings.RESEND_API_KEY and await send_weekly_recap_email(
+                user.email, user_id=owner_id, week_label=week_label, pets=pets,
+            ):
+                sent += 1
+
+        await db.commit()
+
+    logger.info(
+        "weekly_recap_sent", week=str(last_week), owners=len(by_owner), emailed=sent
+    )
+    return sent

@@ -302,7 +302,9 @@ async def test_beat_gauge_reflects_the_schedule(db_session):
 
     from app.models.periodic_task import PeriodicTask
     from app.services import beat_monitor
-    from tests.conftest import test_session_factory
+    # Aliased: a module-level name starting with `test_` would be collected by
+    # pytest as if it were a test function.
+    from tests.conftest import test_session_factory as session_factory
 
     await db_session.execute(delete(PeriodicTask))
     db_session.add(PeriodicTask(
@@ -315,7 +317,7 @@ async def test_beat_gauge_reflects_the_schedule(db_session):
     ))
     await db_session.commit()
 
-    await beat_monitor.refresh_once(test_session_factory)
+    await beat_monitor.refresh_once(session_factory)
 
     assert beat_monitor.BEAT_SHORTEST_INTERVAL._value.get() == 600.0
     age = beat_monitor.BEAT_LAST_RUN_AGE._value.get()
@@ -325,5 +327,5 @@ async def test_beat_gauge_reflects_the_schedule(db_session):
     # alert rule excludes so a quiet cron-only schedule never looks wedged.
     await db_session.execute(delete(PeriodicTask))
     await db_session.commit()
-    await beat_monitor.refresh_once(test_session_factory)
+    await beat_monitor.refresh_once(session_factory)
     assert beat_monitor.BEAT_SHORTEST_INTERVAL._value.get() == -1

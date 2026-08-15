@@ -361,6 +361,7 @@ _UNSUB_LISTS = {
     "digest": "Notification digests",
     "announcements": "Product announcements",
     "lost_alerts": "Lost-pet alerts near you",
+    "recap": "Weekly recaps for your pets",
 }
 
 
@@ -392,6 +393,8 @@ async def _apply_unsubscribe(token: str, db: AsyncSession) -> UnsubscribeOut:
         prefs.announcement_emails = False
     elif list_name == "lost_alerts":
         prefs.lost_dog_alerts = False
+    elif list_name == "recap":
+        prefs.weekly_recap = False
 
     await db.commit()
     logger.info("unsubscribed", user_id=str(user_id), list_name=list_name)

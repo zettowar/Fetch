@@ -11,7 +11,7 @@ cp .env.example .env
 make up          # Start all 6 Docker services
 make migrate     # Run database migrations
 make seed        # Create 10 test users + 20 dogs
-make test        # Run all tests (~476 backend + ~122 frontend)
+make test        # Run all tests (~499 backend + ~122 frontend)
 ```
 
 - **Frontend:** http://localhost:3174
@@ -52,11 +52,11 @@ Fetchpawz/
 │   │   │                     #   pet_serializer, breed_display, blocks, geo,
 │   │   │                     #   email, notify, quota, traits, totp, qr,
 │   │   │                     #   stripe, settings, rescue, osm/park/vet import
-│   │   └── tasks/            # 6 Celery tasks (weekly_winner, lost_alerts,
-│   │                         #   token_cleanup, digest, announcements,
-│   │                         #   schedule_defaults)
-│   ├── tests/                # backend test suite (~476 tests)
-│   ├── alembic/              # ~46 migrations (linear chain)
+│   │   └── tasks/            # 7 Celery tasks (weekly_winner, weekly_recap,
+│   │                         #   lost_alerts, token_cleanup, digest,
+│   │                         #   announcements, schedule_defaults)
+│   ├── tests/                # backend test suite (~499 tests)
+│   ├── alembic/              # ~47 migrations (linear chain)
 │   └── pyproject.toml
 ├── frontend/
 │   └── src/
@@ -422,6 +422,27 @@ lost-pet proximity subscriptions (`components/LostAlertSubscription.tsx`),
 park incidents (`components/IncidentReporter.tsx`), the maintenance banner
 (`components/MaintenanceBanner.tsx`), and community posts (`/app/community`).
 
+## Weekly recap (admin-gated, OFF by default)
+
+`tasks/weekly_recap.py` emails each owner how their pets did last week — likes,
+rank within species, and the rank change — at 00:20 UTC Monday, after the crown
+is computed. It closes the reward half of the rate → crown loop, which
+previously reached only the two weekly winners.
+
+**Two levers, and only one of them is yours to flip day-to-day:**
+- `weekly_recap_enabled` in **Admin → Settings** is the master switch. It ships
+  **off**; the Beat job is seeded enabled and no-ops until you turn this on, so
+  an operator has one thing to change rather than also hunting for a cron.
+- `NotificationPreference.weekly_recap` is the per-user opt-out, which the
+  one-click unsubscribe (`recap` list) writes.
+
+Deliberate behaviours worth keeping: pets with no votes that week are skipped
+entirely (a "nobody looked at your pet" email is worse than silence); one email
+per owner covering all their pets, not one per pet; and standings come from a
+single windowed query per week (`ranking_service.get_week_standings`) rather
+than per-pet `get_pet_stats` calls, so cost scales with pets-voted-on, not with
+the user base.
+
 ## Email: transactional vs bulk
 
 `services/email.py` splits two categories, and the distinction is legal, not
@@ -434,7 +455,7 @@ cosmetic:
   `unsubscribe_headers()` (RFC 8058 one-click, which Gmail/Yahoo require of
   bulk senders) and append `unsubscribe_footer()`. Both take `(user_id,
   list_name)` where list_name is one of `digest` / `announcements` /
-  `lost_alerts`, mapping onto `NotificationPreference`.
+  `lost_alerts` / `recap`, mapping onto `NotificationPreference`.
 
 Opt-out is a stateless signed token (`create_unsubscribe_token`) resolved by
 `POST|GET /public/unsubscribe/{token}` — unauthenticated, because a mail client

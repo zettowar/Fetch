@@ -23,6 +23,7 @@ class NotificationPrefsOut(BaseModel):
     lost_dog_alerts: bool = True
     announcement_emails: bool = True
     weekly_winner: bool = True
+    weekly_recap: bool = True
     comments_on_dogs: bool = True
     new_followers: bool = True
     digest_mode: str = "off"
@@ -34,6 +35,7 @@ class NotificationPrefsUpdate(BaseModel):
     lost_dog_alerts: bool | None = None
     announcement_emails: bool | None = None
     weekly_winner: bool | None = None
+    weekly_recap: bool | None = None
     comments_on_dogs: bool | None = None
     new_followers: bool | None = None
     digest_mode: str | None = None

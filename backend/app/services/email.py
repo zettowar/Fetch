@@ -434,6 +434,65 @@ async def send_transfer_invite_email(
     )
 
 
+async def send_weekly_recap_email(
+    to: str,
+    *,
+    user_id,
+    week_label: str,
+    pets: list[dict],
+) -> bool:
+    """Monday recap: how each of an owner's pets did last week.
+
+    `pets` rows carry name, likes, rank, total (pets ranked in that species)
+    and delta (rank change vs the week before; None when they were unranked).
+
+    Recurring scheduled mail, so it carries the opt-out — a weekly stats email
+    with no unsubscribe is exactly what trains people to hit "spam".
+    """
+    rows = []
+    for p in pets:
+        delta = p.get("delta")
+        if delta is None:
+            movement = '<span style="color:#6b7280">new this week</span>'
+        elif delta > 0:
+            movement = f'<span style="color:#2e7d5b">&#9650; up {delta}</span>'
+        elif delta < 0:
+            movement = f'<span style="color:#9ca3af">&#9660; down {abs(delta)}</span>'
+        else:
+            movement = '<span style="color:#6b7280">holding steady</span>'
+
+        likes = p["likes"]
+        rows.append(
+            "<li style=\'margin-bottom:10px\'><strong>"
+            + html.escape(str(p["name"]))
+            + f"</strong> &mdash; {likes} like" + ("s" if likes != 1 else "")
+            + f", ranked #{p['rank']} of {p['total']} {html.escape(str(p['species']))}s"
+            + f" &nbsp;{movement}</li>"
+        )
+
+    best = min(pets, key=lambda p: p["rank"])
+    if best["rank"] == 1:
+        heading = f"{best['name']} finished #1 last week"
+    else:
+        heading = "Your week on Fetchpawz"
+
+    return await send_email(
+        to,
+        f"{heading} \u2014 {week_label}",
+        _layout(
+            heading,
+            f"<p>Here is how your pets did in the week of {html.escape(week_label)}:</p>"
+            f"<ul style='padding-left:18px'>{''.join(rows)}</ul>"
+            + unsubscribe_footer(user_id, "recap"),
+            cta_url=f"{settings.FRONTEND_BASE_URL}/app/rankings",
+            cta_label="See the leaderboard",
+            preheader=f"{best['name']} ranked #{best['rank']} last week.",
+        ),
+        headers=unsubscribe_headers(user_id, "recap"),
+        kind="weekly_recap",
+    )
+
+
 async def send_alert_email(to: str, *, payload: dict) -> bool:
     """Email a batch of Prometheus alerts.
 
