@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { HousePlus } from 'lucide-react';
 import { getPublicDog } from '../api/publicSite';
@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Skeleton';
 import DogIllustration from '../components/flair/DogIllustration';
 import PawTrail from '../components/flair/PawTrail';
+import FoundPetForm from './FoundPetForm';
 
 function ageLabel(birthday: string | null): string | null {
   if (!birthday) return null;
@@ -19,6 +20,10 @@ function ageLabel(birthday: string | null): string | null {
 
 export default function PublicPetPage() {
   const { petId } = useParams();
+  // Present only when the visitor got here by scanning a collar tag; it is the
+  // credential for the finder->owner relay.
+  const [searchParams] = useSearchParams();
+  const tagCode = searchParams.get('tag');
   const { data: pet, isLoading, isError, error } = useQuery({
     queryKey: ['public-pet', petId],
     queryFn: () => getPublicDog(petId!),
@@ -87,6 +92,14 @@ export default function PublicPetPage() {
             </span>
           )}
         </div>
+
+        {/* Arrived by scanning the collar tag: lead with the thing a finder
+            actually needs, above the fold, before the marketing. */}
+        {tagCode && (
+          <div className="mt-6">
+            <FoundPetForm code={tagCode} petName={pet.name} />
+          </div>
+        )}
 
         {/* Identity */}
         <div className="mt-6 flex items-start justify-between gap-4">

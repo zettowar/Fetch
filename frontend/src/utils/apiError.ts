@@ -10,6 +10,12 @@ export function isNotFound(err: unknown): boolean {
   return axios.isAxiosError(err) && err.response?.status === 404;
 }
 
+/** 409 — the request collided with existing state (e.g. a duplicate report),
+ *  which is usually worth reporting to the user as information, not failure. */
+export function isConflict(err: unknown): boolean {
+  return axios.isAxiosError(err) && err.response?.status === 409;
+}
+
 export function apiErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
   if (axios.isAxiosError(err)) {
     if (err.response?.status === 429) {

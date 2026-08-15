@@ -5,6 +5,7 @@ import { isNotFound } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { Spinner } from '../components/ui/Skeleton';
 import { useAuth } from '../store/AuthContext';
+import FoundPetForm from './FoundPetForm';
 
 export default function TagLandingPage() {
   const { code } = useParams();
@@ -25,9 +26,34 @@ export default function TagLandingPage() {
     );
   }
 
-  // Linked to a public pet → send them straight to the profile.
+  // Linked to a public pet → send them straight to the profile. The tag code
+  // rides along so the share page can offer the "I found this pet" relay:
+  // holding the tag is what authorises contacting the owner.
   if (data?.assigned && data.pet) {
-    return <Navigate to={`/pets/${data.pet.id}`} replace />;
+    return <Navigate to={`/pets/${data.pet.id}?tag=${encodeURIComponent(code!)}`} replace />;
+  }
+
+  // Registered tag whose pet is hidden from the public share page. The owner
+  // still wants to hear that their pet was found — "don't list me" is not
+  // "don't tell me" — so the relay is offered here instead of the profile.
+  if (data?.assigned && !data.pet) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16">
+        <div className="text-center">
+          <span className="text-5xl" aria-hidden>🏷️</span>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight">
+            This pet&rsquo;s profile is private
+          </h1>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
+            The tag is registered. You can still let their owner know they&rsquo;re
+            safe.
+          </p>
+        </div>
+        <div className="mt-8">
+          <FoundPetForm code={code!} petName="this pet" />
+        </div>
+      </div>
+    );
   }
 
   let title: string;
@@ -38,9 +64,6 @@ export default function TagLandingPage() {
   } else if (isError) {
     title = "Couldn't load this tag";
     body = 'Something went wrong on our end. Try again in a moment.';
-  } else if (data?.assigned && !data.pet) {
-    title = "This pet's page is private";
-    body = 'The tag is registered, but the owner has hidden this profile.';
   } else {
     title = "This tag isn't linked yet";
     body = isAuthenticated

@@ -6,6 +6,7 @@ import { useAuth } from '../store/AuthContext';
 import Button from './ui/Button';
 import Avatar from './ui/Avatar';
 import Linkify from './Linkify';
+import { ReportButton } from './ReportDialog';
 import TimeAgo from './TimeAgo';
 
 interface CommentSectionProps {
@@ -69,7 +70,7 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
                     </span>
                     <TimeAgo value={c.created_at} className="text-xs text-gray-400 dark:text-gray-500" />
                   </div>
-                  {user?.id === c.author_id && (
+                  {user?.id === c.author_id ? (
                     <button
                       onClick={() => {
                         if (confirm('Delete this comment?')) deleteMutation.mutate(c.id);
@@ -78,6 +79,15 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
                     >
                       Delete
                     </button>
+                  ) : (
+                    user && (
+                      <ReportButton
+                        targetType="comment"
+                        targetId={c.id}
+                        targetLabel="this comment"
+                        className="px-1"
+                      />
+                    )
                   )}
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5 whitespace-pre-wrap break-words">

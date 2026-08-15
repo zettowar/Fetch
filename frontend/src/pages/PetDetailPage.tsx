@@ -12,6 +12,7 @@ import { useAuth } from '../store/AuthContext';
 import FollowButton from '../components/FollowButton';
 import ReactionBar from '../components/ReactionBar';
 import CommentSection from '../components/CommentSection';
+import { ReportButton } from '../components/ReportDialog';
 import PhotoUploader from '../components/PhotoUploader';
 import PetPhoto, { InReviewBadge, isInReview } from '../components/PetPhoto';
 import BackButton from '../components/ui/BackButton';
@@ -337,6 +338,14 @@ export default function PetDetailPage() {
             Owner profile
           </Link>
           <span className="text-xs text-gray-400 dark:text-gray-500">Added <TimeAgo value={pet.created_at} /></span>
+          {!isOwner && (
+            <ReportButton
+              targetType="pet"
+              targetId={pet.id}
+              targetLabel={pet.name}
+              className="ml-auto"
+            />
+          )}
         </div>
 
         {/* Check-in widget (owner only) */}

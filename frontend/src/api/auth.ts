@@ -124,3 +124,13 @@ export async function updateMe(body: UpdateMePayload): Promise<User> {
   const res = await client.patch('/users/me', body);
   return res.data;
 }
+
+/**
+ * Close the caller's account. Deactivates the profile and every pet they own,
+ * which is what the privacy policy describes. Irreversible from the user's
+ * side: login rejects inactive accounts, so there is no self-serve way back in.
+ */
+export async function deleteMyAccount(): Promise<{ detail: string }> {
+  const res = await client.delete('/users/me');
+  return res.data;
+}

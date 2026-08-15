@@ -18,6 +18,22 @@ export async function getPublicTag(code: string): Promise<PublicTag> {
   return (await client.get(`/public/tags/${code}`)).data;
 }
 
+export interface TagContactPayload {
+  finder_name: string;
+  finder_contact: string;
+  message: string;
+}
+
+/** Relay a "I found this pet" message to the owner. Unauthenticated by design:
+ *  the person holding a lost dog is a stranger, and the tag code is the
+ *  credential. The owner's email is never returned to the caller. */
+export async function contactTagOwner(
+  code: string,
+  payload: TagContactPayload,
+): Promise<{ detail: string }> {
+  return (await client.post(`/public/tags/${code}/contact`, payload)).data;
+}
+
 // --- Owner ---
 export async function claimTag(code: string, petId: string): Promise<OwnerTag> {
   return (await client.post('/tags/claim', { code, pet_id: petId })).data;

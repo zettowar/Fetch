@@ -8,14 +8,19 @@ from datetime import date
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel
+import structlog
+from fastapi import (
+    APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response,
+)
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.db import get_db
 from app.limiter import limiter
+from app.services.email import send_tag_found_email
 from app.models.beta import InviteCode, WaitlistEntry
 from app.models.news import NewsPost
 from app.models.pet import Pet
@@ -27,6 +32,8 @@ from app.schemas.news import NewsPostOut
 from app.services.breed_display import breed_display
 from app.services.pet_serializer import display_photo_url
 from app.storage import get_storage
+
+logger = structlog.stdlib.get_logger()
 
 router = APIRouter()
 
@@ -267,6 +274,77 @@ async def public_tag(code: str, db: AsyncSession = Depends(get_db)):
     if owner is not None and owner.rescue_profile and owner.rescue_profile.status == "approved":
         rescue_name = owner.rescue_profile.org_name
     return PublicTagOut(assigned=True, pet=_serialize_public_pet(pet, rescue_name=rescue_name))
+
+
+class TagContactRequest(BaseModel):
+    """A finder's message to the owner of a scanned collar tag."""
+    finder_name: str = Field(..., min_length=1, max_length=80)
+    finder_contact: str = Field(..., min_length=3, max_length=120)
+    message: str = Field(..., min_length=1, max_length=1000)
+
+    @field_validator("finder_name", "finder_contact", "message")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("This field is required")
+        return v
+
+
+@router.post("/tags/{code}/contact")
+# Unauthenticated and it sends mail, so it is rate limited hard. Keyed on the
+# caller's IP by the limiter; the tag code itself is the other half of the
+# defence — you cannot enumerate owners without physically having a tag.
+@limiter.limit("5/hour")
+async def contact_tag_owner(
+    code: str,
+    request: Request,
+    body: TagContactRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """Relay a "I found this pet" message from a finder to the pet's owner.
+
+    The point of a collar tag: a stranger scans it and can tell the owner the
+    pet is safe. The owner's address is never exposed — the finder's own
+    contact details ride in the body and in Reply-To, mirroring the lost-report
+    relay in `lost.py`.
+    """
+    tag = (
+        await db.execute(select(QRTag).where(QRTag.code == code.strip().upper()))
+    ).scalar_one_or_none()
+    if not tag or tag.pet_id is None:
+        raise HTTPException(status_code=404, detail="Unknown tag")
+
+    pet = (await db.execute(
+        select(Pet)
+        .options(selectinload(Pet.owner))
+        .where(Pet.id == tag.pet_id, Pet.is_active == True)  # noqa: E712
+    )).scalar_one_or_none()
+    # Note: no is_public check. Hiding the share page means "don't list me",
+    # not "don't tell me my pet was found" — the tag exists precisely for this.
+    if not pet or pet.owner is None or not pet.owner.is_active:
+        raise HTTPException(status_code=404, detail="Unknown tag")
+
+    # Checked last so the 404s above stay meaningful when email is unconfigured,
+    # matching the lost-report relay's ordering.
+    if not settings.RESEND_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Contact is unavailable — email delivery is not configured",
+        )
+
+    background_tasks.add_task(
+        send_tag_found_email,
+        pet.owner.email,
+        pet_name=pet.name,
+        finder_name=body.finder_name,
+        finder_contact=body.finder_contact,
+        message=body.message,
+        tag_code=tag.code,
+    )
+    logger.info("tag_contact", tag_code=tag.code, pet_id=str(pet.id))
+    return {"detail": f"Message sent to {pet.name}'s owner"}
 
 
 @router.get("/top-pet", response_model=PublicTopPetOut | None)

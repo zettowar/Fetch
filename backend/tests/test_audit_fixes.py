@@ -280,3 +280,64 @@ async def test_second_park_review_updates_instead_of_stacking(
     reviews = listed.json()
     assert len(reviews) == 1, "a re-review must replace, not stack"
     assert reviews[0]["rating"] == 1
+
+
+# --------------------------------------------------------------------------
+# Striking a reported comment silently no-opped and returned 200.
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_strike_on_comment_report_reaches_the_comment_author(
+    client: AsyncClient, auth_headers: dict, admin_headers: dict, db_session
+):
+    from sqlalchemy import func, select as sa_select
+    from app.models.report import Strike
+
+    # The admin owns a pet; the ordinary user comments on it.
+    pet = await client.post(
+        "/api/v1/pets", json={"name": "Subject", "species": "dog"},
+        headers=admin_headers,
+    )
+    pet_id = pet.json()["id"]
+
+    comment = await client.post(
+        "/api/v1/social/comments",
+        json={"target_type": "pet", "target_id": pet_id, "body": "rude thing"},
+        headers=auth_headers,
+    )
+    assert comment.status_code == 201
+    comment_id = comment.json()["id"]
+    author_id = comment.json()["author_id"]
+
+    report = await client.post(
+        "/api/v1/reports",
+        json={
+            "target_type": "comment",
+            "target_id": comment_id,
+            "reason": "Harassment or abuse",
+        },
+        headers=admin_headers,
+    )
+    assert report.status_code == 201
+    report_id = report.json()["id"]
+
+    before = (await db_session.execute(
+        sa_select(func.count()).select_from(Strike).where(Strike.user_id == author_id)
+    )).scalar()
+
+    review = await client.post(
+        f"/api/v1/admin/reports/{report_id}/review",
+        json={"status": "reviewed", "apply_strike": True,
+              "strike_reason": "harassment"},
+        headers=admin_headers,
+    )
+    assert review.status_code == 200
+    assert review.json()["status"] == "reviewed"
+
+    after = (await db_session.execute(
+        sa_select(func.count()).select_from(Strike).where(Strike.user_id == author_id)
+    )).scalar()
+    # Previously _resolve_target_user had no "comment" branch, so this stayed
+    # equal while the endpoint still reported success.
+    assert after == before + 1

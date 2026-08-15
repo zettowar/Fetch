@@ -320,6 +320,42 @@ async def send_contact_relay_email(
     )
 
 
+async def send_tag_found_email(
+    to: str,
+    *,
+    pet_name: str,
+    finder_name: str,
+    finder_contact: str,
+    message: str,
+    tag_code: str,
+) -> bool:
+    """Tell an owner that someone scanned their pet's collar tag.
+
+    The finder is anonymous to us (no account required — they are a stranger
+    holding a lost dog), so their contact details are carried in the body
+    rather than in Reply-To, which we cannot trust here.
+    """
+    safe_pet = html.escape(pet_name)
+    return await send_email(
+        to,
+        f"Someone found {pet_name}",
+        _layout(
+            f"Someone scanned {safe_pet}'s tag",
+            f"<p><strong>{html.escape(finder_name)}</strong> scanned "
+            f"{safe_pet}'s Fetchpawz collar tag and left you a message:</p>"
+            '<blockquote style="border-left:3px solid #ee7a10;margin:16px 0;'
+            'padding:8px 16px;color:#374151;background:#fff7ed;border-radius:0 8px 8px 0;">'
+            f"{html.escape(message)}</blockquote>"
+            "<p><strong>Reach them at:</strong> "
+            f"{html.escape(finder_contact)}</p>"
+            f'<p style="color:#6b7280;font-size:13px">Tag code '
+            f"{html.escape(tag_code)}. We could not verify who sent this — "
+            "take the usual care when arranging to meet.</p>",
+            preheader=f"{html.escape(finder_name)} may have found {safe_pet}.",
+        ),
+    )
+
+
 async def send_test_email(to: str) -> tuple[bool, str]:
     """Admin deliverability probe. Returns (accepted, human-readable reason).
 

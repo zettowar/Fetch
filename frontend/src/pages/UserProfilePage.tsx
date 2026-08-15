@@ -28,6 +28,7 @@ import { generateMyInvites, getMyInvites } from '../api/invites';
 import { resendVerification } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
 import ErrorState from '../components/ui/ErrorState';
+import { ReportButton } from '../components/ReportDialog';
 import { isNotFound } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
@@ -214,7 +215,18 @@ export default function UserProfilePage() {
       {isMe && <InviteSection />}
 
       {/* Block control (someone else's profile) */}
-      {!isMe && currentUser && <BlockControl userId={profile.id} displayName={profile.display_name} />}
+      {!isMe && currentUser && (
+        <>
+          <BlockControl userId={profile.id} displayName={profile.display_name} />
+          <div className="mx-4 mt-2 flex justify-end">
+            <ReportButton
+              targetType="user"
+              targetId={profile.id}
+              targetLabel={profile.display_name}
+            />
+          </div>
+        </>
+      )}
 
       {/* Pets grid */}
       <section className="mx-4">

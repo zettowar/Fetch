@@ -8,6 +8,7 @@ import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import BackButton from '../components/ui/BackButton';
+import DeleteAccountCard from '../components/DeleteAccountCard';
 
 function errDetail(e: unknown): string | undefined {
   return (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -109,6 +110,8 @@ export default function SecurityPage() {
           </Button>
         )}
       </Card>
+
+      <DeleteAccountCard />
     </div>
   );
 }
