@@ -27,7 +27,7 @@ export default function ParksPage() {
   // Sync the query center when the user-location hook resolves.
   useEffect(() => {
     setViewCenter(initialCenter);
-  }, [initialCenter[0], initialCenter[1]]);
+  }, [initialCenter]);
 
   const { data: parks = [], isLoading, isError } = useQuery({
     queryKey: ['parks-nearby', viewCenter[1], viewCenter[0]],

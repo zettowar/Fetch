@@ -30,7 +30,7 @@ export default function LostPetsPage() {
   // Re-center the query when the user-location hook resolves a real fix.
   useEffect(() => {
     setViewCenter(initialCenter);
-  }, [initialCenter[0], initialCenter[1]]);
+  }, [initialCenter]);
 
   const { data: subscription } = useQuery({
     queryKey: ['lost-subscription'],

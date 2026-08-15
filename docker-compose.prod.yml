@@ -126,6 +126,8 @@ services:
     env_file:
       - .env
     command: celery -A app.worker beat --loglevel=info
+    volumes:
+      - ./deploy/beat_healthcheck.py:/app/beat_healthcheck.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -133,6 +135,19 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+    healthcheck:
+      # Not "is the process up" — docker already restarts on exit. This checks
+      # that beat is still *scheduling*: the DatabaseScheduler stamps
+      # periodic_tasks.last_run_at on every fire, so a stale maximum means a
+      # wedged scheduler, which otherwise silently stops the weekly crown, the
+      # digest and token cleanup with no restart and nothing in the logs.
+      test: ["CMD-SHELL", "python /app/beat_healthcheck.py || exit 1"]
+      interval: 5m
+      timeout: 20s
+      retries: 3
+      # Generous: beat's shortest job runs every 10 minutes, so a fresh
+      # container has legitimately not stamped anything for a while.
+      start_period: 15m
     restart: unless-stopped
     deploy:
       resources:
@@ -220,6 +235,69 @@ services:
         limits:
           memory: 128m
 
+  # ── Monitoring ────────────────────────────────────────────────────────────
+  # Opt-in: `docker compose --profile monitoring up -d` (make deploy includes
+  # it unless MONITORING=0). Costs ~200 MB of RAM, which is worth naming on a
+  # small droplet. Neither service is published — Prometheus scrapes the
+  # backend over the internal network, and /metrics is not proxied by nginx,
+  # so none of this is reachable from the internet.
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    profiles: ["monitoring"]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # 15 days is plenty to answer "when did this start?" without the TSDB
+      # quietly eating the droplet's disk.
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    profiles: ["monitoring"]
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    # The bearer token reaches the container as a file because Alertmanager's
+    # http_config reads credentials from disk, not from the environment.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        if [ -z "$${ALERT_WEBHOOK_TOKEN}" ]; then
+          echo "ALERT_WEBHOOK_TOKEN is not set — required to run the monitoring profile." >&2
+          exit 1
+        fi
+        printf '%s' "$${ALERT_WEBHOOK_TOKEN}" > /etc/alertmanager/webhook_token
+        exec /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager
+    environment:
+      # Plain default, NOT `:?` — compose interpolates every service's
+      # variables even when its profile is disabled, so a required-variable
+      # marker here would break `make deploy` for anyone not running
+      # monitoring. The entrypoint above enforces it instead, where it only
+      # applies to people who actually started this container.
+      ALERT_WEBHOOK_TOKEN: ${ALERT_WEBHOOK_TOKEN:-}
+    volumes:
+      - ./deploy/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
 volumes:
   pgdata:
   redisdata:
@@ -227,3 +305,5 @@ volumes:
   caddy_data:
   caddy_config:
   db_backups:
+  prometheus_data:
+  alertmanager_data:

@@ -39,7 +39,25 @@ good() { printf '%s    ✓ %s%s\n' "$GRN" "$*" "$RST"; }
 warn() { printf '%s    ! %s%s\n' "$YEL" "$*" "$RST"; }
 die()  { printf '\n%s✗ %s%s\n' "$RED$BLD" "$*" "$RST" >&2; exit 1; }
 
-dc() { docker compose -f "$PROD" "$@"; }
+# Monitoring (Prometheus + Alertmanager) is a compose profile. It comes along
+# automatically once ALERT_WEBHOOK_TOKEN is configured, so a deploy never
+# silently drops it — and stays out of the way for anyone who hasn't set it up.
+# Force with MONITORING=1, disable with MONITORING=0.
+monitoring_wanted() {
+  case "${MONITORING:-auto}" in
+    1|true|yes) return 0 ;;
+    0|false|no) return 1 ;;
+    *) [ -n "$(env_get ALERT_WEBHOOK_TOKEN)" ] ;;
+  esac
+}
+
+dc() {
+  if monitoring_wanted; then
+    docker compose -f "$PROD" --profile monitoring "$@"
+  else
+    docker compose -f "$PROD" "$@"
+  fi
+}
 
 env_get() { sed -n "s/^$1=//p" "$ENV_FILE" | tail -n1 | sed 's/[[:space:]]*$//; s/\r$//'; }
 

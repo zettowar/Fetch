@@ -45,7 +45,9 @@ export default function AdminLostReportsPage() {
     queryFn: () => getAdminLostReports({ status: statusFilter, offset, limit: PAGE_SIZE }),
     staleTime: 2 * 60 * 1000,
   });
-  const reports = page?.items ?? [];
+  // Memoised: `?? []` makes a fresh array on every render while the query is
+  // loading, which re-ran the counts memo below each time.
+  const reports = useMemo(() => page?.items ?? [], [page]);
   const total = page?.total ?? 0;
 
   const closeMutation = useMutation({

@@ -113,6 +113,49 @@ make prod-migrate                  # run migrations by hand (normally automatic 
 make prod-down                     # stop the stack (volumes/data preserved)
 ```
 
+## Monitoring and alerting
+
+`/metrics` is exposed by the backend but **nginx does not proxy it**, so it is
+reachable only on the internal compose network — never from the internet.
+
+Prometheus and Alertmanager run as an opt-in compose profile:
+
+```bash
+# in .env
+ALERT_WEBHOOK_TOKEN=$(openssl rand -hex 32)   # required to run monitoring
+ALERT_EMAIL_TO=you@example.com                # where alerts are emailed
+```
+
+`make deploy` picks the profile up automatically once `ALERT_WEBHOOK_TOKEN` is
+set. Force it with `MONITORING=1 make deploy`, skip it with `MONITORING=0`.
+Budget roughly 200 MB of RAM for the two containers.
+
+Alertmanager POSTs firing alerts to `/api/v1/admin/alerts/webhook`, which emails
+them through Resend. That indirection exists because Alertmanager can only mail
+over SMTP, which DigitalOcean blocks outbound — the same reason the app uses
+Resend's HTTPS API. One mail path, one thing to keep working.
+
+What alerts (`deploy/alert_rules.yml`):
+
+| Alert | Fires when |
+|-------|-----------|
+| `BackendDown` | the API stops answering scrapes for 3m |
+| `EmailDeliveryFailing` | Resend rejects/refuses for 15m — resets, verification, lost-pet alerts and transfer invites are all silently not arriving |
+| `EmailProviderUnconfigured` | mail is being skipped because `RESEND_API_KEY` is unset |
+| `BeatScheduleStalled` | no periodic task has fired for 3x the shortest interval — the weekly crown, digest and token cleanup are stopped |
+| `HighServerErrorRate` | >5% of requests 5xx for 10m |
+
+`BeatScheduleStalled` reads `fetchpawz_beat_last_run_age_seconds`, published by
+the backend because beat has no HTTP server of its own to scrape. The beat
+container also has its own healthcheck (`deploy/beat_healthcheck.py`) that marks
+it unhealthy on the same condition — the metric is what actually notifies you.
+
+Neither service is published to the host. To look at them, tunnel:
+
+```bash
+ssh -L 9090:localhost:9090 you@droplet   # then open http://localhost:9090
+```
+
 ## Map tiles
 
 The parks, vets, rescues and lost-pet maps render raster tiles. With

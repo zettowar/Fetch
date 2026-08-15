@@ -8,6 +8,11 @@ interface ImportMetaEnv {
   // Shopify Storefront — leave empty to run the shop in demo mode.
   readonly VITE_SHOPIFY_DOMAIN?: string;
   readonly VITE_SHOPIFY_STOREFRONT_TOKEN?: string;
+  // Raster tile template for the maps. Empty falls back to OpenStreetMap's
+  // public tiles, whose policy forbids production traffic — see DEPLOY.md.
+  readonly VITE_MAP_TILE_URL?: string;
+  // Absolute site origin baked into social-share meta tags.
+  readonly VITE_SITE_URL?: string;
 }
 
 interface ImportMeta {

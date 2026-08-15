@@ -73,6 +73,24 @@ async def setup_db():
 
 
 @pytest_asyncio.fixture
+async def rate_limits_on():
+    """Turn the limiter back on for one test.
+
+    The suite disables it globally (above) so every other test can hammer the
+    API freely — but that left all ~40 @limiter.limit rules completely
+    unverified: a typo'd limit string would pass the entire suite. Counters are
+    cleared on both sides so tests neither inherit nor leak state.
+    """
+    limiter.reset()
+    limiter.enabled = True
+    try:
+        yield
+    finally:
+        limiter.enabled = False
+        limiter.reset()
+
+
+@pytest_asyncio.fixture
 async def db_session(setup_db):
     """A session against the test database, for tests that need to set up rows
     or call a service directly rather than going through the API.

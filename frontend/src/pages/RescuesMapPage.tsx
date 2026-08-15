@@ -22,7 +22,7 @@ export default function RescuesMapPage() {
   // the user's panning control.
   useEffect(() => {
     setViewCenter(initialCenter);
-  }, [initialCenter[0], initialCenter[1]]);
+  }, [initialCenter]);
 
   const { data: rescues = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['rescues-nearby', viewCenter[1], viewCenter[0]],

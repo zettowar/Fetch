@@ -1,0 +1,28 @@
+# Alerts are delivered by POSTing to the backend, which then emails via
+# Resend's HTTPS API. Alertmanager's own email support needs SMTP, which
+# DigitalOcean droplets block outbound — the same reason the app uses Resend.
+# This way there is exactly one email path to keep working.
+route:
+  receiver: fetchpawz-webhook
+  group_by: ["alertname"]
+  group_wait: 30s
+  group_interval: 5m
+  # Re-send an unresolved alert once a day rather than hourly: this is a
+  # one-person on-call rotation, and a nightly reminder is enough.
+  repeat_interval: 24h
+
+receivers:
+  - name: fetchpawz-webhook
+    webhook_configs:
+      - url: http://backend:8000/api/v1/admin/alerts/webhook
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /etc/alertmanager/webhook_token
+
+inhibit_rules:
+  # If the API is down, its downstream symptoms are noise.
+  - source_matchers: [alertname = "BackendDown"]
+    target_matchers: [severity = "critical"]
+    equal: ["alertname"]

@@ -10,6 +10,7 @@ import MapLibre, {
   type ViewStateChangeEvent,
   type MapLayerMouseEvent,
 } from 'react-map-gl/maplibre';
+import type { StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 export interface MapCircle {
@@ -92,10 +93,10 @@ interface MapProps {
 // Free OSM raster tiles. Override via VITE_MAP_TILE_URL for prod (commercial
 // traffic needs a paid tile provider — see DEPLOY.md).
 const DEFAULT_TILE_URL =
-  (import.meta as any).env?.VITE_MAP_TILE_URL ||
+  import.meta.env.VITE_MAP_TILE_URL ||
   'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-const MAP_STYLE = {
+const MAP_STYLE: StyleSpecification = {
   version: 8 as const,
   sources: {
     osm: {
@@ -232,7 +233,7 @@ export default function Map({
       <MapLibre
         ref={mapRef}
         initialViewState={initialViewState}
-        mapStyle={MAP_STYLE as any}
+        mapStyle={MAP_STYLE}
         onClick={onMapClick ? handleClick : undefined}
         onMoveEnd={onViewChange ? handleMoveEnd : undefined}
         cooperativeGestures={cooperative || undefined}

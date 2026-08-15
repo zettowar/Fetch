@@ -434,6 +434,56 @@ async def send_transfer_invite_email(
     )
 
 
+async def send_alert_email(to: str, *, payload: dict) -> bool:
+    """Email a batch of Prometheus alerts.
+
+    Operational mail to the operator, not a user — no unsubscribe, and `kind`
+    is distinct so an alert-delivery failure is itself visible in the metrics.
+    """
+    alerts = payload.get("alerts") or []
+    firing = [a for a in alerts if a.get("status") == "firing"]
+    resolved = [a for a in alerts if a.get("status") == "resolved"]
+
+    def _rows(items: list[dict]) -> str:
+        out = []
+        for a in items:
+            labels = a.get("labels") or {}
+            ann = a.get("annotations") or {}
+            out.append(
+                "<li><strong>"
+                + html.escape(str(labels.get("alertname", "alert")))
+                + "</strong> ("
+                + html.escape(str(labels.get("severity", "unknown")))
+                + ")<br>"
+                + html.escape(str(ann.get("summary", "")))
+                + "<br><span style=\'color:#6b7280;font-size:13px\'>"
+                + html.escape(str(ann.get("description", "")))
+                + "</span></li>"
+            )
+        return "".join(out)
+
+    if firing:
+        names = ", ".join(
+            str((a.get("labels") or {}).get("alertname", "alert")) for a in firing
+        )
+        subject = f"[Fetchpawz] {len(firing)} alert(s) firing: {names}"[:120]
+    else:
+        subject = f"[Fetchpawz] {len(resolved)} alert(s) resolved"
+
+    body = ""
+    if firing:
+        body += "<p><strong>Firing</strong></p><ul>" + _rows(firing) + "</ul>"
+    if resolved:
+        body += "<p><strong>Resolved</strong></p><ul>" + _rows(resolved) + "</ul>"
+
+    return await send_email(
+        to,
+        subject,
+        _layout("Monitoring alert", body, preheader=subject),
+        kind="alert",
+    )
+
+
 async def send_tag_found_email(
     to: str,
     *,

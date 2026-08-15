@@ -9,7 +9,7 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.models.notification import NotificationPreference
 from app.models.user import User
@@ -220,3 +220,110 @@ async def test_metrics_endpoint_exposes_the_counter(client: AsyncClient, monkeyp
     res = await client.get("/metrics")
     assert res.status_code == 200
     assert "fetchpawz_email_sends_total" in res.text
+
+
+# --- alert webhook (Alertmanager -> email via Resend) ---
+
+
+ALERT_BODY = {
+    "status": "firing",
+    "alerts": [{
+        "status": "firing",
+        "labels": {"alertname": "BeatScheduleStalled", "severity": "critical"},
+        "annotations": {"summary": "Beat stopped", "description": "No task fired."},
+    }],
+}
+
+
+@pytest.mark.asyncio
+async def test_alert_webhook_is_disabled_without_a_token(client: AsyncClient):
+    """An unset secret must not leave an unauthenticated endpoint that mails."""
+    assert email_service.settings.ALERT_WEBHOOK_TOKEN == ""
+    res = await client.post("/api/v1/admin/alerts/webhook", json=ALERT_BODY)
+    assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_alert_webhook_rejects_a_wrong_token(client: AsyncClient, monkeypatch):
+    monkeypatch.setattr(email_service.settings, "ALERT_WEBHOOK_TOKEN", "right")
+    res = await client.post(
+        "/api/v1/admin/alerts/webhook", json=ALERT_BODY,
+        headers={"Authorization": "Bearer wrong"},
+    )
+    assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_alert_webhook_accepts_and_emails(client: AsyncClient, monkeypatch):
+    sent: list = []
+
+    async def fake_send(to, **kwargs):
+        sent.append({"to": to, **kwargs})
+        return True
+
+    import app.routers.alerts as alerts_router
+
+    monkeypatch.setattr(alerts_router.settings, "ALERT_WEBHOOK_TOKEN", "tok")
+    monkeypatch.setattr(alerts_router.settings, "ALERT_EMAIL_TO", "ops@example.com")
+    monkeypatch.setattr(alerts_router, "send_alert_email", fake_send)
+
+    res = await client.post(
+        "/api/v1/admin/alerts/webhook", json=ALERT_BODY,
+        headers={"Authorization": "Bearer tok"},
+    )
+    assert res.status_code == 202
+    assert res.json() == {"received": 1}
+    assert sent and sent[0]["to"] == "ops@example.com"
+
+
+@pytest.mark.asyncio
+async def test_alert_webhook_202s_with_no_recipient(client: AsyncClient, monkeypatch):
+    """Returning an error would make Alertmanager retry a config gap forever."""
+    import app.routers.alerts as alerts_router
+
+    monkeypatch.setattr(alerts_router.settings, "ALERT_WEBHOOK_TOKEN", "tok")
+    monkeypatch.setattr(alerts_router.settings, "ALERT_EMAIL_TO", "")
+    res = await client.post(
+        "/api/v1/admin/alerts/webhook", json=ALERT_BODY,
+        headers={"Authorization": "Bearer tok"},
+    )
+    assert res.status_code == 202
+
+
+@pytest.mark.asyncio
+async def test_beat_gauge_reflects_the_schedule(db_session):
+    """The metric BeatScheduleStalled alerts on must track real rows.
+
+    Seeds its own row against the *test* database: the app's async_session
+    points at the dev database, so reaching for it here would make the test
+    pass or fail on whatever happens to be in dev.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from app.models.periodic_task import PeriodicTask
+    from app.services import beat_monitor
+    from tests.conftest import test_session_factory
+
+    await db_session.execute(delete(PeriodicTask))
+    db_session.add(PeriodicTask(
+        name=f"probe-{uuid.uuid4().hex[:8]}",
+        task="app.tasks.token_cleanup.purge_refresh_tokens_task",
+        schedule_type="interval",
+        interval_seconds=600.0,
+        enabled=True,
+        last_run_at=datetime.now(timezone.utc) - timedelta(seconds=120),
+    ))
+    await db_session.commit()
+
+    await beat_monitor.refresh_once(test_session_factory)
+
+    assert beat_monitor.BEAT_SHORTEST_INTERVAL._value.get() == 600.0
+    age = beat_monitor.BEAT_LAST_RUN_AGE._value.get()
+    assert 60 < age < 600, age
+
+    # A schedule with no enabled interval job reports -1 ("unknown"), which the
+    # alert rule excludes so a quiet cron-only schedule never looks wedged.
+    await db_session.execute(delete(PeriodicTask))
+    await db_session.commit()
+    await beat_monitor.refresh_once(test_session_factory)
+    assert beat_monitor.BEAT_SHORTEST_INTERVAL._value.get() == -1

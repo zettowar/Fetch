@@ -28,7 +28,7 @@ export default function VetsPage() {
 
   useEffect(() => {
     setViewCenter(initialCenter);
-  }, [initialCenter[0], initialCenter[1]]);
+  }, [initialCenter]);
 
   const { data: vets = [], isLoading, isError } = useQuery({
     queryKey: ['vets-nearby', viewCenter[1], viewCenter[0]],

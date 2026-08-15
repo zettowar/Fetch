@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -46,10 +46,15 @@ export default function ShopProductPage() {
 
   useDocumentTitle(product ? `${product.title} · Fetchpawz Shop` : null);
 
-  // Seed the option selection once the product arrives.
+  // Seed the option selection once per product. Keyed on a ref rather than on
+  // `product` identity: a background refetch returns a new object, and
+  // re-seeding would throw away the options the shopper had picked.
+  const seededProductId = useRef<string | null>(null);
   useEffect(() => {
-    if (product) setSelected(defaultSelection(product));
-  }, [product?.id]);
+    if (!product || seededProductId.current === product.id) return;
+    seededProductId.current = product.id;
+    setSelected(defaultSelection(product));
+  }, [product]);
 
   const variant = useMemo(
     () => (product ? findVariant(product, selected) : undefined),

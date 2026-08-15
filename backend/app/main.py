@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager, suppress
+
 import structlog
 import sentry_sdk
 from fastapi import FastAPI, Request
@@ -13,7 +16,7 @@ from app.config import settings
 from app.limiter import limiter
 from app.logging import setup_logging
 from app.middleware import RequestIDMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
-from app.routers import auth, users, pets, breeds, photos, feed, votes, rankings, reports, admin, admin_ops, scheduled_tasks, lost, social, parks, vets, playdates, posts, rescues, pet_transfers, support, billing, donations, notifications, feedback, adoption, public, tags, oauth, share
+from app.routers import auth, users, pets, breeds, photos, feed, votes, rankings, reports, admin, admin_ops, alerts, scheduled_tasks, lost, social, parks, vets, playdates, posts, rescues, pet_transfers, support, billing, donations, notifications, feedback, adoption, public, tags, oauth, share
 
 logger = structlog.stdlib.get_logger()
 
@@ -28,7 +31,27 @@ if settings.SENTRY_DSN:
         profiles_sample_rate=0.1,
     )
 
-app = FastAPI(title="Fetchpawz API", version="0.2.0")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Publish Celery Beat's liveness alongside the app's own metrics.
+
+    Beat has no HTTP server to scrape, so without this a wedged scheduler is
+    invisible to monitoring — the compose healthcheck marks the container
+    unhealthy but nothing watches container health.
+    """
+    from app.db import async_session
+    from app.services import beat_monitor
+
+    task = asyncio.create_task(beat_monitor.run_forever(async_session))
+    try:
+        yield
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
+
+
+app = FastAPI(title="Fetchpawz API", version="0.2.0", lifespan=lifespan)
 app.state.limiter = limiter
 
 # Middleware (order matters — outermost first)
@@ -79,6 +102,7 @@ app.include_router(rankings.router, prefix="/api/v1/rankings", tags=["rankings"]
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(admin_ops.router, prefix="/api/v1/admin", tags=["admin"])
+app.include_router(alerts.router, prefix="/api/v1/admin/alerts", tags=["alerts"])
 app.include_router(scheduled_tasks.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(lost.router, prefix="/api/v1/lost", tags=["lost"])
 app.include_router(social.router, prefix="/api/v1/social", tags=["social"])

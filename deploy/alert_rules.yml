@@ -1,0 +1,76 @@
+# What actually pages someone. Deliberately short: an alert nobody acts on
+# trains you to ignore the ones that matter.
+groups:
+  - name: fetchpawz
+    rules:
+      - alert: BackendDown
+        expr: up{job="fetchpawz-backend"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "The API is not responding to scrapes"
+          description: >-
+            Prometheus has not been able to reach backend:8000/metrics for 3
+            minutes. If the site is up, the container may be restarting in a
+            loop — check `make prod-logs`.
+
+      - alert: EmailDeliveryFailing
+        # Any non-"sent" outcome that is not the deliberate no-provider skip.
+        expr: >-
+          sum(rate(fetchpawz_email_sends_total{outcome=~"rejected|unreachable"}[15m])) > 0
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Email delivery is failing"
+          description: >-
+            Resend has been rejecting or refusing connections for 15 minutes.
+            Password resets, email verification, lost-pet alerts and rescue
+            transfer invites are all silently not arriving.
+
+      - alert: EmailProviderUnconfigured
+        # Distinct from the above on purpose: a missing key is an operator
+        # mistake at deploy time, not an outage, and needs a different fix.
+        expr: >-
+          sum(rate(fetchpawz_email_sends_total{outcome="skipped_no_provider"}[15m])) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Email is disabled — RESEND_API_KEY is not set"
+          description: >-
+            The app is trying to send mail and skipping every message. Set
+            RESEND_API_KEY in .env and redeploy.
+
+      - alert: BeatScheduleStalled
+        # Scaled to the admin-edited schedule rather than hard-coded: three
+        # times the shortest enabled interval. -1 means "unknown", which is
+        # excluded so a monitoring hiccup doesn't masquerade as a wedged beat.
+        expr: >-
+          fetchpawz_beat_last_run_age_seconds > 0
+          and fetchpawz_beat_shortest_interval_seconds > 0
+          and fetchpawz_beat_last_run_age_seconds
+              > 3 * fetchpawz_beat_shortest_interval_seconds
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Celery Beat has stopped scheduling"
+          description: >-
+            No periodic task has fired for more than 3x the shortest interval.
+            The weekly crown, the notification digest and refresh-token cleanup
+            are all stopped. Beat usually needs a restart.
+
+      - alert: HighServerErrorRate
+        expr: >-
+          sum(rate(http_requests_total{status=~"5.."}[10m]))
+          / clamp_min(sum(rate(http_requests_total[10m])), 0.001) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "More than 5% of requests are failing"
+          description: >-
+            Sustained 5xx rate over 10 minutes. Check Sentry and
+            `make prod-logs`.

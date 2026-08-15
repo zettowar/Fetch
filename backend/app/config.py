@@ -56,6 +56,16 @@ class Settings(BaseSettings):
     # switch to a verified domain before launch.
     EMAIL_FROM: str = "Fetchpawz <onboarding@resend.dev>"
     EMAIL_TIMEOUT_S: int = 10
+    # Where Prometheus alerts are emailed. Empty = the alert webhook logs the
+    # alert and returns 200 (Alertmanager keeps retrying otherwise) but sends
+    # nothing. Alertmanager POSTs to the backend rather than mailing directly
+    # because DigitalOcean blocks outbound SMTP — the same reason the app uses
+    # Resend's HTTPS API.
+    ALERT_EMAIL_TO: str = ""
+    # Shared secret Alertmanager presents as a Bearer token. Empty = the
+    # webhook is disabled entirely (401), so an unset secret can never leave an
+    # unauthenticated endpoint that sends mail.
+    ALERT_WEBHOOK_TOKEN: str = ""
     # Absolute origin used to build links inside emails.
     FRONTEND_BASE_URL: str = "http://localhost:3174"
 
