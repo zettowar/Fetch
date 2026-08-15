@@ -19,6 +19,14 @@ scrape_configs:
     static_configs:
       - targets: ["backend:8000"]
 
+  # Bulk email (digest, announcements, weekly recap) is sent from Celery, which
+  # has no request path for the backend to observe. Without this target the
+  # EmailDeliveryFailing rule can only ever see transactional mail.
+  - job_name: fetchpawz-celery
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["celery-worker:9100"]
+
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]

@@ -43,3 +43,4 @@ uploads/
 
 # Local business artifacts — kept out of the (public) repo
 financials/
+.prior_audit_titles.txt

@@ -22,14 +22,20 @@ REFRESH_SECONDS = 60
 
 # -1 means "unknown" (never refreshed, or the query failed) so an alert can
 # distinguish that from a genuinely stale scheduler.
+# multiprocess_mode="max": every uvicorn worker refreshes this independently,
+# so without a mode the multiprocess collector would emit one series per PID.
+# "max" reports the most pessimistic view, which is the right bias for a
+# staleness alarm — if any worker sees the scheduler as stale, say so.
 BEAT_LAST_RUN_AGE = Gauge(
     "fetchpawz_beat_last_run_age_seconds",
     "Seconds since Celery Beat last fired any enabled periodic task (-1 = unknown).",
+    multiprocess_mode="max",
 )
 BEAT_SHORTEST_INTERVAL = Gauge(
     "fetchpawz_beat_shortest_interval_seconds",
     "Shortest enabled interval schedule, so alert rules can scale to the "
     "admin-edited schedule instead of hard-coding a threshold (-1 = none).",
+    multiprocess_mode="max",
 )
 
 BEAT_LAST_RUN_AGE.set(-1)

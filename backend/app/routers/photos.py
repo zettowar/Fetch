@@ -1,3 +1,4 @@
+import asyncio
 import io
 from uuid import UUID
 
@@ -33,6 +34,20 @@ MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 # long a removed image can linger; the ETag then makes each revalidation a 304.
 _PHOTO_MAX_AGE = 3600
 
+# Decoding is memory-hungry: a 10 MB upload can expand to hundreds of MB of
+# bitmap. Moving the work to a thread pool removed the accidental serialisation
+# the event loop used to impose, so without a bound the AnyIO pool (40 threads
+# by default) would let 40 simultaneous decodes run inside a container capped at
+# 1 GB. Four keeps the worst case well inside the cap while still overlapping
+# decode with the moderation call and disk IO.
+_MAX_CONCURRENT_DECODES = 4
+_decode_slots = asyncio.Semaphore(_MAX_CONCURRENT_DECODES)
+
+# Independent of the byte cap: a small, highly-compressed file can still declare
+# enormous dimensions ("decompression bomb"). 50 MP is far above any phone
+# camera and bounds a decoded RGBA frame to roughly 200 MB.
+MAX_PIXELS = 50_000_000
+
 
 def _process_upload(
     data: bytes, fallback_content_type: str | None
@@ -53,6 +68,14 @@ def _process_upload(
     content_type = f"image/{img.format.lower()}" if img.format else fallback_content_type
     if content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP are allowed")
+
+    # Checked from the header, before any pixel data is materialised.
+    width, height = img.size
+    if width * height > MAX_PIXELS:
+        raise HTTPException(
+            status_code=400,
+            detail="Image dimensions are too large (over 50 megapixels)",
+        )
 
     # Image.resize() returns a copy with format=None, so capture the source
     # format before scaling or every large upload would fall back to JPEG
@@ -133,9 +156,14 @@ async def upload_photo(
     # Decode, validate, resize and re-encode in a worker thread — Pillow is
     # CPU-bound and synchronous, and doing it inline blocks the event loop for
     # every other request on the worker for the duration of the upload.
-    content_type, saved_data, dimensions = await run_in_threadpool(
-        _process_upload, data, file.content_type
-    )
+    #
+    # Bounded: the thread pool would otherwise allow 40 concurrent decodes, and
+    # each one can hold hundreds of MB of bitmap. Waiting here costs latency
+    # under a burst; not waiting costs the container an OOM kill.
+    async with _decode_slots:
+        content_type, saved_data, dimensions = await run_in_threadpool(
+            _process_upload, data, file.content_type
+        )
 
     # Content moderation
     mod_result = await check_image(data)

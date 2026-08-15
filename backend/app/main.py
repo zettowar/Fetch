@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -87,7 +87,24 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 # Prometheus metrics
-Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+# Instrument request metrics, but serve /metrics ourselves: with
+# PROMETHEUS_MULTIPROC_DIR set, the numbers live in mmap files shared by all
+# four uvicorn workers, and only a MultiProcessCollector registry sees the
+# whole picture. Instrumentator's own expose() reads the per-process registry,
+# which is exactly the bug this replaces.
+Instrumentator().instrument(app)
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics() -> Response:
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+    from app.metrics import build_registry
+
+    return Response(
+        content=generate_latest(build_registry()),
+        media_type=CONTENT_TYPE_LATEST,
+    )
 
 # Routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])

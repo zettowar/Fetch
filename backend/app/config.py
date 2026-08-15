@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     # because DigitalOcean blocks outbound SMTP — the same reason the app uses
     # Resend's HTTPS API.
     ALERT_EMAIL_TO: str = ""
+    # Port the Celery worker serves its own Prometheus metrics on. Bulk email is
+    # sent from Celery, not the web process, so without a second scrape target
+    # those counters are never collected and the email alerts cannot fire.
+    # 0 disables the exporter.
+    CELERY_METRICS_PORT: int = 9100
     # Shared secret Alertmanager presents as a Bearer token. Empty = the
     # webhook is disabled entirely (401), so an unset secret can never leave an
     # unauthenticated endpoint that sends mail.

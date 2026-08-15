@@ -56,12 +56,20 @@ services:
       # this to match, or rate limiting will bucket all traffic as the proxy IP.)
       FORWARDED_ALLOW_IPS: "172.16.0.0/12"
       INVITE_REQUIRED: ${INVITE_REQUIRED:-true}
+      # With 4 uvicorn workers each process keeps its own counters, so a scrape
+      # saw whichever worker answered. This makes them write to shared mmap
+      # files that /metrics aggregates. tmpfs: the data is per-container-run and
+      # must not survive a restart, or stale PID files inflate the totals.
+      PROMETHEUS_MULTIPROC_DIR: /run/prometheus
+    tmpfs:
+      - /run/prometheus
     env_file:
       - .env
     # Migrations run here (and only here) before the server starts, so a fresh
     # deploy boots with its schema in place.
     command: >
-      sh -c "alembic upgrade head &&
+      sh -c "rm -rf /run/prometheus/* &&
+             alembic upgrade head &&
              exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers"
     volumes:
       - uploads:/app/uploads
@@ -88,11 +96,19 @@ services:
       dockerfile: Dockerfile.prod
     environment:
       ENVIRONMENT: production
+      # Every bulk email is sent from here, so these counters have to be
+      # scrapeable or the email alerts can never fire. Its own directory, not
+      # the backend's: PIDs are per-container and would collide in a shared one.
+      PROMETHEUS_MULTIPROC_DIR: /run/prometheus
+    tmpfs:
+      - /run/prometheus
     env_file:
       - .env
     volumes:
       - uploads:/app/uploads
-    command: celery -A app.worker worker --loglevel=info --concurrency=2
+    command: >
+      sh -c "rm -rf /run/prometheus/* &&
+             exec celery -A app.worker worker --loglevel=info --concurrency=2"
     depends_on:
       db:
         condition: service_healthy

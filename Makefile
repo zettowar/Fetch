@@ -7,6 +7,9 @@
 # Production compose file (see docker-compose.prod.yml). Dev uses the default
 # docker-compose.yml; every prod target is explicit about the -f override.
 PROD := docker-compose.prod.yml
+# Staging file for prod-restore-uploads. The archive is written and validated
+# here before anything in the live volume is deleted.
+RESTORE_TMP := .restore-uploads.tgz
 
 # ---------------------------------------------------------------------------
 # Local development
@@ -97,17 +100,37 @@ prod-restore: ## Restore a backup: make prod-restore FILE=<name-in-db_backups> (
 prod-restore-uploads: ## Restore the photo volume: make prod-restore-uploads FILE=uploads-<stamp>.tgz (DESTRUCTIVE)
 	@test -n "$(FILE)" || { echo "usage: make prod-restore-uploads FILE=<name>  (see: make prod-backups)"; exit 1; }
 	@printf 'This REPLACES every uploaded photo with %s. Ctrl-C to abort; Enter to proceed. ' "$(FILE)"; read _
-	@echo "==> 1/3 Pausing photo writers (backend stays up to receive the stream)..."
-	docker compose -f $(PROD) stop celery-worker
-	@echo "==> 2/3 Streaming the archive from db_backups into the uploads volume..."
-	@# Piped through the host so neither side needs the project-prefixed volume
-	@# name, which changes with the checkout directory.
+	@# The archive is staged and validated on the host BEFORE anything is
+	@# deleted. The previous version piped straight into `rm -rf && tar x`, so a
+	@# missing or truncated archive destroyed every photo and restored nothing —
+	@# and with no pipefail the recipe still reported success.
+	@echo "==> 1/5 Staging the archive from db_backups..."
+	@rm -f $(RESTORE_TMP)
 	docker compose -f $(PROD) run --rm --no-deps -T --entrypoint sh db-backup \
-	    -c 'cat "/backups/$(FILE)"' \
-	  | docker compose -f $(PROD) exec -T backend sh \
-	    -c 'rm -rf /app/uploads/* && tar xzf - -C /app/uploads && echo restored'
-	@echo "==> 3/3 Bringing the worker back up..."
-	docker compose -f $(PROD) up -d --wait celery-worker
+	    -c 'cat "/backups/$(FILE)"' > $(RESTORE_TMP)
+	@echo "==> 2/5 Validating it before touching live data..."
+	@test -s $(RESTORE_TMP) || { echo "FAILED: $(FILE) is empty or missing — nothing was changed."; rm -f $(RESTORE_TMP); exit 1; }
+	@tar tzf $(RESTORE_TMP) > /dev/null 2>&1 || { echo "FAILED: $(FILE) is not a readable gzip archive — nothing was changed."; rm -f $(RESTORE_TMP); exit 1; }
+	@echo "    ok: $$(tar tzf $(RESTORE_TMP) | wc -l | tr -d ' ') entries, $$(du -h $(RESTORE_TMP) | cut -f1)"
+	@echo "==> 3/5 Stopping every photo writer (backend included)..."
+	docker compose -f $(PROD) stop backend celery-worker
+	@echo "==> 4/5 Extracting, then swapping in one step..."
+	@# A one-off container from the backend service: it mounts the uploads
+	@# volume read-write and works while backend itself is stopped. Extraction
+	@# lands in a staging dir first, so a mid-extract failure leaves the old
+	@# photos untouched.
+	cat $(RESTORE_TMP) | docker compose -f $(PROD) run --rm --no-deps -T --entrypoint sh backend -c '\
+	  set -eu; \
+	  rm -rf /app/uploads/.restore-new; mkdir -p /app/uploads/.restore-new; \
+	  tar xzf - -C /app/uploads/.restore-new; \
+	  test -n "$$(find /app/uploads/.restore-new -type f -print -quit)" || { echo "archive contained no files"; exit 1; }; \
+	  find /app/uploads -mindepth 1 -maxdepth 1 ! -name .restore-new -exec rm -rf {} +; \
+	  find /app/uploads/.restore-new -mindepth 1 -maxdepth 1 -exec mv -t /app/uploads {} +; \
+	  rmdir /app/uploads/.restore-new; \
+	  echo "restored $$(find /app/uploads -type f | wc -l) files"'
+	@rm -f $(RESTORE_TMP)
+	@echo "==> 5/5 Bringing the app back up..."
+	docker compose -f $(PROD) up -d --wait backend celery-worker
 
 prod-create-admin: ## Create/promote ONE admin (prompts for password; or set ADMIN_EMAIL/ADMIN_PASSWORD)
 	docker compose -f $(PROD) exec backend python -m app.scripts.create_admin
