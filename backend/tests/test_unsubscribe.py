@@ -145,8 +145,18 @@ async def test_bulk_sends_carry_one_click_headers(monkeypatch):
     )
     sent = captured["headers"]
     assert sent["List-Unsubscribe-Post"] == "List-Unsubscribe=One-Click"
-    assert "/unsubscribe/" in sent["List-Unsubscribe"]
-    assert "mailto:" in sent["List-Unsubscribe"]
+
+    # The URL must be the API endpoint the provider can POST to, not the SPA
+    # route. Asserting only that "/unsubscribe/" appeared was true of the
+    # broken SPA URL too, which is how this shipped wrong the first time.
+    import re as _re
+
+    url = _re.search(r"<(https?://[^>]+)>", sent["List-Unsubscribe"]).group(1)
+    assert "/api/v1/public/unsubscribe/" in url, url
+
+    # RFC 2369: a bare address, never EMAIL_FROM's "Name <addr>" display form.
+    mailto = _re.search(r"<mailto:([^>?]+)", sent["List-Unsubscribe"]).group(1)
+    assert "<" not in mailto and " " not in mailto, mailto
 
 
 @pytest.mark.asyncio

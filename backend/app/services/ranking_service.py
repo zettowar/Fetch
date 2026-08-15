@@ -184,7 +184,11 @@ _RECAP_SQL = text(
     )
     SELECT
         pet_id, owner_id, pet_name, species, score, likes,
-        RANK() OVER (PARTITION BY species ORDER BY score DESC) AS rank
+        RANK() OVER (PARTITION BY species ORDER BY score DESC) AS rank,
+        -- How many pets share this exact rank. In a low-activity week most
+        -- pets tie on score, so RANK() alone would let the recap tell dozens
+        -- of owners they "finished #1" while the crown goes to exactly one.
+        COUNT(*) OVER (PARTITION BY species, score) AS tied_with
     FROM scored
     """
 )

@@ -219,16 +219,6 @@ function MyTicketsSection() {
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 line-clamp-3 whitespace-pre-wrap">
                   {t.body}
                 </p>
-                {t.admin_notes && (
-                  <div className="mt-3 rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-900 dark:bg-brand-500/10 dark:text-brand-100">
-                    <p className="text-2xs font-semibold uppercase tracking-wide opacity-70">
-                      Reply from support
-                    </p>
-                    <p className="mt-1 whitespace-pre-wrap">
-                      <Linkify>{t.admin_notes}</Linkify>
-                    </p>
-                  </div>
-                )}
               </Card>
             </li>
           ))}

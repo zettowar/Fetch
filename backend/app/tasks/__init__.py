@@ -12,5 +12,6 @@ from app.tasks import (  # noqa: F401
     digest,
     lost_alerts,
     token_cleanup,
+    weekly_recap,
     weekly_winner,
 )

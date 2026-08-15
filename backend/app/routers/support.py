@@ -9,7 +9,7 @@ from app.deps import get_current_user, require_staff
 from app.limiter import limiter
 from app.models.support import FAQEntry, SupportTicket
 from app.models.user import User
-from app.schemas.support import FAQOut, TicketCreate, TicketOut
+from app.schemas.support import FAQOut, TicketCreate, TicketMineOut, TicketOut
 
 router = APIRouter()
 
@@ -52,7 +52,7 @@ async def create_ticket(
     return ticket
 
 
-@router.get("/tickets/mine", response_model=list[TicketOut])
+@router.get("/tickets/mine", response_model=list[TicketMineOut])
 async def my_tickets(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

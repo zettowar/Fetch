@@ -214,3 +214,34 @@ def test_model_entry_maps_dispatch_fields_and_seeds_last_run():
     assert advanced.total_run_count == 5
     assert advanced.name == "x"
     assert advanced.model_id == row.id
+
+
+# --- every scheduled job must actually be dispatchable ---
+
+
+def test_every_beat_default_is_registered_with_celery():
+    """Beat dispatches by name; an unimported module means the worker rejects
+    the job as an unregistered task and the schedule silently does nothing.
+
+    This already happened twice: token_cleanup (per the note in
+    app/tasks/__init__.py) and then weekly_recap. Importing the task module in
+    a test is NOT enough to prove it — that is how it slipped through the
+    second time — so this walks the same import surface the worker loads.
+    """
+    import importlib
+
+    import app.tasks  # the worker's entry point for registration
+    from app.worker import celery_app
+    from app.tasks.schedule_defaults import DEFAULT_PERIODIC_TASKS
+
+    importlib.reload(app.tasks)
+    registered = set(celery_app.tasks)
+
+    missing = [
+        job["task"] for job in DEFAULT_PERIODIC_TASKS
+        if job["task"] not in registered
+    ]
+    assert not missing, (
+        f"scheduled but never registered: {missing}. "
+        "Add the module to the import list in app/tasks/__init__.py."
+    )

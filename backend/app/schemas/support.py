@@ -27,6 +27,24 @@ class TicketCreate(BaseModel):
         return v.strip()
 
 
+class TicketMineOut(BaseModel):
+    """What the *reporter* may see about their own ticket.
+
+    Deliberately excludes admin_notes: the admin UI labels that field "Admin
+    notes (optional)" and staff use it for internal triage, so it must never
+    reach the person being triaged.
+    """
+    id: UUID
+    subject: str
+    body: str
+    source_screen: str | None = None
+    status: str
+    ticket_number: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class TicketOut(BaseModel):
     id: UUID
     user_id: UUID

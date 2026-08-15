@@ -8,16 +8,16 @@ export interface FAQEntry {
   sort_order: number;
 }
 
+/** What the reporter may see about their own ticket. `admin_notes` is
+ *  deliberately absent — staff use it for internal triage and the API no
+ *  longer returns it on /tickets/mine. */
 export interface Ticket {
   id: string;
-  user_id: string;
   subject: string;
   body: string;
   source_screen: string | null;
   status: string;
   ticket_number: string;
-  assigned_to: string | null;
-  admin_notes: string | null;
   created_at: string;
 }
 

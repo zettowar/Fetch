@@ -80,6 +80,7 @@ async def _run(session_factory=None) -> int:
                 "species": row["species"],
                 "likes": int(row["likes"]),
                 "rank": int(row["rank"]),
+                "tied_with": int(row["tied_with"]),
                 "total": totals[row["species"]],
                 "delta": delta,
             })
@@ -110,15 +111,22 @@ async def _run(session_factory=None) -> int:
             if user is None or owner_id in opted_out:
                 continue
 
-            pets.sort(key=lambda p: p["rank"])
+            # Sort by rank, then prefer an outright placing over a shared one.
+            pets.sort(key=lambda p: (p["rank"], p["tied_with"]))
             best = pets[0]
+            # Only claim a placing outright when it is not shared, or the mail
+            # says "#1" to everyone tied on score.
+            placing = (
+                f"#{best['rank']}" if best["tied_with"] == 1
+                else f"joint #{best['rank']}"
+            )
 
             # The inbox entry lands for everyone; notify() applies the same
             # preference itself, and email is the second channel on top.
             await notify(
                 db, owner_id,
                 type="weekly_recap",
-                title=f"{best['name']} ranked #{best['rank']} last week",
+                title=f"{best['name']} ranked {placing} last week",
                 body=f"{best['likes']} like" + ("s" if best["likes"] != 1 else ""),
                 link="/app/rankings",
             )

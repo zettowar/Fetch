@@ -76,12 +76,29 @@ def captured_mail(monkeypatch):
 
 @pytest.fixture(autouse=True)
 async def _clean(db_session):
-    """Votes from other tests would otherwise leak into the recap window."""
+    """Isolate the recap window.
+
+    These tests insert votes into last-week / week-before buckets, and the
+    ranking they assert on is RELATIVE — a pet left behind by an earlier test
+    with a higher score silently changes another test's rank. Clearing both
+    buckets before and after keeps each test independent, and stops the rows
+    leaking into test_rankings / test_votes / the weekly-winner tests.
+    """
+    weeks = [
+        current_week_bucket() - timedelta(days=7),
+        current_week_bucket() - timedelta(days=14),
+    ]
+
+    async def _wipe():
+        await db_session.execute(delete(Vote).where(Vote.week_bucket.in_(weeks)))
+        await db_session.execute(
+            delete(Notification).where(Notification.type == "weekly_recap")
+        )
+        await db_session.commit()
+
+    await _wipe()
     yield
-    await db_session.execute(delete(Notification).where(
-        Notification.type == "weekly_recap"
-    ))
-    await db_session.commit()
+    await _wipe()
 
 
 # --- the gate ---
@@ -129,7 +146,9 @@ async def test_emails_and_notifies_when_enabled(db_session, captured_mail):
     assert len(mine) == 1, "one email per owner, not one per pet"
     row = next(p for p in mine[0]["pets"] if p["name"] == "Champ")
     assert row["likes"] == 3
-    assert row["rank"] >= 1
+    # rank >= 1 is vacuously true; assert the shape the email actually renders.
+    assert row["rank"] == 1
+    assert row["tied_with"] >= 1
     assert mine[0]["user_id"] == owner.id
 
     inbox = (await db_session.execute(
@@ -286,3 +305,81 @@ async def test_new_pets_report_no_delta(db_session, captured_mail):
     row = next(p for p in mine[0]["pets"] if p["name"] == "Newcomer")
     # Unranked the week before → "new this week", not a fabricated 0.
     assert row["delta"] is None
+
+
+# --- ties: RANK() gives every pet on the same score the same number ---
+
+
+@pytest.mark.asyncio
+async def test_tied_pets_are_reported_as_joint_not_outright(
+    db_session, captured_mail
+):
+    """In a quiet week most pets tie, so a flat "#1" would tell dozens of
+    owners they won while the crown goes to exactly one pet."""
+    a_owner, _ = await _owner_with_voted_pet(db_session, likes=2, name="TieA")
+    b_owner, _ = await _owner_with_voted_pet(db_session, likes=2, name="TieB")
+    await _set_flag(db_session, True)
+
+    await recap_task._run(session_factory)
+
+    for owner, name in ((a_owner, "TieA"), (b_owner, "TieB")):
+        mail = next(m for m in captured_mail if m["to"] == owner.email)
+        row = next(p for p in mail["pets"] if p["name"] == name)
+        assert row["rank"] == 1
+        assert row["tied_with"] >= 2, "both pets share the top score"
+
+
+@pytest.mark.asyncio
+async def test_tied_copy_does_not_claim_an_outright_win():
+    """Renders the real template — the task-level test above stubs it out, so
+    without this the "#1 of N" arithmetic is never actually exercised."""
+    import app.services.email as em
+
+    captured = {}
+
+    async def fake_send_email(to, subject, body_html, **kw):
+        captured["subject"] = subject
+        captured["html"] = body_html
+        return True
+
+    original = em.send_email
+    em.send_email = fake_send_email
+    try:
+        await em.send_weekly_recap_email(
+            "x@y.dev", user_id=uuid.uuid4(), week_label="Aug 3",
+            pets=[{"name": "TieA", "species": "dog", "likes": 2,
+                   "rank": 1, "tied_with": 7, "total": 9, "delta": None}],
+        )
+    finally:
+        em.send_email = original
+
+    assert "finished #1" not in captured["subject"]
+    assert "tied for #1" in captured["subject"]
+    assert "joint #1" in captured["html"]
+
+
+@pytest.mark.asyncio
+async def test_outright_winner_still_reads_as_a_win(db_session):
+    """The celebratory copy must survive for a pet that genuinely won alone."""
+    import app.services.email as em
+
+    captured_html = {}
+
+    async def fake_send_email(to, subject, body_html, **kw):
+        captured_html["subject"] = subject
+        captured_html["html"] = body_html
+        return True
+
+    original = em.send_email
+    em.send_email = fake_send_email
+    try:
+        await em.send_weekly_recap_email(
+            "x@y.dev", user_id=uuid.uuid4(), week_label="Aug 3",
+            pets=[{"name": "Solo", "species": "dog", "likes": 9,
+                   "rank": 1, "tied_with": 1, "total": 12, "delta": 2}],
+        )
+    finally:
+        em.send_email = original
+
+    assert "Solo finished #1 last week" in captured_html["subject"]
+    assert "joint" not in captured_html["html"]

@@ -113,11 +113,18 @@ def unsubscribe_headers(user_id, list_name: str) -> dict[str, str]:
     carry them — an unsubscribe link on a password reset is nonsense.
     """
     token = create_unsubscribe_token(str(user_id), list_name)
+    # Must be the API endpoint, NOT the SPA route: RFC 8058 says the mail
+    # provider POSTs this URL itself, with no browser and no JavaScript.
+    # /unsubscribe/:token is a client-side route — nginx serves index.html for
+    # it and answers a POST with 405, so pointing the header there means
+    # one-click silently never works, which is the whole feature.
+    # nginx proxies /api/ to the backend, so this resolves in production.
+    api_url = f"{settings.FRONTEND_BASE_URL}/api/v1/public/unsubscribe/{token}"
+    # RFC 2369: the mailto must carry a real address, not EMAIL_FROM's
+    # "Name <addr>" display form, or the header is malformed.
+    reply_addr = settings.EMAIL_FROM.split("<")[-1].rstrip(">").strip()
     return {
-        "List-Unsubscribe": (
-            f"<{settings.FRONTEND_BASE_URL}/unsubscribe/{token}>, "
-            f"<mailto:{settings.EMAIL_FROM}?subject=unsubscribe>"
-        ),
+        "List-Unsubscribe": f"<{api_url}>, <mailto:{reply_addr}?subject=unsubscribe>",
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     }
 
@@ -462,17 +469,26 @@ async def send_weekly_recap_email(
             movement = '<span style="color:#6b7280">holding steady</span>'
 
         likes = p["likes"]
+        # "joint #1" when the score is shared: RANK() gives every tied pet the
+        # same number, and in a quiet week that is most of them. Saying a flat
+        # "#1" would contradict the crown, which goes to exactly one pet.
+        tied = p.get("tied_with", 1)
+        placing = f"#{p['rank']}" if tied == 1 else f"joint #{p['rank']}"
         rows.append(
             "<li style=\'margin-bottom:10px\'><strong>"
             + html.escape(str(p["name"]))
             + f"</strong> &mdash; {likes} like" + ("s" if likes != 1 else "")
-            + f", ranked #{p['rank']} of {p['total']} {html.escape(str(p['species']))}s"
+            + f", ranked {placing} of {p['total']} {html.escape(str(p['species']))}s"
+            + " that were rated"
             + f" &nbsp;{movement}</li>"
         )
 
-    best = min(pets, key=lambda p: p["rank"])
-    if best["rank"] == 1:
+    best = min(pets, key=lambda p: (p["rank"], p.get("tied_with", 1)))
+    best_tied = best.get("tied_with", 1)
+    if best["rank"] == 1 and best_tied == 1:
         heading = f"{best['name']} finished #1 last week"
+    elif best["rank"] == 1:
+        heading = f"{best['name']} tied for #1 last week"
     else:
         heading = "Your week on Fetchpawz"
 
@@ -486,7 +502,11 @@ async def send_weekly_recap_email(
             + unsubscribe_footer(user_id, "recap"),
             cta_url=f"{settings.FRONTEND_BASE_URL}/app/rankings",
             cta_label="See the leaderboard",
-            preheader=f"{best['name']} ranked #{best['rank']} last week.",
+            preheader=(
+                f"{best['name']} ranked "
+                + (f"#{best['rank']}" if best_tied == 1 else f"joint #{best['rank']}")
+                + " last week."
+            ),
         ),
         headers=unsubscribe_headers(user_id, "recap"),
         kind="weekly_recap",
