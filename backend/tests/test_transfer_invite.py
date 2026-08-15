@@ -14,7 +14,6 @@ from app.config import settings
 from app.models.beta import InviteCode
 from app.models.pet import Pet
 from app.models.rescue import RescueProfile
-from app.models.user import User
 
 
 @pytest.fixture

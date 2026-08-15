@@ -69,6 +69,7 @@ import NotFoundPage from './pages/NotFoundPage';
 // unauthenticated visitor reading the marketing site was downloading it (plus
 // the whole admin tree) before anything rendered.
 const SupportPage = lazy(() => import('./pages/SupportPage'));
+const TicketThreadPage = lazy(() => import('./pages/TicketThreadPage'));
 const UnsubscribePage = lazy(() => import('./marketing/UnsubscribePage'));
 const PostsPage = lazy(() => import('./pages/PostsPage'));
 const PostDetailPage = lazy(() => import('./pages/PostDetailPage'));
@@ -214,6 +215,7 @@ function AppContent() {
           <Route path="following" element={<FollowingPage />} />
           <Route path="explore" element={<FlagGate flag="explore_pack_enabled"><ExplorePage /></FlagGate>} />
           <Route path="support" element={<SupportPage />} />
+          <Route path="support/tickets/:id" element={<TicketThreadPage />} />
           <Route path="community" element={<FlagGate flag="explore_community_enabled"><PostsPage /></FlagGate>} />
           <Route path="community/:id" element={<FlagGate flag="explore_community_enabled"><PostDetailPage /></FlagGate>} />
           <Route path="rescues" element={<RescuesHubPage />} />

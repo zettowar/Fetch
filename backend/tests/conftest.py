@@ -1,6 +1,9 @@
 import os
 import uuid
 
+import httpx
+import pytest
+
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
@@ -151,3 +154,58 @@ async def admin_headers(client: AsyncClient):
         await db.commit()
 
     return {"Authorization": f"Bearer {token}"}
+
+
+# --- fake Stripe HTTP client ---
+#
+# Lives here rather than in test_donations.py because two modules need it, and
+# importing a fixture across test modules makes every test that takes it as a
+# parameter look like a redefinition (ruff F811).
+
+class _Resp:
+    def __init__(self, status_code: int, payload: dict):
+        self.status_code = status_code
+        self._payload = payload
+        self.text = str(payload)
+
+    def json(self) -> dict:
+        return self._payload
+
+
+class _FakeStripe:
+    """Programmable httpx.AsyncClient stand-in. Routes by path suffix."""
+
+    responses: dict[str, dict] = {}
+    fail_with: int | None = None
+    calls: list[tuple[str, str, dict | None]] = []
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return None
+
+    async def request(self, method, url, headers=None, data=None):
+        _FakeStripe.calls.append((method, url, data))
+        if _FakeStripe.fail_with is not None:
+            return _Resp(_FakeStripe.fail_with, {"error": {"message": "nope"}})
+        for suffix, payload in _FakeStripe.responses.items():
+            if suffix in url:
+                return _Resp(200, payload)
+        return _Resp(404, {"error": {"message": f"no fake for {url}"}})
+
+
+@pytest.fixture
+def stripe_on(monkeypatch):
+    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", "sk_test_fake")
+    monkeypatch.setattr(settings, "STRIPE_WEBHOOK_SECRET", "whsec_test")
+    monkeypatch.setattr(httpx, "AsyncClient", _FakeStripe)
+    _FakeStripe.responses = {}
+    _FakeStripe.fail_with = None
+    _FakeStripe.calls = []
+    return _FakeStripe
+
+

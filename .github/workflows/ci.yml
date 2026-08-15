@@ -18,7 +18,9 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install ruff
-      - run: ruff check app/
+      # tests/ included: lint used to stop at app/, so dead imports and shadowed
+      # fixtures accumulated in the test suite where nothing was looking.
+      - run: ruff check app/ tests/
 
   backend-test:
     runs-on: ubuntu-latest

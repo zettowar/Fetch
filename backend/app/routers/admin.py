@@ -23,7 +23,7 @@ from app.models.post import Post
 from app.models.report import Report, Strike
 from app.models.rescue import RescueProfile
 from app.models.social import Comment
-from app.models.support import FAQEntry, SupportTicket
+from app.models.support import FAQEntry, SupportTicket, SupportTicketMessage
 from app.models.user import User
 from app.models.qr_tag import QRTag
 from app.services.qr_service import generate_unique_codes
@@ -62,7 +62,14 @@ from app.schemas.park_import import (
 )
 from app.schemas.news import NewsPostCreate, NewsPostOut, NewsPostUpdate
 from app.schemas.rescue import RescueProfileOut, RescueReviewRequest
-from app.schemas.support import FAQOut, TicketOut
+from app.schemas.support import (
+    FAQOut,
+    StaffReplyCreate,
+    StaffTicketMessageOut,
+    StaffTicketThreadOut,
+    TicketOut,
+)
+from app.services.email import send_ticket_reply_email
 from app.services.notify import notify
 from app.services.park_import import import_osm_dog_parks
 from app.services.vet_import import import_osm_vets
@@ -768,6 +775,121 @@ async def get_user_rescue_profile(
 
 # --- Tickets ---
 
+_STATUS_NOTICE = {
+    "in_progress": "Support is looking into your message",
+    "resolved": "Your support request was marked resolved",
+    "closed": "Your support request was closed",
+}
+
+
+@router.get("/tickets/{ticket_id}", response_model=StaffTicketThreadOut)
+async def get_ticket_thread(
+    ticket_id: UUID,
+    admin: User = Depends(require_staff),
+    db: AsyncSession = Depends(get_db),
+):
+    """One ticket with its full conversation, for the staff queue."""
+    result = await db.execute(select(SupportTicket).where(SupportTicket.id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    rows = await db.execute(
+        select(SupportTicketMessage, User.display_name)
+        .outerjoin(User, User.id == SupportTicketMessage.author_id)
+        .where(SupportTicketMessage.ticket_id == ticket_id)
+        .order_by(SupportTicketMessage.created_at)
+    )
+    messages = []
+    for message, author_name in rows.all():
+        item = StaffTicketMessageOut.model_validate(message)
+        item.author_name = author_name
+        messages.append(item)
+
+    reporter = (
+        await db.execute(select(User.email).where(User.id == ticket.user_id))
+    ).scalar_one_or_none()
+
+    out = StaffTicketThreadOut.model_validate(ticket)
+    out.messages = messages
+    out.reply_count = len(messages)
+    out.reporter_email = reporter
+    return out
+
+
+@router.post("/tickets/{ticket_id}/reply", response_model=StaffTicketMessageOut, status_code=201)
+async def reply_to_ticket(
+    ticket_id: UUID,
+    body: StaffReplyCreate,
+    admin: User = Depends(require_staff),
+    db: AsyncSession = Depends(get_db),
+):
+    """Answer the reporter, optionally setting the status in the same action.
+
+    This is the endpoint that makes a ticket a conversation rather than a
+    suggestion box. It deliberately does three things at once — writes the
+    reply, notifies in-app, and emails — because a reply that only lands in an
+    inbox the reporter has no reason to open has not actually reached anyone.
+    """
+    result = await db.execute(select(SupportTicket).where(SupportTicket.id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    message = SupportTicketMessage(
+        ticket_id=ticket.id,
+        author_id=admin.id,
+        author_role="staff",
+        body=body.body,
+    )
+    db.add(message)
+
+    ticket.last_message_at = datetime.now(timezone.utc)
+    ticket.awaiting_staff = False
+    ticket.assigned_to = admin.id
+    if body.status:
+        ticket.status = body.status
+    elif ticket.status == "open":
+        # Answering an untouched ticket is what "in progress" means; making the
+        # operator also remember to click a status button is how queues rot.
+        ticket.status = "in_progress"
+
+    resolved = ticket.status in ("resolved", "closed")
+    await notify(
+        db,
+        ticket.user_id,
+        type="support_reply",
+        title=f"Support replied to “{ticket.subject}”",
+        body=body.body[:280],
+        link=f"/app/support/tickets/{ticket.id}",
+    )
+    await _log(
+        db, actor_id=admin.id, action="ticket.reply", target_type="ticket",
+        target_id=ticket_id, metadata={"status": ticket.status},
+    )
+    await db.commit()
+    await db.refresh(message)
+
+    reporter = (
+        await db.execute(select(User).where(User.id == ticket.user_id))
+    ).scalar_one_or_none()
+    if reporter and reporter.email:
+        # After the commit on purpose: the reply must survive even if the mail
+        # provider is down, and send_* already swallows and counts its failures.
+        await send_ticket_reply_email(
+            reporter.email,
+            ticket_number=ticket.ticket_number,
+            subject=ticket.subject,
+            reply_body=body.body,
+            ticket_id=str(ticket.id),
+            resolved=resolved,
+        )
+
+    out = StaffTicketMessageOut.model_validate(message)
+    out.author_name = admin.display_name
+    return out
+
+
 @router.post("/tickets/{ticket_id}/update", response_model=TicketOut)
 async def update_ticket(
     ticket_id: UUID,
@@ -779,12 +901,29 @@ async def update_ticket(
     ticket = result.scalar_one_or_none()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
+    previous = ticket.status
     ticket.status = body.status
     ticket.assigned_to = admin.id
+    # Any staff action takes the ticket out of the "waiting on us" queue.
+    ticket.awaiting_staff = False
     # Persist the internal note (previously accepted by the schema but silently
     # dropped). Only overwrite when the caller actually supplied one.
     if body.admin_notes is not None:
         ticket.admin_notes = body.admin_notes
+
+    # Tell the reporter their ticket moved. In-app only, with no note text: the
+    # admin note is internal, and emailing "status changed" with no explanation
+    # is noise. A status change worth explaining goes through /reply instead.
+    if body.status != previous and body.status in _STATUS_NOTICE:
+        await notify(
+            db,
+            ticket.user_id,
+            type="support_status",
+            title=_STATUS_NOTICE[body.status],
+            body=ticket.subject,
+            link=f"/app/support/tickets/{ticket.id}",
+        )
+
     await _log(db, actor_id=admin.id, action="ticket.update", target_type="ticket", target_id=ticket_id,
                metadata={"status": body.status, "noted": body.admin_notes is not None})
     await db.commit()

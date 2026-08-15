@@ -27,6 +27,7 @@ import { blockUser, getMyBlocks, getUserProfile, unblockUser } from '../api/soci
 import { getPetsByUser } from '../api/pets';
 import { generateMyInvites, getMyInvites } from '../api/invites';
 import { resendVerification } from '../api/auth';
+import { getUnreadTicketCount } from '../api/support';
 import { useAuth } from '../store/AuthContext';
 import ErrorState from '../components/ui/ErrorState';
 import { ReportButton } from '../components/ReportDialog';
@@ -209,7 +210,7 @@ export default function UserProfilePage() {
           <MenuLink to="/app/transfers" label="Pet transfers" icon={<ArrowLeftRight size={18} />} />
           <MenuLink to="/app/donations" label="My donations" icon={<HeartHandshake size={18} />} />
           <MenuLink to="/app/notifications" label="Notifications" icon={<Bell size={18} />} />
-          <MenuLink to="/app/support" label="Help & support" icon={<LifeBuoy size={18} />} />
+          <SupportMenuLink />
         </section>
       )}
 
@@ -277,7 +278,7 @@ export default function UserProfilePage() {
   );
 }
 
-function MenuLink({ to, label, icon }: { to: string; label: string; icon: ReactNode }) {
+function MenuLink({ to, label, icon, badge }: { to: string; label: string; icon: ReactNode; badge?: number }) {
   return (
     <Link
       to={to}
@@ -285,8 +286,34 @@ function MenuLink({ to, label, icon }: { to: string; label: string; icon: ReactN
     >
       <span className="leading-none text-brand-500" aria-hidden>{icon}</span>
       <span className="flex-1 font-medium text-gray-700 dark:text-gray-300">{label}</span>
+      {badge ? (
+        <span
+          className="rounded-full bg-brand-500 px-1.5 py-0.5 text-2xs font-bold text-white"
+          aria-label={`${badge} unread`}
+        >
+          {badge}
+        </span>
+      ) : null}
       <ChevronRight size={18} aria-hidden className="text-gray-300 dark:text-gray-600" />
     </Link>
+  );
+}
+
+/** The support entry, badged when support has replied and the reporter has not
+ *  read it yet. Without this the only way to learn an answer arrived is the
+ *  notification inbox or an email that may never have been delivered. */
+function SupportMenuLink() {
+  const { data: unread = 0 } = useQuery({
+    queryKey: ['ticket-unread'],
+    queryFn: getUnreadTicketCount,
+  });
+  return (
+    <MenuLink
+      to="/app/support"
+      label="Help & support"
+      icon={<LifeBuoy size={18} />}
+      badge={unread}
+    />
   );
 }
 

@@ -29,7 +29,7 @@ from app.models.rescue import RescueProfile
 from app.models.adoption import AdoptionInquiry
 from app.models.pet_trait import PetTrait
 from app.models.pet_transfer import PetTransfer
-from app.models.support import FAQEntry, SupportTicket
+from app.models.support import FAQEntry, SupportTicket, SupportTicketMessage
 from app.models.entitlement import Entitlement
 from app.models.donation import Donation, StripeEvent
 from app.models.notification import Notification, PushSubscription, NotificationPreference
@@ -81,6 +81,7 @@ __all__ = [
     "PetTransfer",
     "FAQEntry",
     "SupportTicket",
+    "SupportTicketMessage",
     "Entitlement",
     "Donation",
     "StripeEvent",

@@ -67,8 +67,15 @@ export interface SupportTicket {
   status: string;
   ticket_number: string;
   assigned_to: string | null;
+  /** Internal triage note. Never shown to the reporter — replies are a
+   *  separate field entirely (see StaffTicketMessage). */
   admin_notes: string | null;
   created_at: string;
+  last_message_at: string | null;
+  /** True when the ball is in support's court: a new ticket, or one the
+   *  reporter has replied to since staff last touched it. */
+  awaiting_staff: boolean;
+  reply_count: number;
 }
 
 export interface FAQEntry {
@@ -168,12 +175,19 @@ export const getTickets = async (status = 'open'): Promise<SupportTicket[]> =>
   (await client.get('/support/tickets', { params: { status_filter: status } })).data;
 
 export const searchTickets = async (
-  params: { status?: string; q?: string; offset?: number; limit?: number } = {},
+  params: {
+    status?: string;
+    q?: string;
+    awaiting?: boolean;
+    offset?: number;
+    limit?: number;
+  } = {},
 ): Promise<Paginated<SupportTicket>> => {
   const res = await client.get('/support/tickets', {
     params: {
       status_filter: params.status ?? 'open',
       q: params.q,
+      awaiting: params.awaiting ? true : undefined,
       offset: params.offset,
       limit: params.limit,
     },
@@ -183,6 +197,31 @@ export const searchTickets = async (
 
 export const updateTicket = async (id: string, data: { status: string; admin_notes?: string }) =>
   (await client.post(`/admin/tickets/${id}/update`, data)).data;
+
+export interface StaffTicketMessage {
+  id: string;
+  author_role: 'user' | 'staff';
+  author_id: string | null;
+  author_name: string | null;
+  body: string;
+  created_at: string;
+}
+
+export interface StaffTicketThread extends SupportTicket {
+  messages: StaffTicketMessage[];
+  reporter_email: string | null;
+}
+
+export const getTicketThread = async (id: string): Promise<StaffTicketThread> =>
+  (await client.get(`/admin/tickets/${id}`)).data;
+
+/** Answer the reporter. Optionally sets the status in the same action so
+ *  "answer and close it out" is one click and one notification. */
+export const replyToTicket = async (
+  id: string,
+  data: { body: string; status?: string },
+): Promise<StaffTicketMessage> =>
+  (await client.post(`/admin/tickets/${id}/reply`, data)).data;
 
 export const getFeedback = async (): Promise<FeedbackEntry[]> =>
   (await client.get('/feedback')).data;

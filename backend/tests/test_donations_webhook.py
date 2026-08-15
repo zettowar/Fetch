@@ -5,13 +5,10 @@ import json
 import time
 import uuid
 
-import httpx
 import pytest
 from httpx import AsyncClient
 
 from app.config import settings
-
-from tests.test_donations import _FakeStripe, stripe_on  # noqa: F401 (fixture)
 
 WEBHOOK = "/api/v1/donations/webhook"
 SECRET = "whsec_test"

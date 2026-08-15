@@ -34,7 +34,7 @@ test: ## Run backend + frontend test suites
 	docker compose exec frontend npm test -- --run
 
 lint: ## Lint backend (ruff) + frontend (eslint)
-	docker compose exec backend ruff check app/
+	docker compose exec backend ruff check app/ tests/
 	docker compose exec frontend npm run lint
 
 generate-dogs: ## Generate synthetic dogs

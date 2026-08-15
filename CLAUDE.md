@@ -398,14 +398,46 @@ provider round-trip again.
 
 Worth knowing before adding a feature that "notifies" someone:
 `services/notify.py` writes to the **in-app inbox only** — it never sends email.
-Email is sent from seven places: `routers/auth.py` (verify/reset/email-change),
+Email is sent from eight places: `routers/auth.py` (verify/reset/email-change),
 `routers/feedback.py` (waitlist invites), `routers/public.py` (the QR-tag
 found-pet relay), `routers/rescues.py` (transfer invites),
-`routers/admin_ops.py` (the deliverability probe), `tasks/weekly_recap.py`, and
-`routers/lost.py` (contact relay + proximity alerts), plus the
-`tasks/digest.py` / `tasks/announcements.py` jobs. `digest_mode` defaults to
+`routers/admin_ops.py` (the deliverability probe), `routers/admin.py` (support
+ticket replies), `tasks/weekly_recap.py`, and `routers/lost.py` (contact relay +
+proximity alerts), plus the `tasks/digest.py` / `tasks/announcements.py` jobs. `digest_mode` defaults to
 `"off"`, and push is a stub — so by default a user is told about nothing unless
 they open the app.
+
+## Support tickets — a conversation, with one field that must never leak
+
+`support_tickets` holds the opening message; replies are rows in
+`support_ticket_messages`. The opening body is deliberately NOT copied into that
+table — a thread is `[ticket.body] + messages`, so there is no backfill and no
+second copy of the same paragraph to drift.
+
+**The rule that matters:** `admin_notes` is internal triage and
+`SupportTicketMessage` is the reply channel. They are separate fields precisely
+so "probably a chargeback risk" and "here is your answer" cannot be confused.
+`TicketMineOut` omits `admin_notes` and `TicketMessageOut` omits the author's
+id and name — the reporter is talking to Fetchpawz support, not to a named staff
+member. The admin UI styles the two boxes to look nothing alike (brand + send
+icon vs. amber + lock) because that is the last line of defence.
+
+State semantics worth keeping:
+- `closed` is the only terminal state. Replying to a **resolved** ticket reopens
+  it to `open` — otherwise "resolved" becomes where a still-stuck person's
+  problem goes to be forgotten. A closed ticket 409s on reply.
+- `awaiting_staff` is the queue that matters (Admin → Tickets, "Needs a reply"):
+  true for a new ticket and for one the reporter has come back on, cleared by
+  any staff action. Status alone hides both cases.
+- `POST /admin/tickets/{id}/reply` takes an optional `status`, so "answer and
+  resolve" is one action and one notification rather than two.
+- A staff reply emits both an inbox notification and a **transactional** email
+  (no unsubscribe — it answers a message the recipient sent us). A status change
+  with no reply text notifies in-app only; emailing "status changed" with no
+  explanation is noise.
+- `reporter_last_read_at` is the unread watermark; opening the thread clears it.
+  `GET /support/tickets/unread-count` badges the support entry without pulling
+  every ticket body.
 
 ## Phased / stub features (intentionally incomplete)
 
@@ -456,7 +488,7 @@ the user base.
 cosmetic:
 
 - **Transactional** (verification, password reset, email change, contact relay,
-  tag-found, transfer invite) — no unsubscribe. An opt-out link on a password
+  tag-found, transfer invite, support-ticket reply) — no unsubscribe. An opt-out link on a password
   reset is both nonsense and non-compliant.
 - **Bulk** (digest, admin announcements, lost-pet proximity alerts) — MUST call
   `unsubscribe_headers()` (RFC 8058 one-click, which Gmail/Yahoo require of

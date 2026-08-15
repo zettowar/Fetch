@@ -6,63 +6,11 @@ programmable fake (same approach as test_email.py / test_moderation_fallbacks).
 """
 import uuid
 
-import httpx
 import pytest
 from httpx import AsyncClient
 
 from app.config import settings
-from app.services import stripe_service
 from app.services.stripe_service import _flatten
-
-
-# --- fake Stripe HTTP client ---
-
-
-class _Resp:
-    def __init__(self, status_code: int, payload: dict):
-        self.status_code = status_code
-        self._payload = payload
-        self.text = str(payload)
-
-    def json(self) -> dict:
-        return self._payload
-
-
-class _FakeStripe:
-    """Programmable httpx.AsyncClient stand-in. Routes by path suffix."""
-
-    responses: dict[str, dict] = {}
-    fail_with: int | None = None
-    calls: list[tuple[str, str, dict | None]] = []
-
-    def __init__(self, *args, **kwargs):
-        pass
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *args):
-        return None
-
-    async def request(self, method, url, headers=None, data=None):
-        _FakeStripe.calls.append((method, url, data))
-        if _FakeStripe.fail_with is not None:
-            return _Resp(_FakeStripe.fail_with, {"error": {"message": "nope"}})
-        for suffix, payload in _FakeStripe.responses.items():
-            if suffix in url:
-                return _Resp(200, payload)
-        return _Resp(404, {"error": {"message": f"no fake for {url}"}})
-
-
-@pytest.fixture
-def stripe_on(monkeypatch):
-    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", "sk_test_fake")
-    monkeypatch.setattr(settings, "STRIPE_WEBHOOK_SECRET", "whsec_test")
-    monkeypatch.setattr(httpx, "AsyncClient", _FakeStripe)
-    _FakeStripe.responses = {}
-    _FakeStripe.fail_with = None
-    _FakeStripe.calls = []
-    return _FakeStripe
 
 
 async def _make_approved_rescue(client: AsyncClient, admin_headers: dict):

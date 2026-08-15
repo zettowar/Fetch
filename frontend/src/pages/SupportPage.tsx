@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { ChevronDown, LifeBuoy } from 'lucide-react';
+import { ChevronDown, ChevronRight, LifeBuoy } from 'lucide-react';
 import { createTicket, getFAQ, getMyTickets } from '../api/support';
 import { apiErrorMessage } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
@@ -14,13 +15,7 @@ import PageHeader from '../components/ui/PageHeader';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import TimeAgo from '../components/TimeAgo';
 import Linkify from '../components/Linkify';
-
-const STATUS_STYLES: Record<string, string> = {
-  open: 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300',
-  pending: 'bg-warning-100 text-warning-800 dark:bg-warning-500/15 dark:text-warning-200',
-  resolved: 'bg-success-100 text-success-700 dark:bg-success-500/15 dark:text-success-300',
-  closed: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
-};
+import TicketStatusBadge from '../components/TicketStatusBadge';
 
 export default function SupportPage() {
   useDocumentTitle('Help & support · Fetchpawz');
@@ -192,34 +187,43 @@ function MyTicketsSection() {
         <EmptyState
           icon={<LifeBuoy size={28} aria-hidden />}
           title="Nothing yet"
-          body="Messages you send us will show up here with their status."
+          body="Messages you send us show up here, along with our replies."
         />
       ) : (
         <ul className="flex flex-col gap-2">
           {tickets.map((t) => (
             <li key={t.id}>
-              <Card>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{t.subject}</p>
-                    <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-                      <span className="font-mono">{t.ticket_number}</span>
-                      {' · '}
-                      <TimeAgo value={t.created_at} />
-                    </p>
+              <Link to={`/app/support/tickets/${t.id}`} className="block">
+                <Card className="transition-colors hover:border-brand-200 dark:hover:border-brand-500/40">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{t.subject}</p>
+                      <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
+                        <span className="font-mono">{t.ticket_number}</span>
+                        {' · '}
+                        <TimeAgo value={t.last_message_at ?? t.created_at} />
+                        {t.reply_count > 0 && ` · ${t.reply_count} ${t.reply_count === 1 ? 'reply' : 'replies'}`}
+                      </p>
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-1.5">
+                      {t.unread_count > 0 && (
+                        <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-2xs font-bold text-white">
+                          {t.unread_count} new
+                        </span>
+                      )}
+                      <TicketStatusBadge status={t.status} />
+                      <ChevronRight
+                        size={16}
+                        aria-hidden
+                        className="text-gray-300 dark:text-gray-600"
+                      />
+                    </div>
                   </div>
-                  <span
-                    className={`flex-shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide ${
-                      STATUS_STYLES[t.status] ?? STATUS_STYLES.closed
-                    }`}
-                  >
-                    {t.status}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 line-clamp-3 whitespace-pre-wrap">
-                  {t.body}
-                </p>
-              </Card>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 line-clamp-2 whitespace-pre-wrap">
+                    {t.body}
+                  </p>
+                </Card>
+              </Link>
             </li>
           ))}
         </ul>

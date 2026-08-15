@@ -563,6 +563,51 @@ async def send_alert_email(to: str, *, payload: dict) -> bool:
     )
 
 
+async def send_ticket_reply_email(
+    to: str,
+    *,
+    ticket_number: str,
+    subject: str,
+    reply_body: str,
+    ticket_id: str,
+    resolved: bool,
+) -> bool:
+    """Tell a reporter that support answered their ticket.
+
+    Transactional, so no unsubscribe: this is a direct reply to a message the
+    recipient sent us, in a conversation they opened. An opt-out link on a
+    support answer would be as odd as one on a password reset.
+
+    The reply text is included in full rather than a "you have a new message"
+    teaser — most people read this on a phone, and a notification that forces a
+    round trip to the app to learn one sentence is worse than no email.
+    """
+    base = settings.FRONTEND_BASE_URL.rstrip("/")
+    closing = (
+        "<p>We&rsquo;ve marked this one resolved — if that&rsquo;s not right, "
+        "reply in the app and it reopens.</p>"
+        if resolved
+        else "<p>You can reply in the app if there&rsquo;s more to add.</p>"
+    )
+    return await send_email(
+        to,
+        f"Re: {subject} [{ticket_number}]",
+        _layout(
+            "Support replied",
+            f"<p>About your message &ldquo;{html.escape(subject)}&rdquo;:</p>"
+            '<blockquote style="border-left:3px solid #ee7a10;margin:16px 0;'
+            'padding:8px 16px;color:#374151;background:#fff7ed;border-radius:0 8px 8px 0;">'
+            f"{html.escape(reply_body).replace(chr(10), '<br>')}</blockquote>" + closing +
+            f'<p style="color:#6b7280;font-size:13px;">Reference '
+            f"<strong>{html.escape(ticket_number)}</strong></p>",
+            cta_url=f"{base}/app/support/tickets/{ticket_id}",
+            cta_label="View the conversation",
+            preheader=f"A reply to {subject}",
+        ),
+        kind="ticket_reply",
+    )
+
+
 async def send_tag_found_email(
     to: str,
     *,
