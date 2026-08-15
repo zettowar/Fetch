@@ -57,7 +57,15 @@ async def test_one_click_post_opts_out_of_the_digest(
 
 
 @pytest.mark.asyncio
-async def test_link_click_works_too(client: AsyncClient, db_session):
+async def test_get_resolves_the_list_without_acting_on_it(
+    client: AsyncClient, db_session
+):
+    """GET must be side-effect free.
+
+    This URL is in the List-Unsubscribe header, and corporate mail gateways
+    fetch header URLs with GET to scan them. If GET opted the reader out,
+    delivery alone would unsubscribe them before they opened the message.
+    """
     user = await _user(db_session)
     db_session.add(NotificationPreference(user_id=user.id))
     await db_session.commit()
@@ -65,6 +73,13 @@ async def test_link_click_works_too(client: AsyncClient, db_session):
     token = create_unsubscribe_token(str(user.id), "announcements")
     res = await client.get(f"/api/v1/public/unsubscribe/{token}")
     assert res.status_code == 200
+    assert res.json()["label"]  # names the list for the confirmation page
+    assert (await _prefs(db_session, user.id)).announcement_emails is True
+
+    # ...and the POST the page makes on the reader's behalf still works.
+    assert (await client.post(
+        f"/api/v1/public/unsubscribe/{token}"
+    )).status_code == 200
     assert (await _prefs(db_session, user.id)).announcement_emails is False
 
 

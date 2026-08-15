@@ -379,23 +379,30 @@ before. Times are UTC. Run a single beat replica — two would double-schedule.
 A tag is claimed by its owner from the pet editor, and scanning it hits
 `/t/{code}` (`marketing/TagLandingPage.tsx`) which resolves via
 `public.py` to the pet's public share page. Admin → Tags lists and revokes them.
-**Known gap:** the public payload (`PublicPetOut`) exposes no contact channel,
-so a finder currently has no way to reach the owner — see the audit backlog.
+A finder reaches the owner through `POST /public/tags/{code}/contact`
+(unauthenticated — a stranger holding a lost pet has no account) which relays a
+message by email without exposing the owner's address. The tag code is the
+credential, so a public share page alone cannot be used to mail an owner.
 
 ## Two-factor and SSO
 
 `services/totp.py` implements TOTP enrolment (`/auth/2fa/setup` → `/enable`),
 and `auth.login` requires the code when `user.totp_enabled`. SSO
 (`routers/oauth.py`, Google + GitHub) uses a single-use handoff code exchanged
-for tokens. **Known gap:** the SSO path does not check `totp_enabled`, so 2FA is
-bypassable via SSO.
+for tokens. `oauth_exchange` enforces `totp_enabled` the same way password
+login does, answering 401 + `X-2FA-Required`; the handoff code is spent only
+after the second factor passes, so a mistyped digit does not force the whole
+provider round-trip again.
 
 ## Notification delivery — one channel, and it is not the inbox
 
 Worth knowing before adding a feature that "notifies" someone:
 `services/notify.py` writes to the **in-app inbox only** — it never sends email.
-Email is sent from exactly three places: `routers/auth.py` (verify/reset),
-`routers/lost.py` (contact relay + proximity alerts), and the
+Email is sent from seven places: `routers/auth.py` (verify/reset/email-change),
+`routers/feedback.py` (waitlist invites), `routers/public.py` (the QR-tag
+found-pet relay), `routers/rescues.py` (transfer invites),
+`routers/admin_ops.py` (the deliverability probe), `tasks/weekly_recap.py`, and
+`routers/lost.py` (contact relay + proximity alerts), plus the
 `tasks/digest.py` / `tasks/announcements.py` jobs. `digest_mode` defaults to
 `"off"`, and push is a stub — so by default a user is told about nothing unless
 they open the app.
@@ -463,8 +470,16 @@ has no session, and safe because the token can only ever turn a preference
 *off* for the one user it names.
 
 Every send passes `kind=` so `fetchpawz_email_sends_total{kind,outcome}` on
-`/metrics` shows a single broken flow without reading logs. **Nothing scrapes
-`/metrics` yet** — wiring that up is still open.
+`/metrics` shows a single broken flow without reading logs.
+
+Prometheus + Alertmanager run as an opt-in `monitoring` compose profile and do
+scrape it (see `deploy/DEPLOY.md`). Two things about that are load-bearing:
+production runs four uvicorn workers and Celery runs separately, so every
+process writes to `PROMETHEUS_MULTIPROC_DIR` and the Celery worker exposes its
+own `:9100` endpoint as a second scrape target — bulk email is sent from
+Celery, so without it the email alerts would watch a process that never sends
+any. **Alerts are still delivered by email**, which means an email outage
+cannot page you about itself; an off-platform receiver is the remaining gap.
 
 No longer stubs: invite codes are enforced at signup when `INVITE_REQUIRED=true`;
 flagged photos have a full admin review queue (list/view/approve/reject under

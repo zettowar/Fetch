@@ -34,19 +34,31 @@ MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 # long a removed image can linger; the ETag then makes each revalidation a 304.
 _PHOTO_MAX_AGE = 3600
 
-# Decoding is memory-hungry: a 10 MB upload can expand to hundreds of MB of
-# bitmap. Moving the work to a thread pool removed the accidental serialisation
-# the event loop used to impose, so without a bound the AnyIO pool (40 threads
-# by default) would let 40 simultaneous decodes run inside a container capped at
-# 1 GB. Four keeps the worst case well inside the cap while still overlapping
-# decode with the moderation call and disk IO.
-_MAX_CONCURRENT_DECODES = 4
+# Decoding is memory-hungry: a 10 MB upload expands to width*height*4 bytes of
+# bitmap regardless of how well it compressed. Moving the work to a thread pool
+# removed the accidental serialisation the event loop used to impose, so without
+# a bound the AnyIO pool (40 threads by default) would let 40 decodes run at
+# once.
+#
+# The arithmetic that matters, and the one an earlier version of this comment
+# got wrong: this semaphore is per PROCESS, but the memory limit is per
+# CONTAINER and production runs `uvicorn --workers 4`. So the container-wide
+# worst case is 4 * _MAX_CONCURRENT_DECODES * MAX_PIXELS * 4 bytes. At 1 slot
+# and 30 MP that is 4 * 120 MB = 480 MB of transient bitmap against a 1 GB cap,
+# which leaves room for four interpreters and their heaps. Raising either
+# number without redoing this multiplication risks an OOM kill of the whole
+# container — every worker, not just the upload.
+_MAX_CONCURRENT_DECODES = 1
 _decode_slots = asyncio.Semaphore(_MAX_CONCURRENT_DECODES)
 
 # Independent of the byte cap: a small, highly-compressed file can still declare
-# enormous dimensions ("decompression bomb"). 50 MP is far above any phone
-# camera and bounds a decoded RGBA frame to roughly 200 MB.
-MAX_PIXELS = 50_000_000
+# enormous dimensions ("decompression bomb"). 30 MP is comfortably above what
+# any phone camera produces in a normal export and bounds one decoded RGBA
+# frame to ~120 MB.
+MAX_PIXELS = 30_000_000
+
+# Longest edge of the stored image; the decode above is bounded separately.
+MAX_DIMENSION = 1600
 
 
 def _process_upload(
@@ -74,7 +86,7 @@ def _process_upload(
     if width * height > MAX_PIXELS:
         raise HTTPException(
             status_code=400,
-            detail="Image dimensions are too large (over 50 megapixels)",
+            detail="Image dimensions are too large (over 30 megapixels)",
         )
 
     # Image.resize() returns a copy with format=None, so capture the source
@@ -112,7 +124,6 @@ def _cached_image(
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers=headers)
     return Response(content=data, media_type=media_type, headers=headers)
-MAX_DIMENSION = 1600
 
 
 def _resize_image(img: Image.Image, max_dim: int) -> Image.Image:
@@ -157,9 +168,9 @@ async def upload_photo(
     # CPU-bound and synchronous, and doing it inline blocks the event loop for
     # every other request on the worker for the duration of the upload.
     #
-    # Bounded: the thread pool would otherwise allow 40 concurrent decodes, and
-    # each one can hold hundreds of MB of bitmap. Waiting here costs latency
-    # under a burst; not waiting costs the container an OOM kill.
+    # Bounded per worker — see the arithmetic at _MAX_CONCURRENT_DECODES.
+    # Waiting here costs latency under a burst; not waiting costs the whole
+    # container an OOM kill.
     async with _decode_slots:
         content_type, saved_data, dimensions = await run_in_threadpool(
             _process_upload, data, file.content_type

@@ -23,6 +23,11 @@ class VetCreate(BaseModel):
             raise ValueError("Name is required")
         return v.strip()
 
+    @field_validator("website")
+    @classmethod
+    def clean_website(cls, v: str | None) -> str | None:
+        return normalise_url(v)
+
 
 class VetUpdate(BaseModel):
     name: str | None = None

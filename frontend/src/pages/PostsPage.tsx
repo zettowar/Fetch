@@ -7,6 +7,7 @@ import { createPost, listPosts, type Post, type PostKind } from '../api/posts';
 import { useAuth } from '../store/AuthContext';
 import { apiErrorMessage } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { useDebounced } from '../utils/useDebounced';
 import Avatar from '../components/ui/Avatar';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -42,6 +43,9 @@ export default function PostsPage() {
   const queryClient = useQueryClient();
   const [kind, setKind] = useState<PostKind | 'all'>('all');
   const [search, setSearch] = useState('');
+  // The input stays responsive; only the settled value reaches the query key,
+  // so typing a term is one request rather than one per keystroke.
+  const debouncedSearch = useDebounced(search);
   const [composerOpen, setComposerOpen] = useState(false);
 
   useDocumentTitle('Community · Fetchpawz');
@@ -52,11 +56,11 @@ export default function PostsPage() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['posts', kind, search],
+    queryKey: ['posts', kind, debouncedSearch],
     queryFn: () =>
       listPosts({
         kind: kind === 'all' ? undefined : kind,
-        search: search.trim() || undefined,
+        search: debouncedSearch.trim() || undefined,
       }),
   });
 

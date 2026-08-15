@@ -276,6 +276,26 @@ function SettingsTab() {
         />
       </Card>
 
+      {/* Email-only consents. These are what the one-click unsubscribe links
+          write, so they have to be reversible from here. */}
+      <Card padding="none" className="px-4 mb-5">
+        <p className="pt-3 text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+          <Mail size={16} aria-hidden className="text-brand-500" /> Emails
+        </p>
+        <ToggleRow
+          label="Weekly recap"
+          description="How your pets did last week — likes, rank and movement"
+          checked={prefs.weekly_recap}
+          onChange={(val) => update({ weekly_recap: val })}
+        />
+        <ToggleRow
+          label="Product announcements"
+          description="Occasional updates from the Fetchpawz team"
+          checked={prefs.announcement_emails}
+          onChange={(val) => update({ announcement_emails: val })}
+        />
+      </Card>
+
       <Card padding="none" className="px-4 py-3">
         <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-1.5">
           <Mail size={16} aria-hidden className="text-brand-500" /> Digest emails

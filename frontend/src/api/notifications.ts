@@ -5,6 +5,11 @@ export interface NotificationPrefs {
   weekly_winner: boolean;
   comments_on_dogs: boolean;
   new_followers: boolean;
+  // Email-only consents. The one-click unsubscribe links in those emails write
+  // these, so they must be togglable back on here — otherwise opting out is a
+  // one-way door.
+  announcement_emails: boolean;
+  weekly_recap: boolean;
   digest_mode: 'off' | 'daily' | 'weekly';
 }
 

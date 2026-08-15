@@ -21,7 +21,6 @@ per-container, so sharing one directory between containers would collide) and
 Prometheus scrapes them as two targets.
 """
 import os
-import shutil
 
 import structlog
 from prometheus_client import CollectorRegistry, multiprocess
@@ -35,20 +34,13 @@ def multiproc_enabled() -> bool:
     return bool(os.environ.get(MULTIPROC_ENV))
 
 
-def reset_multiproc_dir() -> None:
-    """Clear stale mmap files left by the previous container generation.
-
-    Counter files are keyed by PID. After a restart the OS reuses PIDs, so a
-    leftover file is added to a fresh process's counts and inflates them
-    forever. Must run once at container start, before any worker imports
-    prometheus_client.
-    """
-    path = os.environ.get(MULTIPROC_ENV)
-    if not path:
-        return
-    if os.path.isdir(path):
-        shutil.rmtree(path, ignore_errors=True)
-    os.makedirs(path, exist_ok=True)
+# NOTE: the stale-file reset is done by the container command in
+# docker-compose.prod.yml (`rm -rf /run/prometheus/*` before exec), not here.
+# It has to happen once per container, before any worker imports
+# prometheus_client — a Python-side helper called at import time would run once
+# per worker and race the others. Anything running this image outside that
+# compose file must do the same, or counter files from the previous generation
+# are added to the new process's totals.
 
 
 def build_registry() -> CollectorRegistry:

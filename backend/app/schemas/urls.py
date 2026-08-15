@@ -28,3 +28,16 @@ def normalise_url(v: str | None) -> str | None:
     if not v.startswith(("http://", "https://")):
         return f"https://{v}"
     return v
+
+
+def sanitize_url(v: str | None) -> str | None:
+    """normalise_url for bulk imports: drop a bad value instead of raising.
+
+    OpenStreetMap is world-editable and its `website` tags land straight in an
+    <a href> on the vet/park pages. A single hostile tag must neither ship an
+    executing link nor abort the whole import.
+    """
+    try:
+        return normalise_url(v)
+    except ValueError:
+        return None

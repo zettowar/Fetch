@@ -418,12 +418,26 @@ async def unsubscribe(
 
 @router.get("/unsubscribe/{token}", response_model=UnsubscribeOut)
 @limiter.limit("60/hour")
-async def unsubscribe_via_link(
+async def preview_unsubscribe(
     token: str, request: Request, db: AsyncSession = Depends(get_db)
 ):
-    """The footer link. Same effect as the one-click POST, so someone who
-    clicks through in a browser is opted out without a second confirmation."""
-    return await _apply_unsubscribe(token, db)
+    """Resolve a token WITHOUT acting on it.
+
+    This URL now appears in the List-Unsubscribe header, and corporate mail
+    gateways (Defender Safe Links, Mimecast, Barracuda) fetch header URLs with
+    GET to scan them. If GET performed the opt-out, delivery alone would
+    unsubscribe the recipient before they ever opened the message.
+
+    RFC 8058 one-click is POST-only, so only POST mutates. The SPA page reads
+    this to name the list, then POSTs when the reader actually asks.
+    """
+    payload = decode_unsubscribe_token(token)
+    if not payload or payload.get("list") not in _UNSUB_LISTS:
+        return UnsubscribeOut(status="invalid")
+    list_name = payload["list"]
+    return UnsubscribeOut(
+        status="ok", list_name=list_name, label=_UNSUB_LISTS[list_name]
+    )
 
 
 @router.get("/top-pet", response_model=PublicTopPetOut | None)

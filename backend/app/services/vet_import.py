@@ -12,6 +12,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.vet import Vet
+from app.schemas.urls import sanitize_url
 from app.services.osm_import import (
     DEFAULT_TIMEOUT_SECONDS,
     ImportResult,
@@ -45,7 +46,11 @@ def _extract_attributes(tags: dict[str, Any]) -> dict[str, Any]:
 def _extract_extras(tags: dict[str, Any]) -> dict[str, Any]:
     return {
         "phone": tags.get("phone") or tags.get("contact:phone") or None,
-        "website": tags.get("website") or tags.get("contact:website") or None,
+        # OSM is world-editable and this value is rendered as an href, so it
+        # goes through the same scheme guard as an admin-entered URL.
+        "website": sanitize_url(
+            tags.get("website") or tags.get("contact:website") or None
+        ),
         "hours": tags.get("opening_hours"),
     }
 
