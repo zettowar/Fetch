@@ -49,8 +49,14 @@ async def alert_webhook(
         raise HTTPException(status_code=401, detail="Alert webhook is not configured")
 
     presented = authorization.removeprefix("Bearer ").strip()
-    # Constant-time: this is a shared secret compared on every delivery.
-    if not hmac.compare_digest(presented, settings.ALERT_WEBHOOK_TOKEN):
+    # Constant-time, and compared as BYTES. compare_digest() raises TypeError on
+    # str arguments containing non-ASCII, and `presented` is whatever an
+    # unauthenticated caller put in the Authorization header — so comparing the
+    # str form let anyone turn this internet-facing endpoint into an unhandled
+    # 500 (and a Sentry event) with `Authorization: Bearer é`.
+    if not hmac.compare_digest(
+        presented.encode("utf-8"), settings.ALERT_WEBHOOK_TOKEN.encode("utf-8")
+    ):
         raise HTTPException(status_code=401, detail="Invalid alert token")
 
     for alert in body.alerts:

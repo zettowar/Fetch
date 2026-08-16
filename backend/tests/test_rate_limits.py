@@ -25,6 +25,18 @@ async def test_every_configured_limit_string_parses(rate_limits_on):
     """
     from app.main import app  # noqa: F401  (importing registers the routes)
 
+    # First, and most importantly: a route whose limit string failed to parse
+    # ends up with an EMPTY list, not a bad rule. slowapi logs the ValueError
+    # and then does `setdefault(name, []).extend([])`, so the endpoint silently
+    # ships with no rate limit at all. The loop below iterates the rules, which
+    # means zero rules is zero iterations and zero assertions — a typo'd limit
+    # was invisible to the very test written to catch it.
+    unparsed = sorted(name for name, limits in limiter._route_limits.items() if not limits)
+    assert not unparsed, (
+        f"these routes have a @limiter.limit decorator whose argument slowapi "
+        f"could not parse, so they are running with NO limit: {unparsed}"
+    )
+
     checked = 0
     for name, limits in limiter._route_limits.items():
         for lim in limits:

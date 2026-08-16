@@ -51,14 +51,22 @@ describe('MaintenanceBanner', () => {
   });
 
   it('stays dismissed for the same message', async () => {
-    vi.spyOn(client, 'get').mockResolvedValue({ data: { banner: 'Down at 9pm' } });
+    const get = vi.spyOn(client, 'get').mockResolvedValue({ data: { banner: 'Down at 9pm' } });
     const { unmount } = renderBanner();
     fireEvent.click(await screen.findByRole('button', { name: /dismiss/i }));
     await waitFor(() => expect(screen.queryByText('Down at 9pm')).toBeNull());
 
     unmount();
+    get.mockClear();
     renderBanner();
-    await waitFor(() => expect(screen.queryByText('Down at 9pm')).toBeNull());
+
+    // The remount starts with an empty DOM and only fills in once react-query
+    // resolves, and waitFor runs its callback once synchronously on entry — so
+    // `await waitFor(() => expect(queryByText(...)).toBeNull())` here passed on
+    // the very first check no matter what, and this test went green with the
+    // localStorage write deleted. Settle the refetch first, THEN assert.
+    await settleQuery(get);
+    expect(screen.queryByText('Down at 9pm')).toBeNull();
   });
 
   it('re-appears when the message changes', async () => {

@@ -224,24 +224,41 @@ def test_every_beat_default_is_registered_with_celery():
     the job as an unregistered task and the schedule silently does nothing.
 
     This already happened twice: token_cleanup (per the note in
-    app/tasks/__init__.py) and then weekly_recap. Importing the task module in
-    a test is NOT enough to prove it — that is how it slipped through the
-    second time — so this walks the same import surface the worker loads.
+    app/tasks/__init__.py) and then weekly_recap.
+
+    Run in a SUBPROCESS, and that is the whole point. An earlier version did
+    `importlib.reload(app.tasks)` in-process, but reloading the package does not
+    *unregister* anything: any other test module that imports a task module at
+    collection time (tests/test_weekly_recap.py and tests/test_tasks_lost_alerts.py
+    both do) leaves that task in celery_app.tasks whether or not
+    app/tasks/__init__.py ever mentions it. So under `make test` the guard was
+    blind to exactly the two tasks most likely to regress — it would have passed
+    on the weekly_recap bug it was written for. A fresh interpreter loads only
+    what the worker itself loads.
     """
-    import importlib
+    import json
+    import subprocess
+    import sys
 
-    import app.tasks  # the worker's entry point for registration
-    from app.worker import celery_app
-    from app.tasks.schedule_defaults import DEFAULT_PERIODIC_TASKS
+    probe = (
+        "import json;"
+        "import app.tasks;"
+        "from app.worker import celery_app;"
+        "from app.tasks.schedule_defaults import DEFAULT_PERIODIC_TASKS;"
+        "reg = set(celery_app.tasks);"
+        "print(json.dumps({"
+        "'missing': [j['task'] for j in DEFAULT_PERIODIC_TASKS if j['task'] not in reg],"
+        "'checked': len(DEFAULT_PERIODIC_TASKS)}))"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", probe],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert proc.returncode == 0, f"probe failed:\n{proc.stderr}"
+    result = json.loads(proc.stdout.strip().splitlines()[-1])
 
-    importlib.reload(app.tasks)
-    registered = set(celery_app.tasks)
-
-    missing = [
-        job["task"] for job in DEFAULT_PERIODIC_TASKS
-        if job["task"] not in registered
-    ]
-    assert not missing, (
-        f"scheduled but never registered: {missing}. "
+    assert result["checked"] > 0, "no scheduled jobs were checked"
+    assert not result["missing"], (
+        f"scheduled but never registered: {result['missing']}. "
         "Add the module to the import list in app/tasks/__init__.py."
     )

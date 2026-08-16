@@ -7,6 +7,7 @@ take password resets and lost-pet alerts down with the marketing.
 """
 import uuid
 
+import httpx
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import delete, select
@@ -276,6 +277,36 @@ async def test_alert_webhook_rejects_a_wrong_token(client: AsyncClient, monkeypa
         headers={"Authorization": "Bearer wrong"},
     )
     assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_alert_webhook_rejects_a_non_ascii_token_without_crashing(
+    client: AsyncClient, monkeypatch
+):
+    """`hmac.compare_digest` raises TypeError on non-ASCII *str* arguments.
+
+    The presented token is whatever an unauthenticated caller puts after
+    "Bearer ", and this endpoint is reachable from the internet through nginx —
+    so comparing the str form turned `Authorization: Bearer <non-ascii>` into an
+    unhandled 500 and a Sentry event that anyone could trigger at will. It must
+    be an ordinary 401 like any other wrong token.
+
+    The header is passed as raw BYTES because that is what actually reaches the
+    app: httpx refuses to encode a non-ASCII str header, but a real client is
+    under no such obligation and uvicorn decodes the wire bytes as latin-1.
+    """
+    monkeypatch.setattr(email_service.settings, "ALERT_WEBHOOK_TOKEN", "right")
+    hostile = [
+        "Bearer \u00e9".encode("latin-1"),          # é — the original crash
+        "Bearer \u00ff\u00fe".encode("latin-1"),    # high bytes
+        b"Bearer " + bytes([0xC3, 0xA9]),           # raw UTF-8 sequence
+    ]
+    for value in hostile:
+        res = await client.post(
+            "/api/v1/admin/alerts/webhook", json=ALERT_BODY,
+            headers=httpx.Headers([(b"authorization", value)]),
+        )
+        assert res.status_code == 401, f"{value!r} gave {res.status_code}"
 
 
 @pytest.mark.asyncio

@@ -38,6 +38,9 @@ services:
       - ./backend/tests:/app/tests
       - ./backend/alembic:/app/alembic
       - ./backend/alembic.ini:/app/alembic.ini
+      # Read-only, and only so tests/test_beat_healthcheck.py can import the
+      # probe's logic. Production bind-mounts the same file to /app.
+      - ./deploy:/app/deploy:ro
       - uploads:/app/uploads
     env_file:
       - .env
