@@ -125,7 +125,7 @@ const SECTIONS: LegalSectionSpec[] = [
     title: 'Sources of information',
     body: (
       <>
-        <p>We collect personal information from four sources:</p>
+        <p>We collect personal information from the following sources:</p>
         <LegalList>
           <li>directly from you, where you enter, upload, or select it;</li>
           <li>automatically, through the ordinary operation of the service;</li>
@@ -138,6 +138,38 @@ const SECTIONS: LegalSectionSpec[] = [
             your pet, or contact you through a QR collar tag.
           </li>
         </LegalList>
+      </>
+    ),
+  },
+  {
+    id: 'non-users',
+    title: 'People who do not hold an account',
+    body: (
+      <>
+        <p>
+          Parts of Fetchpawz can be used without an account, and information
+          about people who have never registered may reach us.
+        </p>
+        <p>
+          Where a person finds an animal and uses its QR collar tag to reach the
+          owner, we ask for their name, a contact detail of their choosing, and
+          a message. That information is relayed to the owner by email. It is
+          not stored on our servers, though it passes through our email provider
+          in the course of delivery.
+        </p>
+        <p>
+          Information about a person who does not hold an account may also reach
+          us where a user includes it in a photograph, a report, a sighting, or
+          a support ticket. We do not seek it. Where we hold it, it is subject
+          to this policy in the same way as any other personal information.
+        </p>
+        <p>
+          A person who is identifiable in content on Fetchpawz may write to{' '}
+          <Mail /> to ask that it be removed, whether or not they hold an
+          account, and may exercise the rights described in{' '}
+          <Ref id="your-rights">Your rights</Ref> on the same basis as a
+          registered user.
+        </p>
       </>
     ),
   },
@@ -165,6 +197,11 @@ const SECTIONS: LegalSectionSpec[] = [
         <p>
           We do not use personal information for any other purpose without first
           obtaining your consent.
+        </p>
+        <p>
+          We may produce aggregate figures, such as the number of pets rated in
+          a given week. Aggregate figures do not identify any individual and are
+          not personal information.
         </p>
       </>
     ),
@@ -358,6 +395,13 @@ const SECTIONS: LegalSectionSpec[] = [
           individual it names.
         </p>
         <p>
+          Commercial electronic messages sent to recipients in Canada are
+          subject to Canada's Anti-Spam Legislation. Messages in the bulk
+          category identify us as the sender and carry an unsubscribe mechanism.
+          An unsubscribe request takes effect immediately, and in any event
+          within the ten business days that legislation allows.
+        </p>
+        <p>
           We do not disclose your email address to other users. Where we relay a
           message concerning a lost pet or a QR collar tag, the recipient may
           reply to the sender, who initiated the contact. The reverse does not
@@ -400,6 +444,12 @@ const SECTIONS: LegalSectionSpec[] = [
           We otherwise disclose personal information only where required by law,
           where necessary to establish or defend a legal claim, or where
           necessary to address an immediate risk to the safety of an individual.
+        </p>
+        <p>
+          <Term>Business transfers.</Term> Where Fetchpawz is involved in a
+          merger, an acquisition, or a sale of assets, personal information may
+          be transferred as part of that transaction. We will give notice before
+          personal information becomes subject to a different privacy policy.
         </p>
       </>
     ),
@@ -592,6 +642,25 @@ const SECTIONS: LegalSectionSpec[] = [
         information, we will notify account holders by email before it takes
         effect, where that is practicable.
       </p>
+    ),
+  },
+  {
+    id: 'contact',
+    title: 'How to contact us',
+    body: (
+      <>
+        <p>
+          Questions about this policy, access and correction requests, requests
+          for erasure, and complaints may all be sent to <Mail />, addressed to
+          the individual accountable for privacy at Fetchpawz Inc., Alberta,
+          Canada.
+        </p>
+        <p>
+          We will acknowledge your request and respond within 30 days. If you
+          are not satisfied with our response, the regulators named in{' '}
+          <Ref id="your-rights">Your rights</Ref> accept complaints directly.
+        </p>
+      </>
     ),
   },
 ];

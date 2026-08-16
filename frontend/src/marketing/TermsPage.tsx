@@ -63,10 +63,10 @@ const SECTIONS: LegalSectionSpec[] = [
           accept them on that user's behalf.
         </p>
         <p>
-          Each individual may hold one account. Rescue organizations use an
-          organization account, which we approve individually. You may not use
-          Fetchpawz where we have previously terminated your account, or where
-          the law applicable to you prohibits it.
+          Each individual may hold one personal account. A rescue organization
+          uses a separate organization account, which we approve individually.
+          You may not use Fetchpawz where we have previously terminated your
+          account, or where the law applicable to you prohibits it.
         </p>
       </>
     ),
@@ -99,7 +99,7 @@ const SECTIONS: LegalSectionSpec[] = [
           All rights in the service, including the application, the website, the
           Fetchpawz name, the logo, and the design, remain with us. You may not
           copy them, reverse engineer the service, resell access to it, or remove
-          any proprietary notice.
+          any proprietary notice. All rights not expressly granted are reserved.
         </p>
       </>
     ),
@@ -233,6 +233,11 @@ const SECTIONS: LegalSectionSpec[] = [
         <p>
           If you believe an enforcement decision was taken in error, write to{' '}
           <Mail />. The decision will be reviewed by a member of staff.
+        </p>
+        <p>
+          We are not obliged to become involved in a dispute between users, and
+          blocking, reporting, and account deletion are available to you
+          independently of anything we decide.
         </p>
       </>
     ),
@@ -379,6 +384,12 @@ const SECTIONS: LegalSectionSpec[] = [
             funds to the organization's own Stripe account. We may retain a
             platform fee to cover our costs. Where a fee applies, it is disclosed
             before payment.
+          </li>
+          <li>
+            Donations are charged in the currency shown at checkout. Where that
+            differs from the currency of your payment method, your card issuer
+            or bank may apply its own conversion rate and fee, over which we
+            have no control.
           </li>
           <li>
             Donations are final and non-refundable, except where required by law
@@ -578,8 +589,10 @@ const SECTIONS: LegalSectionSpec[] = [
         </p>
         <p>
           We may suspend or terminate an account that breaches these terms, that
-          presents a risk to others, or where the law requires it. We will give
-          notice where that is practicable. On termination, your licence to use
+          presents a risk to others, or where the law requires it. We may also
+          close an account that has remained inactive for an extended period,
+          after writing to the address registered to it. We will give notice
+          where that is practicable. On termination, your licence to use
           Fetchpawz ends and your public pages are withdrawn.
         </p>
         <p>
@@ -637,9 +650,18 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <LegalList>
         <li>
+          <Term>Interpretation.</Term> "Including" means "including without
+          limitation". Headings are for convenience and do not affect
+          interpretation. A reference to writing includes email.
+        </li>
+        <li>
           <Term>Entire agreement.</Term> These terms and the Privacy Policy
           constitute the entire agreement between you and us concerning
-          Fetchpawz.
+          Fetchpawz, and replace any earlier version of them.
+        </li>
+        <li>
+          <Term>No third-party beneficiaries.</Term> These terms confer rights on
+          you and on us, and on no other person.
         </li>
         <li>
           <Term>Severability.</Term> Where a provision is held unenforceable, the
@@ -659,8 +681,12 @@ const SECTIONS: LegalSectionSpec[] = [
           perform caused by circumstances beyond its reasonable control.
         </li>
         <li>
-          <Term>Notices.</Term> We will contact you at the email address
-          registered to your account. Notices to us should be sent to <Mail />.
+          <Term>Notices.</Term> You consent to receiving notices and other
+          communications from us electronically. We will write to the email
+          address registered to your account, and a notice sent that way is
+          treated as received on the day it is sent. It is your responsibility
+          to keep that address current. Notices to us should be sent to{' '}
+          <Mail />.
         </li>
         <li>
           <Term>Language.</Term> These terms are drawn up in English, and the
