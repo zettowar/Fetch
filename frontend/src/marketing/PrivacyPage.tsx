@@ -5,13 +5,13 @@ import type { LegalSectionSpec } from './LegalDoc';
 const LAST_UPDATED = 'August 16, 2026';
 const CONTACT = 'fetchpawz.inc@gmail.com';
 
-function Mail({ children }: { children?: React.ReactNode }) {
+function Mail() {
   return (
     <a
       href={`mailto:${CONTACT}`}
       className="font-medium text-brand-600 dark:text-brand-400 hover:underline"
     >
-      {children ?? CONTACT}
+      {CONTACT}
     </a>
   );
 }
@@ -29,6 +29,14 @@ function Ext({ href, children }: { href: string; children: React.ReactNode }) {
   );
 }
 
+function Ref({ id, children }: { id: string; children: React.ReactNode }) {
+  return (
+    <a href={`#${id}`} className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
+      {children}
+    </a>
+  );
+}
+
 const SECTIONS: LegalSectionSpec[] = [
   {
     id: 'who-we-are',
@@ -37,336 +45,361 @@ const SECTIONS: LegalSectionSpec[] = [
       <>
         <p>
           Fetchpawz Inc. ("Fetchpawz", "we", "us") is a company based in Alberta,
-          Canada. We operate the Fetchpawz website and app. We are responsible
-          for the personal information described here, including information we
-          pass to the service providers listed below.
+          Canada. We operate the Fetchpawz website and application. We are
+          responsible for the personal information described in this policy,
+          including information held on our behalf by the organizations listed
+          in <Ref id="providers">Service providers</Ref>.
         </p>
         <p>
-          Canada's <Term>Personal Information Protection and Electronic
-          Documents Act (PIPEDA)</Term> requires us to name an individual
-          accountable for privacy at Fetchpawz. That person is reachable at{' '}
-          <Mail />. Because we're based in Alberta, Alberta's{' '}
-          <Term>Personal Information Protection Act (PIPA)</Term> applies to us
-          as well. Write to us in plain language — you don't need to cite a
-          statute to get an answer.
+          The Personal Information Protection and Electronic Documents Act
+          (PIPEDA) requires an organization to designate an individual
+          accountable for its privacy practices. Enquiries for that individual
+          may be sent to <Mail />. Alberta's Personal Information Protection Act
+          also applies to our activities.
         </p>
       </>
     ),
   },
   {
-    id: 'what-we-collect',
-    title: 'What we collect',
+    id: 'information-we-collect',
+    title: 'Information we collect',
     body: (
       <LegalList>
         <li>
-          <Term>Your account.</Term> Email address, display name, and whether
-          your email is verified. Your password is stored only as a bcrypt
-          hash — we cannot read it. If you turn on two-factor authentication we
-          store the shared secret your authenticator app uses; we never store
-          the six-digit codes.
+          <Term>Account information.</Term> Your email address, display name,
+          and email verification status. Passwords are stored only as bcrypt
+          hashes and cannot be read by us. Where you enable two-factor
+          authentication, we store the shared secret used by your authenticator
+          application. We do not store the generated codes.
         </li>
         <li>
-          <Term>Sign-in through Google or GitHub.</Term> If you use SSO we
-          receive your email address, whether the provider says it's verified,
-          and your display name. We do not receive your password, your
-          contacts, or anything else in your account there.
+          <Term>Third-party sign-in.</Term> Where you sign in using Google or
+          GitHub, we receive your email address, the provider's indication of
+          whether that address is verified, and your display name. We do not
+          receive your password or any other information held by that provider.
         </li>
         <li>
-          <Term>Your pets.</Term> Photos, names, species, breed, birthday, bio,
-          traits, and whether the pet's share page is public.
+          <Term>Pet profiles.</Term> Photographs, names, species, breed, date of
+          birth, biography, traits, and the visibility setting for each pet's
+          share page.
         </li>
         <li>
-          <Term>Your activity.</Term> Swipes and votes, liked-pets history,
-          follows, comments, reactions, community posts, park check-ins and
-          reviews, play dates, adoption inquiries, pet transfers, blocks,
-          reports you file, beta feedback, and support tickets.
+          <Term>Activity.</Term> Votes and swipes, liked-pet history, follows,
+          comments, reactions, community posts, park check-ins and reviews, play
+          dates, adoption enquiries, pet transfers, blocks, reports you submit,
+          beta feedback, and support tickets.
         </li>
         <li>
-          <Term>Location you give us.</Term> Coordinates attached to lost &amp;
+          <Term>Location you provide.</Term> Coordinates attached to lost and
           found reports, sightings, park check-ins, and lost-pet alert
-          subscriptions. How we publish these is its own section — see{' '}
-          <a href="#location" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">Location</a>.
+          subscriptions. <Ref id="location">Location data</Ref> describes how
+          these are published.
         </li>
         <li>
-          <Term>Donations.</Term> If you donate through Fetchpawz we store the
-          amount, currency, recipient, status, your optional message, and
-          Stripe's identifiers for the payment. <Term>We never see or store
-          your card number</Term> — card details go directly to Stripe.
+          <Term>Donations.</Term> Where you donate through Fetchpawz, we store
+          the amount, currency, recipient, status, any message you include, and
+          the identifiers assigned by Stripe. Card details are submitted
+          directly to Stripe and are never received or stored by us.
         </li>
         <li>
-          <Term>Support tickets.</Term> Your message and replies, our replies,
-          and internal triage notes staff add to your ticket. Those internal
-          notes are never shown to you in the app; if you ask for a copy of
-          your data, they're included.
+          <Term>Support correspondence.</Term> Your ticket and replies, our
+          replies, and internal notes recorded by staff. Internal notes are not
+          displayed to you within the application. They are included in the
+          response to an access request.
         </li>
         <li>
-          <Term>Technical logs.</Term> Standard request logs, which include your
-          IP address and browser user-agent, plus error reports. We also record
-          the IP address of each successful sign-in in a security audit log, so
-          you and we can tell a real login from a stolen one.
+          <Term>Technical information.</Term> Server request logs, which record
+          your IP address and browser user-agent, together with error reports.
+          The IP address associated with each successful sign-in is recorded in
+          a security audit log.
         </li>
         <li>
-          <Term>Waitlist.</Term> If you ask for an invite, your email address,
-          until you're invited or you ask us to drop it.
+          <Term>Waitlist.</Term> Your email address, where you request an
+          invitation.
         </li>
       </LegalList>
     ),
   },
   {
-    id: 'where-it-comes-from',
-    title: 'Where it comes from',
+    id: 'sources',
+    title: 'Sources of information',
     body: (
-      <LegalList>
-        <li><Term>From you</Term> — everything you type, upload, or choose.</li>
-        <li>
-          <Term>Automatically</Term> — logs, IP address, and browser details
-          generated as you use the service.
-        </li>
-        <li>
-          <Term>From other companies</Term> — Google or GitHub if you use SSO,
-          and Stripe (payment status, never card data) if you donate.
-        </li>
-        <li>
-          <Term>From other people</Term> — someone can report your content, log
-          a sighting of your lost pet, send you a message about your lost-pet
-          report, or scan your pet's QR collar tag and message you.
-        </li>
-      </LegalList>
+      <>
+        <p>We collect personal information from four sources:</p>
+        <LegalList>
+          <li>directly from you, where you enter, upload, or select it;</li>
+          <li>automatically, through the ordinary operation of the service;</li>
+          <li>
+            from Google or GitHub, where you use third-party sign-in, and from
+            Stripe, where you make a donation;
+          </li>
+          <li>
+            from other users, who may report your content, record a sighting of
+            your pet, or contact you through a QR collar tag.
+          </li>
+        </LegalList>
+      </>
     ),
   },
   {
-    id: 'why',
-    title: 'Why we collect it, and your consent',
+    id: 'how-we-use-it',
+    title: 'How we use information',
     body: (
       <>
         <p>
-          We use personal information to run Fetchpawz and for nothing else:
-          showing pets in the feed, counting votes and awarding the weekly
-          crowns, running Lost &amp; Found and its alerts, delivering the emails
-          you'd expect, processing donations, answering support tickets,
-          moderating content, preventing abuse and fraud, keeping the service
-          running, and meeting our legal obligations.
+          We use personal information to operate Fetchpawz. The purposes are:
+        </p>
+        <LegalList>
+          <li>displaying pets in the rating feed and recording votes;</li>
+          <li>calculating weekly standings and awarding crowns;</li>
+          <li>operating Lost &amp; Found, including proximity alerts;</li>
+          <li>
+            sending the email described in <Ref id="email">Email</Ref>;
+          </li>
+          <li>processing donations;</li>
+          <li>responding to support tickets;</li>
+          <li>moderating content and investigating abuse;</li>
+          <li>maintaining the security and availability of the service;</li>
+          <li>complying with our legal obligations.</li>
+        </LegalList>
+        <p>
+          We do not use personal information for any other purpose without first
+          obtaining your consent.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'consent',
+    title: 'Consent',
+    body: (
+      <>
+        <p>
+          You consent to the uses described above by creating an account and
+          using Fetchpawz. Features that are not required for the service to
+          function, including public share pages, location features, and
+          non-transactional email, are subject to a separate choice that you may
+          change at any time.
         </p>
         <p>
-          You consent to the obvious operational uses by creating an account and
-          using the service. Anything beyond that — a public pet share page,
-          location features, marketing email — is a separate choice you make and
-          can reverse. <Term>You can withdraw consent at any time</Term> by
-          unsubscribing, turning off a feature, deleting content, or emailing
-          us. If you withdraw consent for something the account can't work
-          without — storing your email address, for instance — the practical
-          result is that we close the account, and we'll tell you that before
-          acting.
+          You may withdraw consent by unsubscribing, disabling the relevant
+          feature, deleting the content in question, or writing to us. Where
+          consent is withdrawn in respect of information the account cannot
+          operate without, we will close the account, and we will tell you
+          before doing so.
         </p>
         <p>
-          If we ever want to use your information for a new purpose that isn't
-          described here, we'll ask you first.
+          Where we propose to use personal information for a purpose not
+          described in this policy, we will seek your consent first.
         </p>
       </>
     ),
   },
   {
     id: 'public',
-    title: "What's public, and what search engines see",
+    title: 'Public content and search engines',
     body: (
       <>
         <p>
-          Some of Fetchpawz is deliberately public. It's worth knowing exactly
-          which parts, because "public" on the open web is different from
-          "visible to other members".
+          Parts of Fetchpawz are publicly accessible by design. The following
+          describes what is visible, and to whom.
         </p>
         <LegalList>
           <li>
-            <Term>Inside the app,</Term> your display name, pets, and activity
-            are visible to other signed-in members.
+            Within the application, your display name, pets, and activity are
+            visible to other signed-in users.
           </li>
           <li>
-            <Term>Pet share pages</Term> at <code className="text-sm">/pets/…</code>{' '}
-            are on the open web and visible to anyone with the link. You can
-            turn a pet's share page off in the pet editor, and doing so also
-            stops a QR tag from resolving to it.
+            Pet share pages are accessible to any person holding the link,
+            without signing in. You may disable a pet's share page in the pet
+            editor. Disabling it also prevents a QR collar tag from resolving to
+            that pet.
           </li>
           <li>
-            <Term>Lost-pet reports you mark public</Term> are visible to anyone,
-            generate a link preview when shared, and — while the report is still
-            open — <Term>are listed in our sitemap so search engines can index
-            them</Term>. When you mark a report resolved, the page switches to
-            "noindex" and drops out of the sitemap, though search engines may
-            take a while to catch up.
+            Lost-pet reports marked public are accessible to any person,
+            generate a preview when shared, and, for as long as the report
+            remains open, are listed in our sitemap for indexing by search
+            engines. When a report is marked resolved, the page is marked
+            "noindex" and removed from the sitemap. Search engines may take time
+            to reflect that change.
           </li>
           <li>
-            <Term>The signed-in app and the admin panel are excluded</Term> from
-            search engines in our robots.txt.
+            The signed-in application and the administrative interface are
+            excluded from search engines by our robots.txt file.
           </li>
           <li>
-            <Term>QR collar tags</Term> resolve to the pet's public share page.
-            Anyone holding the tag can send you a message; the tag code is what
-            authorizes that, so a share page alone can't be used to email you.
+            QR collar tags resolve to a pet's public share page. A person
+            holding the tag may send you a message, which is authorized by the
+            tag code rather than by access to the share page.
           </li>
         </LegalList>
         <p>
-          Once something is public, other people and search engines can copy,
-          cache, or screenshot it. We can take a page down from Fetchpawz. We
-          cannot un-share what has already been copied elsewhere.
+          Content that has been publicly accessible may have been copied,
+          cached, or archived by others. We can remove material from Fetchpawz,
+          but we have no means of removing copies held elsewhere.
         </p>
       </>
     ),
   },
   {
     id: 'location',
-    title: 'Location, and how we blur it',
+    title: 'Location data',
     body: (
       <>
         <p>
-          A lost-pet report's last-seen point is usually someone's home, and the
-          pages are public. So we never show it.
+          The last known location in a lost-pet report is frequently the owner's
+          home address, and lost-pet pages are public. We therefore do not
+          publish it.
         </p>
         <LegalList>
           <li>
-            <Term>We publish a separate, offset point.</Term> When you file a
-            report or a sighting, we generate a random offset with a
-            cryptographic random number generator, once, and store the shifted
-            point as its own value. Everyone but you sees only that. Nothing
-            recalculates it from the report's ID or anything else a visitor can
-            see, so it cannot be reversed.
+            <Term>Published coordinates.</Term> When a report or sighting is
+            created, we generate a random offset using a cryptographically
+            secure random number generator and store the resulting point as a
+            separate value. Users other than the owner see only that point. It
+            is not recalculated from the report identifier or from any other
+            value available to a visitor, and it cannot be reversed.
           </li>
           <li>
-            <Term>Widening your privacy radius does not republish the point.</Term>{' '}
-            Two published points for one real location can be solved back to the
-            real one, and the person asking for more privacy would be the one
-            harmed. We regenerate only when there's no point yet, or when a
-            narrower radius would make the displayed "within ~N m" label untrue.
+            <Term>Increasing the privacy radius.</Term> Increasing the radius
+            does not republish the point. Two published points derived from a
+            single true location can be resolved back to that location, and the
+            user affected would be the one seeking greater privacy. A new point
+            is generated only where none exists, or where a reduced radius would
+            render the displayed distance inaccurate.
           </li>
           <li>
-            <Term>Nearby search matches on the published point,</Term> not the
-            real one — otherwise repeated searches would triangulate the exact
-            spot without ever opening the page.
+            <Term>Proximity searches.</Term> The nearby-report search matches
+            against the published point. Matching against the recorded location
+            would allow repeated searches to determine it precisely without
+            opening the report.
           </li>
           <li>
-            <Term>You keep your own true coordinates,</Term> and proximity alert
-            emails are decided server-side using them, without revealing them to
-            the recipients.
+            <Term>Owner access.</Term> You retain access to the recorded
+            coordinates of your own reports. Proximity alerts are calculated on
+            our servers using those coordinates and do not disclose them to
+            recipients.
           </li>
         </LegalList>
         <p>
-          <Term>Browser location.</Term> If you grant permission, we use your
-          device's location to center maps and prefill a location picker. It's
-          cached in your browser's local storage for up to 24 hours and is not
-          sent to us unless you submit it as part of a report, check-in, or
+          <Term>Device location.</Term> Where you grant permission, your
+          device's location is used to centre maps and to pre-fill a location
+          field. It is held in your browser for up to 24 hours and is not
+          transmitted to us unless you submit it with a report, check-in, or
           alert subscription.
         </p>
         <p>
-          <Term>IP geolocation.</Term> If you don't grant permission, your
-          browser may make one request to{' '}
-          <Ext href="https://ipapi.co/privacy/">ipapi.co</Ext> for a city-level
-          guess so maps don't open on the wrong continent. That request comes
-          from your browser, which means <Term>ipapi.co receives your IP
-          address</Term>. We don't store the result on our servers, and the
-          lookup can be switched off entirely for a deployment.
+          <Term>IP geolocation.</Term> Where permission is not granted, your
+          browser may make a single request to{' '}
+          <Ext href="https://ipapi.co/privacy/">ipapi.co</Ext> to obtain an
+          approximate location at city level. Because the request originates
+          from your browser, ipapi.co receives your IP address. The result is not
+          stored on our servers. This lookup can be disabled for a deployment.
         </p>
         <p>
-          <Term>Map tiles.</Term> Maps are drawn with tiles from the{' '}
+          <Term>Map tiles.</Term> Maps are rendered using tiles served by the{' '}
           <Ext href="https://osmfoundation.org/wiki/Privacy_Policy">
             OpenStreetMap Foundation
           </Ext>
-          , so their servers receive your IP address and the map area you're
-          looking at.
+          . Their servers receive your IP address and the map area requested.
         </p>
       </>
     ),
   },
   {
     id: 'photos',
-    title: 'Photos and automated screening',
+    title: 'Photograph screening',
     body: (
       <>
         <p>
-          Every uploaded photo is sent to Sightengine for automated screening
-          before it can appear publicly. If the check flags the image — or if
-          the check fails outright — the photo is held and put in a queue for a
-          human admin to review.
+          Photographs uploaded to Fetchpawz are submitted to Sightengine for
+          automated screening before they become publicly visible. Where the
+          screening flags an image, or where the screening request fails, the
+          photograph is withheld and placed in a queue for review by a member of
+          staff.
         </p>
         <p>
-          A held photo stays visible to you, badged "In review", and to nobody
-          else. It can't become your pet's main photo while it's held. This is
-          automated processing that decides whether your content appears, so:
-          a person makes the final call on anything flagged, and you can email
-          us to contest a decision.
+          A withheld photograph remains visible to you, marked "In review", and
+          is not shown to other users. It cannot be set as a pet's primary
+          photograph while withheld.
+        </p>
+        <p>
+          Because this screening determines whether your content is displayed,
+          every flagged photograph is reviewed by a person before a final
+          decision is taken. You may contest a decision by writing to us.
         </p>
       </>
     ),
   },
   {
     id: 'email',
-    title: 'Email we send, and turning it off',
+    title: 'Email',
     body: (
       <>
-        <p>We split email into two kinds, and treat them differently on purpose.</p>
-        <LegalList>
-          <li>
-            <Term>Transactional</Term> — email verification, password reset,
-            email-change confirmation, a relayed message about your lost pet or
-            your QR tag, a pet transfer invitation, and replies to your support
-            ticket. These answer something you did, so they have no unsubscribe
-            link. Closing your account is how you stop them.
-          </li>
-          <li>
-            <Term>Bulk</Term> — the digest, weekly recap, admin announcements,
-            and lost-pet proximity alerts. Every one carries a one-click
-            unsubscribe (the RFC 8058 header your mail client uses) and a footer
-            link. The digest and the weekly recap are <Term>off by default</Term>.
-          </li>
-        </LegalList>
+        <p>Fetchpawz sends two categories of email.</p>
         <p>
-          Unsubscribe links work without signing in, because your mail client
-          has no session. The link can only ever switch one list off for the one
-          person it names.
+          <Term>Transactional email</Term> comprises address verification,
+          password reset, email-change confirmation, relayed messages concerning
+          a lost pet or a QR collar tag, pet transfer invitations, and replies to
+          support tickets. This category carries no unsubscribe link, because
+          each message responds to an action you have taken. Closing your account
+          ends it.
         </p>
         <p>
-          <Term>We never show your email address to another member</Term> —
-          including when we relay a message about your lost pet or your pet's
-          QR tag. The person who receives a relayed message can reply to the
-          sender, because the sender chose to reach out. It does not work in
-          the other direction.
+          <Term>Bulk email</Term> comprises the digest, the weekly recap,
+          administrative announcements, and lost-pet proximity alerts. Every
+          message in this category carries a one-click unsubscribe header, as
+          required by RFC 8058, together with an unsubscribe link in the footer.
+          The digest and the weekly recap are disabled by default.
+        </p>
+        <p>
+          Unsubscribe links operate without signing in, because a mail client
+          holds no session. A link can only disable one category for the
+          individual it names.
+        </p>
+        <p>
+          We do not disclose your email address to other users. Where we relay a
+          message concerning a lost pet or a QR collar tag, the recipient may
+          reply to the sender, who initiated the contact. The reverse does not
+          apply.
         </p>
       </>
     ),
   },
   {
     id: 'providers',
-    title: 'Who else touches your data',
+    title: 'Service providers',
     body: (
       <>
         <p>
-          These companies process data on our behalf, limited to what their job
-          requires:
+          The following organizations process personal information on our
+          behalf, limited to what their function requires.
         </p>
         <LegalTable
-          caption="Service providers and what they process"
-          head={['Provider', 'What it does, and where']}
+          caption="Service providers and their function"
+          head={['Provider', 'Function and location']}
           rows={[
-            ['Resend', 'Delivers our email. United States.'],
-            ['Stripe', 'Processes donations and settles funds to rescues. United States and Ireland.'],
-            ['Sightengine', 'Automated screening of uploaded photos. France.'],
-            ['Sentry', 'Receives error reports so we can fix crashes. United States.'],
-            ['Shopify', 'Runs the shop, including checkout and payment — your browser talks to Shopify directly. Canada.'],
-            ['ipapi.co', 'Optional city-level IP lookup, requested by your browser. United States.'],
-            ['OpenStreetMap Foundation', 'Serves map tiles to your browser. United Kingdom and EU.'],
-            ['DigitalOcean', 'Hosts our servers, database, uploaded photos, and backups.'],
+            ['Resend', 'Delivery of email. United States.'],
+            ['Stripe', 'Processing of donations and settlement to rescue organizations. United States and Ireland.'],
+            ['Sightengine', 'Automated screening of uploaded photographs. France.'],
+            ['Sentry', 'Receipt of error reports. United States.'],
+            ['Shopify', 'Operation of the shop, including checkout and payment. Your browser communicates with Shopify directly. Canada.'],
+            ['ipapi.co', 'Optional approximate location lookup, requested by your browser. United States.'],
+            ['OpenStreetMap Foundation', 'Delivery of map tiles to your browser. United Kingdom and European Union.'],
+            ['DigitalOcean', 'Hosting of our servers, database, uploaded photographs, and backups.'],
           ]}
         />
         <p>
-          <Term>Your information is stored and processed outside Canada</Term>,
-          including in the United States and the European Union. While it's
-          there it is subject to the laws of those countries, and their courts
-          and law-enforcement agencies may be able to compel access to it. We
-          are telling you this because PIPEDA requires it, and because it's
-          true of essentially every service of this kind.
+          Personal information is stored and processed outside Canada, including
+          in the United States and the European Union. While outside Canada it is
+          subject to the laws of the jurisdiction in which it is held, and may be
+          accessible to the courts and law enforcement agencies of that
+          jurisdiction.
         </p>
         <p>
-          Apart from these providers, we share personal information only when
-          the law requires it, or to establish or defend a legal claim, or to
-          address an urgent risk to someone's safety.
+          We otherwise disclose personal information only where required by law,
+          where necessary to establish or defend a legal claim, or where
+          necessary to address an immediate risk to the safety of an individual.
         </p>
       </>
     ),
@@ -377,135 +410,133 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <p>
-          <Term>No advertising cookies, and no analytics.</Term> We don't run
-          Google Analytics, tracking pixels, or any cross-site tracking. That's
-          why you've never seen a cookie banner here.
+          Fetchpawz does not use advertising cookies, and it does not operate
+          analytics or cross-site tracking.
         </p>
         <p>Your browser's local storage holds:</p>
         <LegalList>
-          <li>your login session, so you stay signed in;</li>
-          <li>your light/dark theme preference;</li>
-          <li>your cached map center, for up to 24 hours;</li>
-          <li>which one-time tips, prompts, and banners you've dismissed;</li>
-          <li>your cart, if you use the demo shop.</li>
+          <li>your session, which keeps you signed in;</li>
+          <li>your light or dark theme preference;</li>
+          <li>a cached map centre, retained for up to 24 hours;</li>
+          <li>a record of the one-time prompts and banners you have dismissed;</li>
+          <li>your cart, where you use the demonstration shop.</li>
         </LegalList>
         <p>
-          Clearing your browser storage clears all of it and signs you out. If
-          you check out through Shopify, Shopify sets its own cookies under its
-          own policy.
+          Clearing your browser storage removes each of these and signs you out.
+          Shopify sets its own cookies during checkout, under its own policy.
         </p>
       </>
     ),
   },
   {
     id: 'retention',
-    title: 'How long we keep things',
+    title: 'Retention, deletion, and erasure',
     body: (
       <>
         <LegalTable
-          caption="Retention periods by data type"
-          head={['What', 'How long we keep it']}
+          caption="Retention periods by category of information"
+          head={['Category', 'Retention period']}
           rows={[
-            ['Account and pets', 'Until you delete your account — read the next paragraph, it matters'],
-            ['Photos you delete', 'Removed from storage when you delete them'],
-            ['Sign-in audit records, including IP', 'Kept with the account'],
-            ['Donation records', 'Kept for financial and tax records even after you close your account; the link to your user account is severed, and only the recipient name and amount remain'],
-            ['Support tickets', 'Kept so there is a history of what we told you'],
-            ['Database and photo backups', 'Rolling 14 days, then overwritten'],
-            ['Waitlist entries', 'Until invited, or until you ask us to remove you'],
+            ['Account and pet profiles', 'Until the account is deleted, subject to the note on deletion below'],
+            ['Photographs you delete', 'Removed from storage on deletion'],
+            ['Sign-in audit records, including IP address', 'Retained with the account'],
+            ['Donation records', 'Retained for financial and tax purposes after an account is closed. The link to the user account is severed, leaving the recipient name and amount'],
+            ['Support tickets', 'Retained as a record of the correspondence'],
+            ['Database and photograph backups', 'Rotated on a 14-day cycle'],
+            ['Waitlist entries', 'Until an invitation is issued, or until removal is requested'],
           ]}
         />
         <p>
-          <Term>About deleting your account.</Term> The delete button in the app
-          deactivates your account immediately: you're signed out, and your
-          profile, your pets, and your public pages disappear from Fetchpawz.
-          Being straight with you — today that is a deactivation, not an
-          erasure. The underlying database rows remain.
+          <Term>Deletion.</Term> Selecting delete within the application
+          deactivates your account immediately. You are signed out, and your
+          profile, your pets, and your public pages are withdrawn from
+          Fetchpawz. This operation is a deactivation. The underlying records
+          are retained.
         </p>
         <p>
-          <Term>If you want your data actually erased, email <Mail /> and we
-          will erase it and confirm when it's done.</Term> We're working on
-          making the in-app button do the full erasure itself; until it does,
-          this policy describes what the button really does rather than what
-          we'd like it to do. Records we're required to keep — donation
-          receipts, for example — survive erasure with your identifying details
-          removed, and copies inside backups age out on the 14-day rotation.
+          <Term>Erasure.</Term> To have your personal information erased, write
+          to <Mail />. We will erase it and confirm once that is complete.
+          Records we are required to retain, such as donation records, survive
+          erasure with identifying details removed. Copies held in backups are
+          removed as those backups age out on the cycle stated above.
         </p>
       </>
     ),
   },
   {
     id: 'your-rights',
-    title: 'Your rights, and how to use them',
+    title: 'Your rights',
     body: (
       <>
-        <p>Under PIPEDA and Alberta's PIPA you can:</p>
+        <p>
+          Under PIPEDA and Alberta's Personal Information Protection Act, you
+          may:
+        </p>
         <LegalList>
           <li>
-            <Term>Ask what we hold about you</Term> and get a copy, along with
-            how it's been used and who it's been disclosed to.
+            request access to the personal information we hold about you,
+            together with an account of how it has been used and to whom it has
+            been disclosed;
           </li>
           <li>
-            <Term>Correct anything inaccurate.</Term> Most of it you can edit
-            yourself in the app; email us for the rest.
+            request correction of inaccurate information, most of which may also
+            be corrected directly within the application;
           </li>
-          <li>
-            <Term>Withdraw consent</Term> for anything optional — see{' '}
-            <a href="#why" className="font-medium text-brand-600 dark:text-brand-400 hover:underline">consent</a>.
-          </li>
-          <li><Term>Ask us to erase your data</Term>, as described above.</li>
-          <li><Term>Complain</Term>, to us or to a regulator.</li>
+          <li>withdraw consent, as described in <Ref id="consent">Consent</Ref>;</li>
+          <li>request erasure of your personal information;</li>
+          <li>make a complaint.</li>
         </LegalList>
         <p>
-          Email <Mail /> from the address on your account — that's how we verify
-          it's you. <Term>We'll respond within 30 days</Term>, at no charge. If
-          a request is genuinely large enough that we'd need to charge for it,
-          we'll tell you the cost first and let you decide. If we refuse a
-          request, we'll tell you why and how to challenge it.
+          Requests should be sent to <Mail /> from the address registered to
+          your account, which is how we verify identity. We will respond within
+          30 days, at no charge. Where a request would require disproportionate
+          effort to fulfil, we will provide an estimate of any cost before
+          proceeding. Where we decline a request, we will give reasons and
+          explain how the decision may be challenged.
         </p>
         <p>
-          If we haven't resolved something to your satisfaction, you can
-          complain to the{' '}
+          A complaint may be made to us. It may also be made to the{' '}
           <Ext href="https://www.priv.gc.ca/">
             Office of the Privacy Commissioner of Canada
           </Ext>{' '}
-          or, in Alberta, the{' '}
+          or to the{' '}
           <Ext href="https://oipc.ab.ca/">
             Office of the Information and Privacy Commissioner of Alberta
           </Ext>
-          . You don't have to go through us first, but we'd rather you gave us
-          the chance to fix it.
+          . You are not required to raise a complaint with us first.
         </p>
       </>
     ),
   },
   {
     id: 'security',
-    title: 'How we protect it',
+    title: 'Security',
     body: (
       <>
+        <p>We maintain the following safeguards:</p>
         <LegalList>
-          <li>Traffic is encrypted with TLS, and the site is HSTS-enabled.</li>
-          <li>Passwords are stored as bcrypt hashes and are never recoverable.</li>
           <li>
-            Two-factor authentication is available on every account, and we
-            recommend it.
+            traffic is encrypted in transit using TLS, with HTTP Strict
+            Transport Security enabled;
+          </li>
+          <li>passwords are stored as bcrypt hashes and cannot be recovered;</li>
+          <li>two-factor authentication is available on all accounts;</li>
+          <li>
+            rate limiting is applied to sign-in, password reset, and other
+            sensitive endpoints;
           </li>
           <li>
-            Rate limiting protects sign-in, password reset, and other sensitive
-            endpoints.
+            administrative functions are restricted to staff accounts and
+            recorded in an audit log;
           </li>
-          <li>
-            Administrative actions are restricted to staff accounts and written
-            to an audit log.
-          </li>
-          <li>Backups run daily and are rotated.</li>
+          <li>backups are taken daily and rotated.</li>
         </LegalList>
         <p>
-          No system is perfectly secure. If a breach of our security creates a{' '}
-          <Term>real risk of significant harm</Term> to you, we will notify you
-          and the Privacy Commissioner of Canada as soon as feasible, as PIPEDA
-          requires, and we keep a record of breaches whether or not they meet
+          No safeguard is complete. Where a breach of our security safeguards
+          creates a real risk of significant harm to an individual, we will
+          report it to the Privacy Commissioner of Canada and notify the affected
+          individuals as soon as feasible, as PIPEDA requires. We maintain a
+          record of every breach of security safeguards, whether or not it meets
           that threshold.
         </p>
       </>
@@ -516,35 +547,36 @@ const SECTIONS: LegalSectionSpec[] = [
     title: 'Children',
     body: (
       <p>
-        Fetchpawz is not directed at children under 13, and we don't knowingly
-        collect their personal information. If you're between 13 and 17, a
-        parent or guardian should review this policy with you. If you believe a
-        child under 13 has an account, tell us at <Mail /> and we'll remove it
-        and the data with it.
+        Fetchpawz is not directed at children under 13, and we do not knowingly
+        collect their personal information. Where a user is between 13 and 17, a
+        parent or guardian should review this policy with them. If you believe a
+        child under 13 holds an account, write to <Mail />, and the account and
+        the information associated with it will be removed.
       </p>
     ),
   },
   {
-    id: 'never',
-    title: 'What we will never do',
+    id: 'advertising',
+    title: 'Advertising, tracking, and data sales',
     body: (
       <>
         <p>
-          We don't sell your personal information, and we don't share it with
-          data brokers. We don't run behavioural advertising or ad targeting.
-          We don't show your email address to other members. We don't license
-          your pets' photos to anyone for advertising or for training AI models.
+          We do not sell personal information, and we do not disclose it to data
+          brokers. We do not operate behavioural advertising or ad targeting. We
+          do not disclose your email address to other users. We do not license
+          photographs uploaded to Fetchpawz for advertising or for the training
+          of machine learning models.
         </p>
         <p>
-          The app currently contains an ad placeholder and a rewarded-video flow
-          that is not connected to any ad network — nothing about you is sent to
-          an advertiser today. <Term>If we ever turn on real ads, we will update
-          this policy and tell you before it goes live.</Term>
+          The application contains an advertising placeholder and a
+          rewarded-video flow that is not connected to any advertising network.
+          No information about you is transmitted to an advertiser. Should
+          advertising be introduced, this policy will be amended and notice given
+          before the change takes effect.
         </p>
         <p>
-          Because we don't track you across sites, there's nothing for a Do Not
-          Track or Global Privacy Control signal to switch off. We honour them
-          by not doing it in the first place.
+          Because we do not track users across sites, Do Not Track and Global
+          Privacy Control signals have no applicable practice to disable.
         </p>
       </>
     ),
@@ -554,10 +586,11 @@ const SECTIONS: LegalSectionSpec[] = [
     title: 'Changes to this policy',
     body: (
       <p>
-        Fetchpawz is in beta and this policy will evolve with it. We'll update
-        the date at the top whenever it changes, and email account holders about
-        anything that meaningfully changes how personal information is handled —
-        before the change takes effect, where that's practical.
+        Fetchpawz is in beta, and this policy will change as the service
+        develops. The date at the head of this page will be updated when it
+        does. Where a change materially affects the handling of personal
+        information, we will notify account holders by email before it takes
+        effect, where that is practicable.
       </p>
     ),
   },
@@ -570,37 +603,43 @@ export default function PrivacyPage() {
       eyebrow="Privacy policy"
       title="Your data, plainly"
       lastUpdated={LAST_UPDATED}
-      subtitle="What we collect, why we collect it, and what we will never do with it."
+      subtitle="What Fetchpawz collects, and the choices available to you."
       summary={
         <>
           <p>
-            We don't sell your data, run ads, or track you across the web. There
-            are no analytics on this site.
+            We do not sell personal information and we do not use it for
+            advertising. This site operates no analytics and no cross-site
+            tracking.
           </p>
           <p>
-            Pet share pages and open lost-pet reports are public and can be
-            indexed by search engines. Lost-pet locations shown to other people
-            are deliberately offset and can't be reversed.
+            Pet share pages and open lost-pet reports are publicly accessible and
+            may be indexed by search engines.
           </p>
           <p>
-            The delete button in the app deactivates your account rather than
-            erasing it. Email us and we'll erase it properly.
+            Lost-pet locations shown to other users are offset from the location
+            recorded. The offset is generated once and cannot be reversed.
+          </p>
+          <p>
+            Deleting your account within the application deactivates it. It does
+            not erase the underlying records. Requests for erasure are honoured.
           </p>
         </>
       }
+      summaryNote="This summary is provided for convenience and does not form part of the policy."
       intro={
         <p>
-          Fetchpawz is a place to show off your pet, not a data business. This
-          page explains what information we handle and what you can do about it.
-          We've tried to write it the way we'd want to read it, including the
-          parts that are less flattering than we'd like. If anything is unclear,
-          email <Mail /> and a person will answer.
+          This policy explains what personal information Fetchpawz collects, how
+          it is used, who it is shared with, and the choices available to you. It
+          applies to the Fetchpawz website, the Fetchpawz application, and the
+          public pages we host on your behalf. If any part of it is unclear,
+          write to <Mail />.
         </p>
       }
       sections={SECTIONS}
       footer={
         <>
-          Questions about your data? Email <Mail /> or read the{' '}
+          Questions about your personal information may be sent to <Mail />. See
+          also the{' '}
           <Link
             to="/terms"
             className="font-medium text-brand-600 dark:text-brand-400 hover:underline"

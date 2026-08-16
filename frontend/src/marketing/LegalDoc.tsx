@@ -23,6 +23,7 @@ export default function LegalDoc({
   lastUpdated,
   subtitle,
   summary,
+  summaryNote,
   intro,
   sections,
   footer,
@@ -32,8 +33,10 @@ export default function LegalDoc({
   title: string;
   lastUpdated: string;
   subtitle: string;
-  /** The plain-English "if you read nothing else" box. */
+  /** Plain-language overview shown above the operative text. */
   summary: ReactNode;
+  /** Disclaimer identifying the summary as non-operative. */
+  summaryNote: string;
   intro: ReactNode;
   sections: LegalSectionSpec[];
   footer: ReactNode;
@@ -73,12 +76,10 @@ export default function LegalDoc({
           <div className="min-w-0 space-y-10 text-base leading-relaxed text-gray-600 dark:text-gray-400">
             <div className="rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-brand-50 dark:bg-brand-500/10 p-5 sm:p-6">
               <p className="text-2xs uppercase tracking-widest font-semibold text-brand-700 dark:text-brand-400">
-                The short version
+                Summary
               </p>
               <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 space-y-2">{summary}</div>
-              <p className="mt-3 text-xs text-gray-600 dark:text-gray-400">
-                This box is a summary, not the agreement. The sections below are.
-              </p>
+              <p className="mt-3 text-xs text-gray-600 dark:text-gray-400">{summaryNote}</p>
             </div>
 
             <section>{intro}</section>

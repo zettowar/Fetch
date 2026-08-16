@@ -5,13 +5,13 @@ import type { LegalSectionSpec } from './LegalDoc';
 const LAST_UPDATED = 'August 16, 2026';
 const CONTACT = 'fetchpawz.inc@gmail.com';
 
-function Mail({ children }: { children?: React.ReactNode }) {
+function Mail() {
   return (
     <a
       href={`mailto:${CONTACT}`}
       className="font-medium text-brand-600 dark:text-brand-400 hover:underline"
     >
-      {children ?? CONTACT}
+      {CONTACT}
     </a>
   );
 }
@@ -29,175 +29,186 @@ function PrivacyLink({ children }: { children: React.ReactNode }) {
 
 const SECTIONS: LegalSectionSpec[] = [
   {
-    id: 'agreement',
-    title: 'The agreement',
+    id: 'acceptance',
+    title: 'Acceptance of these terms',
     body: (
       <>
         <p>
-          These Terms are an agreement between you and Fetchpawz Inc.
+          These terms form an agreement between you and Fetchpawz Inc.
           ("Fetchpawz", "we", "us"), a company based in Alberta, Canada. By
-          creating an account or using Fetchpawz, you agree to them. If you
-          don't agree, don't use the service.
+          creating an account or otherwise using Fetchpawz, you accept them. If
+          you do not accept them, do not use the service.
         </p>
         <p>
-          Our <PrivacyLink>Privacy Policy</PrivacyLink> is part of this
-          agreement. If you're agreeing on behalf of an organization — a rescue,
-          for instance — you're confirming you have the authority to bind it.
+          Our <PrivacyLink>Privacy Policy</PrivacyLink> forms part of this
+          agreement. Where you accept these terms on behalf of an organization,
+          including a rescue organization, you confirm that you have authority to
+          bind it.
         </p>
         <p>
-          Fetchpawz is an invite-only beta, so expect things to change while we
-          build.
+          Fetchpawz is an invite-only beta service, and its features are subject
+          to change.
         </p>
       </>
     ),
   },
   {
     id: 'eligibility',
-    title: 'Who can use Fetchpawz',
+    title: 'Eligibility',
     body: (
       <>
         <p>
-          You need to be at least 13. If you're between 13 and 17, a parent or
-          guardian needs to read these Terms and agree to them on your behalf.
+          You must be at least 13 years of age to use Fetchpawz. Where a user is
+          between 13 and 17, a parent or guardian must review these terms and
+          accept them on that user's behalf.
         </p>
         <p>
-          One account per person. Rescues use an organization account, which we
-          approve by hand. You can't use Fetchpawz if we've previously
-          terminated your account, or if the law where you are prohibits it.
+          Each individual may hold one account. Rescue organizations use an
+          organization account, which we approve individually. You may not use
+          Fetchpawz where we have previously terminated your account, or where
+          the law applicable to you prohibits it.
         </p>
       </>
     ),
   },
   {
-    id: 'account',
-    title: 'Your account',
+    id: 'accounts',
+    title: 'Accounts',
     body: (
       <p>
-        Give us accurate information and keep it current. Keep your password to
-        yourself — two-factor authentication is available on every account and
-        we recommend turning it on. You're responsible for what happens under
-        your account, so tell us at <Mail /> right away if you think someone
-        else has access to it. Don't sell, share, or transfer your account.
+        You are responsible for providing accurate registration information and
+        keeping it current, for maintaining the confidentiality of your
+        credentials, and for activity conducted through your account.
+        Two-factor authentication is available on all accounts, and we recommend
+        enabling it. Notify us at <Mail /> if you believe your account has been
+        accessed without your authorization. Accounts may not be sold, shared,
+        or transferred.
       </p>
     ),
   },
   {
-    id: 'license',
-    title: 'Your licence to use Fetchpawz',
+    id: 'licence',
+    title: 'Licence to use Fetchpawz',
     body: (
       <>
         <p>
-          We give you a personal, limited, non-exclusive, non-transferable,
-          revocable licence to use Fetchpawz for what it's for: showing off your
-          pets and taking part in the community.
+          We grant you a personal, limited, non-exclusive, non-transferable, and
+          revocable licence to use Fetchpawz for its intended purpose.
         </p>
         <p>
-          Everything that isn't your content — the app, the site, the name, the
-          logo, the design — belongs to us. Don't copy it, reverse engineer it,
-          resell access to it, or strip out our notices.
+          All rights in the service, including the application, the website, the
+          Fetchpawz name, the logo, and the design, remain with us. You may not
+          copy them, reverse engineer the service, resell access to it, or remove
+          any proprietary notice.
         </p>
       </>
     ),
   },
   {
     id: 'your-content',
-    title: 'Your content, and what you let us do with it',
+    title: 'Your content',
     body: (
       <>
+        <p>You retain ownership of the photographs and text you post.</p>
         <p>
-          <Term>Your photos and words stay yours.</Term> We don't claim
-          ownership of anything you post.
+          To operate the service, you grant us a worldwide, non-exclusive, and
+          royalty-free licence to host, store, reproduce, resize, re-encode, and
+          display your content, and to provide it to the suppliers who perform
+          those functions on our behalf, including our hosting and
+          content-screening providers. The licence is granted for that purpose
+          only.
         </p>
         <p>
-          To run the service, you give us a worldwide, non-exclusive,
-          royalty-free licence to host, store, copy, resize, re-encode, and
-          display your content — and to pass it to the providers who help us do
-          that, like our hosting and photo-moderation services. That's what
-          makes a feed a feed. The licence exists for that purpose and no other.
+          We will obtain your permission before featuring your pet in
+          advertising or on our marketing site.
         </p>
         <p>
-          <Term>We will ask you first</Term> before featuring your pet in an
-          advertisement or on our marketing site. Posting a photo here is not
-          consent to become our billboard.
+          We do not sell content uploaded to Fetchpawz, and we do not license it
+          for the training of machine learning models.
         </p>
         <p>
-          <Term>We don't sell your photos, and we don't license them for
-          training AI models.</Term>
+          The licence ends when you delete the content or your account. It
+          continues to the extent necessary in respect of copies already
+          distributed by other users, cached copies held by search engines, and
+          copies held in backups until those backups age out. The{' '}
+          <PrivacyLink>Privacy Policy</PrivacyLink> sets out the applicable
+          periods.
         </p>
-        <p>
-          The licence ends when you delete the content or your account — with
-          the practical exceptions that copies other people already shared or
-          saved are out of our hands, search engines take time to drop cached
-          pages, and content sits in our backups until they age out. Our{' '}
-          <PrivacyLink>Privacy Policy</PrivacyLink> covers the timing.
-        </p>
-        <p>When you post, you're confirming that:</p>
+        <p>By posting content you represent that:</p>
         <LegalList>
-          <li>you own the content or have permission to post it;</li>
+          <li>you own it or hold the permissions necessary to post it;</li>
           <li>
-            the pet is yours — or, for a rescue account, one your organization
-            is authorized to list;
+            the pet is yours or, in the case of a rescue account, one your
+            organization is authorized to list;
           </li>
           <li>
-            it doesn't include another person's private information, or a
-            recognizable photo of someone else's child, without their consent.
+            it does not contain another person's private information, or a
+            recognizable image of another person's child, without their consent.
           </li>
         </LegalList>
         <p>
-          If you send us feedback or a feature idea, we can use it freely,
-          without owing you anything for it. Please don't send us anything
-          confidential.
+          Where you send us feedback or suggestions, we may use them without
+          restriction and without obligation to you. Please do not send us
+          confidential information.
         </p>
       </>
     ),
   },
   {
-    id: 'conduct',
-    title: 'House rules',
+    id: 'acceptable-use',
+    title: 'Acceptable use',
     body: (
       <>
-        <p>Be the person your pet thinks you are. Specifically, don't:</p>
+        <p>Be the person your pet thinks you are. You must not:</p>
         <LegalList>
           <li>
-            harass, threaten, or dox anyone, or post content that's hateful,
-            sexual, violent, or illegal;
+            harass or threaten another user, or publish another person's private
+            information;
           </li>
           <li>
-            impersonate another person, a rescue, a veterinarian, or Fetchpawz
-            staff;
+            post content that is hateful, sexually explicit, violent, or
+            unlawful;
           </li>
           <li>
-            file false lost-pet reports, fake sightings, or bogus "I found your
-            pet" claims;
+            impersonate another person, a rescue organization, a veterinarian, or
+            Fetchpawz staff;
           </li>
           <li>
-            post content depicting animal cruelty or animal fighting, or use
-            Fetchpawz to sell or breed animals commercially;
+            submit false lost-pet reports, false sightings, or false claims to
+            have found an animal;
           </li>
           <li>
-            manipulate votes, rankings, or crowns — no second accounts, no bots,
-            no vote rings;
+            post content depicting animal cruelty or organized animal fighting;
+          </li>
+          <li>use Fetchpawz to sell or breed animals commercially;</li>
+          <li>
+            manipulate votes, rankings, or crowns, whether through additional
+            accounts, automated agents, or coordinated voting;
           </li>
           <li>
-            scrape, crawl, or bulk-download the service beyond what our
-            robots.txt allows, or use Fetchpawz content to train machine
-            learning models;
+            scrape, crawl, or bulk-download the service other than as permitted
+            by our robots.txt file, or use content obtained from Fetchpawz to
+            train machine learning models;
           </li>
           <li>
-            work around rate limits, invite gating, swipe allowances, or any
-            other technical restriction;
+            circumvent rate limits, invitation requirements, swipe allowances, or
+            other technical restrictions;
           </li>
           <li>
             probe or test the security of the service without our written
-            permission — if you find something, email <Mail /> and we'll thank
-            you properly;
+            permission;
           </li>
           <li>
-            claim a QR collar tag for a pet that isn't yours, or use a contact
-            relay for anything other than a genuine message about that pet;
+            claim a QR collar tag for an animal you do not own, or use a contact
+            relay for a purpose other than a genuine message concerning that
+            animal;
           </li>
-          <li>spam people or resell the service.</li>
+          <li>send unsolicited messages, or resell the service.</li>
         </LegalList>
+        <p>
+          Security researchers who identify a vulnerability are asked to report
+          it to <Mail />.
+        </p>
       </>
     ),
   },
@@ -207,19 +218,21 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <p>
-          Photos are screened automatically before they appear publicly, and
-          anything flagged is held for a person to review. We may review
-          reported content, but we're not obliged to monitor everything, and we
-          don't endorse what members post.
+          Photographs are screened automatically before they are displayed
+          publicly, and images that are flagged are withheld pending review by a
+          member of staff. We may review reported content. We are not obliged to
+          monitor content generally, and we do not endorse content posted by
+          users.
         </p>
         <p>
-          We can remove content, limit features, and suspend or terminate
-          accounts that break these rules — without notice where there's a risk
-          of harm. Repeat violations end in termination.
+          We may remove content, restrict access to features, and suspend or
+          terminate accounts that breach these terms. Where there is a risk of
+          harm, we may act without prior notice. Repeated breaches will result in
+          termination.
         </p>
         <p>
-          <Term>If we get it wrong, email <Mail /> and a person will look at
-          it.</Term> That's a real commitment, not a formality.
+          If you believe an enforcement decision was taken in error, write to{' '}
+          <Mail />. The decision will be reviewed by a member of staff.
         </p>
       </>
     ),
@@ -230,55 +243,58 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <p>
-          If you believe something on Fetchpawz infringes your copyright, email{' '}
-          <Mail /> with:
+          If you believe material on Fetchpawz infringes your copyright, send a
+          notice to <Mail /> containing:
         </p>
         <LegalList>
-          <li>the work you say is infringed;</li>
-          <li>the URL of the content on Fetchpawz;</li>
+          <li>identification of the work said to be infringed;</li>
+          <li>the address of the material on Fetchpawz;</li>
           <li>your name and contact details;</li>
           <li>
-            a statement that you believe in good faith the use isn't authorized;
+            a statement that you believe in good faith that the use is not
+            authorized;
           </li>
           <li>
-            a statement that your notice is accurate and that you're the owner or
-            authorized to act for them.
+            a statement that the information in the notice is accurate and that
+            you are the owner of the right or are authorized to act on the
+            owner's behalf.
           </li>
         </LegalList>
         <p>
-          Under Canada's notice-and-notice regime we forward complete notices to
-          the member who posted the content. Separately, and as a matter of our
-          own policy, we remove content we determine to be infringing and tell
-          the poster, who can respond. <Term>Accounts that repeatedly infringe
-          are terminated.</Term>
+          Under the notice-and-notice regime in section 41.25 of the Copyright
+          Act (Canada), we forward complete notices to the user who posted the
+          material. Separately, as a matter of our own policy, we remove material
+          we determine to be infringing and notify the user, who may respond.
+          Accounts subject to repeated infringement will be terminated.
         </p>
         <p>
-          Don't send a bad-faith notice. Misrepresenting a copyright claim can
-          make you liable for the resulting damage.
+          A person who knowingly makes a material misrepresentation in such a
+          notice may be liable for the resulting damages.
         </p>
       </>
     ),
   },
   {
     id: 'public',
-    title: 'Public pages, sharing, and QR tags',
+    title: 'Public pages and QR collar tags',
     body: (
       <>
         <p>
-          Pet share pages are public unless you turn them off, and open lost-pet
-          reports you mark public can be indexed by search engines. The{' '}
-          <PrivacyLink>Privacy Policy</PrivacyLink> spells out exactly which
-          pages those are.
+          Pet share pages are publicly accessible unless you disable them, and
+          open lost-pet reports marked public may be indexed by search engines.
+          The <PrivacyLink>Privacy Policy</PrivacyLink> identifies the pages
+          concerned.
         </p>
         <p>
-          Once something is public, other people can copy it. We can remove a
-          page from Fetchpawz; we can't remove it from the internet. Decide
-          accordingly before you make a pet public.
+          Material that has been publicly accessible may have been copied by
+          others. Removal from Fetchpawz does not extend to copies held
+          elsewhere, over which we have no control.
         </p>
         <p>
-          A QR collar tag is a way for a stranger holding your pet to reach you.
-          Claim tags only for your own pets. We're not responsible for what a
-          finder does, and we don't verify who scans a tag.
+          A QR collar tag allows a person who finds your pet to contact you. You
+          may claim tags only for animals you own. We do not verify the identity
+          of a person who scans a tag, and we are not responsible for their
+          conduct.
         </p>
       </>
     ),
@@ -289,23 +305,23 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <p>
-          Lost &amp; Found runs on community reports. <Term>We can't guarantee
-          that a sighting is accurate, that an alert reaches anyone, or that a
-          lost pet is found.</Term> Fetchpawz should never be your only
-          channel — call your local shelters, veterinary clinics, and municipal
-          animal services too.
+          Lost &amp; Found operates on reports submitted by users. We do not
+          guarantee that a sighting is accurate, that an alert will reach any
+          particular person, or that a missing animal will be recovered.
+          Fetchpawz should not be your only channel. Contact local shelters,
+          veterinary clinics, and municipal animal services.
         </p>
         <p>
-          Locations shown to other people are deliberately offset. Don't try to
-          defeat that, and don't publish someone else's exact location.
+          Locations displayed to other users are offset from the location
+          recorded. You must not attempt to defeat that offset, and you must not
+          publish another user's precise location.
         </p>
         <p className="rounded-xl border border-warning-200 dark:border-warning-500/30 bg-warning-50 dark:bg-warning-500/10 p-4 text-gray-700 dark:text-gray-300">
-          <Term>Please read this part.</Term> We don't verify anyone's identity.
-          Pet-recovery scams are common and they target people at their most
-          desperate. <Term>Never send money to someone claiming to have your
-          pet.</Term> Meet in a public place, in daylight, and bring someone
-          with you. Ask for a photo showing something only the real finder could
-          know.
+          <Term>Safety.</Term> We do not verify the identity of any user. Fraud
+          directed at the owners of missing animals is common. Do not send money
+          to a person claiming to hold your pet. Arrange to meet in a public
+          place during daylight hours, accompanied by another person, and ask for
+          evidence that only the person holding the animal could provide.
         </p>
       </>
     ),
@@ -316,18 +332,19 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <p>
-          Rescue accounts are reviewed and approved by hand before they can list
-          pets. Keep listings accurate, mark pets adopted promptly, and treat
-          adopter inquiries with care. We can revoke approval if an account is
-          misused.
+          Rescue accounts are reviewed and approved individually before an
+          organization may list animals. Listings must be accurate, animals must
+          be marked as adopted promptly, and enquiries from prospective adopters
+          must be handled responsibly. Approval may be revoked where an account
+          is misused.
         </p>
         <p>
-          <Term>Fetchpawz is not a party to any adoption.</Term> We don't screen
-          adopters, we don't verify a rescue's registration or charitable status
-          beyond a basic review, we don't guarantee an animal's health,
-          temperament, or history, and we don't handle adoption fees. The
-          adoption agreement is between you and the rescue. Do your own
-          diligence on both sides.
+          Fetchpawz is not a party to any adoption. We do not screen prospective
+          adopters. We do not verify an organization's registration or charitable
+          status beyond the review described above. We make no representation as
+          to an animal's health, temperament, or history, and we do not handle
+          adoption fees. The adoption agreement is between the adopter and the
+          organization.
         </p>
       </>
     ),
@@ -337,11 +354,11 @@ const SECTIONS: LegalSectionSpec[] = [
     title: 'Pet transfers',
     body: (
       <p>
-        Transferring a pet moves the <Term>profile</Term> from one Fetchpawz
-        account to another. It has no legal effect on who owns the animal. It is
-        not a bill of sale, an adoption contract, or proof of ownership, and it
-        shouldn't be treated as one in a dispute. The real-world arrangement is
-        between the two people involved.
+        The transfer function moves a pet profile from one Fetchpawz account to
+        another. It has no effect on legal ownership of the animal. It does not
+        constitute a bill of sale, an adoption agreement, or evidence of
+        ownership, and it should not be relied on as such. Arrangements
+        concerning the animal are a matter between the users involved.
       </p>
     ),
   },
@@ -351,37 +368,40 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <p>
-          You can donate to Fetchpawz, or to a participating rescue, through
-          Stripe Checkout inside the app. Card details go directly to Stripe and
-          never reach us.
+          Donations to Fetchpawz and to participating rescue organizations are
+          processed through Stripe Checkout within the application. Card details
+          are submitted directly to Stripe and are not received by us.
         </p>
         <LegalList>
           <li>
-            <Term>Rescue donations run through Stripe Connect.</Term> Stripe
-            processes the payment and settles the funds into the rescue's own
-            Stripe account. <Term>We may keep a platform fee</Term> to cover
-            our costs; where we do, it's disclosed before you pay.
+            Donations to rescue organizations are processed as Stripe Connect
+            destination charges. Stripe processes the payment and settles the
+            funds to the organization's own Stripe account. We may retain a
+            platform fee to cover our costs. Where a fee applies, it is disclosed
+            before payment.
           </li>
           <li>
-            <Term>Donations are final and non-refundable</Term>, except where
-            the law says otherwise or we agree otherwise. A refund on a rescue
-            donation is that rescue's decision, made through Stripe.
+            Donations are final and non-refundable, except where required by law
+            or where we agree otherwise. A refund of a donation to a rescue
+            organization is a matter for that organization, processed through
+            Stripe.
           </li>
           <li>
-            <Term>Donations made through Fetchpawz are not tax-deductible
-            through us, and we do not issue tax receipts.</Term> Only a
-            registered charity can issue one, and whether it does is up to
-            them. We make no representation about any rescue's charitable
-            status or how it spends what it receives.
+            Donations made through Fetchpawz are not tax-deductible through us,
+            and we do not issue tax receipts. Only a registered charity may issue
+            a receipt, and whether it does so is a matter for that charity. We
+            make no representation as to any organization's charitable status or
+            its use of the funds it receives.
           </li>
           <li>
-            Rescues that haven't onboarded with Stripe show an external donation
-            link instead. Those donations happen entirely off Fetchpawz, under
-            whatever terms that page sets, and we see nothing about them.
+            Organizations that have not completed Stripe onboarding display an
+            external donation link. Donations made through such a link take place
+            outside Fetchpawz, on the terms of the receiving page, and we receive
+            no information about them.
           </li>
           <li>
-            We keep a record of donations made through us for financial and tax
-            purposes, as described in the{' '}
+            We retain records of donations processed through Fetchpawz for
+            financial and tax purposes, as set out in the{' '}
             <PrivacyLink>Privacy Policy</PrivacyLink>.
           </li>
         </LegalList>
@@ -393,25 +413,25 @@ const SECTIONS: LegalSectionSpec[] = [
   },
   {
     id: 'pack-plus',
-    title: 'Pack+, swipes, and ads',
+    title: 'Pack+, swipe allowances, and advertising',
     body: (
       <>
         <p>
-          Free accounts get a daily swipe allowance — currently 50 a day, and up
-          to 150 with bonuses. We can change those numbers as we tune the
-          service.
+          Accounts without Pack+ are subject to a daily swipe allowance,
+          currently 50 per day and up to 150 with bonuses. These figures may
+          change.
         </p>
         <p>
-          Pack+ removes the daily cap and the ads. <Term>There is no self-serve
-          purchase today</Term>: during beta, Pack+ is granted by us. If we
-          introduce paid plans, we'll publish the prices and the terms before
-          charging anyone, and nobody gets billed for something they didn't
-          knowingly buy.
+          Pack+ removes the daily allowance and advertising. There is no
+          self-serve purchase at present. During the beta, Pack+ is granted by
+          us. Should paid plans be introduced, prices and terms will be published
+          before any charge is made.
         </p>
         <p>
-          The app contains an ad placeholder and a rewarded-video flow that
-          isn't connected to any ad network yet. If we turn on real ads, we'll
-          update the <PrivacyLink>Privacy Policy</PrivacyLink> first.
+          The application contains an advertising placeholder and a
+          rewarded-video flow that is not connected to any advertising network.
+          Should advertising be introduced, the{' '}
+          <PrivacyLink>Privacy Policy</PrivacyLink> will be amended beforehand.
         </p>
       </>
     ),
@@ -421,10 +441,10 @@ const SECTIONS: LegalSectionSpec[] = [
     title: 'Crowns, badges, and rankings',
     body: (
       <p>
-        Crowns, badges, and weekly rankings are for fun. They have no monetary
-        value, they aren't property, and they can't be transferred, sold, or
-        redeemed for anything. If we find vote manipulation we'll correct the
-        standings, and we can reset or retire any of it.
+        Crowns, badges, and weekly rankings have no monetary value. They are not
+        property, and they cannot be transferred, sold, or redeemed. Where vote
+        manipulation is identified, standings may be corrected. We may reset or
+        withdraw these features.
       </p>
     ),
   },
@@ -433,10 +453,12 @@ const SECTIONS: LegalSectionSpec[] = [
     title: 'Shop',
     body: (
       <p>
-        The shop is powered by Shopify. Purchases — payment, shipping, taxes,
-        returns — run through Shopify checkout under the store's and Shopify's
-        terms, not ours. While Fetchpawz is in beta the shop may show a demo
-        catalogue: those aren't real products and no order will be fulfilled.
+        The shop is operated through Shopify. Purchases, including payment,
+        shipping, taxes, and returns, are processed through Shopify checkout and
+        are governed by the terms of the store operator and of Shopify rather
+        than by these terms. During the beta the shop may display a
+        demonstration catalogue. Those items are not available for purchase, and
+        no order will be fulfilled.
       </p>
     ),
   },
@@ -446,42 +468,44 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <p>
-          Fetchpawz uses services we don't control: Google and GitHub sign-in,
-          Stripe, Shopify, OpenStreetMap, and the providers listed in our{' '}
-          <PrivacyLink>Privacy Policy</PrivacyLink>. Their terms apply to your
-          use of them, and we're not responsible for what they do.
+          Fetchpawz relies on services we do not control, including Google and
+          GitHub sign-in, Stripe, Shopify, OpenStreetMap, and the providers
+          identified in the <PrivacyLink>Privacy Policy</PrivacyLink>. Your use
+          of those services is governed by their terms, and we are not
+          responsible for their acts or omissions.
         </p>
         <p>
-          Dog park and veterinary listings come from OpenStreetMap contributors
-          and may be incomplete, out of date, or wrong. Listings are
-          information, not endorsements or recommendations. Verify a clinic's
-          credentials and hours yourself before you rely on them.
+          Dog park and veterinary listings are derived from OpenStreetMap
+          contributor data and may be incomplete, out of date, or inaccurate.
+          Listings are provided for information only and do not constitute a
+          recommendation or an endorsement. Verify a clinic's credentials and
+          hours before relying on them.
         </p>
       </>
     ),
   },
   {
     id: 'no-advice',
-    title: 'Not veterinary advice',
+    title: 'No veterinary advice',
     body: (
       <p>
-        Nothing on Fetchpawz — vet listings, community posts, comments, or
-        anything else — is veterinary or medical advice, and none of it
-        substitutes for an actual veterinarian who has examined your animal.{' '}
-        <Term>In an emergency, call a vet or an emergency animal hospital.</Term>
+        Nothing on Fetchpawz, including veterinary listings, community posts, and
+        comments, constitutes veterinary or medical advice, and none of it
+        substitutes for examination by a qualified veterinarian. In an emergency,
+        contact a veterinarian or an emergency animal hospital.
       </p>
     ),
   },
   {
     id: 'beta',
-    title: 'Beta, and changes to the service',
+    title: 'Availability and changes to the service',
     body: (
       <p>
-        Fetchpawz is in beta. Features may change, break, or be removed; data
-        may occasionally be lost; and we may pause or revoke beta access as we
-        test. We can also set or change limits on how the service is used. If we
-        ever discontinue Fetchpawz, we'll give reasonable notice and a chance to
-        get your content out where we practically can.
+        Fetchpawz is provided as a beta service. Features may be changed,
+        suspended, or withdrawn; data may be lost; and beta access may be paused
+        or revoked. We may impose limits on use of the service. Where we
+        discontinue the service, we will give reasonable notice and, where
+        practicable, an opportunity to export your content.
       </p>
     ),
   },
@@ -490,14 +514,14 @@ const SECTIONS: LegalSectionSpec[] = [
     title: 'Disclaimer of warranties',
     body: (
       <p>
-        Fetchpawz is provided <Term>"as is" and "as available"</Term>, without
-        warranties of any kind, express or implied — including implied
-        warranties of merchantability, fitness for a particular purpose, and
-        non-infringement. We don't warrant that the service will be
-        uninterrupted, secure, or error-free, that alerts will be delivered, or
-        that content posted by members or imported from third parties is
-        accurate. Some jurisdictions don't allow these exclusions; to that
-        extent, they don't apply to you.
+        The service is provided "as is" and "as available", without warranty of
+        any kind, whether express or implied, including any implied warranty of
+        merchantability, fitness for a particular purpose, or non-infringement.
+        We do not warrant that the service will be uninterrupted, secure, or free
+        from error, that alerts will be delivered, or that content posted by
+        users or obtained from third-party sources is accurate. Where the law
+        applicable to you does not permit the exclusion of a warranty, that
+        exclusion does not apply to you.
       </p>
     ),
   },
@@ -507,23 +531,23 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <p>
-          To the fullest extent the law allows, Fetchpawz is not liable for
-          indirect, incidental, special, consequential, exemplary, or punitive
-          damages, or for lost profits, lost data, or lost goodwill — including{' '}
-          <Term>loss of, injury to, or failure to recover an animal</Term> —
-          arising out of your use of the service.
+          To the extent permitted by law, Fetchpawz is not liable for indirect,
+          incidental, special, consequential, exemplary, or punitive damages, nor
+          for loss of profits, loss of data, loss of goodwill, or the loss of,
+          injury to, or failure to recover an animal, arising from your use of
+          the service.
         </p>
         <p>
-          Our total liability for all claims relating to the service is capped
-          at the greater of <Term>CAD $100</Term> or the total amount you paid
-          us in the twelve months before the claim arose.
+          Our aggregate liability for all claims relating to the service is
+          limited to the greater of CAD $100 and the total amount paid by you to
+          us in the twelve months preceding the event giving rise to the claim.
         </p>
         <p>
-          Nothing here limits liability for fraud or fraudulent
+          Nothing in these terms limits liability for fraud or fraudulent
           misrepresentation, for death or personal injury caused by negligence,
-          or for anything else that can't be limited under Alberta or Canadian
-          law — including rights you have under Alberta's consumer protection
-          legislation.
+          or for any other liability that cannot be limited under the laws of
+          Alberta or of Canada, including rights conferred by Alberta consumer
+          protection legislation.
         </p>
       </>
     ),
@@ -533,12 +557,12 @@ const SECTIONS: LegalSectionSpec[] = [
     title: 'Indemnification',
     body: (
       <p>
-        You agree to indemnify Fetchpawz Inc. and its directors, officers, and
-        employees against claims, losses, and reasonable legal costs arising out
-        of your content, your use of the service, your breach of these Terms or
-        of the law, or a dispute between you and another member, a rescue, or a
-        finder. We may take over the defence of any such claim, and you'll
-        cooperate with us if we do.
+        You will indemnify Fetchpawz Inc. and its directors, officers, and
+        employees against claims, losses, and reasonable legal costs arising from
+        your content, your use of the service, your breach of these terms or of
+        applicable law, or a dispute between you and another user, a rescue
+        organization, or a person who finds your pet. We may assume the defence
+        of any such claim, in which case you will cooperate with us.
       </p>
     ),
   },
@@ -548,99 +572,103 @@ const SECTIONS: LegalSectionSpec[] = [
     body: (
       <>
         <p>
-          You can delete your account at any time from inside the app. Read{' '}
-          <PrivacyLink>what deletion actually does today</PrivacyLink> — it
-          deactivates rather than erases, and erasure is an email away.
+          You may delete your account at any time within the application. The{' '}
+          <PrivacyLink>Privacy Policy</PrivacyLink> explains the effect of
+          deletion and how to request erasure.
         </p>
         <p>
-          We can suspend or terminate an account that breaks these Terms, poses
-          a risk to others, or where the law requires it, and we'll give notice
-          where that's practical. On termination your licence to use Fetchpawz
-          ends and your public pages come down.
+          We may suspend or terminate an account that breaches these terms, that
+          presents a risk to others, or where the law requires it. We will give
+          notice where that is practicable. On termination, your licence to use
+          Fetchpawz ends and your public pages are withdrawn.
         </p>
         <p>
-          These sections survive termination: Your content (for copies already
-          shared), Donations, Disclaimer of warranties, Limitation of liability,
-          Indemnification, Disputes and governing law, and General.
+          The following sections survive termination: Your content, to the extent
+          of copies already distributed; Donations; Disclaimer of warranties;
+          Limitation of liability; Indemnification; Governing law and disputes;
+          and General provisions.
         </p>
       </>
     ),
   },
   {
     id: 'disputes',
-    title: 'Disputes and governing law',
+    title: 'Governing law and disputes',
     body: (
       <>
         <p>
-          <Term>Talk to us first.</Term> Email <Mail /> describing the problem
-          and what you'd like done about it. We'll work with you for 30 days to
-          sort it out. Nearly everything ends here.
+          Before commencing proceedings, write to <Mail /> describing the matter
+          and the outcome you seek. We will work with you for 30 days to resolve
+          it.
         </p>
         <p>
-          These Terms are governed by the laws of the{' '}
-          <Term>Province of Alberta</Term> and the federal laws of Canada that
-          apply there, without regard to conflict-of-laws rules. Disputes go to
-          the courts of Alberta, and you and we consent to their jurisdiction.
+          These terms are governed by the laws of the Province of Alberta and the
+          federal laws of Canada applicable in that province, without regard to
+          conflict of laws principles. The courts of Alberta have jurisdiction,
+          and you and we submit to that jurisdiction.
         </p>
         <p>
-          <Term>We don't ask you to give up your right to go to court.</Term>{' '}
-          There's no forced arbitration here and no class-action waiver. If the
-          law where you live lets you bring a claim in your local small claims
-          court or take a complaint to a consumer protection authority, this
-          agreement doesn't take that away.
+          These terms do not require arbitration, and they contain no waiver of
+          class proceedings. Where the law applicable to you permits a claim to
+          be brought in a local small claims court, or a complaint to be made to
+          a consumer protection authority, these terms do not restrict that
+          right.
         </p>
       </>
     ),
   },
   {
     id: 'changes',
-    title: 'Changes to these Terms',
+    title: 'Changes to these terms',
     body: (
       <p>
-        When we change these Terms we'll update the date at the top, and for
-        anything significant we'll email account holders — at least 14 days
-        before the change takes effect, where that's practical. Using Fetchpawz
-        after a change means you accept the new Terms. If you don't accept them,
-        delete your account.
+        Where these terms change, the date at the head of this page will be
+        updated. Where a change is material, we will notify account holders by
+        email at least 14 days before it takes effect, where that is practicable.
+        Continued use of Fetchpawz after a change takes effect constitutes
+        acceptance of the amended terms. If you do not accept them, delete your
+        account.
       </p>
     ),
   },
   {
     id: 'general',
-    title: 'General',
+    title: 'General provisions',
     body: (
       <LegalList>
         <li>
-          <Term>Entire agreement.</Term> These Terms and the Privacy Policy are
-          the whole agreement between us about Fetchpawz.
+          <Term>Entire agreement.</Term> These terms and the Privacy Policy
+          constitute the entire agreement between you and us concerning
+          Fetchpawz.
         </li>
         <li>
-          <Term>Severability.</Term> If a court finds part of this unenforceable,
-          the rest still stands.
+          <Term>Severability.</Term> Where a provision is held unenforceable, the
+          remaining provisions continue in effect.
         </li>
         <li>
-          <Term>No waiver.</Term> If we don't enforce something right away, we
-          haven't given up the right to enforce it later.
+          <Term>Waiver.</Term> A failure to enforce a provision is not a waiver
+          of the right to enforce it subsequently.
         </li>
         <li>
-          <Term>Assignment.</Term> We can transfer this agreement to a successor
-          if the company is sold or merged; you can't transfer it.
+          <Term>Assignment.</Term> We may assign this agreement to a successor in
+          connection with a merger, an acquisition, or a sale of assets. You may
+          not assign it.
         </li>
         <li>
-          <Term>Force majeure.</Term> Neither of us is liable for failures caused
-          by things genuinely outside our control.
+          <Term>Force majeure.</Term> Neither party is liable for a failure to
+          perform caused by circumstances beyond its reasonable control.
         </li>
         <li>
-          <Term>Notices.</Term> We'll reach you at the email address on your
-          account. Reach us at <Mail />.
+          <Term>Notices.</Term> We will contact you at the email address
+          registered to your account. Notices to us should be sent to <Mail />.
         </li>
         <li>
-          <Term>Language.</Term> These Terms are written in English, and the
-          English version governs.
+          <Term>Language.</Term> These terms are drawn up in English, and the
+          English text governs.
         </li>
         <li>
-          <Term>No partnership.</Term> Nothing here makes either of us the other's
-          agent, partner, or employee.
+          <Term>Relationship.</Term> Nothing in these terms creates an agency,
+          partnership, or employment relationship.
         </li>
       </LegalList>
     ),
@@ -654,41 +682,43 @@ export default function TermsPage() {
       eyebrow="Terms of service"
       title="The house rules"
       lastUpdated={LAST_UPDATED}
-      subtitle="The deal between you and Fetchpawz, in plain English."
+      subtitle="The terms on which Fetchpawz is provided."
       summary={
         <>
           <p>
-            Your photos stay yours. We host and display them to run the app, and
-            we'll ask before putting your pet in an ad.
+            You retain ownership of your photographs. We host and display them in
+            order to operate the service, and we will ask before featuring your
+            pet in advertising.
           </p>
           <p>
-            Fetchpawz isn't a party to adoptions, pet transfers, or what a rescue
-            does with a donation — and donations through us are non-refundable
-            and come with no tax receipt.
+            Fetchpawz is not a party to an adoption, a pet transfer, or the use a
+            rescue organization makes of a donation. Donations are
+            non-refundable, and we do not issue tax receipts.
           </p>
           <p>
-            Lost &amp; Found is community-reported and can't be guaranteed. Never
-            send money to someone claiming to have your pet.
+            Lost &amp; Found depends on reports from users and cannot be
+            guaranteed. Do not send money to a person claiming to hold your pet.
           </p>
           <p>
-            Alberta law governs. No forced arbitration, no class-action waiver.
+            These terms are governed by Alberta law. They do not require
+            arbitration, and they contain no waiver of class proceedings.
           </p>
         </>
       }
+      summaryNote="This summary is provided for convenience and does not form part of the agreement."
       intro={
         <p>
-          These are the house rules for Fetchpawz — what you can expect from us,
-          and what we expect from you. We've kept them readable on purpose. If
-          something here doesn't make sense, email <Mail /> and ask; that's a
-          better outcome for both of us than you agreeing to something you
-          didn't follow.
+          These terms set out the basis on which Fetchpawz is provided and what
+          we ask of you in return. Please read them before creating an account.
+          If any part of them is unclear, write to <Mail /> and we will explain
+          it.
         </p>
       }
       sections={SECTIONS}
       footer={
         <>
-          See also the <PrivacyLink>Privacy Policy</PrivacyLink>, or write to{' '}
-          <Mail />.
+          See also the <PrivacyLink>Privacy Policy</PrivacyLink>. Questions about
+          these terms may be sent to <Mail />.
         </>
       }
     />
