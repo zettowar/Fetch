@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import NavBar from './NavBar';
 import FeedbackWidget from './FeedbackWidget';
@@ -74,7 +75,28 @@ export default function AppShell() {
           isFixedViewport ? 'flex-1 min-h-0 flex flex-col' : ''
         }`}
       >
-        <Outlet />
+        {/*
+          The shell needs its own Suspense boundary, and it is load-bearing.
+
+          Most routes under /app are React.lazy. The only boundary used to be
+          the one in App.tsx, which sits *above* AuthGuard and AppShell, so a
+          route whose chunk was not cached suspended the entire shell: NavBar,
+          the tab bar, and anything they were rendering all froze in their
+          last committed state until the chunk arrived.
+
+          That is what made the Explore sheet look stuck. Tapping Community
+          closed the sheet and navigated in one click, but PostsPage is lazy,
+          so the commit that would have run the sheet's exit animation never
+          landed. The sheet stayed painted at y=0 while React reported it
+          closed, and tapping the backdrop did nothing because every retry
+          suspended again on the same pending chunk. Verified by A/B in a real
+          browser: stuck with this boundary removed, clean with it in place.
+
+          Keeping the boundary here means only the page area waits.
+        */}
+        <Suspense fallback={<div className="min-h-[50vh]" aria-busy="true" aria-live="polite" />}>
+          <Outlet />
+        </Suspense>
       </div>
       {location.pathname === '/app/home' && <FeedbackWidget />}
     </div>
