@@ -71,12 +71,12 @@ export default function LegalDoc({
           </nav>
 
           <div className="min-w-0 space-y-10 text-base leading-relaxed text-gray-600 dark:text-gray-400">
-            <div className="rounded-2xl border border-brand-100 dark:border-brand-900/50 bg-brand-50/60 dark:bg-brand-950/30 p-5 sm:p-6">
+            <div className="rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-brand-50 dark:bg-brand-500/10 p-5 sm:p-6">
               <p className="text-2xs uppercase tracking-widest font-semibold text-brand-700 dark:text-brand-400">
                 The short version
               </p>
               <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 space-y-2">{summary}</div>
-              <p className="mt-3 text-xs text-gray-500 dark:text-gray-500">
+              <p className="mt-3 text-xs text-gray-600 dark:text-gray-400">
                 This box is a summary, not the agreement. The sections below are.
               </p>
             </div>

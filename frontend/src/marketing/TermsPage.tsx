@@ -299,7 +299,7 @@ const SECTIONS: LegalSectionSpec[] = [
           Locations shown to other people are deliberately offset. Don't try to
           defeat that, and don't publish someone else's exact location.
         </p>
-        <p className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/30 p-4 text-gray-700 dark:text-gray-300">
+        <p className="rounded-xl border border-warning-200 dark:border-warning-500/30 bg-warning-50 dark:bg-warning-500/10 p-4 text-gray-700 dark:text-gray-300">
           <Term>Please read this part.</Term> We don't verify anyone's identity.
           Pet-recovery scams are common and they target people at their most
           desperate. <Term>Never send money to someone claiming to have your
