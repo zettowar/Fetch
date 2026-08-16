@@ -46,7 +46,7 @@ from app.config import settings
 from app.services.blocks import is_blocked_between
 from app.services.breed_display import breed_display
 from app.services.email import send_contact_relay_email
-from app.services.lost_service import fuzz_coordinate, get_nearby_reports
+from app.services.lost_service import apply_public_point, get_nearby_reports
 from app.services.notify import notify
 from app.services.moderation import check_image
 from app.storage import generate_storage_key, get_storage
@@ -68,7 +68,14 @@ def _sighting_to_out(
     # Fuzz them for everyone except the report owner, mirroring report privacy.
     lat, lng = sighting.lat, sighting.lng
     if not is_owner:
-        lat, lng = fuzz_coordinate(lat, lng, fuzz_m, seed=str(sighting.id))
+        # The stored public point, never a value derived on read.
+        #
+        # If this is ever None the response 500s, and that is the correct
+        # failure: do NOT "fix" it by falling back to sighting.lat/lng, which
+        # would publish the pet's exact position to everyone. Every write path
+        # calls apply_public_point, and the b2d5f81a4c67 migration backfilled
+        # the rest — a None here means a new write path forgot to.
+        lat, lng = sighting.public_lat, sighting.public_lng
     return SightingOut(
         id=sighting.id,
         report_id=sighting.report_id,
@@ -118,10 +125,8 @@ def _report_to_out(report: LostReport, is_owner: bool = False) -> LostReportOut:
     # Fuzz coordinates unless the viewer is the reporter
     lat = report.last_seen_lat
     lng = report.last_seen_lng
-    if not is_owner and lat is not None and lng is not None:
-        lat, lng = fuzz_coordinate(
-            lat, lng, report.location_fuzz_m, seed=str(report.id)
-        )
+    if not is_owner:
+        lat, lng = report.public_lat, report.public_lng
 
     return LostReportOut(
         id=report.id,
@@ -187,6 +192,9 @@ async def create_report(
         contact_value=body.contact_value,
         is_public=body.is_public,
     )
+    # Generate the published point once, here, from a CSPRNG — never on read.
+    apply_public_point(report, report.last_seen_lat, report.last_seen_lng,
+                       report.location_fuzz_m)
     db.add(report)
     await db.commit()
 
@@ -224,9 +232,7 @@ async def nearby_reports(
     storage = get_storage()
     out = []
     for r in reports:
-        f_lat, f_lng = fuzz_coordinate(
-            r.last_seen_lat, r.last_seen_lng, r.location_fuzz_m, seed=str(r.id)
-        )
+        f_lat, f_lng = r.public_lat, r.public_lng
         pet_name = r.pet.name if r.pet else None
         pet_breed = breed_display(r.pet.mix_type, r.pet.breeds, r.pet.species) if r.pet else None
         pet_photo_url = None
@@ -302,6 +308,13 @@ async def update_report(
     update_data = body.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(report, field, value)
+
+    # Refresh the published point only when it would otherwise be dishonest —
+    # a moved pin, or a fuzz radius the owner has REDUCED below the stored
+    # offset. Raising the radius deliberately keeps the same point: publishing a
+    # second point for one true location is what lets an observer solve for it.
+    apply_public_point(report, report.last_seen_lat, report.last_seen_lng,
+                       report.location_fuzz_m)
 
     await db.commit()
     result = await db.execute(
@@ -430,6 +443,8 @@ async def add_sighting(
         photo_key=photo_key,
         photo_content_type=photo_content_type,
     )
+    apply_public_point(sighting, sighting.lat, sighting.lng,
+                       report.location_fuzz_m)
     db.add(sighting)
     if report.reporter_id != user.id:
         await notify(

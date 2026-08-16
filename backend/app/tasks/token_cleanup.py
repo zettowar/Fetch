@@ -13,10 +13,10 @@ def purge_refresh_tokens_task():
     asyncio.run(_purge())
 
 
-async def _purge():
-    from app.db import async_session
+async def _purge(session_factory=None):
+    from app.tasks._session import task_session
 
-    async with async_session() as db:
+    async with task_session(session_factory) as db:
         await purge_dead_refresh_tokens(db)
 
 

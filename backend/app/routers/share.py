@@ -29,7 +29,6 @@ from app.db import get_db
 from app.models.lost_report import LostReport
 from app.models.pet import Pet
 from app.services.breed_display import breed_display
-from app.services.lost_service import fuzz_coordinate
 from app.storage import get_storage
 
 router = APIRouter()
@@ -126,11 +125,11 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
     # --- fuzzed location (never the true point) ---
     map_link = None
     radius_txt = None
-    if report.last_seen_lat is not None and report.last_seen_lng is not None:
-        flat, flng = fuzz_coordinate(
-            report.last_seen_lat, report.last_seen_lng,
-            report.location_fuzz_m or 500, seed=str(report.id),
-        )
+    if report.public_lat is not None and report.public_lng is not None:
+        # The stored public point. Deriving it here from the report id — which
+        # is this page's own URL — let a stranger replay the draw and recover
+        # the true last-seen location to centimetres.
+        flat, flng = report.public_lat, report.public_lng
         map_link = (
             f"https://www.openstreetmap.org/?mlat={flat:.5f}&mlon={flng:.5f}"
             f"#map=14/{flat:.5f}/{flng:.5f}"

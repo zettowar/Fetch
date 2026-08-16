@@ -439,6 +439,55 @@ State semantics worth keeping:
   `GET /support/tickets/unread-count` badges the support entry without pulling
   every ticket body.
 
+## Lost-pet coordinates — published once, never derived
+
+`lost_reports.public_lat/lng` and `lost_report_sightings.public_lat/lng` hold the
+point every non-owner sees. It is generated **once at write time** from a CSPRNG
+offset (`lost_service.apply_public_point`) and stored; nothing computes it on
+read.
+
+This is not a style preference. It used to be `random.Random(str(report.id))` —
+seeded with the report id, which *is* the public share URL — so replaying the
+draw subtracted the offset back out and recovered the true last-seen point to
+**26 cm**. For a missing-pet report that point is normally the owner's home, and
+the pages are public by default, `index,follow`, and in `sitemap.xml`.
+
+Three rules keep it closed:
+- **Never derive the public point from anything a client can see.** There is no
+  seeded fuzz helper any more, deliberately — the dangerous API is gone rather
+  than documented.
+- **Raising `location_fuzz_m` must NOT republish.** Two published points for one
+  true point are simultaneous equations that solve for it, and the person who
+  triggers that is the owner asking for *more* privacy. `apply_public_point`
+  regenerates only when there is no point yet, or when a *reduced* radius would
+  make the "within ~N m" label a lie.
+- **`/lost/reports/nearby` filters on `public_lat/lng`, not the true columns.**
+  The caller picks the centre and radius, so matching on the true point made it
+  a membership oracle that trilaterates the exact location without ever opening
+  the share page.
+
+Owners still get their own true coordinates; `lost_alerts` still uses the true
+point server-side to decide who to email. Guarded by
+`tests/test_lost_location_privacy.py`, which runs the actual attack.
+
+## Celery tasks: never use the app's pooled session
+
+Task bodies run under `asyncio.run()`, which builds a **new event loop each
+invocation**, while `app.db.async_session` is backed by a *pooled* engine whose
+asyncpg connections belong to the loop that opened them. So the first task in a
+worker process succeeds and every one after it in that process dies with
+`InterfaceError: cannot perform operation: another operation is in progress`.
+
+It hid for a long time because it fails per worker *process*, not per task: with
+four prefork workers you see four successes and then permanent failure. In
+production `pick_current_winner_task` — the crown, the entire premise of the app
+— failed **4 out of 4**.
+
+Every task must take its session from `app.tasks._session.task_session`, which
+builds a `NullPool` engine per invocation and disposes it. `tests/
+test_task_event_loops.py` calls each task **twice in one process**, because one
+call is exactly the case that works and proves nothing.
+
 ## Phased / stub features (intentionally incomplete)
 
 These are scaffolded but not fully wired — marked with `PHASEn` comments in code:

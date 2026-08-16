@@ -43,9 +43,9 @@ def _segment_user_query(segment: str):
     return stmt
 
 
-async def _dispatch(announcement_id: uuid.UUID) -> int:
+async def _dispatch(announcement_id: uuid.UUID, session_factory=None) -> int:
     from sqlalchemy import insert, select, update
-    from app.db import async_session
+    from app.tasks._session import task_session
     from app.models.announcement import Announcement
     from app.models.notification import Notification
     from app.models.notification import NotificationPreference
@@ -53,7 +53,7 @@ async def _dispatch(announcement_id: uuid.UUID) -> int:
         send_email, unsubscribe_footer, unsubscribe_headers, _layout,
     )
 
-    async with async_session() as db:
+    async with task_session(session_factory) as db:
         ann = (await db.execute(
             select(Announcement).where(Announcement.id == announcement_id)
         )).scalar_one_or_none()
@@ -95,7 +95,7 @@ async def _dispatch(announcement_id: uuid.UUID) -> int:
         # The in-app notification above goes to the whole segment; the *email*
         # is a commercial electronic message, so it additionally honours the
         # recipient's announcement opt-out.
-        async with async_session() as db:
+        async with task_session(session_factory) as db:
             opted_out = set((await db.execute(
                 select(NotificationPreference.user_id).where(
                     NotificationPreference.announcement_emails == False  # noqa: E712

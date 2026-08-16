@@ -18,19 +18,13 @@ async def _send_alerts(report_id: str, session_factory=None):
     from uuid import UUID
 
     from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-    from sqlalchemy.pool import NullPool
 
     from app.config import settings
     from app.models.lost_report import LostReport
     from app.services.lost_service import get_matching_subscribers
+    from app.tasks._session import task_session
 
-    engine = None
-    if session_factory is None:
-        engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
-        session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-    async with session_factory() as db:
+    async with task_session(session_factory) as db:
         result = await db.execute(
             select(LostReport).where(LostReport.id == UUID(report_id))
         )
@@ -102,5 +96,3 @@ async def _send_alerts(report_id: str, session_factory=None):
                     sub.user_id, report_id, sent,
                 )
 
-    if engine is not None:
-        await engine.dispose()

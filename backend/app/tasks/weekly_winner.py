@@ -9,11 +9,11 @@ def compute_weekly_winner_task():
     asyncio.run(_compute())
 
 
-async def _compute():
-    from app.db import async_session
+async def _compute(session_factory=None):
     from app.services.ranking_service import compute_weekly_winner
+    from app.tasks._session import task_session
 
-    async with async_session() as db:
+    async with task_session(session_factory) as db:
         await compute_weekly_winner(db)
 
 
@@ -29,9 +29,9 @@ def pick_current_winner_task():
     asyncio.run(_pick_current())
 
 
-async def _pick_current():
-    from app.db import async_session
+async def _pick_current(session_factory=None):
     from app.services.ranking_service import pick_current_winner
+    from app.tasks._session import task_session
 
-    async with async_session() as db:
+    async with task_session(session_factory) as db:
         await pick_current_winner(db)

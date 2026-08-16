@@ -34,10 +34,10 @@ def _render_items(unread) -> str:
     )
 
 
-async def _run() -> int:
+async def _run(session_factory=None) -> int:
     from sqlalchemy import select
     from app.config import settings
-    from app.db import async_session
+    from app.tasks._session import task_session
     from app.models.notification import Notification, NotificationPreference
     from app.models.user import User
     from app.services.email import (
@@ -56,7 +56,7 @@ async def _run() -> int:
         windows["weekly"] = now - timedelta(days=7)
 
     sent = 0
-    async with async_session() as db:
+    async with task_session(session_factory) as db:
         prefs = (await db.execute(
             select(NotificationPreference.user_id, NotificationPreference.digest_mode)
             .where(NotificationPreference.digest_mode.in_(list(windows.keys())))

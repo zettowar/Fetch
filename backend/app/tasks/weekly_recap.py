@@ -41,7 +41,6 @@ async def _run(session_factory=None) -> int:
     from sqlalchemy import select
 
     from app.config import settings
-    from app.db import async_session
     from app.models.notification import NotificationPreference
     from app.models.user import User
     from app.services import settings_service
@@ -49,14 +48,12 @@ async def _run(session_factory=None) -> int:
     from app.services.feed_service import current_week_bucket
     from app.services.notify import notify
     from app.services.ranking_service import get_week_standings
-
-    if session_factory is None:
-        session_factory = async_session
+    from app.tasks._session import task_session
 
     last_week = current_week_bucket() - timedelta(days=7)
     week_before = last_week - timedelta(days=7)
 
-    async with session_factory() as db:
+    async with task_session(session_factory) as db:
         if not await settings_service.get_setting(db, "weekly_recap_enabled"):
             logger.info("weekly_recap_disabled")
             return 0

@@ -23,6 +23,9 @@ class LostReport(Base, UUIDPrimaryKey, TimestampMixin):
     __table_args__ = (
         # Proximity search always narrows to open reports inside a bounding box.
         Index("ix_lost_reports_status_lat_lng", "status", "last_seen_lat", "last_seen_lng"),
+        # /lost/reports/nearby filters on the PUBLIC point, so the index it
+        # actually uses has to be on those columns.
+        Index("ix_lost_reports_status_public_lat_lng", "status", "public_lat", "public_lng"),
     )
 
     reporter_id: Mapped[uuid.UUID] = mapped_column(
@@ -49,6 +52,15 @@ class LostReport(Base, UUIDPrimaryKey, TimestampMixin):
     last_seen_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     last_seen_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     location_fuzz_m: Mapped[int] = mapped_column(Integer, default=500, nullable=False)
+    # The point every non-owner sees, generated ONCE from a CSPRNG offset and
+    # then stored. It is deliberately not derived from anything a client can
+    # see: an earlier version computed it on read as
+    # `random.Random(str(report.id))`, and since the id is the public URL a
+    # stranger could replay the draw and subtract the offset back out — the true
+    # last-seen point of a missing pet, which is usually the owner's home, was
+    # recoverable to centimetres from the share page alone.
+    public_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    public_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     contact_method: Mapped[str] = mapped_column(
         String(20), default="in_app", nullable=False
@@ -93,6 +105,10 @@ class LostReportSighting(Base, UUIDPrimaryKey, TimestampMixin):
     )
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lng: Mapped[float] = mapped_column(Float, nullable=False)
+    # Stored public point — same reasoning as LostReport.public_lat. A sighting
+    # is often the pet's exact current location, so it had the same hole.
+    public_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    public_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     photo_key: Mapped[str | None] = mapped_column(Text, nullable=True)
