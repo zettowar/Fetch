@@ -182,21 +182,17 @@ export default function VetsPage() {
                 title={
                   vets.length > 0
                     ? 'No vets match your search or filter.'
-                    : "No clinics in your area yet — we're still importing."
+                    : 'No clinics in your area yet.'
                 }
                 body={
                   vets.length === 0 ? (
                     <>
-                      Clinics come from{' '}
-                      <a
-                        href="https://wiki.openstreetmap.org/wiki/Tag:amenity%3Dveterinary"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-brand-500 hover:underline"
-                      >
-                        OpenStreetMap
-                      </a>
-                      . Missing one? Add it there and it'll appear after the next sync.
+                      We are still expanding coverage here. Know a clinic we should
+                      list?{' '}
+                      <Link to="/app/support" className="text-brand-500 hover:underline">
+                        Tell us
+                      </Link>
+                      .
                     </>
                   ) : undefined
                 }

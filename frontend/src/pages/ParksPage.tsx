@@ -213,16 +213,11 @@ export default function ParksPage() {
                 body={
                   parks.length === 0 ? (
                     <>
-                      Parks come from{' '}
-                      <a
-                        href="https://wiki.openstreetmap.org/wiki/Tag:leisure%3Ddog_park"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-brand-500 hover:underline"
-                      >
-                        OpenStreetMap
-                      </a>
-                      . Missing one? Add it there and it'll show up on the next sync.
+                      Know one we&rsquo;re missing?{' '}
+                      <Link to="/app/parks/new" className="text-brand-500 hover:underline">
+                        Add a park
+                      </Link>{' '}
+                      and it will show up for everyone nearby.
                     </>
                   ) : undefined
                 }
