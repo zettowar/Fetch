@@ -216,6 +216,13 @@ Available fixtures: `client`, `auth_headers` (regular user), `admin_headers` (ad
 
 Rate limiting is disabled in tests via `limiter.enabled = False` in conftest.
 
+**Tests must not lean on your `.env`.** CI sets only the variables listed in
+`.github/workflows/ci.yml`, so a dev-only flag (`DEBUG_VERIFY_TOKEN`,
+`DEBUG_RESET_TOKEN`) keeps its default there. A test that needs one switches it
+on with `monkeypatch.setattr(settings, ...)`. Three verification tests assumed
+the flag and passed locally for months while CI, red on an unrelated lint step,
+never reached them.
+
 **Tests run against an isolated database** — conftest derives
 `<dbname>_test` from `DATABASE_URL` (override with `TEST_DATABASE_URL`) and
 drops/recreates it each session, so `make test` never touches dev data. The

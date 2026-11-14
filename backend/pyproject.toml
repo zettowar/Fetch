@@ -45,6 +45,16 @@ dev = [
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
+# Nothing here is a distributable package: `pip install` exists to pull in the
+# dependencies, and `app` is imported from the working directory. Both
+# Dockerfiles copy this file alone before installing, so they never noticed —
+# but CI installs from a full checkout, where setuptools' auto-discovery sees
+# `app/` and `alembic/` side by side, refuses to guess ("Multiple top-level
+# packages discovered in a flat-layout") and fails the install. Saying "no
+# packages" outright makes all three environments install the same thing.
+[tool.setuptools]
+packages = []
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

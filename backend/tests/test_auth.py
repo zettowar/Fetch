@@ -3,6 +3,8 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
+from app.config import settings
+
 
 @pytest.mark.asyncio
 async def test_signup_success(client: AsyncClient):
@@ -89,8 +91,12 @@ async def test_me_with_token(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_resend_verification_returns_debug_token(client: AsyncClient):
+async def test_resend_verification_returns_debug_token(client: AsyncClient, monkeypatch):
     """A freshly-signed-up user can ask for a verification token."""
+    # Switched on here, not assumed. The three verification tests below used to
+    # rely on DEBUG_VERIFY_TOKEN already being true — which it is in a
+    # developer's .env and is not in CI, where the setting keeps its default.
+    monkeypatch.setattr(settings, "DEBUG_VERIFY_TOKEN", True)
     email = f"verify-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     signup = await client.post("/api/v1/auth/signup", json={
         "email": email, "password": "password123", "display_name": "Verifier",
@@ -105,7 +111,8 @@ async def test_resend_verification_returns_debug_token(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_verify_email_flips_is_verified(client: AsyncClient):
+async def test_verify_email_flips_is_verified(client: AsyncClient, monkeypatch):
+    monkeypatch.setattr(settings, "DEBUG_VERIFY_TOKEN", True)
     email = f"verify2-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     signup = await client.post("/api/v1/auth/signup", json={
         "email": email, "password": "password123", "display_name": "ToVerify",
@@ -133,7 +140,8 @@ async def test_verify_email_rejects_bad_token(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_resend_verification_noop_when_already_verified(client: AsyncClient):
+async def test_resend_verification_noop_when_already_verified(client: AsyncClient, monkeypatch):
+    monkeypatch.setattr(settings, "DEBUG_VERIFY_TOKEN", True)
     email = f"already-{uuid.uuid4().hex[:8]}@fetchapp.dev"
     signup = await client.post("/api/v1/auth/signup", json={
         "email": email, "password": "password123", "display_name": "Already",
