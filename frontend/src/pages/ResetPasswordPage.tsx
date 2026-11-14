@@ -8,8 +8,10 @@ import DogIllustration from '../components/flair/DogIllustration';
 import Button from '../components/ui/Button';
 import PasswordInput from '../components/ui/PasswordInput';
 import { apiErrorMessage } from '../utils/apiError';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function ResetPasswordPage() {
+  useDocumentTitle('Reset password · Fetchpawz');
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') ?? '';
   const [password, setPassword] = useState('');
@@ -31,7 +33,9 @@ export default function ResetPasswordPage() {
               name="howling"
               className="mx-auto mb-4 h-28 w-auto text-gray-400 dark:text-gray-500"
             />
-            <p className="text-sm text-gray-500 dark:text-gray-400">This reset link is missing a token.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Reset links only work when opened straight from the email. Request a fresh one and try again.
+            </p>
           </div>
           <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
             <Link to="/forgot-password" className="text-brand-600 font-semibold hover:text-brand-700 hover:underline">

@@ -335,3 +335,50 @@ async def test_public_rescue_pending_404(client: AsyncClient, admin_headers: dic
 async def test_public_rescue_image_404_for_unknown_key(client: AsyncClient):
     res = await client.get("/api/v1/public/rescues/images/nonexistent.jpg")
     assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_rescue_can_edit_details_and_place_itself_on_the_map(
+    client: AsyncClient, admin_headers: dict
+):
+    """The dashboard's "Your details" editor: links, location, and the map pin.
+    Signup never collects coordinates, so this PATCH is the only way a rescue
+    ever reaches the rescue map."""
+    headers, profile_id, _email = await _signup_rescue(
+        client, approved=True, admin_headers=admin_headers,
+    )
+    url = "/api/v1/rescues/me"
+
+    saved = await client.patch(url, json={
+        "description": "Small-dog rescue.", "location": "Edmonton, AB",
+        "website": "example.org", "donation_url": None,
+        "lat": 53.5461, "lng": -113.4938,
+    }, headers=headers)
+    assert saved.status_code == 200, saved.text
+    body = saved.json()
+    assert body["website"] == "https://example.org"
+    assert body["donation_url"] is None
+    assert (body["lat"], body["lng"]) == (53.5461, -113.4938)
+
+    nearby = await client.get(
+        "/api/v1/rescues/nearby?lat=53.55&lng=-113.49&radius_km=25", headers=headers
+    )
+    assert nearby.status_code == 200, nearby.text
+    assert profile_id in [r["id"] for r in nearby.json()]
+
+    # Input the form could send by mistake is refused, not stored or 500'd.
+    for bad in (
+        {"description": "   "},
+        {"description": None},
+        {"org_name": "x" * 201},
+        {"lat": 53.5},                 # half a coordinate
+        {"lat": 999, "lng": 0},
+        {"lat": None, "lng": -113.4},
+    ):
+        res = await client.patch(url, json=bad, headers=headers)
+        assert res.status_code == 422, (bad, res.status_code, res.text)
+
+    # Removing the pin takes the rescue back off the map.
+    cleared = await client.patch(url, json={"lat": None, "lng": None}, headers=headers)
+    assert cleared.status_code == 200
+    assert cleared.json()["lat"] is None

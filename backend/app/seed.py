@@ -1,8 +1,10 @@
 """Seed script: creates 10 users, 20 pets, parks, votes, posts, rescues, and follows."""
 import asyncio
+import io
 import uuid
 from datetime import date, datetime, timezone, timedelta
 
+from PIL import Image, ImageDraw, ImageFont
 from passlib.context import CryptContext
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -11,10 +13,13 @@ from app.config import settings
 from app.models import User, Pet
 from app.models.breed import Breed
 from app.models.park import Park, ParkReview
+from app.models.photo import Photo
 from app.models.post import Post
 from app.models.rescue import RescueProfile
 from app.models.vote import Vote
 from app.models.social import Follow
+from app.services.rescue_service import unique_rescue_slug
+from app.storage import generate_storage_key, get_storage
 
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -57,37 +62,37 @@ PARKS_DATA = [
         "name": "Central Park Pet Run",
         "address": "Central Park, New York, NY",
         "lat": 40.7812, "lng": -73.9665,
-        "attributes": {"off_leash": True, "water": True, "fenced": True, "size": "large"},
+        "attributes": {"off_leash_legal": True, "water": True, "fenced": True},
     },
     {
         "name": "Prospect Park Pet Beach",
         "address": "Prospect Park, Brooklyn, NY",
         "lat": 40.6602, "lng": -73.9690,
-        "attributes": {"off_leash": True, "water": True, "fenced": False, "size": "medium"},
+        "attributes": {"off_leash_legal": True, "water": True, "fenced": False},
     },
     {
         "name": "Battery Park Pet Run",
         "address": "Battery Park City, New York, NY",
         "lat": 40.7069, "lng": -74.0160,
-        "attributes": {"off_leash": True, "water": False, "fenced": True, "size": "small"},
+        "attributes": {"off_leash_legal": True, "water": False, "fenced": True},
     },
     {
         "name": "Duboce Park",
         "address": "Duboce Ave, San Francisco, CA",
         "lat": 37.7693, "lng": -122.4330,
-        "attributes": {"off_leash": True, "water": True, "fenced": False, "size": "medium"},
+        "attributes": {"off_leash_legal": True, "water": True, "fenced": False},
     },
     {
         "name": "Golden Gate Park Pet Play Area",
         "address": "Golden Gate Park, San Francisco, CA",
         "lat": 37.7694, "lng": -122.4862,
-        "attributes": {"off_leash": True, "water": True, "fenced": True, "size": "large"},
+        "attributes": {"off_leash_legal": True, "water": True, "fenced": True},
     },
     {
         "name": "Dolores Park",
         "address": "Dolores St, San Francisco, CA",
         "lat": 37.7596, "lng": -122.4269,
-        "attributes": {"off_leash": False, "water": False, "fenced": False, "size": "medium"},
+        "attributes": {"off_leash_legal": False, "water": False, "fenced": False},
     },
 ]
 
@@ -162,6 +167,47 @@ RESCUE_ACCOUNTS = [
 def _week_bucket() -> date:
     today = date.today()
     return today - timedelta(days=today.weekday())
+
+
+# Flat tints for the placeholder photos, cycled per pet.
+_TILE_COLORS = ["#ee7a10", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#0ea5e9", "#f59e0b"]
+
+
+def _placeholder_photo(name: str, index: int) -> bytes:
+    """A tinted square carrying the pet's initial, as JPEG bytes."""
+    size = 800
+    img = Image.new("RGB", (size, size), _TILE_COLORS[index % len(_TILE_COLORS)])
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.load_default(size=420)
+    letter = (name[:1] or "?").upper()
+    left, top, right, bottom = draw.textbbox((0, 0), letter, font=font)
+    draw.text(
+        ((size - (right - left)) / 2 - left, (size - (bottom - top)) / 2 - top),
+        letter, fill="#ffffff", font=font,
+    )
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    return buf.getvalue()
+
+
+async def _give_photo(session: AsyncSession, pet: Pet, index: int) -> None:
+    """Store one approved photo for a seeded pet and make it the primary.
+
+    Not decoration: the swipe feed only deals pets that have an approved
+    photo. Seeded pets used to have none, so a freshly seeded app opened on
+    "You've rated everyone" with twenty-five pets in the database.
+    """
+    content_type = "image/jpeg"
+    key = generate_storage_key(content_type)
+    await get_storage().put(key, _placeholder_photo(pet.name, index), content_type)
+    photo = Photo(
+        id=uuid.uuid4(), pet_id=pet.id, storage_key=key,
+        width=800, height=800, content_type=content_type,
+        moderation_status="approved",
+    )
+    session.add(photo)
+    await session.flush()  # the photo row must exist before the pet points at it
+    pet.primary_photo_id = photo.id
 
 
 async def seed():
@@ -240,6 +286,9 @@ async def seed():
 
         # Flush to get IDs
         await session.flush()
+
+        for idx, pet in enumerate(pets):
+            await _give_photo(session, pet, idx)
 
         # --- Votes (so rankings leaderboard is populated) ---
         week = _week_bucket()
@@ -333,6 +382,8 @@ async def seed():
                 id=uuid.uuid4(),
                 user_id=rescue_user.id,
                 org_name=rdata["org_name"],
+                # Signup assigns one; without it the rescue has no public page.
+                slug=await unique_rescue_slug(session, rdata["org_name"]),
                 description=rdata["description"],
                 location=rdata["location"],
                 lat=rdata.get("lat"),
@@ -363,6 +414,8 @@ async def seed():
                         )
                         rd.breeds = list(br_result.scalars().all())
                     session.add(rd)
+                    await session.flush()
+                    await _give_photo(session, rd, len(pets) + rescue_count)
 
         # --- Follows ---
         for i, user in enumerate(users):

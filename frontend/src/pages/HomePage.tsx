@@ -30,10 +30,11 @@ import { useWeeklyResetCountdown, nextWeeklyReset } from '../utils/weeklyReset';
 import { onboarding } from '../utils/onboarding';
 import { useSwipeQuota } from '../utils/swipeQuota';
 import { useSubscription } from '../utils/useSubscription';
-import { useUserLocation } from '../utils/useUserLocation';
+import { DEFAULT_MAP_CENTER, useUserLocation } from '../utils/useUserLocation';
+import { useSectionOpen } from '../hooks/usePublicFlags';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const MAX_STRIP_AVATARS = 8;
-const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // same fallback as Lost/Parks
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -97,6 +98,7 @@ function CrownHero({ species, winner, resetsIn }: { species: Species; winner: We
 }
 
 export default function HomePage() {
+  useDocumentTitle('Home · Fetchpawz');
   const { user } = useAuth();
   // Rescues are distinct content-producer accounts — they don't get the
   // consumer home. Skip the consumer queries and send them to their dashboard.
@@ -142,7 +144,7 @@ export default function HomePage() {
   const { isSubscriber } = useSubscription();
   const homeQuota = useSwipeQuota(Boolean(user) && !isRescue && !isSubscriber);
   const swipesLeft = user && !isRescue ? homeQuota.remaining : 0;
-  const [lng, lat] = useUserLocation(DEFAULT_CENTER);
+  const [lng, lat] = useUserLocation(DEFAULT_MAP_CENTER);
   const { data: nearbyLost = [] } = useQuery({
     queryKey: ['nearby-lost-count', lat.toFixed(2), lng.toFixed(2)],
     queryFn: () => getNearbyReports(lat, lng, 25, 'missing'),
@@ -150,10 +152,14 @@ export default function HomePage() {
     staleTime: 5 * 60_000,
   });
   const missingNearby = nearbyLost.filter((r) => r.status === 'open').length;
+  // Both destinations sit behind Explore flags (FlagGate on the routes), so
+  // the links below follow the same switches instead of opening "Coming soon".
+  const donateOpen = useSectionOpen('explore_donate_enabled');
+  const packOpen = useSectionOpen('explore_pack_enabled');
   const { data: donationConfig } = useQuery({
     queryKey: ['donation-config'],
     queryFn: getDonationConfig,
-    enabled: !isRescue,
+    enabled: !isRescue && donateOpen,
     staleTime: 5 * 60_000,
   });
 
@@ -170,7 +176,9 @@ export default function HomePage() {
   const steps: { key: string; label: string; to: string; done: boolean }[] = [
     { key: 'pet', label: 'Add your pet', to: '/app/pets/new', done: myDogs.length > 0 },
     { key: 'swipe', label: 'Rate some pets', to: '/app/swipe', done: user ? onboarding.hasSwiped(user.id) : false },
-    { key: 'follow', label: 'Follow a pet you like', to: '/app/explore', done: followedDogs.length > 0 },
+    // Explore's pet grid is the natural place to find one; with it switched
+    // off, the leaderboard is the next-best list of pets to open and follow.
+    { key: 'follow', label: 'Follow a pet you like', to: packOpen ? '/app/explore' : '/app/rankings', done: followedDogs.length > 0 },
   ];
   const showOnboarding =
     !!user && !dismissed && !dogsLoading && myDogs.length === 0;
@@ -376,7 +384,7 @@ export default function HomePage() {
         </div>
 
         {/* Donations — compact row, only when Stripe is configured */}
-        {donationConfig?.enabled && (
+        {donateOpen && donationConfig?.enabled && (
           <Link
             to="/app/donate"
             style={stagger(3)}

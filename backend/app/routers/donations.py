@@ -10,7 +10,7 @@ import uuid
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -275,14 +275,31 @@ async def connect_status(
 
 async def _mark_succeeded(
     db: AsyncSession, donation: Donation, *, payment_intent: str | None
-) -> None:
+) -> bool:
     """Single place a donation becomes 'succeeded' (webhook + lazy reconcile).
+
+    Returns False when another request already settled it. The two callers
+    race by design: the success page reconciles the moment Stripe redirects
+    back, which is also when the webhook lands. Each used to read "pending",
+    then both wrote "succeeded" and both sent the thank-you and the rescue's
+    "you received a donation" — two of each. The conditional UPDATE makes the
+    claim atomic: under READ COMMITTED the second writer waits for the first,
+    re-checks the WHERE, matches nothing, and stops here.
 
     Adds notifications to the session without committing — the caller owns
     the transaction (house rule from services/notify.py).
     """
-    donation.status = "succeeded"
-    donation.stripe_payment_intent_id = payment_intent
+    claimed = (
+        await db.execute(
+            update(Donation)
+            .where(Donation.id == donation.id, Donation.status == "pending")
+            .values(status="succeeded", stripe_payment_intent_id=payment_intent)
+            .returning(Donation.id)
+        )
+    ).scalar_one_or_none()
+    await db.refresh(donation)
+    if claimed is None:
+        return False
     amount = f"${donation.amount_cents / 100:.2f}"
     if donation.user_id:
         await notify(
@@ -309,6 +326,7 @@ async def _mark_succeeded(
                 body=donation.message,
                 link="/app/rescue/dashboard",
             )
+    return True
 
 
 async def _donation_by_session_id(db: AsyncSession, session_id: str) -> Donation | None:
@@ -347,14 +365,35 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     obj = event.get("data", {}).get("object", {})
     event_type = event["type"]
 
-    if event_type == "checkout.session.completed":
+    # "completed" means the customer finished Checkout, not that money moved.
+    # For a delayed method (bank debits and the like, switched on from the
+    # Stripe Dashboard, not from this code) it arrives with payment_status
+    # "unpaid" and the verdict follows later as async_payment_succeeded or
+    # async_payment_failed. Treating "completed" as paid recorded — and
+    # thanked both sides for — donations that could still bounce.
+    paid = (
+        event_type == "checkout.session.async_payment_succeeded"
+        or (
+            event_type == "checkout.session.completed"
+            and obj.get("payment_status") == "paid"
+        )
+    )
+    if paid:
         donation = await _donation_by_session_id(db, obj.get("id", ""))
         # status guard = second idempotency layer (lazy reconcile may have won)
         if donation and donation.status == "pending":
             await _mark_succeeded(
                 db, donation, payment_intent=obj.get("payment_intent")
             )
-    elif event_type == "checkout.session.expired":
+    elif event_type == "checkout.session.completed":
+        logger.info(
+            "stripe_checkout_awaiting_payment",
+            session=obj.get("id"), payment_status=obj.get("payment_status"),
+        )
+    elif event_type in (
+        "checkout.session.expired",
+        "checkout.session.async_payment_failed",
+    ):
         donation = await _donation_by_session_id(db, obj.get("id", ""))
         if donation and donation.status == "pending":
             donation.status = "failed"

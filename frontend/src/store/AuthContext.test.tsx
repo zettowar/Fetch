@@ -57,9 +57,11 @@ describe('AuthContext', () => {
     expect(localStorage.getItem('refresh_token')).toBe('new-r');
   });
 
-  it('clears the stored token if refresh fails', async () => {
+  it('clears the stored token when the server rejects it', async () => {
     localStorage.setItem('refresh_token', 'bad');
-    vi.spyOn(authApi, 'refreshTokens').mockRejectedValue(new Error('expired'));
+    vi.spyOn(authApi, 'refreshTokens').mockRejectedValue(
+      Object.assign(new Error('expired'), { response: { status: 401 } }),
+    );
 
     render(
       <AuthProvider>
@@ -70,6 +72,30 @@ describe('AuthContext', () => {
     await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'));
     expect(screen.getByTestId('auth').textContent).toBe('false');
     expect(localStorage.getItem('refresh_token')).toBeNull();
+  });
+
+  it('keeps the stored token when the refresh merely could not be reached', async () => {
+    // Offline, or a 502 while a deploy restarts the API: no verdict on the
+    // session, so the next load must be able to try again.
+    for (const failure of [
+      new Error('Network Error'),
+      Object.assign(new Error('bad gateway'), { response: { status: 502 } }),
+      Object.assign(new Error('slow down'), { response: { status: 429 } }),
+    ]) {
+      localStorage.setItem('refresh_token', 'still-good');
+      vi.spyOn(authApi, 'refreshTokens').mockRejectedValue(failure);
+
+      const { unmount } = render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+
+      await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'));
+      expect(screen.getByTestId('auth').textContent).toBe('false');
+      expect(localStorage.getItem('refresh_token')).toBe('still-good');
+      unmount();
+    }
   });
 
   it('logout clears the user and the stored refresh token', async () => {

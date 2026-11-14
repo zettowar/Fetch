@@ -48,6 +48,10 @@ export interface Report {
   status: string;
   admin_notes: string | null;
   created_at: string;
+  /** Where to open the reported thing in the app; null once it is deleted. */
+  target_path?: string | null;
+  /** The reported text itself, for comments and posts. */
+  target_excerpt?: string | null;
 }
 
 export interface Strike {

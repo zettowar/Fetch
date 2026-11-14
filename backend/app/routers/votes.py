@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -75,6 +76,39 @@ async def cast_vote(
 
     await db.refresh(vote)
     return vote
+
+
+@router.delete("/{pet_id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("60/minute")
+async def take_back_vote(
+    request: Request,
+    pet_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rewind: remove this week's vote on one pet so it can be cast again.
+
+    The swipe deck has offered "Rewind" to Pack+ members all along, but there
+    was nothing behind it — the card went back on the deck while the vote
+    stayed, so swiping it again was refused as a duplicate and the deck
+    wedged on that card. This is the missing half.
+
+    Pack+ only, matching the perk the client advertises. Idempotent: taking
+    back a vote that isn't there is still a 204.
+    """
+    if not await quota_service.is_ad_free(db, user.id, datetime.now(timezone.utc)):
+        raise HTTPException(status_code=403, detail="Rewind is a Pack+ perk")
+    result = await db.execute(
+        select(Vote).where(
+            Vote.voter_id == user.id,
+            Vote.pet_id == pet_id,
+            Vote.week_bucket == current_week_bucket(),
+        )
+    )
+    vote = result.scalar_one_or_none()
+    if vote is not None:
+        await db.delete(vote)
+        await db.commit()
 
 
 @router.get("/quota", response_model=QuotaOut)

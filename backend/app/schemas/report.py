@@ -38,6 +38,34 @@ class ReportOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ReportMineOut(BaseModel):
+    """A report as its own reporter sees it: everything but the moderators'
+    notes. Those are internal triage ("third report from this account"), the
+    same rule as support-ticket admin_notes — and the reporter-facing routes
+    used to return ReportOut, notes included."""
+
+    id: UUID
+    target_type: str
+    target_id: UUID
+    reason: str
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AdminReportOut(ReportOut):
+    """ReportOut plus what a moderator needs to actually look at the target.
+
+    `target_path` is where to open it in the app (null when the target has
+    since been deleted); `target_excerpt` is the reported text itself for
+    comments and posts.
+    """
+
+    target_path: str | None = None
+    target_excerpt: str | None = None
+
+
 class ReportReview(BaseModel):
     status: str  # reviewed | dismissed
     admin_notes: str | None = Field(default=None, max_length=1000)

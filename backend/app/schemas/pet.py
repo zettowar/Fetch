@@ -1,9 +1,10 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.breed import BreedSummary
+from app.schemas.common import reject_explicit_nulls
 from app.schemas.photo import PhotoSummary
 from app.services.traits import MAX_TRAITS_PER_PET, normalize_trait, trait_slug
 
@@ -67,6 +68,28 @@ def _validate_breed_ids(v: list[UUID]) -> list[UUID]:
     return out
 
 
+# Column sizes (models/pet.py). Enforced here so an over-long value is a 422
+# the form can show, not a database error.
+NAME_MAX = 100
+BIO_MAX = 500
+LOCATION_MAX = 200
+
+
+def _clean_name(v: str) -> str:
+    v = v.strip()
+    if not v:
+        raise ValueError("Name is required")
+    if len(v) > NAME_MAX:
+        raise ValueError(f"Name must be {NAME_MAX} characters or less")
+    return v
+
+
+def _check_bio(v: str | None) -> str | None:
+    if v and len(v) > BIO_MAX:
+        raise ValueError(f"Bio must be {BIO_MAX} characters or less")
+    return v
+
+
 class PetCreate(BaseModel):
     name: str
     species: str = "dog"
@@ -74,8 +97,12 @@ class PetCreate(BaseModel):
     breed_ids: list[UUID] = []
     birthday: date | None = None
     bio: str | None = None
-    location_rough: str | None = None
+    location_rough: str | None = Field(default=None, max_length=LOCATION_MAX)
     traits: list[str] = []
+    # The editor shows the "Public share page" switch on the create form too.
+    # Without the field here the choice was silently dropped and every new pet
+    # was created public, whatever the owner had picked.
+    is_public: bool = True
 
     @field_validator("species")
     @classmethod
@@ -100,16 +127,12 @@ class PetCreate(BaseModel):
     @field_validator("name")
     @classmethod
     def name_not_empty(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("Name is required")
-        return v.strip()
+        return _clean_name(v)
 
     @field_validator("bio")
     @classmethod
     def bio_max_length(cls, v: str | None) -> str | None:
-        if v and len(v) > 500:
-            raise ValueError("Bio must be 500 characters or less")
-        return v
+        return _check_bio(v)
 
     @field_validator("birthday")
     @classmethod
@@ -118,14 +141,32 @@ class PetCreate(BaseModel):
 
 
 class PetUpdate(BaseModel):
+    """Partial update. `birthday`, `bio` and `location_rough` may be sent as
+    null to clear them; the rest are required columns and reject null."""
+
     name: str | None = None
     mix_type: str | None = None
     breed_ids: list[UUID] | None = None
     birthday: date | None = None
     bio: str | None = None
-    location_rough: str | None = None
+    location_rough: str | None = Field(default=None, max_length=LOCATION_MAX)
     traits: list[str] | None = None
     is_public: bool | None = None
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v: str | None) -> str | None:
+        return None if v is None else _clean_name(v)
+
+    @field_validator("bio")
+    @classmethod
+    def bio_max_length(cls, v: str | None) -> str | None:
+        return _check_bio(v)
+
+    @model_validator(mode="after")
+    def required_columns_not_null(self) -> "PetUpdate":
+        reject_explicit_nulls(self, "name", "mix_type", "traits", "is_public")
+        return self
 
     @field_validator("mix_type")
     @classmethod

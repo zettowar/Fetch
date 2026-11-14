@@ -7,8 +7,10 @@ import AuthHero from '../components/AuthHero';
 import DogIllustration from '../components/flair/DogIllustration';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function ForgotPasswordPage() {
+  useDocumentTitle('Forgot password · Fetchpawz');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);

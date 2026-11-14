@@ -18,7 +18,7 @@ from datetime import timedelta
 
 import structlog
 from celery.beat import ScheduleEntry, Scheduler
-from celery.schedules import crontab, schedule
+from celery.schedules import crontab, schedstate, schedule
 from sqlalchemy import create_engine, func, select, text
 from sqlalchemy.orm import sessionmaker
 
@@ -26,6 +26,10 @@ from app.config import settings
 from app.models.periodic_task import PeriodicTask
 
 logger = structlog.get_logger()
+
+# How long a spent one-off entry asks Beat to wait before asking again. Only a
+# hint — Beat caps its sleep at beat_max_loop_interval anyway.
+_ONE_OFF_RECHECK_SECONDS = 300
 
 
 def build_schedule(row, app=None):
@@ -59,8 +63,18 @@ class ModelEntry(ScheduleEntry):
         # Never-run tasks start "as if run now" so they don't all stampede-fire
         # the instant Beat boots (django-celery-beat's default_now behavior).
         self.last_run_at = row.last_run_at or app.now()
+        # True once THIS loaded entry has fired. In-memory on purpose: it
+        # resets when the row is reloaded, which is exactly what re-enabling a
+        # spent one-off job from the admin panel should do.
+        self.fired = False
 
     def is_due(self):
+        if self.one_off and self.fired:
+            # A one-off job runs once. The write-back disables its row, but
+            # the entry stays in the live schedule until the next reload, and
+            # with nothing here to stop it Beat kept firing a "one-off" on
+            # every interval. Not due; look again in a while.
+            return schedstate(is_due=False, next=_ONE_OFF_RECHECK_SECONDS)
         return self.schedule.is_due(self.last_run_at)
 
     def __next__(self):
@@ -71,6 +85,7 @@ class ModelEntry(ScheduleEntry):
         entry.__dict__.update(self.__dict__)
         entry.last_run_at = self.app.now()
         entry.total_run_count = self.total_run_count + 1
+        entry.fired = True
         return entry
 
     next = __next__  # celery calls next(entry)
@@ -182,9 +197,13 @@ class DatabaseScheduler(Scheduler):
                     # change-marker would treat our own write-back as a config
                     # edit and reload every run.
                     if entry.one_off:
+                        # The one exception: disabling a spent one-off IS a
+                        # schedule change, so it does bump updated_at. The
+                        # reload it triggers (once, by definition) drops the
+                        # entry from the live schedule.
                         session.execute(text(
                             "UPDATE periodic_tasks SET last_run_at=:lr, total_run_count=:c, "
-                            "enabled=false WHERE id=CAST(:id AS uuid)"
+                            "enabled=false, updated_at=now() WHERE id=CAST(:id AS uuid)"
                         ), params)
                     else:
                         session.execute(text(

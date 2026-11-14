@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { Check, Trees } from 'lucide-react';
 import { getNearbyParks } from '../api/parks';
@@ -9,14 +9,18 @@ import EmptyState from '../components/ui/EmptyState';
 import SearchInput from '../components/ui/SearchInput';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import PawSpinner from '../components/flair/PawSpinner';
-import { useUserLocation } from '../utils/useUserLocation';
+import { DEFAULT_MAP_CENTER, useUserLocation } from '../utils/useUserLocation';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { useAuth } from '../store/AuthContext';
 
-const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // fallback
 
 type Filter = 'all' | 'active' | 'verified';
 
 export default function ParksPage() {
-  const initialCenter = useUserLocation(DEFAULT_CENTER);
+  useDocumentTitle('Pet parks · Fetchpawz');
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const initialCenter = useUserLocation(DEFAULT_MAP_CENTER);
   const [viewCenter, setViewCenter] = useState<[number, number]>(initialCenter);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -32,6 +36,11 @@ export default function ParksPage() {
   const { data: parks = [], isLoading, isError } = useQuery({
     queryKey: ['parks-nearby', viewCenter[1], viewCenter[0]],
     queryFn: () => getNearbyParks(viewCenter[1], viewCenter[0], 25),
+    // Keep the last result on screen while the next centre loads. The key is
+    // the exact map centre, so without this every pan was a brand-new query
+    // with no data: the pins vanished (and any open popup closed) until the
+    // response for the new position arrived.
+    placeholderData: keepPreviousData,
   });
 
   const searchLower = search.trim().toLowerCase();
@@ -212,13 +221,27 @@ export default function ParksPage() {
                 }
                 body={
                   parks.length === 0 ? (
-                    <>
-                      Know one we&rsquo;re missing?{' '}
-                      <Link to="/app/parks/new" className="text-brand-500 hover:underline">
-                        Add a park
-                      </Link>{' '}
-                      and it will show up for everyone nearby.
-                    </>
+                    // Adding a park is staff-only on the server. Offering the
+                    // form to everyone meant filling it in to be told
+                    // "Failed to add park", so members get the same route Vets
+                    // uses: tell us, and we add it.
+                    isAdmin ? (
+                      <>
+                        Know one we&rsquo;re missing?{' '}
+                        <Link to="/app/parks/new" className="text-brand-500 hover:underline">
+                          Add a park
+                        </Link>{' '}
+                        and it will show up for everyone nearby.
+                      </>
+                    ) : (
+                      <>
+                        Know one we&rsquo;re missing?{' '}
+                        <Link to="/app/support" className="text-brand-500 hover:underline">
+                          Tell us
+                        </Link>{' '}
+                        and we&rsquo;ll add it for everyone nearby.
+                      </>
+                    )
                   ) : undefined
                 }
               />

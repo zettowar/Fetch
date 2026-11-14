@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Map from './Map';
+import { DEFAULT_MAP_CENTER } from '../utils/useUserLocation';
 
 interface Props {
   /** Current picked coordinates, or null if none. */
@@ -16,7 +17,7 @@ interface Props {
   accentColor?: string;
 }
 
-const DEFAULT_FALLBACK: [number, number] = [-122.4194, 37.7749];
+const DEFAULT_FALLBACK = DEFAULT_MAP_CENTER;
 
 // Preset radii — common values that match how reporters think about search areas.
 const RADIUS_PRESETS: { label: string; meters: number }[] = [

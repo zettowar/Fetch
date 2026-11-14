@@ -101,3 +101,39 @@ async def test_downvote_allowed(client: AsyncClient, auth_headers: dict):
     res = await client.post("/api/v1/votes", json={"pet_id": pet_id, "value": -1}, headers=auth_headers)
     assert res.status_code == 201
     assert res.json()["value"] == -1
+
+
+@pytest.mark.asyncio
+async def test_rewind_takes_back_a_vote_for_pack_plus(
+    client: AsyncClient, admin_headers: dict
+):
+    """Rewind is the Pack+ perk the deck advertises. It needs a way to take the
+    vote back — without one the rewound card was refused as a duplicate (409)
+    the moment it was swiped again."""
+    email = f"rewind-{uuid.uuid4().hex[:8]}@fetchapp.dev"
+    signup = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "testpass123", "display_name": "Rewinder",
+    })
+    headers = {"Authorization": f"Bearer {signup.json()['tokens']['access_token']}"}
+    user_id = signup.json()["user"]["id"]
+    _, pet_id = await _create_user_and_dog(client, "rewind-target")
+    vote = {"pet_id": pet_id, "value": 1}
+
+    assert (await client.post("/api/v1/votes", json=vote, headers=headers)).status_code == 201
+
+    # Not a subscriber yet: the perk is refused and the vote stands.
+    assert (await client.delete(f"/api/v1/votes/{pet_id}", headers=headers)).status_code == 403
+    assert (await client.post("/api/v1/votes", json=vote, headers=headers)).status_code == 409
+
+    grant = await client.post("/api/v1/billing/grant", json={
+        "user_id": user_id, "entitlement_key": "ads_removed", "source": "test",
+    }, headers=admin_headers)
+    assert grant.status_code in (200, 201), grant.text
+
+    assert (await client.delete(f"/api/v1/votes/{pet_id}", headers=headers)).status_code == 204
+    # Idempotent — a double tap on Rewind is not an error.
+    assert (await client.delete(f"/api/v1/votes/{pet_id}", headers=headers)).status_code == 204
+    # The card can be swiped again, the other way this time.
+    redo = await client.post("/api/v1/votes", json={"pet_id": pet_id, "value": -1}, headers=headers)
+    assert redo.status_code == 201
+    assert redo.json()["value"] == -1

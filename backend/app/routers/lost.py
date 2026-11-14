@@ -1,4 +1,3 @@
-import io
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -14,7 +13,9 @@ from fastapi import (
     UploadFile,
     status,
 )
-from PIL import Image
+import structlog
+from fastapi.concurrency import run_in_threadpool
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -29,6 +30,7 @@ from app.models.lost_report import (
     LostReportSubscription,
 )
 from app.models.user import User
+from app.routers.photos import _decode_slots, _process_upload
 from app.schemas.lost_report import (
     ContactRequest,
     LostReportCreate,
@@ -52,9 +54,9 @@ from app.services.moderation import check_image
 from app.storage import generate_storage_key, get_storage
 
 router = APIRouter()
+logger = structlog.stdlib.get_logger()
 
 SIGHTING_PHOTO_MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-SIGHTING_PHOTO_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 def _sighting_to_out(
@@ -213,7 +215,13 @@ async def create_report(
 
     if report.last_seen_lat and report.last_seen_lng:
         from app.tasks.lost_alerts import send_proximity_alerts
-        send_proximity_alerts.delay(str(report.id))
+        try:
+            send_proximity_alerts.delay(str(report.id))
+        except Exception as exc:
+            # The report is already committed. A broker outage must not turn
+            # "your pet is reported" into a 500 — the person would retry and
+            # file it twice. Alerts for this one are lost; say so in the logs.
+            logger.error("proximity_alert_enqueue_failed", report_id=str(report.id), exc=str(exc))
 
     return _report_to_out(report, is_owner=True)
 
@@ -386,7 +394,19 @@ async def add_sighting(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    body = SightingCreate(lat=lat, lng=lng, seen_at=seen_at, note=note)
+    # Built by hand because the endpoint is multipart (it carries the photo),
+    # so a bad value raises pydantic's own ValidationError rather than
+    # FastAPI's RequestValidationError — which the generic handler turned into
+    # a 500 for a mistyped latitude.
+    try:
+        body = SightingCreate(lat=lat, lng=lng, seen_at=seen_at, note=note)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="; ".join(
+                str(e["msg"]).removeprefix("Value error, ") for e in exc.errors()
+            ),
+        )
 
     result = await db.execute(select(LostReport).where(LostReport.id == report_id))
     report = result.scalar_one_or_none()
@@ -406,14 +426,16 @@ async def add_sighting(
         data = await photo.read()
         if len(data) > SIGHTING_PHOTO_MAX_SIZE:
             raise HTTPException(status_code=400, detail="File too large (max 10MB)")
-        try:
-            img = Image.open(io.BytesIO(data))
-            img.verify()
-        except Exception:
-            raise HTTPException(status_code=400, detail="Invalid image file")
-        detected = f"image/{img.format.lower()}" if img.format else photo.content_type
-        if detected not in SIGHTING_PHOTO_ALLOWED_TYPES:
-            raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP are allowed")
+        # Same pipeline as pet photos: validate, bound, and RE-ENCODE. The
+        # re-encode is the point — it drops EXIF. Sighting photos are served
+        # without auth, and a phone photo of a stray carries the GPS fix of
+        # wherever the finder was standing; the bytes used to be stored as
+        # sent, with only the web client's canvas step standing between that
+        # and the public.
+        async with _decode_slots:
+            detected, data, _dimensions = await run_in_threadpool(
+                _process_upload, data, photo.content_type
+            )
         # Sighting photos are public; reject anything the moderator doesn't
         # approve (sightings have no hidden/flagged review state).
         mod_result = await check_image(data)
@@ -614,8 +636,6 @@ async def contact_reporter(
         message=body.message,
     )
 
-    import structlog
-    logger = structlog.stdlib.get_logger()
     logger.info(
         "contact_relay",
         report_id=str(report_id),

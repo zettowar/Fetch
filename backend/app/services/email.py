@@ -339,6 +339,7 @@ async def send_waitlist_confirmation_email(to: str) -> bool:
             cta_label="Sniff around the site",
             preheader="You are in line — your invite lands in this inbox.",
         ),
+        kind="waitlist",
     )
 
 
@@ -427,7 +428,9 @@ async def send_transfer_invite_email(
         to,
         f"{pet_name} is waiting for you 🐾",
         _layout(
-            f"{safe_rescue} wants to transfer {safe_pet} to you",
+            # Raw names here and in the preheader: _layout escapes both itself,
+            # so passing the escaped copies rendered "Paws &amp; Claws".
+            f"{rescue_name} wants to transfer {pet_name} to you",
             f"<p><strong>{safe_rescue}</strong> has started transferring "
             f"{safe_pet}&rsquo;s profile to you on Fetchpawz. Once you accept, "
             f"{safe_pet} is yours to look after here.</p>" + extra +
@@ -435,7 +438,7 @@ async def send_transfer_invite_email(
             f"in {expires_days} days.</p>",
             cta_url=url,
             cta_label=cta,
-            preheader=f"{safe_rescue} is transferring {safe_pet} to you.",
+            preheader=f"{rescue_name} is transferring {pet_name} to you.",
         ),
         kind="transfer_invite",
     )
@@ -570,7 +573,7 @@ async def send_ticket_reply_email(
     subject: str,
     reply_body: str,
     ticket_id: str,
-    resolved: bool,
+    outcome: str | None = None,
 ) -> bool:
     """Tell a reporter that support answered their ticket.
 
@@ -583,12 +586,23 @@ async def send_ticket_reply_email(
     round trip to the app to learn one sentence is worse than no email.
     """
     base = settings.FRONTEND_BASE_URL.rstrip("/")
-    closing = (
-        "<p>We&rsquo;ve marked this one resolved — if that&rsquo;s not right, "
-        "reply in the app and it reopens.</p>"
-        if resolved
-        else "<p>You can reply in the app if there&rsquo;s more to add.</p>"
-    )
+    # `outcome` is the status this reply left the ticket in, when it ended the
+    # conversation. The two endings are not the same promise: a resolved
+    # ticket reopens on reply, a closed one refuses replies (409). Telling a
+    # closed ticket's reporter to "reply and it reopens" sent them to a dead
+    # end, so closed points at a new request instead.
+    if outcome == "resolved":
+        closing = (
+            "<p>We&rsquo;ve marked this one resolved — if that&rsquo;s not right, "
+            "reply in the app and it reopens.</p>"
+        )
+    elif outcome == "closed":
+        closing = (
+            "<p>We&rsquo;ve closed this conversation. If you still need a hand, "
+            "open a new request from Help &amp; support in the app.</p>"
+        )
+    else:
+        closing = "<p>You can reply in the app if there&rsquo;s more to add.</p>"
     return await send_email(
         to,
         f"Re: {subject} [{ticket_number}]",
@@ -628,7 +642,8 @@ async def send_tag_found_email(
         to,
         f"Someone found {pet_name}",
         _layout(
-            f"Someone scanned {safe_pet}'s tag",
+            # Raw name: _layout escapes the heading and preheader itself.
+            f"Someone scanned {pet_name}'s tag",
             f"<p><strong>{html.escape(finder_name)}</strong> scanned "
             f"{safe_pet}'s Fetchpawz collar tag and left you a message:</p>"
             '<blockquote style="border-left:3px solid #ee7a10;margin:16px 0;'
@@ -639,7 +654,7 @@ async def send_tag_found_email(
             f'<p style="color:#6b7280;font-size:13px">Tag code '
             f"{html.escape(tag_code)}. We could not verify who sent this — "
             "take the usual care when arranging to meet.</p>",
-            preheader=f"{html.escape(finder_name)} may have found {safe_pet}.",
+            preheader=f"{finder_name} may have found {pet_name}.",
         ),
         kind="tag_found",
     )
@@ -663,12 +678,13 @@ async def send_test_email(to: str) -> tuple[bool, str]:
             f"Environment: <strong>{html.escape(settings.ENVIRONMENT)}</strong></p>",
             preheader="If this arrived, transactional email is working.",
         ),
+        kind="test",
     )
 
 
 async def send_lost_alert_email(
     to: str, *, report_id: str, description: str, area_hint: str | None,
-    user_id=None,
+    user_id=None, kind: str = "missing",
 ) -> bool:
     """Proximity alert for a subscriber.
 
@@ -677,19 +693,35 @@ async def send_lost_alert_email(
     same preference.
     """
     url = f"{settings.FRONTEND_BASE_URL}/app/lost/{report_id}"
-    where = f" near {html.escape(area_hint)}" if area_hint else " in your area"
+    # Unescaped: _layout escapes the heading itself.
+    where = f" near {area_hint}" if area_hint else " in your area"
     footer = unsubscribe_footer(user_id, "lost_alerts") if user_id else ""
+    # Both report kinds fan out to subscribers, and they ask opposite things of
+    # the reader. A *found* report has no owner on the other end — telling its
+    # recipients a pet was "lost" and that a sighting "goes straight to the
+    # owner" described a different report from the one they then opened.
+    if kind == "found":
+        subject = "A pet was found near you"
+        heading = f"Found pet reported{where}"
+        ask = (
+            "<p>Recognise them? Open the report to message the person who "
+            "found them.</p>"
+        )
+        preheader = "Know whose they are? Open the report to reach the finder."
+    else:
+        subject = "A pet was reported missing near you"
+        heading = f"Missing pet reported{where}"
+        ask = "<p>If you spot them, add a sighting — it goes straight to the owner.</p>"
+        preheader = "Spotted them? Add a sighting and the owner hears instantly."
     return await send_email(
         to,
-        "A pet was reported lost near you",
+        subject,
         _layout(
-            f"Lost pet reported{where}",
-            f"<p>{html.escape(description[:300])}</p>"
-            "<p>If you spot them, add a sighting — it goes straight to the owner.</p>"
-            + footer,
+            heading,
+            f"<p>{html.escape(description[:300])}</p>" + ask + footer,
             cta_url=url,
             cta_label="View the report",
-            preheader="Spotted them? Add a sighting and the owner hears instantly.",
+            preheader=preheader,
         ),
         headers=unsubscribe_headers(user_id, "lost_alerts") if user_id else None,
         kind="lost_alert",

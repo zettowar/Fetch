@@ -1,14 +1,16 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.db import get_db
 from app.deps import get_current_user
 from app.models.user import User
 from app.models.pet import Pet
+from app.models.lost_report import LostReport
 from app.models.social import Block, Follow
 from app.schemas.user import BlockedUserOut, UserOut, UserUpdate
 
@@ -80,6 +82,15 @@ async def block_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     db.add(Block(blocker_id=user.id, blocked_id=user_id))
+    try:
+        # Flush here, inside the handler. The bulk delete below autoflushes
+        # the pending Block, so a repeat block used to raise uq_block from
+        # that execute() — outside the try that only wrapped commit() — and
+        # the "idempotent success" path was a 500.
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()  # already blocked — idempotent success
+        return {"detail": "User blocked"}
     # Sever the follow graph both ways: neither side keeps a feed line into
     # the other.
     my_pets = select(Pet.id).where(Pet.owner_id == user.id)
@@ -92,10 +103,7 @@ async def block_user(
             )
         )
     )
-    try:
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()  # already blocked — idempotent success
+    await db.commit()
     return {"detail": "User blocked"}
 
 
@@ -121,10 +129,43 @@ async def delete_me(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if user.role == "admin":
+        # Deactivation is only reversible by an admin. The last one closing
+        # their own account would leave nobody able to reinstate anyone.
+        other_admins = (
+            await db.execute(
+                select(func.count())
+                .select_from(User)
+                .where(
+                    User.role == "admin",
+                    User.is_active == True,  # noqa: E712
+                    User.id != user.id,
+                )
+            )
+        ).scalar() or 0
+        if other_admins == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="You're the only admin. Promote another admin before closing this account.",
+            )
+
     user.is_active = False
     # Deactivate all pets
     result = await db.execute(select(Pet).where(Pet.owner_id == user.id))
     for pet in result.scalars():
         pet.is_active = False
+    # Take their lost/found reports down too. The public share page and the
+    # sitemap key off the report alone, so without this a closed account kept
+    # a public, indexable page carrying the pet's name, photo and area.
+    await db.execute(
+        update(LostReport)
+        .where(LostReport.reporter_id == user.id)
+        .values(is_public=False)
+    )
+    await db.execute(
+        update(LostReport)
+        .where(LostReport.reporter_id == user.id, LostReport.status == "open")
+        .values(status="closed", resolved_at=datetime.now(timezone.utc))
+    )
     await db.commit()
     return {"detail": "Account deactivated"}

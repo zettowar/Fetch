@@ -8,7 +8,7 @@ import { apiErrorMessage, isNotFound } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import Avatar from '../components/ui/Avatar';
 import BackButton from '../components/ui/BackButton';
-import ErrorState from '../components/ui/ErrorState';
+import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
 import Skeleton from '../components/ui/Skeleton';
 import CommentSection from '../components/CommentSection';
 import Linkify from '../components/Linkify';
@@ -60,7 +60,7 @@ export default function PostDetailPage() {
     return <ErrorState message="Couldn't load this post." onRetry={() => refetch()} />;
   }
   if (!post) {
-    return <ErrorState message="Post not found." />;
+    return <ErrorState message="Post not found." hint={NOT_FOUND_HINT} />;
   }
 
   const badge = KIND_BADGE[post.kind];

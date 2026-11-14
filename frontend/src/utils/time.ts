@@ -36,7 +36,29 @@ export function relativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
-export function petAge(birthdayStr: string | null): string | null {
+/**
+ * "in 3d", "in 5h" — the forward-looking twin of relativeTime, for expiries
+ * and deadlines. relativeTime only understands the past: handed a future date
+ * its negative difference falls into the first branch and everything reads
+ * "just now".
+ */
+export function timeUntil(dateStr: string): string {
+  const diffMs = new Date(dateStr).getTime() - Date.now();
+  const diffMin = Math.floor(diffMs / 60_000);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffMin < 1) return 'any moment';
+  if (diffMin < 60) return `in ${diffMin}m`;
+  if (diffHr < 24) return `in ${diffHr}h`;
+  if (diffDay < 14) return `in ${diffDay}d`;
+  return `on ${new Date(dateStr).toLocaleDateString()}`;
+}
+
+export function petAge(
+  birthdayStr: string | null,
+  species: 'dog' | 'cat' = 'dog',
+): string | null {
   if (!birthdayStr) return null;
   const birth = new Date(birthdayStr);
   const now = new Date();
@@ -44,7 +66,7 @@ export function petAge(birthdayStr: string | null): string | null {
   const months = now.getMonth() - birth.getMonth();
   const totalMonths = years * 12 + months;
 
-  if (totalMonths < 1) return 'Puppy';
+  if (totalMonths < 1) return species === 'cat' ? 'Kitten' : 'Puppy';
   if (totalMonths < 12) return `${totalMonths} mo`;
   const y = Math.floor(totalMonths / 12);
   const m = totalMonths % 12;

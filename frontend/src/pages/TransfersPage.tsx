@@ -11,12 +11,15 @@ import { ArrowLeftRight } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import { apiErrorMessage } from '../utils/apiError';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function TransfersPage() {
+  useDocumentTitle('Pet transfers · Fetchpawz');
   const queryClient = useQueryClient();
-  const { data: transfers = [], isLoading } = useQuery({
+  const { data: transfers = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['my-transfers'],
     queryFn: listMyTransfers,
   });
@@ -59,6 +62,10 @@ export default function TransfersPage() {
 
       {isLoading ? (
         <ListSkeleton rows={3} />
+      ) : isError ? (
+        // A failed fetch is not "no transfers" — someone waiting on a pet
+        // must not be told they're all caught up.
+        <ErrorState message="Couldn't load your transfers." onRetry={() => refetch()} />
       ) : pending.length === 0 && history.length === 0 ? (
         <EmptyState
           illustration="sleeping"

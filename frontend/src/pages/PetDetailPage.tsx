@@ -18,12 +18,13 @@ import PetPhoto, { InReviewBadge, isInReview } from '../components/PetPhoto';
 import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
-import ErrorState from '../components/ui/ErrorState';
+import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
 import PetIllustration from '../components/flair/PetIllustration';
 import { usePawBurst } from '../components/flair/PawBurst';
 import Linkify from '../components/Linkify';
 import TimeAgo from '../components/TimeAgo';
 import { petAge, petHeroPhoto } from '../utils/time';
+import { DEFAULT_MAP_CENTER } from '../utils/useUserLocation';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
 import { apiErrorMessage, isNotFound } from '../utils/apiError';
@@ -73,7 +74,7 @@ export default function PetDetailPage() {
     if (!userCoords && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => setUserCoords({ lat: 37.7749, lng: -122.4194 }), // SF fallback
+        () => setUserCoords({ lat: DEFAULT_MAP_CENTER[1], lng: DEFAULT_MAP_CENTER[0] }),
       );
     }
   }, [userCoords]);
@@ -147,14 +148,14 @@ export default function PetDetailPage() {
     return <ErrorState message="Couldn't load this pet." onRetry={() => refetch()} />;
   }
   if (!pet) {
-    return <ErrorState message="Pet not found." />;
+    return <ErrorState message="Pet not found." hint={NOT_FOUND_HINT} />;
   }
 
   const heroPhotoUrl = petHeroPhoto(pet);
   const hasPhotos = pet.photos.length > 0;
   // Only ever non-zero on the owner's own view — nobody else is sent them.
   const reviewCount = pet.photos.filter(isInReview).length;
-  const age = petAge(pet.birthday);
+  const age = petAge(pet.birthday, pet.species);
   const openHeroLightbox = () => {
     if (!hasPhotos) return;
     const primaryIdx = pet.photos.findIndex((p) => p.id === pet.primary_photo_id);
@@ -422,7 +423,7 @@ export default function PetDetailPage() {
                             className={`absolute top-1 right-1 rounded-full w-6 h-6 flex items-center justify-center text-xs transition-opacity shadow ${
                               isPrimary
                                 ? 'bg-brand-500 text-white opacity-100'
-                                : 'bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-brand-500'
+                                : 'bg-white/80 text-gray-400 dark:text-gray-500 reveal-on-hover hover:text-brand-500'
                             }`}
                             title={isPrimary ? 'Primary photo' : 'Set as primary'}
                             aria-label={isPrimary ? 'Primary photo' : 'Set as primary'}
@@ -435,7 +436,7 @@ export default function PetDetailPage() {
                           </button>
                         )}
                         <button
-                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 hover:text-danger-500 dark:hover:text-danger-400 transition-opacity shadow"
+                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 dark:text-gray-500 reveal-on-hover hover:text-danger-500 dark:hover:text-danger-400 transition-opacity shadow"
                           title="Delete photo"
                           aria-label="Delete photo"
                           onClick={(e) => {

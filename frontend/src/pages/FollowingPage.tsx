@@ -8,10 +8,11 @@ import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import type { Pet } from '../types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 function FollowedDogCard({ pet }: { pet: Pet }) {
   const hero = petHeroPhoto(pet);
-  const age = petAge(pet.birthday);
+  const age = petAge(pet.birthday, pet.species);
 
   return (
     <Link to={`/app/pets/${pet.id}`} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-soft-sm hover:border-brand-200 hover:bg-brand-50/30 transition-colors">
@@ -36,6 +37,7 @@ function FollowedDogCard({ pet }: { pet: Pet }) {
 }
 
 export default function FollowingPage() {
+  useDocumentTitle('Following · Fetchpawz');
   const { data: follows = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['my-follows'],
     queryFn: getMyFollows,

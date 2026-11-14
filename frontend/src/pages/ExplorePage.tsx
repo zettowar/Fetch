@@ -13,6 +13,7 @@ import ErrorState from '../components/ui/ErrorState';
 import FollowButton from '../components/FollowButton';
 import Button from '../components/ui/Button';
 import type { Pet } from '../types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const PAGE_SIZE = 18;
 // Cap the feed to keep memory + DOM size sane on long sessions. The
@@ -22,7 +23,7 @@ const MAX_DOGS = 240;
 
 function ExploreCard({ pet, index }: { pet: Pet; index: number }) {
   const hero = petHeroPhoto(pet);
-  const age = petAge(pet.birthday);
+  const age = petAge(pet.birthday, pet.species);
 
   return (
     <motion.div
@@ -78,6 +79,7 @@ function ExploreCard({ pet, index }: { pet: Pet; index: number }) {
 }
 
 export default function ExplorePage() {
+  useDocumentTitle('Explore · Fetchpawz');
   const queryClient = useQueryClient();
   const [filter] = useSpeciesFilter();
   const species = filterToSpecies(filter);
@@ -93,14 +95,22 @@ export default function ExplorePage() {
     isFetchingNextPage,
   } = useInfiniteQuery({
     queryKey: ['explore-pack', filter],
-    queryFn: () => {
+    queryFn: ({ pageParam }) => {
       // Pull the IDs we've already shown out of the cache so the server
       // can return a genuinely fresh random batch each call. Reading from
       // the cache (rather than from a useState list) keeps the queryFn
       // referentially stable while still seeing the latest pages.
+      //
+      // Only pages BEFORE the one being fetched count as seen. The first
+      // page excludes nothing: it is also what a refetch (remount, window
+      // focus, Shuffle) re-requests, and excluding the whole cached grid
+      // there asked the server for "everything except what you just gave
+      // me". With a small pool that is nothing at all — the grid emptied to
+      // "No pets to explore yet", and the next refetch (cache now empty)
+      // brought every pet back. It alternated on each visit.
       const cached = queryClient.getQueryData<{ pages: Pet[][] }>(['explore-pack', filter]);
       const seen: string[] = [];
-      for (const page of cached?.pages ?? []) {
+      for (const page of (cached?.pages ?? []).slice(0, pageParam)) {
         for (const pet of page) seen.push(pet.id);
       }
       return getExplorePets(PAGE_SIZE, seen, species);

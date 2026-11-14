@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Camera, Image as ImageIcon } from 'lucide-react';
+import { Camera, Image as ImageIcon, MapPin } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Skeleton';
-import ErrorState from '../components/ui/ErrorState';
-import { isNotFound } from '../utils/apiError';
+import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
+import { apiErrorMessage, isNotFound } from '../utils/apiError';
 import TimeAgo from '../components/TimeAgo';
 import Linkify from '../components/Linkify';
 import {
@@ -28,6 +28,7 @@ import Input from '../components/ui/Input';
 import { shareLink } from '../utils/shareLink';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import Map from '../components/Map';
+import LocationPicker from '../components/LocationPicker';
 
 export default function LostReportDetailPage() {
   const { id } = useParams();
@@ -53,8 +54,7 @@ export default function LostReportDetailPage() {
   });
 
   const [showSightingForm, setShowSightingForm] = useState(false);
-  const [sightLat, setSightLat] = useState('');
-  const [sightLng, setSightLng] = useState('');
+  const [sightLocation, setSightLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [sightNote, setSightNote] = useState('');
   const [sightPhoto, setSightPhoto] = useState<File | null>(null);
 
@@ -83,8 +83,8 @@ export default function LostReportDetailPage() {
   const sightingMutation = useMutation({
     mutationFn: () =>
       addSighting(id!, {
-        lat: parseFloat(sightLat),
-        lng: parseFloat(sightLng),
+        lat: sightLocation!.lat,
+        lng: sightLocation!.lng,
         note: sightNote || undefined,
         seen_at: new Date().toISOString(),
         photo: sightPhoto || undefined,
@@ -92,13 +92,12 @@ export default function LostReportDetailPage() {
     onSuccess: () => {
       toast.success('Sighting added!');
       setShowSightingForm(false);
-      setSightLat('');
-      setSightLng('');
+      setSightLocation(null);
       setSightNote('');
       setSightPhoto(null);
       queryClient.invalidateQueries({ queryKey: ['sightings', id] });
     },
-    onError: () => toast.error('Failed to add sighting'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to add sighting')),
   });
 
   const contactMutation = useMutation({
@@ -122,7 +121,7 @@ export default function LostReportDetailPage() {
   if (isError && !isNotFound(error)) {
     return <ErrorState message="Couldn't load this report." onRetry={() => refetch()} />;
   }
-  if (!report) return <ErrorState message="Report not found." />;
+  if (!report) return <ErrorState message="Report not found." hint={NOT_FOUND_HINT} />;
 
   const isOwner = user?.id === report.reporter_id;
 
@@ -300,7 +299,12 @@ export default function LostReportDetailPage() {
         {isOwner && report.status === 'open' && (
           <Button
             variant="primary"
-            onClick={() => resolveMutation.mutate()}
+            onClick={() => {
+              // Resolving closes the report to sightings and can't be undone.
+              if (confirm('Mark this report as resolved? It will close to new sightings.')) {
+                resolveMutation.mutate();
+              }
+            }}
             loading={resolveMutation.isPending}
             className="w-full"
           >
@@ -325,25 +329,19 @@ export default function LostReportDetailPage() {
         <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
           <h3 className="font-semibold mb-2">Add Sighting</h3>
           <div className="flex flex-col gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => {
-                    setSightLat(pos.coords.latitude.toFixed(6));
-                    setSightLng(pos.coords.longitude.toFixed(6));
-                  },
-                  () => toast.error('Could not get location'),
-                );
-              }}
-            >
-              Use My Location
-            </Button>
-            <div className="grid grid-cols-2 gap-2">
-              <Input label="Lat" type="number" step="any" value={sightLat} onChange={(e) => setSightLat(e.target.value)} />
-              <Input label="Lng" type="number" step="any" value={sightLng} onChange={(e) => setSightLng(e.target.value)} />
+            {/* A map, not two number boxes. The form used to ask a passer-by
+                for a latitude and a longitude; the picker starts from their
+                position (if they allow it) and a tap moves the pin. */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Where did you see them?
+              </p>
+              <LocationPicker value={sightLocation} onChange={setSightLocation} heightClass="h-56" />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {sightLocation
+                  ? 'Tap the map to move the pin.'
+                  : 'Tap the map to drop a pin where you saw them.'}
+              </p>
             </div>
             <Input label="Note" value={sightNote} onChange={(e) => setSightNote(e.target.value)} placeholder="Any details..." />
             <div>
@@ -368,7 +366,7 @@ export default function LostReportDetailPage() {
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">{sightPhoto.name}</p>
               )}
             </div>
-            <Button onClick={() => sightingMutation.mutate()} loading={sightingMutation.isPending} disabled={sightLat === '' || sightLng === ''}>
+            <Button onClick={() => sightingMutation.mutate()} loading={sightingMutation.isPending} disabled={!sightLocation}>
               Submit Sighting
             </Button>
           </div>
@@ -424,9 +422,19 @@ export default function LostReportDetailPage() {
                 <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words leading-relaxed">
                   {s.note ? <Linkify>{s.note}</Linkify> : 'No details'}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <div className="mt-1 flex items-center justify-between gap-3 text-xs text-gray-400 dark:text-gray-500">
                   <TimeAgo value={s.created_at} />
-                </p>
+                  {/* Where — the one thing a sighting is for. (Owners get the
+                      true point; everyone else the published one.) */}
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-brand-500 hover:text-brand-600 hover:underline"
+                  >
+                    <MapPin size={13} aria-hidden /> Open in Maps
+                  </a>
+                </div>
               </Card>
             ))}
           </div>

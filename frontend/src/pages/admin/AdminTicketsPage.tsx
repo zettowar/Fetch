@@ -31,7 +31,12 @@ const STATUS_VARIANTS: Record<string, 'warning' | 'info' | 'success' | 'neutral'
 
 export default function AdminTicketsPage() {
   const [tab, setTab] = useState<string>('open');
-  const [awaitingOnly, setAwaitingOnly] = useState(false);
+  // "Needs a reply" is the queue, so it is where the page opens. It is its
+  // own view, not a refinement of a status tab: the first staff answer moves a
+  // ticket to in_progress, so a reporter who then writes back is awaiting a
+  // reply under a status the default "open" tab never showed. ANDing the two
+  // made that person invisible — the page said nothing was waiting.
+  const [awaitingOnly, setAwaitingOnly] = useState(true);
   const [query, setQuery] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [offset, setOffset] = useState(0);
@@ -41,7 +46,7 @@ export default function AdminTicketsPage() {
     queryKey: ['admin-tickets', tab, searchTerm, awaitingOnly, offset],
     queryFn: () =>
       searchTickets({
-        status: tab,
+        status: awaitingOnly ? 'all' : tab,
         q: searchTerm,
         awaiting: awaitingOnly,
         offset,
@@ -68,9 +73,11 @@ export default function AdminTicketsPage() {
           {TABS.map((t) => (
             <button
               key={t}
-              onClick={() => { setTab(t); setOffset(0); setExpanded(null); }}
+              // Picking a status leaves the "Needs a reply" view.
+              onClick={() => { setTab(t); setAwaitingOnly(false); setOffset(0); setExpanded(null); }}
+              aria-pressed={!awaitingOnly && tab === t}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors whitespace-nowrap ${
-                tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                !awaitingOnly && tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {t.replace('_', ' ')}

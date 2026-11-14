@@ -60,14 +60,14 @@ export default function RewardedAdModal({ open, onReward, onClose, rewardAmount 
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
             className="w-full max-w-sm rounded-2xl bg-gray-900 text-white p-6 shadow-2xl"
           >
-            <p className="text-xs uppercase tracking-wide text-gray-400">Ad simulator</p>
+            <p className="text-xs uppercase tracking-wide text-gray-400">Bonus swipes</p>
             <h2 className="text-xl font-bold mt-1">
-              {completed ? 'Thanks for watching!' : 'Ad playing…'}
+              {completed ? 'All set!' : 'Fetching more swipes…'}
             </h2>
             <p className="text-sm text-gray-300 mt-2">
               {completed
                 ? `You've earned ${rewardAmount} more swipes.`
-                : 'In production this will be a real rewarded video. For now it just waits.'}
+                : 'No video to sit through during the beta — just a short wait.'}
             </p>
 
             <div className="mt-5 h-2 rounded-full bg-gray-700 overflow-hidden">

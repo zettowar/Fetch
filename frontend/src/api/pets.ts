@@ -45,10 +45,12 @@ export interface PetPayload {
   species?: Species;
   mix_type?: MixType;
   breed_ids?: string[];
-  birthday?: string;
-  bio?: string;
-  location_rough?: string;
+  /** null clears the value; omitted leaves it unchanged (PATCH). */
+  birthday?: string | null;
+  bio?: string | null;
+  location_rough?: string | null;
   traits?: string[];
+  is_public?: boolean;
 }
 
 export async function createPet(data: PetPayload): Promise<Pet> {

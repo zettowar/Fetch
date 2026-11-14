@@ -1,7 +1,16 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.schemas.common import reject_explicit_nulls
+
+
+# How far ahead of the server a client clock may run. The apps send "now"
+# (`new Date().toISOString()`) with every sighting and report, so with zero
+# tolerance a phone running a few seconds fast was refused for claiming to
+# have seen a pet "in the future".
+CLOCK_SKEW = timedelta(minutes=5)
 
 
 def _not_future_datetime(v: datetime | None) -> datetime | None:
@@ -9,7 +18,7 @@ def _not_future_datetime(v: datetime | None) -> datetime | None:
         return v
     # Compare in UTC. Naive datetimes are assumed UTC.
     ref = v if v.tzinfo else v.replace(tzinfo=timezone.utc)
-    if ref > datetime.now(timezone.utc):
+    if ref > datetime.now(timezone.utc) + CLOCK_SKEW:
         raise ValueError("Datetime cannot be in the future")
     return v
 
@@ -88,6 +97,28 @@ class LostReportUpdate(BaseModel):
         if not 50 <= v <= 10_000:
             raise ValueError("location_fuzz_m must be between 50 and 10000 meters")
         return v
+
+    @field_validator("contact_method")
+    @classmethod
+    def valid_contact(cls, v: str | None) -> str | None:
+        # Create restricts this to three values; update accepted anything.
+        if v is not None and v not in ("in_app", "email", "phone"):
+            raise ValueError("contact_method must be 'in_app', 'email', or 'phone'")
+        return v
+
+    @field_validator("description")
+    @classmethod
+    def description_not_empty(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("Description is required")
+        return v
+
+    @model_validator(mode="after")
+    def required_columns_not_null(self) -> "LostReportUpdate":
+        reject_explicit_nulls(
+            self, "description", "location_fuzz_m", "contact_method", "is_public"
+        )
+        return self
 
 
 class LostReportPhotoOut(BaseModel):
@@ -213,10 +244,19 @@ class SubscriptionOut(BaseModel):
 
 
 class SubscriptionUpdate(BaseModel):
-    home_lat: float | None = None
-    home_lng: float | None = None
-    radius_km: float | None = None
+    home_lat: float | None = Field(default=None, ge=-90, le=90)
+    home_lng: float | None = Field(default=None, ge=-180, le=180)
+    # Same 1–100 km window as create. This is a privacy bound as much as a
+    # sanity one: alerts match on a report's TRUE last-seen point, so a
+    # subscriber who could PATCH the radius down to metres would learn that
+    # point far more precisely than the fuzzed public location allows.
+    radius_km: float | None = Field(default=None, ge=1, le=100)
     enabled: bool | None = None
+
+    @model_validator(mode="after")
+    def no_nulls(self) -> "SubscriptionUpdate":
+        reject_explicit_nulls(self, "home_lat", "home_lng", "radius_km", "enabled")
+        return self
 
 
 # --- Contact Relay ---

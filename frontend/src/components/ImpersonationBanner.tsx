@@ -1,4 +1,4 @@
-import { impersonationToken } from '../api/client';
+import { exitImpersonation, impersonationToken } from '../api/client';
 
 /**
  * Fixed banner shown whenever this tab is running an admin "log in as" session.
@@ -12,21 +12,17 @@ export default function ImpersonationBanner() {
     name = sessionStorage.getItem('imp_name') || name;
   } catch { /* ignore */ }
 
-  const exit = () => {
-    try {
-      sessionStorage.removeItem('imp_token');
-      sessionStorage.removeItem('imp_name');
-    } catch { /* ignore */ }
-    window.location.assign('/admin/users');
-  };
-
   return (
-    <div className="fixed bottom-0 inset-x-0 z-[60] bg-amber-500 text-black text-sm px-4 py-2 flex items-center justify-center gap-3 shadow-lg">
+    // Sits directly above the app's tab bar (NavBar publishes its height as
+    // --tab-bar-h; 0 where there is none). Pinned to the very bottom it lay
+    // on top of the tab bar, so the admin could not navigate the account they
+    // were there to look at.
+    <div className="fixed bottom-[var(--tab-bar-h,0px)] inset-x-0 z-[60] bg-amber-500 text-black text-sm px-4 py-2 flex items-center justify-center gap-3 shadow-lg">
       <span>
         Viewing as <strong>{name}</strong> (admin support session)
       </span>
       <button
-        onClick={exit}
+        onClick={exitImpersonation}
         className="rounded-md bg-black/80 text-white px-2.5 py-1 text-xs font-medium hover:bg-black"
       >
         Exit

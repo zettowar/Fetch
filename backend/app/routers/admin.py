@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import select, func, or_, case, cast, delete, update, Date
+from sqlalchemy import select, func, and_, or_, case, cast, delete, update, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -53,7 +53,7 @@ from app.services.traits import (
     trait_slug,
     trait_usage_counts,
 )
-from app.schemas.report import ReportOut, ReportReview, StrikeOut
+from app.schemas.report import AdminReportOut, ReportOut, ReportReview, StrikeOut
 from app.services.breed_display import breed_display
 from app.schemas.park_import import (
     ParkImportHistoryEntry,
@@ -71,6 +71,8 @@ from app.schemas.support import (
 )
 from app.services.email import send_ticket_reply_email
 from app.services.notify import notify
+from app.services.primary_photo import reassign_primary_photo
+from app.services.osm_import import OverpassUnavailable
 from app.services.park_import import import_osm_dog_parks
 from app.services.vet_import import import_osm_vets
 from app.models.vet import Vet
@@ -83,6 +85,11 @@ MAX_PAGE_LIMIT = 200
 router = APIRouter()
 
 STRIKE_THRESHOLD = 3
+
+_OVERPASS_BUSY = (
+    "OpenStreetMap's Overpass service didn't answer (it may be busy or rate-limiting). "
+    "Nothing was imported — try again in a few minutes, or use a smaller area."
+)
 
 
 # --- Audit logging helper ---
@@ -119,9 +126,19 @@ async def dashboard_stats(
     active_users = (await db.execute(select(func.count()).where(User.is_active == True))).scalar() or 0
     suspended_users = (await db.execute(select(func.count()).where(User.is_active == False))).scalar() or 0
     users_7d = (await db.execute(select(func.count()).where(User.created_at >= week_ago))).scalar() or 0
-    total_pets = (await db.execute(select(func.count()).select_from(Pet))).scalar() or 0
+    # Active pets only — a pet its owner removed is soft-deleted, not gone.
+    total_pets = (
+        await db.execute(select(func.count()).where(Pet.is_active == True))  # noqa: E712
+    ).scalar() or 0
     pending_reports = (await db.execute(select(func.count()).where(Report.status == "pending"))).scalar() or 0
-    open_tickets = (await db.execute(select(func.count()).where(SupportTicket.status == "open"))).scalar() or 0
+    # "Needs a reply", not just status == "open". A reporter who comes back on
+    # an answered ticket leaves it in_progress with awaiting_staff set; counting
+    # status alone hid exactly the people still stuck.
+    needs_reply = and_(
+        SupportTicket.status != "closed",
+        or_(SupportTicket.status == "open", SupportTicket.awaiting_staff == True),  # noqa: E712
+    )
+    open_tickets = (await db.execute(select(func.count()).where(needs_reply))).scalar() or 0
     unverified_rescues = (await db.execute(
         select(func.count()).where(RescueProfile.status == "pending")
     )).scalar() or 0
@@ -150,8 +167,13 @@ async def dashboard_stats(
         if oldest_report_time else None
     )
 
+    # Waiting since the reporter's last message, not since the ticket opened:
+    # a week-old ticket answered yesterday and replied to an hour ago has been
+    # waiting an hour.
     oldest_ticket_result = await db.execute(
-        select(func.min(SupportTicket.created_at)).where(SupportTicket.status == "open")
+        select(
+            func.min(func.coalesce(SupportTicket.last_message_at, SupportTicket.created_at))
+        ).where(needs_reply)
     )
     oldest_ticket_time = oldest_ticket_result.scalar()
     oldest_ticket_hours = (
@@ -400,6 +422,18 @@ def _guard_staff_target(target: User, actor: User, verb: str) -> None:
         )
 
 
+def _guard_rescue_role(target: User) -> None:
+    """Refuse to change a rescue account's role (same rule as set-role).
+
+    "rescue" is not on the user → moderator → admin ladder: it carries a
+    RescueProfile and gates the whole rescue dashboard, and no endpoint can
+    assign it back. Promote-then-demote used to leave an approved rescue as a
+    plain user, locked out of its own adoptables with no way to undo it.
+    """
+    if target.role == "rescue":
+        raise HTTPException(status_code=400, detail="Rescue accounts can't be reassigned")
+
+
 @router.post("/users/{user_id}/suspend")
 async def suspend_user(
     user_id: UUID,
@@ -417,6 +451,10 @@ async def suspend_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     _guard_staff_target(user, admin, "suspend")
+    if not user.is_active:
+        # Nothing to do, and nothing to log: a second user.suspend entry would
+        # record an empty pet list (see reinstate_user).
+        return {"detail": "User already suspended"}
     deactivated = await _suspend_with_dogs(user, db)
     await _log(db, actor_id=admin.id, action="user.suspend", target_type="user", target_id=user_id,
                metadata={"email": user.email, "deactivated_dogs": deactivated})
@@ -437,14 +475,30 @@ async def reinstate_user(
     user.is_active = True
 
     # Revive only the pets the suspension itself deactivated.
-    last_suspend = await db.execute(
-        select(AuditLog)
-        .where(AuditLog.action == "user.suspend", AuditLog.target_id == user_id)
-        .order_by(AuditLog.created_at.desc())
-        .limit(1)
+    #
+    # Every user.suspend entry since the last reinstatement counts, not just
+    # the newest. A suspension can be logged more than once for one outage
+    # (a manual suspend, then a strike on another queued report crossing the
+    # threshold again); the later entries find no active pets and record an
+    # empty list. Reading only the newest revived nothing, and since the
+    # owner's pet list filters on is_active, their pets were simply gone.
+    last_reinstate_at = (
+        await db.execute(
+            select(func.max(AuditLog.created_at)).where(
+                AuditLog.action == "user.reinstate", AuditLog.target_id == user_id
+            )
+        )
+    ).scalar()
+    suspend_q = select(AuditLog).where(
+        AuditLog.action == "user.suspend", AuditLog.target_id == user_id
     )
-    entry = last_suspend.scalar_one_or_none()
-    pet_ids = (entry.metadata_ or {}).get("deactivated_dogs", []) if entry else []
+    if last_reinstate_at is not None:
+        suspend_q = suspend_q.where(AuditLog.created_at > last_reinstate_at)
+    pet_ids: list[str] = []
+    for entry in (await db.execute(suspend_q)).scalars():
+        for pid in (entry.metadata_ or {}).get("deactivated_dogs", []):
+            if pid not in pet_ids:
+                pet_ids.append(pid)
     if pet_ids:
         await db.execute(
             update(Pet)
@@ -470,6 +524,7 @@ async def promote_user(
         raise HTTPException(status_code=404, detail="User not found")
     if user.id == admin.id:
         raise HTTPException(status_code=400, detail="Cannot change your own role")
+    _guard_rescue_role(user)
     user.role = "admin"
     await _log(db, actor_id=admin.id, action="user.promote", target_type="user", target_id=user_id,
                metadata={"email": user.email, "new_role": "admin"})
@@ -489,6 +544,7 @@ async def demote_user(
         raise HTTPException(status_code=404, detail="User not found")
     if user.id == admin.id:
         raise HTTPException(status_code=400, detail="Cannot change your own role")
+    _guard_rescue_role(user)
     user.role = "user"
     await _log(db, actor_id=admin.id, action="user.demote", target_type="user", target_id=user_id,
                metadata={"email": user.email, "new_role": "user"})
@@ -581,7 +637,73 @@ async def delete_user(
 
 # --- Reports ---
 
-@router.get("/reports", response_model=list[ReportOut])
+async def _with_target_context(db: AsyncSession, reports: list[Report]) -> list[AdminReportOut]:
+    """Attach, per report, where to view the target and the reported text.
+
+    The queue used to hand the moderator a bare target id. That was enough for
+    users and pets, but a reported comment or post linked nowhere at all and a
+    reported photo linked to /app/pets/<photo id> — a 404 — so three of the
+    five report types were being reviewed blind. Resolved in a few batched
+    lookups (one per target type present), not one per report.
+    """
+    ids: dict[str, set[UUID]] = {}
+    for r in reports:
+        ids.setdefault(r.target_type, set()).add(r.target_id)
+
+    comments = {}
+    if ids.get("comment"):
+        rows = await db.execute(select(Comment).where(Comment.id.in_(ids["comment"])))
+        comments = {c.id: c for c in rows.scalars()}
+
+    # Photos referenced directly, plus the photos that reported comments sit on.
+    photo_ids = set(ids.get("photo", set()))
+    photo_ids |= {c.target_id for c in comments.values() if c.target_type == "photo"}
+    photo_pet: dict[UUID, UUID] = {}
+    if photo_ids:
+        rows = await db.execute(select(Photo.id, Photo.pet_id).where(Photo.id.in_(photo_ids)))
+        photo_pet = dict(rows.all())
+
+    posts = {}
+    if ids.get("post"):
+        rows = await db.execute(select(Post.id, Post.title).where(Post.id.in_(ids["post"])))
+        posts = dict(rows.all())
+
+    existing: dict[str, set[UUID]] = {}
+    for kind, model in (("user", User), ("pet", Pet)):
+        if ids.get(kind):
+            rows = await db.execute(select(model.id).where(model.id.in_(ids[kind])))
+            existing[kind] = set(rows.scalars())
+
+    out = []
+    for r in reports:
+        path: str | None = None
+        excerpt: str | None = None
+        if r.target_type in ("user", "pet"):
+            if r.target_id in existing.get(r.target_type, set()):
+                path = f"/app/{'users' if r.target_type == 'user' else 'pets'}/{r.target_id}"
+        elif r.target_type == "photo":
+            if r.target_id in photo_pet:
+                path = f"/app/pets/{photo_pet[r.target_id]}"
+        elif r.target_type == "post":
+            if r.target_id in posts:
+                path = f"/app/community/{r.target_id}"
+                excerpt = posts[r.target_id]
+        elif r.target_type == "comment":
+            comment = comments.get(r.target_id)
+            if comment is not None:
+                excerpt = comment.body[:500]
+                if comment.target_type == "post":
+                    path = f"/app/community/{comment.target_id}"
+                elif comment.target_id in photo_pet:
+                    path = f"/app/pets/{photo_pet[comment.target_id]}"
+        item = AdminReportOut.model_validate(r)
+        item.target_path = path
+        item.target_excerpt = excerpt
+        out.append(item)
+    return out
+
+
+@router.get("/reports", response_model=list[AdminReportOut])
 async def list_reports(
     response: Response,
     status_filter: str = Query("pending"),
@@ -605,7 +727,7 @@ async def list_reports(
     result = await db.execute(
         base.order_by(Report.created_at.desc()).offset(offset).limit(limit)
     )
-    return list(result.scalars().all())
+    return await _with_target_context(db, list(result.scalars().all()))
 
 
 @router.post("/reports/{report_id}/review", response_model=ReportOut)
@@ -655,7 +777,13 @@ async def review_report(
                 target_user = user_result.scalar_one_or_none()
                 # Staff are never auto-suspended by the strike threshold, for
                 # the same reason _guard_staff_target blocks it manually.
-                if target_user and target_user.role not in STAFF_ROLES:
+                if (
+                    target_user
+                    and target_user.role not in STAFF_ROLES
+                    # Already suspended: a second entry would log an empty pet
+                    # list for the same outage.
+                    and target_user.is_active
+                ):
                     deactivated = await _suspend_with_dogs(target_user, db)
                     # Logged as user.suspend so reinstatement can find the
                     # pet list, same as a manual suspension.
@@ -854,7 +982,6 @@ async def reply_to_ticket(
         # operator also remember to click a status button is how queues rot.
         ticket.status = "in_progress"
 
-    resolved = ticket.status in ("resolved", "closed")
     await notify(
         db,
         ticket.user_id,
@@ -882,7 +1009,7 @@ async def reply_to_ticket(
             subject=ticket.subject,
             reply_body=body.body,
             ticket_id=str(ticket.id),
-            resolved=resolved,
+            outcome=ticket.status if ticket.status in ("resolved", "closed") else None,
         )
 
     out = StaffTicketMessageOut.model_validate(message)
@@ -1335,6 +1462,10 @@ async def approve_photo(
     photo = result.scalar_one_or_none()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
+    if photo.moderation_status == "approved":
+        # Double-click, or two moderators on the same queue: don't tell the
+        # owner twice.
+        return {"detail": "Photo already approved"}
     photo.moderation_status = "approved"
     pet_result = await db.execute(select(Pet).where(Pet.id == photo.pet_id))
     pet = pet_result.scalar_one_or_none()
@@ -1370,9 +1501,8 @@ async def reject_photo(
 
     pet_result = await db.execute(select(Pet).where(Pet.id == photo.pet_id))
     pet = pet_result.scalar_one_or_none()
-    if pet and pet.primary_photo_id == photo.id:
-        pet.primary_photo_id = None
     if pet:
+        await reassign_primary_photo(db, pet, photo.id)
         await notify(
             db, pet.owner_id,
             type="photo_moderated",
@@ -1790,7 +1920,10 @@ async def import_parks_from_osm(
     - Optional `bbox` (south, west, north, east) scopes the import to a region.
       Omit for a worldwide import (can take 60+ seconds).
     """
-    result = await import_osm_dog_parks(db, bbox=body.bbox)
+    try:
+        result = await import_osm_dog_parks(db, bbox=body.bbox)
+    except OverpassUnavailable:
+        raise HTTPException(status_code=502, detail=_OVERPASS_BUSY)
     db.add(AuditLog(
         actor_id=admin.id,
         action="parks.import_osm",
@@ -1903,7 +2036,10 @@ async def import_vets_from_osm(
 
     Touches only `source='osm'` rows. `bbox` scopes the import; omit for
     worldwide. Returns the same shape as `/parks/import-osm`."""
-    result = await import_osm_vets(db, bbox=body.bbox)
+    try:
+        result = await import_osm_vets(db, bbox=body.bbox)
+    except OverpassUnavailable:
+        raise HTTPException(status_code=502, detail=_OVERPASS_BUSY)
     db.add(AuditLog(
         actor_id=admin.id,
         action="vets.import_osm",
@@ -2098,7 +2234,12 @@ async def admin_assign_tag(
 
 async def _resolve_target_user(report: Report, db: AsyncSession) -> UUID | None:
     if report.target_type == "user":
-        return report.target_id
+        # Report.target_id is not a foreign key, so the report outlives a
+        # hard-deleted account. Returning the id unchecked sent the Strike
+        # insert into an FK violation — a 500 instead of the caller's 422.
+        result = await db.execute(select(User.id).where(User.id == report.target_id))
+        row = result.first()
+        return row[0] if row else None
     if report.target_type == "pet":
         result = await db.execute(select(Pet.owner_id).where(Pet.id == report.target_id))
         row = result.first()

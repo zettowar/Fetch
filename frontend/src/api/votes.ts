@@ -13,6 +13,11 @@ export async function castVote(pet_id: string, value: 1 | -1): Promise<Vote> {
   return res.data;
 }
 
+/** Rewind (Pack+): take back this week's vote on a pet so it can be recast. */
+export async function takeBackVote(pet_id: string): Promise<void> {
+  await client.delete(`/votes/${pet_id}`);
+}
+
 export async function getSwipeQuota(): Promise<SwipeQuota> {
   const res = await client.get('/votes/quota');
   return res.data;

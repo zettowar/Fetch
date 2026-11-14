@@ -102,7 +102,7 @@ export default function SwipeCard({ pet, onSwipe, isTop }: SwipeCardProps) {
         <div className="flex items-baseline gap-2">
           <h2 className="text-xl font-bold">{pet.name}</h2>
           {pet.birthday && (
-            <span className="text-sm text-gray-400 dark:text-gray-500">{petAge(pet.birthday)}</span>
+            <span className="text-sm text-gray-400 dark:text-gray-500">{petAge(pet.birthday, pet.species)}</span>
           )}
         </div>
         {pet.breed_display && <p className="text-gray-500 dark:text-gray-400">{pet.breed_display}</p>}

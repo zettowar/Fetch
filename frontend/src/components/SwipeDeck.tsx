@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Lock, Undo2 } from 'lucide-react';
 import { getFeed } from '../api/feed';
-import { castVote } from '../api/votes';
+import { castVote, takeBackVote } from '../api/votes';
 import SwipeCard from './SwipeCard';
 import AdoptionPrompt from './AdoptionPrompt';
 import RewardedAdModal from './RewardedAdModal';
@@ -58,15 +58,21 @@ export default function SwipeDeck() {
   const quota = useSwipeQuota(Boolean(user) && !isSubscriber);
   const [adOpen, setAdOpen] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastVoteRequest = useRef<Promise<unknown> | null>(null);
   const { fire: fireLikeBurst, PawBurstLayer } = usePawBurst();
 
   const quotaBlocked = !isSubscriber && quota.blocked;
   const remaining = quota.remaining;
 
-  const [speciesFilter] = useSpeciesFilter();
+  const [speciesFilter, setSpeciesFilter] = useSpeciesFilter();
   const { data: pets = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['feed', speciesFilter],
     queryFn: () => getFeed(30, filterToSpecies(speciesFilter)),
+    // Never reuse a deck across visits. The cached batch still contains the
+    // pets just voted on, and this component's index restarts at 0 on every
+    // mount — so coming back within the cache window dealt the same cards
+    // again, each of which the server then refused as a duplicate.
+    gcTime: 0,
   });
 
   // A feed refetch returns a fresh re-shuffled batch that excludes pets the
@@ -91,6 +97,15 @@ export default function SwipeDeck() {
       castVote(petId, value),
     onError: (err, vars) => {
       const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        // Already voted on this pet this week — the vote the user wanted is
+        // (or was) recorded, so there is nothing to retry. Rewinding to the
+        // card here made it un-passable: every swipe earned the same 409.
+        // Give the local swipe back (the server counted nothing new) and
+        // let the deck move on.
+        if (!isSubscriber) quota.refund();
+        return;
+      }
       const quotaHit = status === 429;
       toast.error(quotaHit ? "You've hit today's swipe limit" : 'Vote failed');
       // Only rewind when the failed vote is the one the deck just advanced
@@ -128,7 +143,10 @@ export default function SwipeDeck() {
       if (direction === 'right') fireLikeBurst();
       setLastVote({ petId: pet.id, index: currentIndex });
       setCurrentIndex((i) => i + 1);
-      voteMutation.mutate({ petId: pet.id, value, index: currentIndex });
+      // Kept so Rewind can wait for this request to land before taking it back.
+      lastVoteRequest.current = voteMutation
+        .mutateAsync({ petId: pet.id, value, index: currentIndex })
+        .catch(() => undefined);
       if (user) onboarding.markSwiped(user.id);
 
       if (!isSubscriber) quota.consume();
@@ -165,20 +183,28 @@ export default function SwipeDeck() {
     [pets, currentIndex, voteMutation, refetch, user, prompt, isSubscriber, quota, fireLikeBurst],
   );
 
-  const handleUndo = () => {
+  const handleUndo = async () => {
     if (!lastVote) return;
     if (!isSubscriber) {
       toast('Rewind is a Pack+ perk', { icon: '\ud83d\udd12' });
       return;
     }
-    navigator.vibrate?.([10, 40, 10]);
-    setCurrentIndex(lastVote.index);
+    const target = lastVote;
     setLastVote(null);
-    setPrompt(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
-    // Refund quota on undo (subscribers can't reach here \u2014 undo is Pack+ only,
-    // and they're uncapped regardless).
-    if (!isSubscriber) quota.refund();
+    navigator.vibrate?.([10, 40, 10]);
+    try {
+      // The vote has to actually come back, not just the card. Wait for the
+      // swipe's own request first — taking back a vote that hasn't landed yet
+      // would leave it in place once it does.
+      await lastVoteRequest.current;
+      await takeBackVote(target.petId);
+    } catch {
+      toast.error("Couldn't undo that swipe");
+      return;
+    }
+    setCurrentIndex(target.index);
+    setPrompt(null);
     toast('Swipe undone', { icon: '\u21a9\ufe0f' });
   };
 
@@ -207,6 +233,22 @@ export default function SwipeDeck() {
 
   const remainingDogs = pets.slice(currentIndex);
   const ratedCount = currentIndex;
+  // The end state has to tell two different stories. "You've rated everyone"
+  // is only true for someone who just rated; a first-time visitor whose deck
+  // came back empty (a species tab with nobody in it yet, a quiet launch city)
+  // has rated nothing, and congratulating them reads as a bug.
+  const scopedSpecies = filterToSpecies(speciesFilter);
+  const endTitle =
+    ratedCount === 0
+      ? "You're all caught up"
+      : scopedSpecies
+        ? `You've rated every ${scopedSpecies} this week!`
+        : "You've rated everyone this week!";
+  const endBody = scopedSpecies
+    ? `No more ${scopedSpecies}s to rate right now. Try the full deck, or come back Monday for a fresh round.`
+    : ratedCount === 0
+      ? 'No pets to rate right now. New pets join all the time, and votes reset every Monday.'
+      : 'Come back Monday for a fresh batch of pets.';
 
   if (remainingDogs.length === 0) {
     return (
@@ -232,24 +274,32 @@ export default function SwipeDeck() {
           className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2"
           variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
         >
-          You've rated everyone this week!
+          {endTitle}
         </motion.p>
+        {ratedCount > 0 && (
+          <motion.p
+            className="text-gray-500 dark:text-gray-400 mb-1"
+            variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
+          >
+            {`You rated ${ratedCount} pet${ratedCount > 1 ? 's' : ''} this session.`}
+          </motion.p>
+        )}
         <motion.p
-          className="text-gray-500 dark:text-gray-400 mb-1"
+          className="text-gray-400 dark:text-gray-500 text-sm mb-6 text-balance max-w-xs"
           variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
         >
-          {ratedCount > 0 ? `You rated ${ratedCount} pet${ratedCount > 1 ? 's' : ''} this session.` : ''}
-        </motion.p>
-        <motion.p
-          className="text-gray-400 dark:text-gray-500 text-sm mb-6"
-          variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
-        >
-          Come back Monday for a fresh batch of pets.
+          {endBody}
         </motion.p>
         <motion.div variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}>
-          <Link to="/app/home">
-            <Button>Back to Home</Button>
-          </Link>
+          {scopedSpecies ? (
+            // A scoped deck that ran dry is rarely the whole app running dry —
+            // one tap widens it rather than sending them away.
+            <Button onClick={() => setSpeciesFilter('all')}>See all pets</Button>
+          ) : (
+            <Link to="/app/home">
+              <Button>Back to Home</Button>
+            </Link>
+          )}
         </motion.div>
         {prompt && (
           <div className="w-full max-w-sm mt-4">

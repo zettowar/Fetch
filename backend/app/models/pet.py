@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import ARRAY, Boolean, Date, DateTime, ForeignKey, String
+from sqlalchemy import ARRAY, Boolean, Date, DateTime, ForeignKey, String, or_
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -54,3 +54,21 @@ class Pet(Base, UUIDPrimaryKey, TimestampMixin):
     owner = relationship("User", back_populates="pets", foreign_keys=[owner_id])
     photos = relationship("Photo", back_populates="pet", cascade="all, delete-orphan")
     breeds = relationship("Breed", secondary=pet_breeds, back_populates="pets", order_by="Breed.name")
+
+
+def pet_in_play():
+    """SQL predicate: this pet takes part in the game — the swipe feed,
+    Explore, the leaderboard, the weekly crown and the recap.
+
+    `adopted_at` alone cannot decide that, because it is set in two different
+    situations. A rescue marking a pet adopted keeps the profile on the
+    rescue's account as a finished story: out of play. A rescue *transferring*
+    a pet to its new family also stamps `adopted_at` (it is the pet's adoption
+    date), but that pet now belongs to an ordinary member who is here to play
+    — and every query that filtered on `adopted_at IS NULL` shut it out for
+    good: never in a deck, never ranked, never able to win.
+
+    The two cases differ in who owns the pet: a transferred pet is owned by
+    the person who adopted it.
+    """
+    return or_(Pet.adopted_at.is_(None), Pet.adopted_by_user_id == Pet.owner_id)

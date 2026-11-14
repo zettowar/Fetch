@@ -66,7 +66,9 @@ export default function BillingPage() {
 
       <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-4 text-center">
         <p className="text-sm text-gray-600 dark:text-gray-300">
-          Payments aren't wired up yet. Ask an admin to grant Pack+ to your account for testing.
+          Pack+ isn't on sale yet. During the beta the Fetchpawz team switches it on —{' '}
+          <Link to="/app/support" className="text-brand-500 hover:underline">get in touch</Link>{' '}
+          if you'd like to try it.
         </p>
         <Link to="/app/home" className="mt-3 inline-block">
           <Button variant="secondary" size="sm">Back to home</Button>

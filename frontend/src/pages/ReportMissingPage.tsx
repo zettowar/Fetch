@@ -9,8 +9,10 @@ import { getMyPets } from '../api/pets';
 import Button from '../components/ui/Button';
 import LocationPicker from '../components/LocationPicker';
 import { apiErrorMessage } from '../utils/apiError';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function ReportMissingPage() {
+  useDocumentTitle('Report a missing pet · Fetchpawz');
   const navigate = useNavigate();
   const { data: myDogs = [], isLoading: myDogsLoading } = useQuery({
     queryKey: ['my-pets'],

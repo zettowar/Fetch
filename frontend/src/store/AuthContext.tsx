@@ -15,6 +15,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// One restore at a time. The saved refresh token is single-use, and React
+// StrictMode mounts the provider's effect twice in development: two requests
+// spending the same token race, and the loser's 401 would look like an expired
+// session. Sharing the in-flight promise makes the second mount a no-op.
+let restoreInFlight: Promise<User> | null = null;
+
+function restoreSession(savedRefresh: string): Promise<User> {
+  restoreInFlight ??= refreshTokens(savedRefresh)
+    .then((data) => {
+      const { access_token, refresh_token } = data.tokens;
+      setTokens(access_token, refresh_token);
+      localStorage.setItem('refresh_token', refresh_token);
+      return getMe();
+    })
+    .finally(() => {
+      restoreInFlight = null;
+    });
+  return restoreInFlight;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,18 +76,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // First refresh the access token, then fetch user
-    refreshTokens(savedRefresh)
-      .then((data) => {
-        const { access_token, refresh_token } = data.tokens;
-        setTokens(access_token, refresh_token);
-        localStorage.setItem('refresh_token', refresh_token);
-        return getMe();
-      })
+    restoreSession(savedRefresh)
       .then((u) => {
         setUser(u);
       })
-      .catch(() => {
-        localStorage.removeItem('refresh_token');
+      .catch((err) => {
+        // Forget the saved session only when the server rejected it. A dropped
+        // connection, a 502 mid-deploy or a 429 are not verdicts on the token;
+        // deleting it for those signed people out for good because they
+        // opened the app in a tunnel. Kept, the next load simply tries again.
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status !== undefined && status >= 400 && status < 500 && status !== 429) {
+          localStorage.removeItem('refresh_token');
+        }
         clearTokens();
       })
       .finally(() => setIsLoading(false));

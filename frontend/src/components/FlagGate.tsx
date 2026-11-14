@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { usePublicFlags } from '../hooks/usePublicFlags';
+import { useSectionOpen } from '../hooks/usePublicFlags';
 import type { PublicFlags } from '../api/publicSite';
 
 /**
@@ -15,8 +15,8 @@ export default function FlagGate({
   flag: keyof PublicFlags;
   children: ReactNode;
 }) {
-  const flags = usePublicFlags();
-  if (flags.explore_enabled && flags[flag]) return <>{children}</>;
+  const open = useSectionOpen(flag);
+  if (open) return <>{children}</>;
   return (
     <div className="flex flex-col items-center justify-center gap-2 px-6 py-24 text-center">
       <span className="text-4xl" aria-hidden>🚧</span>

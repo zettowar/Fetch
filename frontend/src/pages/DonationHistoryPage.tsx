@@ -11,6 +11,7 @@ import PageHeader from '../components/ui/PageHeader';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import { relativeTime } from '../utils/time';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { useSectionOpen } from '../hooks/usePublicFlags';
 
 const STATUS_BADGE: Record<DonationStatus, { variant: 'success' | 'neutral' | 'warning' | 'danger'; label: string }> = {
   succeeded: { variant: 'success', label: 'Received' },
@@ -21,6 +22,7 @@ const STATUS_BADGE: Record<DonationStatus, { variant: 'success' | 'neutral' | 'w
 
 export default function DonationHistoryPage() {
   useDocumentTitle('My donations · Fetchpawz');
+  const donateOpen = useSectionOpen('explore_donate_enabled');
   const { data: donations, isLoading, isError, refetch } = useQuery({
     queryKey: ['my-donations'],
     queryFn: getMyDonations,
@@ -40,9 +42,11 @@ export default function DonationHistoryPage() {
           title="No donations yet"
           body="Chip in for the rescues doing the hard work — or toss Fetchpawz a bone."
           action={
-            <Link to="/app/donate">
-              <Button size="sm">Donate</Button>
-            </Link>
+            donateOpen ? (
+              <Link to="/app/donate">
+                <Button size="sm">Donate</Button>
+              </Link>
+            ) : undefined
           }
         />
       ) : (

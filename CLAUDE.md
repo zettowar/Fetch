@@ -10,8 +10,8 @@ A mobile-first web app where owners create profiles for their **cats and dogs**,
 cp .env.example .env
 make up          # Start all 6 Docker services
 make migrate     # Run database migrations
-make seed        # Create 10 test users + 20 dogs
-make test        # Run all tests (~499 backend + ~122 frontend)
+make seed        # Create 10 test users + 25 pets (each with a placeholder photo)
+make test        # Run all tests (~570 backend + ~135 frontend)
 ```
 
 - **Frontend:** http://localhost:3174
@@ -55,7 +55,7 @@ Fetchpawz/
 │   │   └── tasks/            # 7 Celery tasks (weekly_winner, weekly_recap,
 │   │                         #   lost_alerts, token_cleanup, digest,
 │   │                         #   announcements, schedule_defaults)
-│   ├── tests/                # backend test suite (~499 tests)
+│   ├── tests/                # backend test suite (~570 tests)
 │   ├── alembic/              # ~47 migrations (linear chain)
 │   └── pyproject.toml
 ├── frontend/
@@ -105,6 +105,23 @@ user: User = Depends(require_approved_rescue)
 
 **Route ordering matters** — put static paths (e.g., `/reports/nearby`) BEFORE parameterized paths (`/reports/{id}`) in the same router.
 
+**PATCH schemas: null is a third case.** Update schemas type every field
+`X | None = None` and routers apply `model_dump(exclude_unset=True)`, so a
+client can send an explicit `null`. For a nullable column that is how you clear
+it (the pet editor clears bio/birthday this way — it must send `null`, not omit
+the field). For a NOT NULL column it used to reach the database as a 500. Call
+`reject_explicit_nulls(self, "name", ...)` (`schemas/common.py`) from a
+`model_validator(mode="after")` for the required ones, and bound strings to
+their column size. `main.py` also maps `DataError` → 422 and `IntegrityError`
+→ 409/422 as a net under the schemas — it is a net, not the validation.
+
+**"Is this pet in the game?" is `pet_in_play()`** (`models/pet.py`), not
+`adopted_at IS NULL`. `adopted_at` is stamped both when a rescue marks a pet
+adopted (out of play) and when a rescue *transfers* it to its new family (very
+much in play — that pet now belongs to a member). The feed, Explore, the
+leaderboard, the crown and the recap all use the predicate; a new query that
+filters on `adopted_at` directly shuts transferred pets out again.
+
 ### Frontend
 
 **Two intents — keep them separate (`src/App.tsx`):**
@@ -138,19 +155,44 @@ The frontend serves two distinct experiences, split by route tree:
 3. Add API functions in `src/api/newfeature.ts` (import `client` from `./client`)
 4. Use TanStack Query: `useQuery({ queryKey: ['key'], queryFn: apiFn })`
 
+**Linking into a flag-gated section:** the Explore sections (parks, pack,
+donate, shop, vets, community) sit behind `FlagGate` on their routes. Anything
+that links *into* one from outside the Explore sheet must ask
+`useSectionOpen('explore_…_enabled')` (`hooks/usePublicFlags.ts`) first, or it
+lands on "Coming soon" — the top-bar cart icon, the Home donate row and the
+rescue "Donate" buttons all did.
+
+**`api/client.ts` has no default `Content-Type`, on purpose.** axios picks JSON
+for objects and lets the browser set multipart for `FormData`. With a blanket
+`application/json` default, axios serialises `FormData` *as JSON* — which is why
+adding a sighting and uploading a rescue logo never worked. Refresh reads the
+token from `localStorage` (shared by every tab), not from this tab's memory:
+refresh tokens are single-use and each tab rotates the shared one at boot.
+
 **Shared components:**
 - `Button` — variants: primary, secondary, danger, ghost. Sizes: sm, md, lg. Has `loading` prop.
 - `Input` — auto-generates `id`/`htmlFor` linkage. Has `label` and `error` props.
 - `PasswordInput` — extends Input with show/hide toggle and optional `showStrength` bar.
 - `BackButton` — browser back with fallback path.
 - `Skeleton`, `CardSkeleton`, `ListSkeleton` — loading placeholders.
-- `ErrorState` — error display with retry button.
+- `ErrorState` — error display with retry button. The "check your connection"
+  line only appears when there is an `onRetry`; a definitive answer ("Pet not
+  found") passes `hint={NOT_FOUND_HINT}` instead.
 - `Avatar` — colored initial circle, consistent hash-based color.
 
+**Hover-revealed controls** use the `reveal-on-hover` class (`index.css`), not
+`opacity-0 group-hover:opacity-100` — the latter is invisible-but-tappable on a
+phone, where nothing hovers.
+
 **Utilities (`src/utils/time.ts`):**
-- `relativeTime(dateStr)` — "2h ago", "3d ago"
+- `relativeTime(dateStr)` — "2h ago", "3d ago" (past only)
+- `timeUntil(dateStr)` — "in 3d" (expiries; `relativeTime` reads a future date as "just now")
 - `dogAge(birthdayStr)` — "2 yrs 3 mo"
 - `photoUrl(photo)` — resolves photo URL with fallback
+
+`DEFAULT_MAP_CENTER` (`utils/useUserLocation.ts`) is the one map fallback for
+when GPS, cache and IP lookup all fail. It is still San Francisco — a
+development placeholder; set it to the launch city.
 
 **Layout:**
 - Marketing site: web-first, full-width, responsive (`max-w-7xl` sections), own
@@ -325,7 +367,9 @@ a failed upload — the upload toast, the "In review" badge and this rule exist 
 say what actually happened. A non-approved photo can never be `primary_photo_id`
 (upload skips the slot, `admin.approve_photo` claims it later, and
 `set_primary_photo` 400s) — a withheld primary would blank the pet's hero
-everywhere.
+everywhere. When the primary photo is deleted or rejected,
+`services/primary_photo.reassign_primary_photo` hands the slot to the next
+approved photo instead of leaving it empty.
 
 ## Personality traits (free-form + admin-curated)
 
@@ -372,6 +416,10 @@ effect within `BEAT_MAX_INTERVAL` (default 60s) with no redeploy. The built-in
 jobs (canonical defs in `app/tasks/schedule_defaults.py`) are seeded into the
 table by the `periodic_tasks` migration, so a fresh install schedules exactly as
 before. Times are UTC. Run a single beat replica — two would double-schedule.
+A `one_off` job fires once: `ModelEntry.is_due` refuses a second run, and its
+write-back is the one place that *does* bump `updated_at`, so the disabled row
+drops out of the live schedule. (It used to keep firing until an unrelated
+edit or a restart.)
 
 ## QR collar tags
 
@@ -384,6 +432,37 @@ A finder reaches the owner through `POST /public/tags/{code}/contact`
 message by email without exposing the owner's address. The tag code is the
 credential, so a public share page alone cannot be used to mail an owner.
 
+## Rescue profiles are editable (and that is how a rescue gets on the map)
+
+Signup collects no coordinates, so `PATCH /rescues/me` — the "Your details"
+card on the rescue dashboard — is the only way a rescue's pin reaches
+`/rescues/nearby`. `lat`/`lng` are set or cleared together. The pin is public;
+the editor says so, and nothing is stored until the rescue presses Save.
+
+## Votes, the deck, and Rewind
+
+One vote per pet per week (`uq_vote_per_pet_per_week`); a second `POST /votes`
+for the same pet is a 409. Three things follow from that and are easy to break:
+
+- **Rewind is a real endpoint.** `DELETE /votes/{pet_id}` (Pack+ only,
+  idempotent) takes the vote back so the card can be swiped again. The deck
+  offered Rewind for a long time with nothing behind it: the card went back,
+  the vote stayed, and the re-swipe 409'd.
+- **The deck is never reused across visits** (`gcTime: 0` on the feed query in
+  `SwipeDeck`). A cached batch still holds the pets just voted on and the
+  component's index restarts at 0, so a quick return re-dealt them.
+- **A 409 on a vote is not a failure** — the vote already exists. The deck
+  moves on instead of rewinding to a card that can never be passed.
+
+A crown takes a net-positive score (`HAVING sum(value) > 0`), and when nobody
+qualifies any more the week's `weekly_winners` row is removed rather than left
+pointing at a pet that was deactivated. `weekly_winners.pet_id` is SET NULL on
+a hard delete, so the winner endpoints skip those rows.
+
+The swipe counter's optimistic changes live in the `['swipe-quota']` query
+cache (`utils/swipeQuota.ts`), not in component state, so Home and the deck
+always show the same number.
+
 ## Two-factor and SSO
 
 `services/totp.py` implements TOTP enrolment (`/auth/2fa/setup` → `/enable`),
@@ -393,6 +472,15 @@ for tokens. `oauth_exchange` enforces `totp_enabled` the same way password
 login does, answering 401 + `X-2FA-Required`; the handoff code is spent only
 after the second factor passes, so a mistyped digit does not force the whole
 provider round-trip again.
+
+Linking an SSO identity into an existing account by email is allowed, but if
+that account was **never verified** the link drops its password, TOTP and
+sessions first. Anyone can sign up with someone else's address and a password
+of their own choosing, then wait for the real owner to arrive via Google; the
+owner must not land in an account that still answers to that password.
+
+2FA can be switched off with a current code *or* the password — SSO-only
+accounts have no password.
 
 ## Notification delivery — one channel, and it is not the inbox
 
@@ -425,10 +513,15 @@ icon vs. amber + lock) because that is the last line of defence.
 State semantics worth keeping:
 - `closed` is the only terminal state. Replying to a **resolved** ticket reopens
   it to `open` — otherwise "resolved" becomes where a still-stuck person's
-  problem goes to be forgotten. A closed ticket 409s on reply.
+  problem goes to be forgotten. A closed ticket 409s on reply, so the reply
+  email for a *closing* answer points at opening a new request rather than
+  promising "reply and it reopens".
 - `awaiting_staff` is the queue that matters (Admin → Tickets, "Needs a reply"):
   true for a new ticket and for one the reporter has come back on, cleared by
-  any staff action. Status alone hides both cases.
+  any staff action. Status alone hides both cases. It is the page's default
+  view and is NOT combined with a status tab — a reporter's follow-up sits in
+  `in_progress`, which an "open + needs a reply" filter never showed. The
+  dashboard's open-ticket count uses the same rule.
 - `POST /admin/tickets/{id}/reply` takes an optional `status`, so "answer and
   resolve" is one action and one notification rather than two.
 - A staff reply emits both an inbox notification and a **transactional** email
@@ -469,6 +562,17 @@ Three rules keep it closed:
 Owners still get their own true coordinates; `lost_alerts` still uses the true
 point server-side to decide who to email. Guarded by
 `tests/test_lost_location_privacy.py`, which runs the actual attack.
+
+Related rules in the same spirit:
+- `PATCH /lost/subscriptions/mine` enforces the same 1–100 km radius as create.
+  Alerts match on the TRUE point, so a radius that could be shrunk to metres
+  would be a far better oracle than `/nearby` ever was.
+- Sighting photos go through the same re-encode as pet photos
+  (`photos._process_upload`), which strips EXIF. They are served without auth,
+  and a phone photo carries the GPS fix of wherever the finder stood.
+- A report is taken offline (`is_public=False`, `closed`) when its reporter
+  closes their account, and the share page 404s a `closed` report: closed is a
+  takedown, `resolved` is the reunion.
 
 ## Celery tasks: never use the app's pooled session
 

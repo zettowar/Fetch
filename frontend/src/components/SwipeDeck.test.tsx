@@ -86,10 +86,23 @@ describe('SwipeDeck', () => {
     vi.spyOn(feedApi, 'getFeed').mockResolvedValue([] as never);
 
     renderDeck();
-    expect(
-      await screen.findByText(/rated everyone this week/i),
-    ).toBeInTheDocument();
+    // Nothing was rated, so the deck must not claim "you've rated everyone".
+    expect(await screen.findByText(/all caught up/i)).toBeInTheDocument();
+    expect(screen.queryByText(/rated everyone this week/i)).toBeNull();
     expect(screen.queryByLabelText('Like')).toBeNull();
+  });
+
+  it('says "rated everyone" only after the user actually rated the deck', async () => {
+    vi.spyOn(feedApi, 'getFeed')
+      .mockResolvedValueOnce([makeDog('d1')] as never)
+      .mockResolvedValue([] as never);
+    vi.spyOn(votesApi, 'castVote').mockResolvedValue({} as never);
+
+    renderDeck();
+    fireEvent.click(await screen.findByLabelText('Like'));
+
+    expect(await screen.findByText(/rated everyone this week/i)).toBeInTheDocument();
+    expect(screen.getByText(/You rated 1 pet this session/i)).toBeInTheDocument();
   });
 
   it('rolls back the index when the vote mutation rejects', async () => {

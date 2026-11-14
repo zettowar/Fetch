@@ -1,7 +1,10 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
+
+from app.schemas.common import reject_explicit_nulls
 
 
 class PushSubscriptionCreate(BaseModel):
@@ -39,7 +42,18 @@ class NotificationPrefsUpdate(BaseModel):
     weekly_recap: bool | None = None
     comments_on_dogs: bool | None = None
     new_followers: bool | None = None
-    digest_mode: str | None = None
+    # The three values the digest job understands. As a bare `str` anything
+    # was stored (and silently never matched), and over 20 chars was a 500.
+    digest_mode: Literal["off", "daily", "weekly"] | None = None
+
+    @model_validator(mode="after")
+    def no_null_preferences(self) -> "NotificationPrefsUpdate":
+        # Every preference column is NOT NULL: omit a field to leave it alone.
+        reject_explicit_nulls(
+            self, "lost_dog_alerts", "announcement_emails", "weekly_winner",
+            "weekly_recap", "comments_on_dogs", "new_followers", "digest_mode",
+        )
+        return self
 
 
 class NotificationOut(BaseModel):

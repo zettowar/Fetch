@@ -6,21 +6,27 @@ import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
 import { Spinner } from '../components/ui/Skeleton';
-import ErrorState from '../components/ui/ErrorState';
+import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
 import Map from '../components/Map';
+import { useSectionOpen } from '../hooks/usePublicFlags';
 import { photoUrl } from '../utils/time';
 import type { Pet } from '../types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const RESCUE_PIN_COLOR = '#8b5cf6'; // shared with the Rescue map page
 
 export default function RescueDetailPage() {
   const { id } = useParams();
+  // In-app checkout only exists while the Donate section is switched on;
+  // with it off, fall back to the rescue's own donation page (or no button).
+  const donateOpen = useSectionOpen('explore_donate_enabled');
   const { data: rescue, isLoading, isError } = useQuery({
     queryKey: ['rescue', id],
     queryFn: () => getRescue(id!),
     enabled: !!id,
     retry: false,
   });
+  useDocumentTitle(`${rescue?.org_name ?? 'Rescue'} · Fetchpawz`);
   const { data: pets = [] } = useQuery<Pet[]>({
     queryKey: ['rescue-pets', id],
     queryFn: () => getRescueDogs(id!),
@@ -38,7 +44,7 @@ export default function RescueDetailPage() {
     return (
       <div className="p-6">
         <BackButton fallback="/app/rescues" />
-        <ErrorState message="Rescue not found." />
+        <ErrorState message="Rescue not found." hint={NOT_FOUND_HINT} />
       </div>
     );
   }
@@ -76,9 +82,9 @@ export default function RescueDetailPage() {
       )}
       <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{rescue.description}</p>
 
-      {(rescue.website || rescue.donation_url || rescue.donations_enabled) && (
+      {(rescue.website || rescue.donation_url || (rescue.donations_enabled && donateOpen)) && (
         <div className="flex items-center gap-2 mt-4">
-          {rescue.donations_enabled ? (
+          {rescue.donations_enabled && donateOpen ? (
             // Connect-enabled: in-app Stripe checkout, preselected on Donate.
             <Link
               to={`/app/donate?rescue=${rescue.id}`}

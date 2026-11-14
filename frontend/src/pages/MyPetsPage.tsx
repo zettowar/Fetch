@@ -8,20 +8,33 @@ import Button from '../components/ui/Button';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function MyPetsPage() {
+  useDocumentTitle('My pets · Fetchpawz');
   const { data: pets, isLoading, isError, refetch } = useQuery({
     queryKey: ['my-pets'],
     queryFn: getMyPets,
   });
 
-  const { data: leaderboard } = useQuery({
-    queryKey: ['rankings', 'current'],
-    queryFn: () => getCurrentRankings(),
+  // Rank WITHIN a species — the crown is per species (Top Dog and Top Cat),
+  // and so is the rank on each pet's own page. The unscoped leaderboard mixes
+  // both, so the cat leading every other cat could wear a silver medal here
+  // for sitting behind a dog.
+  const { data: dogBoard } = useQuery({
+    queryKey: ['rankings', 'current', 'dog'],
+    queryFn: () => getCurrentRankings('dog'),
+  });
+  const { data: catBoard } = useQuery({
+    queryKey: ['rankings', 'current', 'cat'],
+    queryFn: () => getCurrentRankings('cat'),
   });
 
   const petIdToRank = new Map<string, number>(
-    (leaderboard ?? []).map((entry) => [entry.pet_id.toString(), entry.rank]),
+    [...(dogBoard ?? []), ...(catBoard ?? [])].map((entry) => [
+      entry.pet_id.toString(),
+      entry.rank,
+    ]),
   );
 
   return (

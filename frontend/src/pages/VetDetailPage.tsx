@@ -4,8 +4,9 @@ import { getVet } from '../api/vets';
 import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Skeleton';
-import ErrorState from '../components/ui/ErrorState';
+import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
 import Map from '../components/Map';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const VET_PIN_COLOR = '#0ea5e9';
 const VET_PIN_EMERGENCY = '#ef4444';
@@ -26,6 +27,7 @@ export default function VetDetailPage() {
     enabled: !!id,
     retry: false,
   });
+  useDocumentTitle(`${vet?.name ?? 'Vet'} · Fetchpawz`);
 
   if (isLoading) {
     return (
@@ -38,7 +40,7 @@ export default function VetDetailPage() {
     return (
       <div className="p-6">
         <BackButton fallback="/app/vets" />
-        <ErrorState message="Vet clinic not found." />
+        <ErrorState message="Vet clinic not found." hint={NOT_FOUND_HINT} />
       </div>
     );
   }

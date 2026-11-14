@@ -25,7 +25,7 @@ class NewsPostCreate(BaseModel):
     @field_validator("link_url")
     @classmethod
     def clean_link(cls, v: str | None) -> str | None:
-        return normalise_url(v)
+        return normalise_url(v, allow_site_path=True)
 
 
 class NewsPostUpdate(BaseModel):
@@ -40,7 +40,7 @@ class NewsPostUpdate(BaseModel):
     @field_validator("link_url")
     @classmethod
     def clean_link(cls, v: str | None) -> str | None:
-        return normalise_url(v)
+        return normalise_url(v, allow_site_path=True)
 
 
 class NewsPostOut(BaseModel):

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { PawPrint, Siren } from 'lucide-react';
 import { getNearbyReports, getMySubscription, type NearbyReport } from '../api/lost';
@@ -10,15 +10,16 @@ import PawSpinner from '../components/flair/PawSpinner';
 import TimeAgo from '../components/TimeAgo';
 import ErrorState from '../components/ui/ErrorState';
 import LostAlertSubscription from '../components/LostAlertSubscription';
-import { useUserLocation } from '../utils/useUserLocation';
+import { DEFAULT_MAP_CENTER, useUserLocation } from '../utils/useUserLocation';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
-const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // fallback: San Francisco
 const LAST_VISITED_KEY = 'lost-last-visited';
 
 type Kind = 'all' | 'missing' | 'found';
 
 export default function LostPetsPage() {
-  const initialCenter = useUserLocation(DEFAULT_CENTER);
+  useDocumentTitle('Lost & Found · Fetchpawz');
+  const initialCenter = useUserLocation(DEFAULT_MAP_CENTER);
   const [viewCenter, setViewCenter] = useState<[number, number]>(initialCenter);
   const [selectedReport, setSelectedReport] = useState<NearbyReport | null>(null);
   const [filter, setFilter] = useState<Kind>('all');
@@ -47,11 +48,17 @@ export default function LostPetsPage() {
         25,
         filter === 'all' ? undefined : filter,
       ),
+    // Keep the last result on screen while the next centre loads. The key is
+    // the exact map centre, so without this every pan was a brand-new query
+    // with no data: the pins vanished (and any open popup closed) until the
+    // response for the new position arrived.
+    placeholderData: keepPreviousData,
   });
 
   const { data: allReports = [], isError: countsFailed } = useQuery({
     queryKey: ['lost-nearby', viewCenter[1], viewCenter[0], 'all'],
     queryFn: () => getNearbyReports(viewCenter[1], viewCenter[0], 25),
+    placeholderData: keepPreviousData, // see the pins query above
   });
 
   const counts = {

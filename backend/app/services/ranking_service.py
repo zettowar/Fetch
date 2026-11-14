@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy.orm import selectinload
 
-from app.models.pet import Pet, SPECIES
+from app.models.pet import Pet, SPECIES, pet_in_play
 from app.models.vote import Vote
 from app.models.weekly_winner import WeeklyWinner
 from app.services.breed_display import breed_display
@@ -29,11 +29,12 @@ async def get_current_leaderboard(
         )
         .join(Pet, Pet.id == Vote.pet_id)
         # Match the feed's eligibility rules: a pet deactivated by a suspension
-        # (or deleted, or already adopted) must not keep ranking or win a crown.
+        # (or deleted, or adopted out of a rescue) must not keep ranking or win a
+        # crown.
         .where(
             Vote.week_bucket == week,
             Pet.is_active == True,  # noqa: E712
-            Pet.adopted_at.is_(None),
+            pet_in_play(),
         )
     )
     if species:
@@ -97,7 +98,7 @@ async def get_pet_stats(pet_id: UUID, db: AsyncSession) -> dict:
             Vote.week_bucket == week,
             Pet.species == species,
             Pet.is_active == True,  # noqa: E712
-            Pet.adopted_at.is_(None),
+            pet_in_play(),
         )
         .group_by(Vote.pet_id)
         .subquery()
@@ -179,7 +180,8 @@ _RECAP_SQL = text(
         JOIN pets p ON p.id = v.pet_id
         WHERE v.week_bucket = :week
           AND p.is_active
-          AND p.adopted_at IS NULL
+          -- Same rule as models.pet.pet_in_play(): a transferred pet plays on.
+          AND (p.adopted_at IS NULL OR p.adopted_by_user_id = p.owner_id)
         GROUP BY v.pet_id, p.owner_id, p.name, p.species
     )
     SELECT
@@ -218,9 +220,13 @@ async def _pick_winner_for_week(
             Vote.week_bucket == week,
             Pet.species == species,
             Pet.is_active == True,  # noqa: E712
-            Pet.adopted_at.is_(None),
+            pet_in_play(),
         )
         .group_by(Vote.pet_id)
+        # A crown takes at least one net like. Without the floor, a week whose
+        # only votes were passes crowned a pet and told its owner
+        # "Final score: -1".
+        .having(func.sum(Vote.value) > 0)
         .order_by(
             func.sum(Vote.value).desc(),
             func.min(Vote.created_at).asc(),
@@ -232,7 +238,23 @@ async def _pick_winner_for_week(
     row = result.first()
 
     if not row:
-        logger.info("No %s votes found for week %s", species, week)
+        logger.info("No eligible %s votes for week %s", species, week)
+        if upsert:
+            # Nobody qualifies any more, so nobody holds the crown. Returning
+            # early here used to leave the previous row in place: when the
+            # week's leader was deactivated and no other pet had votes, the
+            # app kept crowning a pet that no longer exists to its visitors.
+            stale = (
+                await db.execute(
+                    select(WeeklyWinner).where(
+                        WeeklyWinner.week_bucket == week, WeeklyWinner.species == species
+                    )
+                )
+            ).scalar_one_or_none()
+            if stale is not None:
+                await db.delete(stale)
+                await db.commit()
+                logger.info("Cleared stale %s winner for week %s", species, week)
         return None
 
     if upsert:

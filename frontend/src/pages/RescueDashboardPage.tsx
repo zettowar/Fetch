@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Camera, HandCoins } from 'lucide-react';
+import { Camera, HandCoins, MapPin } from 'lucide-react';
 import {
   getMyRescueProfile,
   markDogAdopted,
@@ -32,8 +32,15 @@ import BackButton from '../components/ui/BackButton';
 import { useAuth } from '../store/AuthContext';
 import { apiErrorMessage } from '../utils/apiError';
 import type { Pet } from '../types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
+
+// Loaded on demand: this page ships in the main bundle, and the map picker
+// (with the map library behind it) is only needed once a rescue opens the
+// details editor.
+const LocationPicker = lazy(() => import('../components/LocationPicker'));
 
 export default function RescueDashboardPage() {
+  useDocumentTitle('Rescue dashboard · Fetchpawz');
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -48,7 +55,10 @@ export default function RescueDashboardPage() {
   const approved = profile?.status === 'approved';
 
   const { data: pets = [], refetch: refetchDogs } = useQuery<Pet[]>({
-    queryKey: ['rescue-my-pets'],
+    // Same key as every other "my pets" list: the pet editor invalidates
+    // ['my-pets'] on create/edit/delete, and under a private key this
+    // dashboard kept showing the old list after coming back from it.
+    queryKey: ['my-pets'],
     queryFn: getMyPets,
     enabled: approved,
   });
@@ -132,6 +142,8 @@ export default function RescueDashboardPage() {
       </p>
 
       <PublicPageCard profile={profile} />
+
+      <ProfileDetailsCard profile={profile} />
 
       <ConnectDonationsCard externalDonationUrl={profile.donation_url} />
 
@@ -491,6 +503,178 @@ function PublicPageCard({ profile }: { profile: RescueProfile }) {
           className="aspect-[3/1] col-span-2 sm:col-span-1 sm:aspect-square"
         />
       </div>
+    </Card>
+  );
+}
+
+/**
+ * The rescue's own details: description, location, links, and its pin on the
+ * rescue map.
+ *
+ * None of this was editable before. Everything was typed once at signup and
+ * frozen — a rescue could not fix a typo in its description or change its
+ * donation link — and signup never asked for coordinates, so no rescue could
+ * appear on the rescue map at all: the page it is listed on was always empty.
+ */
+function ProfileDetailsCard({ profile }: { profile: RescueProfile }) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [description, setDescription] = useState(profile.description);
+  const [location, setLocation] = useState(profile.location ?? '');
+  const [website, setWebsite] = useState(profile.website ?? '');
+  const [donationUrl, setDonationUrl] = useState(profile.donation_url ?? '');
+  const savedPin =
+    profile.lat != null && profile.lng != null ? { lat: profile.lat, lng: profile.lng } : null;
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(savedPin);
+
+  const startEditing = () => {
+    // Start from what is saved, not from a previous abandoned edit.
+    setDescription(profile.description);
+    setLocation(profile.location ?? '');
+    setWebsite(profile.website ?? '');
+    setDonationUrl(profile.donation_url ?? '');
+    setPin(savedPin);
+    setEditing(true);
+  };
+
+  const save = useMutation({
+    mutationFn: () =>
+      updateMyRescueProfile({
+        description: description.trim(),
+        location: location.trim() || null,
+        website: website.trim() || null,
+        donation_url: donationUrl.trim() || null,
+        lat: pin?.lat ?? null,
+        lng: pin?.lng ?? null,
+      }),
+    onSuccess: () => {
+      toast.success('Details saved');
+      queryClient.invalidateQueries({ queryKey: ['rescue-profile-me'] });
+      setEditing(false);
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Could not save your details')),
+  });
+
+  if (!editing) {
+    return (
+      <Card padding="md" className="mb-8">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Your details</h2>
+          <Button size="sm" variant="secondary" onClick={startEditing}>
+            Edit
+          </Button>
+        </div>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap line-clamp-4">
+          {profile.description}
+        </p>
+        <dl className="mt-3 space-y-1 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex gap-2">
+            <dt className="w-24 shrink-0 font-medium">Location</dt>
+            <dd className="min-w-0 truncate">{profile.location || 'Not set'}</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="w-24 shrink-0 font-medium">Website</dt>
+            <dd className="min-w-0 truncate">{profile.website || 'Not set'}</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="w-24 shrink-0 font-medium">Donation link</dt>
+            <dd className="min-w-0 truncate">{profile.donation_url || 'Not set'}</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="w-24 shrink-0 font-medium">Rescue map</dt>
+            <dd className="min-w-0">
+              {savedPin ? (
+                <span className="inline-flex items-center gap-1 text-success-600 dark:text-success-400">
+                  <MapPin size={12} aria-hidden /> You&rsquo;re on the map
+                </span>
+              ) : (
+                'Not on the map yet — add a pin so nearby adopters can find you'
+              )}
+            </dd>
+          </div>
+        </dl>
+      </Card>
+    );
+  }
+
+  return (
+    <Card padding="md" className="mb-8">
+      <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Edit your details</h2>
+      <form
+        className="flex flex-col gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate();
+        }}
+      >
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="rescue-description"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Description
+          </label>
+          <textarea
+            id="rescue-description"
+            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
+            rows={5}
+            maxLength={5000}
+            required
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+        <Input
+          label="Location"
+          placeholder="City, province"
+          maxLength={200}
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+        <Input
+          label="Website"
+          placeholder="yourrescue.org"
+          maxLength={500}
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+        />
+        <Input
+          label="Donation link"
+          placeholder="Where supporters can give"
+          maxLength={500}
+          value={donationUrl}
+          onChange={(e) => setDonationUrl(e.target.value)}
+        />
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Pin on the rescue map</p>
+          <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+            Public — this is where you appear on the map adopters browse. Tap to place it
+            somewhere you&rsquo;re happy to be found, such as your adoption centre.
+          </p>
+          <Suspense fallback={<div className="h-56 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" aria-busy="true" />}>
+            <LocationPicker value={pin} onChange={setPin} heightClass="h-56" accentColor="#8b5cf6" />
+          </Suspense>
+          {pin && (
+            <button
+              type="button"
+              onClick={() => setPin(null)}
+              className="mt-1 text-xs text-gray-500 dark:text-gray-400 underline hover:text-danger-500"
+            >
+              Remove the pin (stay off the map)
+            </button>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <Button type="submit" loading={save.isPending} disabled={!description.trim()}>
+            Save details
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }

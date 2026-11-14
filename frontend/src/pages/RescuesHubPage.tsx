@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { PawPrint as DogIcon, HousePlus, Map as MapIcon } from 'lucide-react';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function RescuesHubPage() {
+  useDocumentTitle('Rescues · Fetchpawz');
   return (
     <div className="px-4 pt-5 pb-8 flex flex-col gap-5">
       <div>

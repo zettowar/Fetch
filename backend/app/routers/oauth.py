@@ -16,14 +16,14 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import get_db
 from app.limiter import limiter
 from app.models.oauth_handoff import OAuthHandoff
-from app.models.user import User
+from app.models.user import RefreshToken, User
 from app.models.user_identity import UserIdentity
 from app.routers.auth import _create_tokens
 from app.schemas.auth import AuthResponse
@@ -115,6 +115,28 @@ async def resolve_oauth_user(db: AsyncSession, identity: NormalizedIdentity) -> 
             provider_account_id=identity.account_id, email=identity.email,
         ))
         if not existing.is_verified:
+            # Nobody has ever proved they own this address to us — until now,
+            # and the proof came from the provider, not from whoever created
+            # the account. That matters: anyone can sign up with someone
+            # else's email and a password of their choosing, then wait. If we
+            # simply linked, the real owner would land in an account whose
+            # password is still the stranger's, and the stranger could keep
+            # logging in to it (login does not require a verified email).
+            # So an unverified account keeps its data but loses every
+            # credential its creator set. A genuine owner who had just not
+            # verified yet loses nothing they can't restore with "Forgot
+            # password".
+            existing.password_hash = None
+            existing.totp_enabled = False
+            existing.totp_secret = None
+            await db.execute(
+                update(RefreshToken)
+                .where(
+                    RefreshToken.user_id == existing.id,
+                    RefreshToken.revoked == False,  # noqa: E712
+                )
+                .values(revoked=True)
+            )
             existing.is_verified = True
         return existing
 

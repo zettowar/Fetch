@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { ExternalLink, Heart, HeartHandshake, HousePlus, PawPrint } from 'lucide-react';
@@ -56,12 +56,18 @@ export default function DonatePage() {
   }, [params, setParams]);
 
   // ?rescue={id} — deep link from a rescue profile preselects it.
+  // Applied once. Re-running whenever the recipient was the platform meant a
+  // visitor who arrived from a rescue page could never choose "Support
+  // Fetchpawz": picking it snapped the selection straight back to the rescue.
   const preselectId = params.get('rescue');
+  const preselectApplied = useRef(false);
   useEffect(() => {
-    if (!preselectId || recipient.type === 'rescue') return;
+    if (!preselectId || preselectApplied.current) return;
     const match = rescues.find((r) => r.id === preselectId);
-    if (match?.donations_enabled) setRecipient({ type: 'rescue', rescue: match });
-  }, [preselectId, rescues, recipient.type]);
+    if (!match) return; // rescues not loaded yet — try again when they are
+    preselectApplied.current = true;
+    if (match.donations_enabled) setRecipient({ type: 'rescue', rescue: match });
+  }, [preselectId, rescues]);
 
   const effectiveCents = useMemo(() => {
     if (customAmount.trim()) {

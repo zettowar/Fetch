@@ -48,7 +48,7 @@ export default function PublicPetPage() {
           className="mx-auto h-32 w-auto text-gray-400 dark:text-gray-500"
         />
         <h1 className="mt-4 text-2xl font-bold tracking-tight">
-          {isError && !isNotFound(error) ? "Couldn't load this page" : 'This pup is private'}
+          {isError && !isNotFound(error) ? "Couldn't load this page" : 'This pet page is private'}
         </h1>
         <p className="mt-2 text-gray-500 dark:text-gray-400">
           {isError && !isNotFound(error)

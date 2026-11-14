@@ -2,14 +2,13 @@ import client from './client';
 
 export type ReportTargetType = 'photo' | 'pet' | 'user' | 'comment' | 'post';
 
+/** A report as its reporter sees it (moderator notes are staff-only). */
 export interface Report {
   id: string;
-  reporter_id: string;
   target_type: ReportTargetType;
   target_id: string;
   reason: string;
   status: string;
-  admin_notes: string | null;
   created_at: string;
 }
 

@@ -99,7 +99,11 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
         .where(LostReport.id == report_id)
     )
     report = result.scalar_one_or_none()
-    if report is None or not report.is_public:
+    # "closed" is a staff takedown (or the reporter closing their account),
+    # not a reunion. It used to fall through to the resolved branch below and
+    # keep serving the report's content under "Good news — this pet has been
+    # found". Only "resolved" earns that page.
+    if report is None or not report.is_public or report.status == "closed":
         return _not_found()
 
     missing = report.kind == "missing"

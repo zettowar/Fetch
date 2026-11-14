@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.db import get_db
 from app.deps import get_current_user
 from app.models.breed import Breed
-from app.models.pet import Pet
+from app.models.pet import Pet, pet_in_play
 from app.models.user import User
 from app.schemas.pet import PetCreate, PetOut, PetUpdate
 from app.schemas.pet_trait import PetTraitOut
@@ -57,6 +57,7 @@ async def create_pet(
         bio=body.bio,
         location_rough=body.location_rough,
         traits=traits,
+        is_public=body.is_public,
     )
     pet.breeds = breeds
     db.add(pet)
@@ -118,7 +119,7 @@ async def explore_pets(
     where_clauses = [
         Pet.is_active == True,  # noqa: E712
         Pet.owner_id != user.id,
-        Pet.adopted_at.is_(None),
+        pet_in_play(),
         Pet.owner_id.notin_(blocked_user_ids_subquery(user.id)),
     ]
     if species in ("dog", "cat"):

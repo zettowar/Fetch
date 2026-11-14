@@ -7,12 +7,12 @@ import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
-import ErrorState from '../components/ui/ErrorState';
+import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
 import { isNotFound } from '../utils/apiError';
 import Avatar from '../components/ui/Avatar';
 import { Spinner } from '../components/ui/Skeleton';
 import PlayDatesSection from '../components/PlayDatesSection';
-import { relativeTime } from '../utils/time';
+import { timeUntil } from '../utils/time';
 import {
   getPark,
   getParkReviews,
@@ -28,10 +28,12 @@ import Button from '../components/ui/Button';
 import Linkify from '../components/Linkify';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
+import { useAuth } from '../store/AuthContext';
 
 export default function ParkDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: park, isLoading, isError, error, refetch } = useQuery({
@@ -123,7 +125,7 @@ export default function ParkDetailPage() {
     return <ErrorState message="Couldn't load this park." onRetry={() => refetch()} />;
   }
   if (!park) {
-    return <ErrorState message="Park not found." />;
+    return <ErrorState message="Park not found." hint={NOT_FOUND_HINT} />;
   }
 
   const attrs = park.attributes || {};
@@ -195,13 +197,17 @@ export default function ParkDetailPage() {
         >
           Check In
         </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => navigate(`/app/parks/${id}/edit`)}
-        >
-          Edit
-        </Button>
+        {/* Editing a park is a staff action on the server; showing the button
+            to everyone led to a form whose Save could only fail. */}
+        {user?.role === 'admin' && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => navigate(`/app/parks/${id}/edit`)}
+          >
+            Edit
+          </Button>
+        )}
       </div>
 
       {/* Pet picker for check-in */}
@@ -339,7 +345,7 @@ export default function ParkDetailPage() {
               <p className="text-sm font-medium text-danger-700 dark:text-danger-300">{inc.kind.replace(/_/g, ' ')}</p>
               <p className="text-sm text-gray-600 dark:text-gray-300">{inc.description}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                Expires {relativeTime(inc.expires_at)}
+                Expires {timeUntil(inc.expires_at)}
               </p>
             </div>
           ))

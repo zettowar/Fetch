@@ -2,8 +2,10 @@ import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import DogIllustration from '../components/flair/DogIllustration';
 import { useAuth } from '../store/AuthContext';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function NotFoundPage() {
+  useDocumentTitle('Page not found · Fetchpawz');
   const { isAuthenticated } = useAuth();
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">

@@ -22,6 +22,7 @@ import BreedMultiSelect from '../components/ui/BreedMultiSelect';
 import type { Breed, MixType, Species } from '../types';
 import PetPhoto, { InReviewBadge, isInReview } from '../components/PetPhoto';
 import { apiErrorMessage } from '../utils/apiError';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 interface PendingPhoto {
   id: string;
@@ -32,6 +33,7 @@ interface PendingPhoto {
 export default function PetEditorPage() {
   const { id } = useParams();
   const isEditing = !!id;
+  useDocumentTitle(`${isEditing ? 'Edit pet' : 'Add a pet'} · Fetchpawz`);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -184,8 +186,11 @@ export default function PetEditorPage() {
         species,
         mix_type: mixType,
         breed_ids: breeds.map((b) => b.id),
-        bio: bio || undefined,
-        birthday: birthday || undefined,
+        // null, not undefined: an omitted field means "leave it alone" to the
+        // API, so clearing the bio or birthday saved "Pet updated!" and
+        // changed nothing.
+        bio: bio.trim() || null,
+        birthday: birthday || null,
         traits,
         is_public: isPublic,
       };
@@ -193,6 +198,7 @@ export default function PetEditorPage() {
         await updatePet(id!, payload);
         toast.success('Pet updated!');
         queryClient.invalidateQueries({ queryKey: ['pet', id] });
+        queryClient.invalidateQueries({ queryKey: ['my-pets'] });
       } else {
         // Create the pet first, then upload any queued photos in sequence.
         const newDog = await createPet(payload);
@@ -255,6 +261,9 @@ export default function PetEditorPage() {
   };
 
   const handleDeletePhoto = async (photoId: string) => {
+    // Same confirmation the pet page asks for — one tap on a small corner
+    // button should not be enough to lose a photo.
+    if (!confirm('Delete this photo?')) return;
     try {
       await deletePhoto(photoId);
       toast.success('Photo deleted');
@@ -277,7 +286,13 @@ export default function PetEditorPage() {
       </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <Input
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={100}
+          required
+        />
 
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Species</label>
@@ -504,7 +519,7 @@ export default function PetEditorPage() {
                         <button
                           type="button"
                           onClick={() => removePendingPhoto(p.id)}
-                          className="absolute top-1 right-1 bg-danger-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          className="absolute top-1 right-1 bg-danger-500 text-white rounded-full w-5 h-5 text-xs reveal-on-hover transition-opacity flex items-center justify-center"
                           aria-label="Remove photo"
                         >
                           <X size={12} aria-hidden />
@@ -561,7 +576,7 @@ export default function PetEditorPage() {
                     )}
                     <button
                       onClick={() => handleDeletePhoto(photo.id)}
-                      className="absolute top-1 right-1 bg-danger-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      className="absolute top-1 right-1 bg-danger-500 text-white rounded-full w-5 h-5 text-xs reveal-on-hover transition-opacity flex items-center justify-center"
                       aria-label="Delete photo"
                     >
                       <X size={12} aria-hidden />

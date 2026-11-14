@@ -24,3 +24,14 @@ export function usePublicFlags(): PublicFlags {
   });
   return { ...DEFAULT_FLAGS, ...(data ?? {}) };
 }
+
+/**
+ * Whether one Explore section is reachable right now: the master
+ * `explore_enabled` switch AND the section's own flag. This is the same test
+ * FlagGate applies to the route, so anything that links INTO a gated section
+ * must ask it first — a link that skips the check lands on "Coming soon".
+ */
+export function useSectionOpen(flag: keyof PublicFlags): boolean {
+  const flags = usePublicFlags();
+  return flags.explore_enabled && flags[flag];
+}

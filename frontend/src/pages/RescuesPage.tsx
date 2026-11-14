@@ -9,8 +9,14 @@ import EmptyState from '../components/ui/EmptyState';
 import SearchInput from '../components/ui/SearchInput';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
+import { useSectionOpen } from '../hooks/usePublicFlags';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 function RescueCard({ rescue }: { rescue: RescuePublic }) {
+  // In-app checkout only exists while the Donate section is switched on;
+  // with it off, fall back to the rescue's own donation page (or no button).
+  const donateOpen = useSectionOpen('explore_donate_enabled');
+  const inAppDonate = rescue.donations_enabled && donateOpen;
   // Stretched-link pattern: the detail Link is an overlay sibling of the
   // Donate/Website anchors rather than their parent — interactive elements
   // must never nest.
@@ -29,9 +35,9 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{rescue.location}</p>
       )}
       <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{rescue.description}</p>
-      {(rescue.website || rescue.donation_url || rescue.donations_enabled) && (
+      {(rescue.website || rescue.donation_url || inAppDonate) && (
         <div className="relative flex items-center gap-2 mt-3">
-          {rescue.donations_enabled ? (
+          {inAppDonate ? (
             <Link
               to={`/app/donate?rescue=${rescue.id}`}
               className="text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 px-3 py-1.5 rounded-lg transition-colors"
@@ -67,6 +73,7 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
 type Kind = 'all' | 'donating' | 'has_website';
 
 export default function RescuesPage() {
+  useDocumentTitle('Browse rescues · Fetchpawz');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Kind>('all');
   const { data: rescues = [], isLoading, isError, refetch } = useQuery({

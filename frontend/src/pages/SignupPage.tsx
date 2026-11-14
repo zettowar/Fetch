@@ -10,8 +10,10 @@ import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
 import SSOButtons from '../components/SSOButtons';
 import { apiErrorMessage } from '../utils/apiError';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function SignupPage() {
+  useDocumentTitle('Sign up · Fetchpawz');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -75,7 +77,7 @@ export default function SignupPage() {
     <div className="flex flex-col pb-10">
       <AuthHero
         title="Join the pack"
-        subtitle="Under a minute. No ads, no feed tricks — just pets."
+        subtitle="Under a minute. No feed tricks — just pets."
       />
 
       {/* Form card */}

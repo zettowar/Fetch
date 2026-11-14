@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { Map as MapIcon } from 'lucide-react';
 import { getNearbyRescues, type RescuePublic } from '../api/rescues';
 import Map from '../components/Map';
 import ErrorState from '../components/ui/ErrorState';
 import PawSpinner from '../components/flair/PawSpinner';
-import { useUserLocation } from '../utils/useUserLocation';
+import { DEFAULT_MAP_CENTER, useUserLocation } from '../utils/useUserLocation';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
-const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // San Francisco fallback
 const RESCUE_PIN_COLOR = '#8b5cf6'; // violet to match the Rescues theme
 
 export default function RescuesMapPage() {
-  const initialCenter = useUserLocation(DEFAULT_CENTER);
+  useDocumentTitle('Rescue map · Fetchpawz');
+  const initialCenter = useUserLocation(DEFAULT_MAP_CENTER);
   const [viewCenter, setViewCenter] = useState<[number, number]>(initialCenter);
   const [selected, setSelected] = useState<RescuePublic | null>(null);
   const navigate = useNavigate();
@@ -27,6 +28,11 @@ export default function RescuesMapPage() {
   const { data: rescues = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['rescues-nearby', viewCenter[1], viewCenter[0]],
     queryFn: () => getNearbyRescues(viewCenter[1], viewCenter[0], 200),
+    // Keep the last result on screen while the next centre loads. The key is
+    // the exact map centre, so without this every pan was a brand-new query
+    // with no data: the pins vanished (and any open popup closed) until the
+    // response for the new position arrived.
+    placeholderData: keepPreviousData,
   });
 
   // Drop a selection that was filtered out (e.g. coords changed).

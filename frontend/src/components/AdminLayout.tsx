@@ -1,6 +1,7 @@
-import { NavLink, Outlet, Link } from 'react-router-dom';
+import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
 import PawMark from './ui/PawMark';
 import { useAuth } from '../store/AuthContext';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 // `adminOnly` items are hidden from moderators (whose backend gate would 403).
 const NAV_ITEMS: { path: string; label: string; end?: boolean; adminOnly?: boolean }[] = [
@@ -32,6 +33,15 @@ export default function AdminLayout() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const navItems = NAV_ITEMS.filter((item) => isAdmin || !item.adminOnly);
+  // One owner for every admin tab title, derived from the nav — a staff member
+  // with six admin tabs open could not tell them apart when they all read as
+  // the marketing tagline. Longest matching path wins so /admin/users/:id is
+  // "Users", not "Dashboard".
+  const { pathname } = useLocation();
+  const section = [...NAV_ITEMS]
+    .sort((a, b) => b.path.length - a.path.length)
+    .find((item) => pathname === item.path || pathname.startsWith(`${item.path}/`));
+  useDocumentTitle(`${section?.label ?? 'Admin'} · Fetchpawz Admin`);
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800/50">
       {/* Admin top bar */}

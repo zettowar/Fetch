@@ -8,6 +8,16 @@ const IP_LOOKUP_URL = 'https://ipapi.co/json/';
 // privacy. Enabled unless explicitly set to "false".
 const IP_GEOLOCATION_ENABLED = import.meta.env.VITE_ENABLE_IP_GEOLOCATION !== 'false';
 
+/**
+ * Where maps open when nothing better is known: no GPS permission, no cached
+ * position, and the IP lookup failed or is switched off. `[lng, lat]`.
+ *
+ * One definition, on purpose. This used to be pasted into seven files, so
+ * re-pointing the app at a launch city meant finding all seven. It is still
+ * San Francisco, a development-era placeholder: set it to the launch city.
+ */
+export const DEFAULT_MAP_CENTER: [number, number] = [-122.4194, 37.7749];
+
 type Source = 'gps' | 'ip';
 
 interface CachedLocation {
@@ -58,7 +68,9 @@ function writeCache(coords: [number, number], source: Source): void {
  *
  * If both fail, the provided fallback remains.
  */
-export function useUserLocation(fallback: [number, number]): [number, number] {
+export function useUserLocation(
+  fallback: [number, number] = DEFAULT_MAP_CENTER,
+): [number, number] {
   const [center, setCenter] = useState<[number, number]>(() => {
     const cached = readCache();
     return cached ? [cached.lng, cached.lat] : fallback;

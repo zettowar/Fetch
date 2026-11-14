@@ -44,7 +44,15 @@ async def current_winner(
     # is served as "current", so a quiet week (or any Monday before the first
     # vote) presents a stale crown as this week's — and the client's
     # "No winner yet" state becomes unreachable once one winner has ever existed.
-    q = select(WeeklyWinner).where(WeeklyWinner.week_bucket == current_week_bucket())
+    #
+    # pet_id is SET NULL when the crowned pet is hard-deleted (an admin
+    # deleting its owner). Such a row has nothing to show and no id to link
+    # to, and WeeklyWinnerOut requires one — serialising it was a 500 on the
+    # home screen for every user. Skip it; the next tally re-crowns.
+    q = select(WeeklyWinner).where(
+        WeeklyWinner.week_bucket == current_week_bucket(),
+        WeeklyWinner.pet_id.is_not(None),
+    )
     if species in ("dog", "cat"):
         q = q.where(WeeklyWinner.species == species)
     result = await db.execute(q.order_by(WeeklyWinner.week_bucket.desc()).limit(1))
@@ -90,7 +98,13 @@ async def winner_history(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = select(WeeklyWinner).order_by(WeeklyWinner.week_bucket.desc())
+    # Rows whose pet was hard-deleted (pet_id SET NULL) are left out — see
+    # current_winner. One such row used to 500 the whole history list.
+    q = (
+        select(WeeklyWinner)
+        .where(WeeklyWinner.pet_id.is_not(None))
+        .order_by(WeeklyWinner.week_bucket.desc(), WeeklyWinner.species.desc())
+    )
     if species in ("dog", "cat"):
         q = q.where(WeeklyWinner.species == species)
     result = await db.execute(q.limit(limit))

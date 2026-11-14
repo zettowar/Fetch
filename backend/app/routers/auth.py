@@ -388,7 +388,10 @@ async def totp_disable(
     if not user.totp_enabled:
         raise HTTPException(status_code=400, detail="2FA is not enabled")
     authorized = (
-        (body.password and verify_password(body.password, user.password_hash))
+        # password_hash is None on an SSO-only account; verifying against it
+        # raised instead of returning False.
+        (body.password and user.password_hash
+         and verify_password(body.password, user.password_hash))
         or (body.code and totp.verify(user.totp_secret or "", body.code))
     )
     if not authorized:

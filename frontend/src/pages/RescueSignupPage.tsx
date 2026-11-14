@@ -9,8 +9,10 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
 import { apiErrorMessage } from '../utils/apiError';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function RescueSignupPage() {
+  useDocumentTitle('Rescue sign-up · Fetchpawz');
   const navigate = useNavigate();
   const { login: authLogin } = useAuth();
   const [email, setEmail] = useState('');

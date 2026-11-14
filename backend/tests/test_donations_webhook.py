@@ -90,7 +90,7 @@ async def test_completed_marks_succeeded_and_notifies_once(
     session_id = await _checkout(client, auth_headers, stripe_on)
     event = _event(
         "checkout.session.completed",
-        {"id": session_id, "payment_intent": "pi_test_42"},
+        {"id": session_id, "payment_intent": "pi_test_42", "payment_status": "paid"},
     )
     payload, headers = _signed(event)
     res = await client.post(WEBHOOK, content=payload, headers=headers)
@@ -118,7 +118,7 @@ async def test_completed_marks_succeeded_and_notifies_once(
     # Fresh event id for an already-succeeded donation: state guard no-ops.
     payload2, headers2 = _signed(_event(
         "checkout.session.completed",
-        {"id": session_id, "payment_intent": "pi_test_42"},
+        {"id": session_id, "payment_intent": "pi_test_42", "payment_status": "paid"},
     ))
     assert (await client.post(WEBHOOK, content=payload2, headers=headers2)).status_code == 200
     inbox = (await client.get(
@@ -143,7 +143,8 @@ async def test_refund_transitions_succeeded_donation(
     session_id = await _checkout(client, auth_headers, stripe_on)
     pi = f"pi_{uuid.uuid4().hex[:10]}"
     payload, headers = _signed(_event(
-        "checkout.session.completed", {"id": session_id, "payment_intent": pi}
+        "checkout.session.completed",
+        {"id": session_id, "payment_intent": pi, "payment_status": "paid"},
     ))
     assert (await client.post(WEBHOOK, content=payload, headers=headers)).status_code == 200
 
@@ -170,3 +171,49 @@ async def test_connect_secret_also_verifies(client: AsyncClient, auth_headers, s
     )
     res = await client.post(WEBHOOK, content=payload, headers=headers)
     assert res.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_completed_but_unpaid_stays_pending_until_async_success(
+    client: AsyncClient, auth_headers: dict, stripe_on
+):
+    """A delayed payment method completes Checkout before any money moves.
+
+    `checkout.session.completed` then carries payment_status "unpaid"; it must
+    not be recorded as a donation (or thank anyone) until Stripe confirms with
+    async_payment_succeeded.
+    """
+    session_id = await _checkout(client, auth_headers, stripe_on)
+
+    payload, headers = _signed(_event(
+        "checkout.session.completed",
+        {"id": session_id, "payment_intent": "pi_delayed", "payment_status": "unpaid"},
+    ))
+    assert (await client.post(WEBHOOK, content=payload, headers=headers)).status_code == 200
+    rows = (await client.get("/api/v1/donations/me", headers=auth_headers)).json()
+    assert rows[0]["status"] == "pending"
+    inbox = (await client.get("/api/v1/notifications/inbox", headers=auth_headers)).json()
+    assert not [n for n in inbox if n["type"] == "donation_thanks"]
+
+    payload, headers = _signed(_event(
+        "checkout.session.async_payment_succeeded",
+        {"id": session_id, "payment_intent": "pi_delayed", "payment_status": "paid"},
+    ))
+    assert (await client.post(WEBHOOK, content=payload, headers=headers)).status_code == 200
+    rows = (await client.get("/api/v1/donations/me", headers=auth_headers)).json()
+    assert rows[0]["status"] == "succeeded"
+    inbox = (await client.get("/api/v1/notifications/inbox", headers=auth_headers)).json()
+    assert len([n for n in inbox if n["type"] == "donation_thanks"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_async_payment_failed_marks_failed(
+    client: AsyncClient, auth_headers: dict, stripe_on
+):
+    session_id = await _checkout(client, auth_headers, stripe_on)
+    payload, headers = _signed(_event(
+        "checkout.session.async_payment_failed", {"id": session_id}
+    ))
+    assert (await client.post(WEBHOOK, content=payload, headers=headers)).status_code == 200
+    rows = (await client.get("/api/v1/donations/me", headers=auth_headers)).json()
+    assert rows[0]["status"] == "failed"

@@ -12,7 +12,7 @@ from app.models.report import Report
 from app.models.post import Post
 from app.models.social import Comment
 from app.models.user import User
-from app.schemas.report import ReportCreate, ReportOut
+from app.schemas.report import ReportCreate, ReportMineOut
 
 _TARGET_MODELS = {
     "photo": Photo, "pet": Pet, "user": User, "comment": Comment, "post": Post,
@@ -20,10 +20,8 @@ _TARGET_MODELS = {
 
 router = APIRouter()
 
-MAX_REPORTS_PER_USER_PER_DAY = 10
 
-
-@router.get("/mine", response_model=list[ReportOut])
+@router.get("/mine", response_model=list[ReportMineOut])
 async def my_reports(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -37,7 +35,7 @@ async def my_reports(
     return list(result.scalars().all())
 
 
-@router.post("", response_model=ReportOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ReportMineOut, status_code=status.HTTP_201_CREATED)
 @limiter.limit("20/hour")
 async def create_report(
     request: Request,

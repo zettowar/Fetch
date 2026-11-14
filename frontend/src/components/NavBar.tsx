@@ -9,7 +9,9 @@ import {
   Heart,
   HousePlus,
   LayoutDashboard,
+  LogOut,
   Moon,
+  ShieldCheck,
   ShoppingBag,
   Siren,
   Sun,
@@ -20,7 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { useTheme } from '../store/ThemeContext';
 import { logout as apiLogout } from '../api/auth';
-import { getRefreshToken } from '../api/client';
+import { exitImpersonation, getRefreshToken, impersonationToken } from '../api/client';
 import { getUnreadCount } from '../api/notifications';
 import { useCart } from '../utils/useCart';
 import PawMark from './ui/PawMark';
@@ -47,6 +49,14 @@ const CONSUMER_NAV_ITEMS: readonly NavItem[] = [
   { path: '/app/lost', label: 'Lost', icon: Siren },
   { path: '__explore__', label: 'Explore', icon: Compass, isSheet: true },
 ];
+
+/**
+ * The round 32px control every top-bar action shares. `shrink-0` matters: the
+ * bar holds up to six of these beside the brand on a 375px phone, and without
+ * it flexbox squeezed them to 28px and still pushed the last one off-screen.
+ */
+const TOP_BAR_BUTTON =
+  'shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95';
 
 /** Sun/moon with a little sunrise rotation on toggle. */
 function ThemeGlyph({ theme }: { theme: string }) {
@@ -84,6 +94,9 @@ export default function NavBar() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
   const flags = usePublicFlags();
+  // /app/cart sits behind the shop flag, so the icon follows it — otherwise
+  // every screen carries a button that opens "Coming soon".
+  const showCart = isShopper && flags.explore_enabled && flags.explore_shop_enabled;
   const showVerifyBanner = isAuthenticated && user && !user.is_verified && !bannerDismissed;
 
   // Close the Explore sheet on navigation so it doesn't linger when the user
@@ -93,6 +106,14 @@ export default function NavBar() {
   }, [location.pathname]);
 
   const handleLogout = async () => {
+    // In an admin "log in as" tab, logging out means leaving that session —
+    // not ending the admin's own. logout() clears the refresh token from
+    // localStorage, which every tab shares, so it used to sign the admin out
+    // everywhere while this tab stayed impersonating.
+    if (impersonationToken()) {
+      exitImpersonation();
+      return;
+    }
     const rt = getRefreshToken();
     if (rt) {
       try {
@@ -158,7 +179,7 @@ export default function NavBar() {
   return (
     <>
       {/* Top bar */}
-      <nav className="sticky top-0 z-40 flex items-center justify-between px-4 py-2.5 glass border-b border-gray-200/60 dark:border-gray-800">
+      <nav className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 py-2.5 glass border-b border-gray-200/60 dark:border-gray-800">
         <Link
           to={
             isAuthenticated
@@ -167,21 +188,28 @@ export default function NavBar() {
                 : '/app/home'
               : '/'
           }
-          className="flex items-center gap-1.5 text-lg font-bold tracking-tight text-brand-600 transition-colors duration-200 ease-soft-out hover:text-brand-700 active:scale-[0.98]"
+          aria-label="Fetchpawz home"
+          className="flex min-w-0 items-center gap-1.5 text-lg font-bold tracking-tight text-brand-600 transition-colors duration-200 ease-soft-out hover:text-brand-700 active:scale-[0.98]"
         >
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
+          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
             <PawMark className="h-[22px] w-[22px]" />
           </span>
-          <span>Fetchpawz</span>
+          {/* Admins carry a sixth control; below the 420px app column there
+              is no room for it and the wordmark, so the mark stands alone. */}
+          <span className={user?.role === 'admin' ? 'hidden min-[420px]:inline' : 'truncate'}>
+            Fetchpawz
+          </span>
         </Link>
         {isAuthenticated ? (
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             {user?.role === 'admin' && (
               <Link
                 to="/admin"
-                className="text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-500"
+                aria-label="Admin"
+                title="Admin"
+                className={`${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300`}
               >
-                Admin
+                <ShieldCheck size={18} aria-hidden />
               </Link>
             )}
             {/* Rescues used to have a small "Rescue" top-bar link here;
@@ -191,7 +219,7 @@ export default function NavBar() {
                 to={`/app/users/${user?.id}`}
                 aria-label="Profile"
                 title="Profile"
-                className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95 text-gray-600 dark:text-gray-300"
+                className={`${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300`}
               >
                 <UserRound size={18} aria-hidden />
               </Link>
@@ -200,7 +228,7 @@ export default function NavBar() {
               to="/app/notifications"
               aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
               title="Notifications"
-              className="relative w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95 text-gray-600 dark:text-gray-300"
+              className={`relative ${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300`}
             >
               <Bell size={18} aria-hidden />
               {unreadCount > 0 && (
@@ -209,12 +237,12 @@ export default function NavBar() {
                 </span>
               )}
             </Link>
-            {isShopper && (
+            {showCart && (
               <Link
                 to="/app/cart"
                 aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : 'Cart'}
                 title="Cart"
-                className="relative w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95 text-gray-600 dark:text-gray-300"
+                className={`relative ${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300`}
               >
                 <ShoppingBag size={18} aria-hidden />
                 {cartCount > 0 && (
@@ -229,15 +257,18 @@ export default function NavBar() {
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="text-sm leading-none w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95"
+              className={`text-sm leading-none ${TOP_BAR_BUTTON}`}
             >
               <ThemeGlyph theme={theme} />
             </button>
             <button
+              type="button"
               onClick={handleLogout}
-              className="h-8 px-3 inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-500 dark:hover:text-red-400 transition-colors active:scale-95"
+              aria-label="Log out"
+              title="Log out"
+              className={`${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300 hover:text-danger-500 dark:hover:text-danger-400`}
             >
-              Log out
+              <LogOut size={17} aria-hidden />
             </button>
           </div>
         ) : (
@@ -247,7 +278,7 @@ export default function NavBar() {
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="text-sm leading-none w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95"
+              className={`text-sm leading-none ${TOP_BAR_BUTTON}`}
             >
               <ThemeGlyph theme={theme} />
             </button>

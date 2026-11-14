@@ -38,7 +38,10 @@ async def get_feed_next(
             )
             .where(Pet.id.in_(pet_ids))
         )
-        dogs_with_photos = result.scalars().all()
-        return [_pet_to_out(d) for d in dogs_with_photos]
+        # Serve them in get_feed's order. The reload above comes back in
+        # whatever order the database likes, which silently discarded the
+        # weighted shuffle (less-voted pets first) the deck is built on.
+        loaded = {p.id: p for p in result.scalars().all()}
+        return [_pet_to_out(loaded[pid]) for pid in pet_ids if pid in loaded]
 
     return []

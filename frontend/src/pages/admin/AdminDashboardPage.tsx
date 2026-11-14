@@ -9,7 +9,8 @@ function formatHours(h: number | null): string {
   if (h === null) return '--';
   if (h < 1) return '<1h';
   if (h < 24) return `${Math.round(h)}h`;
-  return `${Math.round(h / 24)}d ${Math.round(h % 24)}h`;
+  // floor, not round: 36h is "1d 12h", and rounding the days made it "2d 12h".
+  return `${Math.floor(h / 24)}d ${Math.round(h % 24)}h`;
 }
 
 export default function AdminDashboardPage() {

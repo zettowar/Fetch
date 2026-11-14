@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import BackButton from '../components/ui/BackButton';
 import { createPark, getPark, updatePark } from '../api/parks';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { useAuth } from '../store/AuthContext';
 
 const PARK_ATTRIBUTES = [
   'fenced', 'off_leash_legal', 'water', 'shade',
@@ -14,7 +16,9 @@ const PARK_ATTRIBUTES = [
 export default function ParkEditorPage() {
   const { id: parkId } = useParams<{ id?: string }>();
   const isEditing = Boolean(parkId);
+  useDocumentTitle(`${isEditing ? 'Edit park' : 'Add a park'} · Fetchpawz`);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState('');
@@ -88,6 +92,25 @@ export default function ParkEditorPage() {
     }
   };
 
+  // The park library is curated: creating and editing are staff actions on the
+  // server. Anyone else who lands here (an old link, a typed URL) gets told
+  // how to get a park added instead of a form whose Save can only fail.
+  if (user && user.role !== 'admin') {
+    return (
+      <div className="p-4">
+        <BackButton fallback={isEditing ? `/app/parks/${parkId}` : '/app/parks'} />
+        <h1 className="text-2xl font-bold mb-2">Parks are added by our team</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Spotted a park we&rsquo;re missing, or a detail that&rsquo;s wrong?{' '}
+          <Link to="/app/support" className="text-brand-500 hover:underline">
+            Tell us
+          </Link>{' '}
+          and we&rsquo;ll update it for everyone.
+        </p>
+      </div>
+    );
+  }
+
   if (loading) {
     return <div className="p-4 text-center text-gray-400 dark:text-gray-500">Loading…</div>;
   }
@@ -100,7 +123,7 @@ export default function ParkEditorPage() {
       </h1>
       {!isEditing && (
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          New parks will be reviewed before appearing publicly.
+          Parks you add here are marked verified and appear for everyone right away.
         </p>
       )}
 

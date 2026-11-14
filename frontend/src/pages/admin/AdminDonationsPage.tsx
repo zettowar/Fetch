@@ -107,7 +107,7 @@ export default function AdminDonationsPage() {
                   variant="ghost"
                   loading={refund.isPending && refund.variables === d.id}
                   onClick={() => {
-                    if (confirm(`Refund ${money(d.amount_cents)} to ${d.recipient_name}? This cannot be undone.`)) {
+                    if (confirm(`Refund this ${money(d.amount_cents)} donation to ${d.recipient_name}? The money goes back to the donor. This cannot be undone.`)) {
                       refund.mutate(d.id);
                     }
                   }}

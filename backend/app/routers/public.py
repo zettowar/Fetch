@@ -446,7 +446,11 @@ async def public_top_pet(
     db: AsyncSession = Depends(get_db),
 ):
     """The current Top Dog / Top Cat, if the crowned pet's share page is public."""
-    q = select(WeeklyWinner).order_by(WeeklyWinner.week_bucket.desc())
+    # Tie-break on species so an unscoped call is stable: both crowns share a
+    # week_bucket, and without it the dog/cat pick changed between requests.
+    q = select(WeeklyWinner).order_by(
+        WeeklyWinner.week_bucket.desc(), WeeklyWinner.species.desc()
+    )
     if species in ("dog", "cat"):
         q = q.where(WeeklyWinner.species == species)
     winner_result = await db.execute(q.limit(1))

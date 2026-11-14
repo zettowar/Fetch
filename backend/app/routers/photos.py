@@ -18,6 +18,7 @@ from app.models.photo import Photo
 from app.models.user import User
 from app.schemas.photo import PhotoOut
 from app.services.moderation import check_image
+from app.services.primary_photo import reassign_primary_photo
 from app.storage import generate_storage_key, get_storage
 
 logger = structlog.stdlib.get_logger()
@@ -230,8 +231,8 @@ async def delete_photo(
     # Clear primary reference first, commit DB change, then delete the file.
     # Reversing this order means a failed commit leaves the file gone but the
     # row intact — orphaned references on reload.
-    if pet.primary_photo_id == photo.id:
-        pet.primary_photo_id = None
+    # (If it held the primary slot, the next approved photo takes it over.)
+    await reassign_primary_photo(db, pet, photo.id)
 
     key = photo.storage_key
     await db.delete(photo)

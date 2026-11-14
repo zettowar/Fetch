@@ -17,10 +17,16 @@ export default function PetProfileCard({ pet, showEdit, rank }: PetProfileCardPr
   const rankLabel = rank ? RANK_EMOJI[rank] || `#${rank}` : null;
 
   return (
-    <Link
-      to={`/app/pets/${pet.id}`}
-      className="block bg-white dark:bg-gray-900 rounded-2xl shadow-soft-sm border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-200 ease-soft-out hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99]"
-    >
+    // Stretched-link card (same pattern as RescueCard): the link to the pet is
+    // an overlay SIBLING of the Edit link, not its parent. The whole card used
+    // to be one <a> with the Edit <a> inside it — invalid HTML that browsers
+    // and screen readers each untangle differently.
+    <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-soft-sm border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-200 ease-soft-out hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99]">
+      <Link
+        to={`/app/pets/${pet.id}`}
+        aria-label={`View ${pet.name}`}
+        className="absolute inset-0 z-[1] rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-400"
+      />
       <div className="relative aspect-[4/3] bg-gray-100 dark:bg-gray-800">
         {photoUrl ? (
           <img
@@ -83,8 +89,7 @@ export default function PetProfileCard({ pet, showEdit, rank }: PetProfileCardPr
             {showEdit && (
               <Link
                 to={`/app/pets/${pet.id}/edit`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                className="relative z-[2] text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
                 Edit
               </Link>
@@ -93,6 +98,6 @@ export default function PetProfileCard({ pet, showEdit, rank }: PetProfileCardPr
         </div>
         {pet.bio && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{pet.bio}</p>}
       </div>
-    </Link>
+    </div>
   );
 }

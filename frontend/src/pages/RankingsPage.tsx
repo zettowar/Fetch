@@ -12,10 +12,12 @@ import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { useAuth } from '../store/AuthContext';
 import { useWeeklyResetCountdown } from '../utils/weeklyReset';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const RANK_EMOJI: Record<number, string> = { 1: '\ud83e\udd47', 2: '\ud83e\udd48', 3: '\ud83e\udd49' };
 
 export default function RankingsPage() {
+  useDocumentTitle('Rankings · Fetchpawz');
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [filter, setFilter] = useSpeciesFilter();

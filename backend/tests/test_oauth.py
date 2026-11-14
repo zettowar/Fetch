@@ -298,3 +298,35 @@ async def test_sso_without_2fa_is_unchanged(client: AsyncClient, monkeypatch):
     q, _ = await _run_callback(client)
     res = await client.post("/api/v1/auth/oauth/exchange", json={"code": q["code"][0]})
     assert res.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_sso_link_into_unverified_account_drops_its_password(
+    client: AsyncClient, monkeypatch
+):
+    """Pre-registration takeover: a stranger signs up with the victim's email
+    and their own password, never verifies, and waits. When the victim later
+    signs in with Google they are linked into that account — which must not
+    still answer to the stranger's password."""
+    email = f"victim-{uuid.uuid4().hex[:6]}@fetchpawz.com"
+    signup = await client.post("/api/v1/auth/signup", json={
+        "email": email, "password": "attacker-chosen-pw", "display_name": "Squatter",
+    })
+    assert signup.status_code == 201, signup.text
+    squatter_refresh = signup.json()["tokens"]["refresh_token"]
+
+    _enable_provider(monkeypatch, _identity(email=email))
+    q, _ = await _run_callback(client)
+    linked = await client.post("/api/v1/auth/oauth/exchange", json={"code": q["code"][0]})
+    assert linked.status_code == 200, linked.text
+    assert linked.json()["user"]["is_verified"] is True
+
+    # The squatter's password and existing session are both dead.
+    login = await client.post("/api/v1/auth/login", json={
+        "email": email, "password": "attacker-chosen-pw",
+    })
+    assert login.status_code == 401
+    refresh = await client.post("/api/v1/auth/refresh", json={
+        "refresh_token": squatter_refresh,
+    })
+    assert refresh.status_code == 401

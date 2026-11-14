@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, Response
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy.exc import DataError, DBAPIError, IntegrityError
 
 from app.config import settings
 from app.limiter import limiter
@@ -64,6 +65,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Response headers the browser may hand to our JS on a cross-origin call
+    # (the dev setup: Vite on one port, the API on another; prod is
+    # same-origin and never consults this). Unlisted headers are invisible to
+    # the client, which is how the login screen never showed its 2FA prompt in
+    # dev — it branches on X-2FA-Required and could not see it. X-Total-Count
+    # is listed here too because this setting replaces the per-route
+    # Access-Control-Expose-Headers the admin list endpoints set by hand.
+    expose_headers=["X-2FA-Required", "X-Total-Count"],
 )
 
 # Rate limiting error handler
@@ -75,6 +84,58 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(
         status_code=422,
         content={"detail": jsonable_encoder(exc.errors())},
+    )
+
+
+# --- Database errors that are really the caller's input -------------------
+#
+# Schemas should catch these first, and the common ones do. This is the net
+# underneath: a value the column cannot hold, or a row that collides with
+# another, is something the client sent — answering 500 ("we broke") for it
+# is wrong, pages nobody usefully, and tells the person nothing they can fix.
+# Routes that expect a collision still catch IntegrityError themselves and
+# never get here.
+
+_PG_NOT_NULL = "23502"
+_PG_FOREIGN_KEY = "23503"
+
+
+def _pg_code(exc: DBAPIError) -> str | None:
+    orig = getattr(exc, "orig", None)
+    return getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
+
+
+@app.exception_handler(DataError)
+async def db_data_error_handler(request: Request, exc: DataError):
+    # Too long for its column, out of range, or not parseable as its type.
+    logger.warning("db_data_error", path=request.url.path, code=_pg_code(exc),
+                   exc=str(getattr(exc, "orig", exc))[:300])
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "One of the values sent is too long or isn't valid for its field."},
+    )
+
+
+@app.exception_handler(IntegrityError)
+async def db_integrity_error_handler(request: Request, exc: IntegrityError):
+    code = _pg_code(exc)
+    # Logged at error level on purpose: unlike DataError this can also be a
+    # race or a genuine server-side bug, so it should stay visible.
+    logger.error("db_integrity_error", path=request.url.path, code=code,
+                 exc=str(getattr(exc, "orig", exc))[:300])
+    if code == _PG_NOT_NULL:
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "A required value was missing or empty."},
+        )
+    if code == _PG_FOREIGN_KEY:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "That refers to something that no longer exists."},
+        )
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "That conflicts with something that already exists."},
     )
 
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { Stethoscope } from 'lucide-react';
 import { getNearbyVets } from '../api/vets';
@@ -9,16 +9,17 @@ import EmptyState from '../components/ui/EmptyState';
 import SearchInput from '../components/ui/SearchInput';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import PawSpinner from '../components/flair/PawSpinner';
-import { useUserLocation } from '../utils/useUserLocation';
+import { DEFAULT_MAP_CENTER, useUserLocation } from '../utils/useUserLocation';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
-const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749]; // SF fallback
 const VET_PIN_COLOR = '#0ea5e9'; // sky-500 — distinct from parks (orange/green) and rescues (violet)
 const VET_PIN_EMERGENCY = '#ef4444'; // red — emergency clinics stand out
 
 type Filter = 'all' | 'emergency' | 'open_24_7';
 
 export default function VetsPage() {
-  const initialCenter = useUserLocation(DEFAULT_CENTER);
+  useDocumentTitle('Vets · Fetchpawz');
+  const initialCenter = useUserLocation(DEFAULT_MAP_CENTER);
   const [viewCenter, setViewCenter] = useState<[number, number]>(initialCenter);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -33,6 +34,11 @@ export default function VetsPage() {
   const { data: vets = [], isLoading, isError } = useQuery({
     queryKey: ['vets-nearby', viewCenter[1], viewCenter[0]],
     queryFn: () => getNearbyVets(viewCenter[1], viewCenter[0], 30),
+    // Keep the last result on screen while the next centre loads. The key is
+    // the exact map centre, so without this every pan was a brand-new query
+    // with no data: the pins vanished (and any open popup closed) until the
+    // response for the new position arrived.
+    placeholderData: keepPreviousData,
   });
 
   const searchLower = search.trim().toLowerCase();

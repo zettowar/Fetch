@@ -90,6 +90,7 @@ async def _send_alerts(report_id: str, session_factory=None):
                     description=report.description,
                     area_hint=None,
                     user_id=sub.user_id,
+                    kind=report.kind,
                 )
                 logger.info(
                     "Notified user %s about report %s (email_sent=%s)",

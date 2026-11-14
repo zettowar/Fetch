@@ -12,6 +12,7 @@ import {
   PawPrint,
   Pencil,
   Share2,
+  ShieldCheck,
   Ticket,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -210,6 +211,8 @@ export default function UserProfilePage() {
           <MenuLink to="/app/transfers" label="Pet transfers" icon={<ArrowLeftRight size={18} />} />
           <MenuLink to="/app/donations" label="My donations" icon={<HeartHandshake size={18} />} />
           <MenuLink to="/app/notifications" label="Notifications" icon={<Bell size={18} />} />
+          {/* The only route to two-factor setup and "Close your account". */}
+          <MenuLink to="/app/security" label="Security" icon={<ShieldCheck size={18} />} />
           <SupportMenuLink />
         </section>
       )}
@@ -396,6 +399,8 @@ function BlockControl({ userId, displayName }: { userId: string; displayName: st
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['my-blocks'] });
     queryClient.invalidateQueries({ queryKey: ['feed'] });
+    // The profile's own pet list is hidden across a block — refresh it too.
+    queryClient.invalidateQueries({ queryKey: ['user-pets', userId] });
   };
   const blockMutation = useMutation({
     mutationFn: () => blockUser(userId),

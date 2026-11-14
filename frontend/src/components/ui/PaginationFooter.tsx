@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Button from './Button';
 
 interface PaginationFooterProps {
@@ -19,6 +20,18 @@ export default function PaginationFooter({
   total,
   onChange,
 }: PaginationFooterProps) {
+  // Step back when the page we're on no longer exists. Clearing the last row
+  // of the last page (reviewing the final report, closing the final ticket)
+  // left `offset` pointing past the end: the list rendered its empty state —
+  // "Queue is clear" — and this footer hid itself, with earlier pages still
+  // full. Only when the total is known and non-zero: while a page is loading
+  // the caller's total reads 0, which says nothing about where we are.
+  useEffect(() => {
+    if (total > 0 && offset >= total) {
+      onChange(Math.max(0, (Math.ceil(total / pageSize) - 1) * pageSize));
+    }
+  }, [total, offset, pageSize, onChange]);
+
   if (total <= pageSize) return null;
   const rangeStart = total === 0 ? 0 : offset + 1;
   const rangeEnd = Math.min(offset + rendered, total);

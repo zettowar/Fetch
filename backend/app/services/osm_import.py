@@ -137,6 +137,42 @@ def _parse_element(config: OsmImportConfig, elem: dict[str, Any]) -> dict[str, A
     }
 
 
+class OverpassUnavailable(Exception):
+    """Overpass could not answer (rate-limited, overloaded, timed out, down).
+
+    A dependency failing, not a bug: callers turn this into a 502 with a
+    "try again" message instead of the generic 500.
+    """
+
+
+def _fit_to_columns(model: type, row: dict[str, Any]) -> None:
+    """Make every string in `row` fit the column it is headed for.
+
+    OSM is free text and nothing in it knows our column sizes. The import
+    adds every row and commits once, so a single value that was too long — a
+    `phone` tag listing three numbers, say, against a 50-character column —
+    failed that commit and with it the entire import: a 500 and nothing
+    saved, however many thousand good rows came with it.
+
+    A phone keeps its first number, a link that does not fit is dropped (a
+    truncated URL is a broken one), and anything else is cut to length.
+    """
+    columns = model.__table__.columns
+    for key, value in list(row.items()):
+        if not isinstance(value, str) or key not in columns:
+            continue
+        limit = getattr(columns[key].type, "length", None)
+        if not limit or len(value) <= limit:
+            continue
+        if key == "phone":
+            first = value.replace(",", ";").split(";")[0].strip()
+            row[key] = first if len(first) <= limit else None
+        elif key == "website":
+            row[key] = None
+        else:
+            row[key] = value[:limit]
+
+
 async def fetch_osm_elements(
     config: OsmImportConfig,
     bbox: tuple[float, float, float, float] | None = None,
@@ -145,10 +181,16 @@ async def fetch_osm_elements(
     """Query Overpass. Returns a list of parsed row dicts (one per OSM element)."""
     query = _build_query(config, bbox)
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
-    async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
-        resp = await client.post(OVERPASS_URL, data={"data": query})
-        resp.raise_for_status()
-        payload = resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
+            resp = await client.post(OVERPASS_URL, data={"data": query})
+            resp.raise_for_status()
+            payload = resp.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        # 429/504 under load, a timeout on a wide bbox, or a non-JSON error
+        # page. Overpass is a free shared service and all of these are routine.
+        logger.warning("%s_import_overpass_failed: %s", config.entity, exc)
+        raise OverpassUnavailable(str(exc)) from exc
 
     elements = payload.get("elements") or []
     parsed: list[dict[str, Any]] = []
@@ -157,6 +199,7 @@ async def fetch_osm_elements(
         row = _parse_element(config, e)
         if row is None or row["external_id"] in seen:
             continue
+        _fit_to_columns(config.model, row)
         seen.add(row["external_id"])
         parsed.append(row)
     return parsed

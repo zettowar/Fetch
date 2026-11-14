@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { apiErrorMessage } from '../../utils/apiError';
 import client from '../../api/client';
 import {
   getAdminUser,
@@ -30,7 +31,7 @@ import Avatar from '../../components/ui/Avatar';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
-import ErrorState from '../../components/ui/ErrorState';
+import ErrorState, { NOT_FOUND_HINT } from '../../components/ui/ErrorState';
 import { ListSkeleton, Spinner } from '../../components/ui/Skeleton';
 import TimeAgo from '../../components/TimeAgo';
 
@@ -104,10 +105,14 @@ export default function AdminUserDetailPage() {
   const suspendMutation = useMutation({
     mutationFn: () => suspendUser(id!),
     onSuccess: () => { toast.success('User suspended'); invalidate(); },
+    // The API refuses some targets with a reason (staff, yourself); without
+    // a handler the button just stopped spinning and nothing happened.
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to suspend')),
   });
   const reinstateMutation = useMutation({
     mutationFn: () => reinstateUser(id!),
     onSuccess: () => { toast.success('User reinstated'); invalidate(); },
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to reinstate')),
   });
   const deleteMutation = useMutation({
     mutationFn: () => deleteUser(id!),
@@ -172,7 +177,7 @@ export default function AdminUserDetailPage() {
     return <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>;
   }
   if (isError || !user) {
-    return <ErrorState message="User not found." />;
+    return <ErrorState message="User not found." hint={NOT_FOUND_HINT} />;
   }
 
   return (

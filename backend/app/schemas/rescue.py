@@ -1,8 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
+from app.schemas.common import reject_explicit_nulls
 from app.schemas.urls import normalise_url as _normalise_url
 
 RESCUE_STATUSES = {"pending", "approved", "rejected"}
@@ -46,20 +47,41 @@ class RescueSignupRequest(BaseModel):
 
 
 class RescueProfileUpdate(BaseModel):
-    """Fields a rescue can edit on their own profile."""
-    org_name: str | None = None
-    description: str | None = None
-    location: str | None = None
-    lat: float | None = None
-    lng: float | None = None
-    website: str | None = None
-    donation_url: str | None = None
+    """Fields a rescue can edit on their own profile.
+
+    `location`, `lat`/`lng`, `website` and `donation_url` may be sent as null
+    to clear them; the name, description and visibility are required columns.
+    Bounds match the column sizes so a long value is a 422, not a 500.
+    """
+    org_name: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=5000)
+    location: str | None = Field(default=None, max_length=200)
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
+    website: str | None = Field(default=None, max_length=500)
+    donation_url: str | None = Field(default=None, max_length=500)
     is_public: bool | None = None
 
     @field_validator("website", "donation_url", mode="before")
     @classmethod
     def normalise(cls, v: str | None) -> str | None:
         return _normalise_url(v)
+
+    @field_validator("org_name", "description")
+    @classmethod
+    def not_blank(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("This field can't be empty")
+        return v.strip() if v is not None else v
+
+    @model_validator(mode="after")
+    def consistent(self) -> "RescueProfileUpdate":
+        reject_explicit_nulls(self, "org_name", "description", "is_public")
+        # A map pin is two numbers or none: half a coordinate is not a place.
+        sent = self.model_fields_set & {"lat", "lng"}
+        if sent and (sent != {"lat", "lng"} or (self.lat is None) != (self.lng is None)):
+            raise ValueError("lat and lng must be set (or cleared) together")
+        return self
 
 
 class RescueProfileOut(BaseModel):

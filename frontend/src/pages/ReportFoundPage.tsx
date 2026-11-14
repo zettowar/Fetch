@@ -7,8 +7,10 @@ import { createLostReport } from '../api/lost';
 import Button from '../components/ui/Button';
 import LocationPicker from '../components/LocationPicker';
 import { apiErrorMessage } from '../utils/apiError';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function ReportFoundPage() {
+  useDocumentTitle('Report a found pet · Fetchpawz');
   const navigate = useNavigate();
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);

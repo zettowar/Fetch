@@ -262,3 +262,37 @@ def test_every_beat_default_is_registered_with_celery():
         f"scheduled but never registered: {result['missing']}. "
         "Add the module to the import list in app/tasks/__init__.py."
     )
+
+
+def test_one_off_entry_is_due_once_then_never_again():
+    """A one-off job fires once. The write-back disables its row, but the live
+    entry stays in Beat's schedule until the next reload — is_due itself has to
+    say no, or the "one-off" keeps firing on every interval."""
+    from datetime import datetime, timezone
+
+    from app.beat_scheduler import ModelEntry
+    from app.worker import celery_app
+
+    long_ago = datetime.now(timezone.utc) - timedelta(days=1)
+    row = _row(schedule_type="interval", interval_seconds=60, one_off=True,
+               last_run_at=long_ago)
+    entry = ModelEntry(row, celery_app)
+    assert entry.is_due().is_due is True  # overdue, never fired by this entry
+
+    fired = next(entry)  # what Scheduler.reserve() does when it sends the task
+    # Pretend a long time passed: an ordinary interval entry would be due again.
+    fired.last_run_at = long_ago
+    assert fired.is_due().is_due is False
+
+    # A recurring job with the same history IS due again.
+    recurring = next(ModelEntry(_row(schedule_type="interval", interval_seconds=60,
+                                     one_off=False, last_run_at=long_ago), celery_app))
+    recurring.last_run_at = long_ago
+    assert recurring.is_due().is_due is True
+
+    # Re-enabling the row in the admin panel reloads it as a fresh entry, which
+    # may fire once more.
+    reloaded = ModelEntry(_row(schedule_type="interval", interval_seconds=60,
+                               one_off=True, last_run_at=long_ago,
+                               total_run_count=1), celery_app)
+    assert reloaded.is_due().is_due is True

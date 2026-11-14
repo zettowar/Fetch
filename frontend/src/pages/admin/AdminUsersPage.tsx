@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { apiErrorMessage } from '../../utils/apiError';
 import {
   searchUsers,
   suspendUser,
@@ -58,7 +59,7 @@ export default function AdminUsersPage() {
       toast.success('User suspended');
       invalidateUsers();
     },
-    onError: () => toast.error('Failed to suspend'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to suspend')),
   });
 
   const reinstateMutation = useMutation({
@@ -67,7 +68,7 @@ export default function AdminUsersPage() {
       toast.success('User reinstated');
       invalidateUsers();
     },
-    onError: () => toast.error('Failed to reinstate'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to reinstate')),
   });
 
   const grantMutation = useMutation({
@@ -86,7 +87,7 @@ export default function AdminUsersPage() {
       toast.success('User promoted to admin');
       invalidateUsers();
     },
-    onError: () => toast.error('Failed to promote'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to promote')),
   });
 
   const demoteMutation = useMutation({
@@ -95,7 +96,7 @@ export default function AdminUsersPage() {
       toast.success('User demoted to regular user');
       invalidateUsers();
     },
-    onError: () => toast.error('Failed to demote'),
+    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to demote')),
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -314,7 +315,10 @@ export default function AdminUsersPage() {
                     <Button size="sm" variant="secondary" onClick={() => setShowGrant(!showGrant)}>
                       Grant Entitlement
                     </Button>
-                    {u.role !== 'admin' ? (
+                    {/* Rescue accounts are off the user → admin ladder: the
+                        role gates their dashboard and nothing can assign it
+                        back, so the API refuses and the buttons don't show. */}
+                    {u.role === 'rescue' ? null : u.role !== 'admin' ? (
                       <Button
                         size="sm"
                         variant="secondary"

@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.pet import Pet
+from app.models.pet import Pet, pet_in_play
 from app.models.photo import Photo
 from app.models.vote import Vote
 
@@ -54,7 +54,7 @@ async def get_feed(
         Pet.owner_id != user_id,
         Pet.id.notin_(voted_subq),
         Pet.id.in_(has_photo_subq),
-        Pet.adopted_at.is_(None),
+        pet_in_play(),
         Pet.owner_id.notin_(blocked_user_ids_subquery(user_id)),
     ]
     # species=None means a mixed deck (the "All" filter); dog/cat scopes it.

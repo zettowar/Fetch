@@ -1,5 +1,5 @@
 import { Component, lazy, Suspense, type ReactNode } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './store/AuthContext';
 import { ThemeProvider } from './store/ThemeContext';
 import AuthGuard from './components/AuthGuard';
@@ -191,6 +191,10 @@ function AppContent() {
             </AuthGuard>
           }
         >
+          {/* Bare /app has no page of its own — without this it rendered the
+              shell (top bar + tab bar) around nothing. HomePage forwards
+              rescue accounts on to their dashboard. */}
+          <Route index element={<Navigate to="/app/home" replace />} />
           <Route path="profile/edit" element={<ProfileEditPage />} />
           <Route path="security" element={<SecurityPage />} />
           <Route path="home" element={<HomePage />} />

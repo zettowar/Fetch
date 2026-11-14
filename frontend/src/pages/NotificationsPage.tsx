@@ -30,6 +30,7 @@ import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import Skeleton, { ListSkeleton } from '../components/ui/Skeleton';
 import TimeAgo from '../components/TimeAgo';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const TYPE_ICONS: Record<string, LucideIcon> = {
   follow: PawPrint,
@@ -171,6 +172,7 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
 }
 
 export default function NotificationsPage() {
+  useDocumentTitle('Notifications · Fetchpawz');
   const [tab, setTab] = useState<'inbox' | 'settings'>('inbox');
   const { data: unread = 0 } = useQuery({
     queryKey: ['inbox-unread'],

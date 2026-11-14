@@ -82,6 +82,24 @@
 }
 
 @layer utilities {
+  /*
+   * A control that appears when its `.group` is hovered — on devices that can
+   * hover. Written as plain `opacity-0 group-hover:opacity-100` these were
+   * invisible on a phone, where nothing hovers, yet still tappable: the photo
+   * delete and set-primary buttons sat unseen in the corners of every photo
+   * in a touch-first app. Here the hiding only applies under (hover: hover),
+   * so touch screens always show them, and keyboard focus reveals them too.
+   */
+  @media (hover: hover) {
+    .reveal-on-hover {
+      opacity: 0;
+    }
+    .group:hover .reveal-on-hover,
+    .reveal-on-hover:focus-visible {
+      opacity: 1;
+    }
+  }
+
   .shimmer {
     background: linear-gradient(
       90deg,

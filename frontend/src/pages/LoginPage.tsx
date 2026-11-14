@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { login } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
@@ -9,16 +9,31 @@ import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
 import SSOButtons from '../components/SSOButtons';
 import { apiErrorMessage } from '../utils/apiError';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export default function LoginPage() {
+  useDocumentTitle('Log in · Fetchpawz');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [needsOtp, setNeedsOtp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login: authLogin } = useAuth();
+  const { login: authLogin, isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Where to go once signed in: back to the page that bounced us here when it
+  // is one of ours (/app, or /admin for staff) — query string included, so a
+  // filtered list or ?rescue= link survives the detour — else home by role.
+  const destinationFor = (u: { role: string }) => {
+    const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+    const path = from?.pathname ?? '';
+    const isStaff = u.role === 'admin' || u.role === 'moderator';
+    if (path.startsWith('/app') || (isStaff && path.startsWith('/admin'))) {
+      return path + (from?.search ?? '');
+    }
+    return u.role === 'rescue' ? '/app/rescue/dashboard' : '/app/home';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,12 +43,7 @@ export default function LoginPage() {
       authLogin(data.tokens.access_token, data.tokens.refresh_token, data.user);
       // Return to the deep link that bounced us here, else route by role so
       // rescues land on their dashboard instead of the consumer home.
-      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
-      const dest =
-        from && from.startsWith('/app')
-          ? from
-          : data.user.role === 'rescue' ? '/app/rescue/dashboard' : '/app/home';
-      navigate(dest, { replace: true });
+      navigate(destinationFor(data.user), { replace: true });
     } catch (err) {
       // The backend signals a required second factor with X-2FA-Required.
       const resp = (err as { response?: { headers?: Record<string, string> } })?.response;
@@ -47,6 +57,13 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Already signed in (a bookmark, the back button, a second tab): there is
+  // nothing to do here, and a login form in front of a logged-in person only
+  // invites them to wonder whether they were signed out.
+  if (!isLoading && isAuthenticated && user) {
+    return <Navigate to={destinationFor(user)} replace />;
+  }
 
   return (
     <div className="flex flex-col pb-10">

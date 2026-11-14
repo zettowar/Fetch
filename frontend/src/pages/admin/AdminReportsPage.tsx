@@ -14,13 +14,6 @@ import { ListSkeleton } from '../../components/ui/Skeleton';
 const TABS = ['pending', 'reviewed', 'dismissed', 'all'] as const;
 const PAGE_SIZE = 50;
 
-function targetLink(type: string, id: string): string {
-  if (type === 'pet') return `/app/pets/${id}`;
-  if (type === 'photo') return `/app/pets/${id}`;
-  if (type === 'user') return `/app/users/${id}`;
-  return '#';
-}
-
 export default function AdminReportsPage() {
   const [tab, setTab] = useState<string>('pending');
   const [offset, setOffset] = useState(0);
@@ -127,11 +120,23 @@ export default function AdminReportsPage() {
                     </p>
                     <p>
                       <span className="font-medium">Target:</span>{' '}
-                      <Link to={targetLink(r.target_type, r.target_id)} className="text-brand-500 hover:underline" target="_blank">
-                        View {r.target_type}
-                      </Link>
+                      {r.target_path ? (
+                        <Link to={r.target_path} className="text-brand-500 hover:underline" target="_blank">
+                          View {r.target_type}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500">
+                          {r.target_type} no longer exists
+                        </span>
+                      )}
                     </p>
                   </div>
+
+                  {r.target_excerpt && (
+                    <blockquote className="mt-2 border-l-2 border-gray-300 dark:border-gray-600 pl-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words">
+                      {r.target_excerpt}
+                    </blockquote>
+                  )}
 
                   {r.admin_notes && (
                     <div className="mt-2 p-2 bg-info-50 dark:bg-info-500/10 rounded-lg text-xs text-info-800 dark:text-info-200">
