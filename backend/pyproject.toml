@@ -55,6 +55,13 @@ target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
+# Stated explicitly, not left to ruff's default. The default set grew from
+# these four groups to several hundred rules between ruff 0.15 and 0.17, and
+# CI installs ruff unpinned — so the lint job went red on rules nobody chose
+# (484 of the 730 findings were B008 objecting to FastAPI's `Depends()`
+# defaults), and backend-test and prod-images, which wait on it, stopped
+# running. Widen this list on purpose, never by upgrading.
+select = ["E4", "E7", "E9", "F"]
 # E712 (== True/False) is the idiomatic way to build SQLAlchemy boolean filters
 # (e.g. `.where(Model.is_active == True)`); ruff's "fix" would turn `== False`
 # into Python `not`, which breaks the SQL expression. Ignore it project-wide.
