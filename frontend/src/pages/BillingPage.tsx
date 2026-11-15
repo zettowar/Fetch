@@ -17,7 +17,8 @@ export default function BillingPage() {
   const subscription = useSubscription();
 
   return (
-    <div className="px-4 pb-24 max-w-app mx-auto">
+    // max-w-app is the phone column; from sm the shell sets the width.
+    <div className="px-4 pb-24 max-w-app mx-auto sm:max-w-none">
       <div className="py-3">
         <BackButton fallback="/app/home" />
       </div>

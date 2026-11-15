@@ -56,10 +56,15 @@ export default function VetDetailPage() {
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${vet.lat},${vet.lng}`;
 
   return (
-    <div className="p-4 pb-8 max-w-xl mx-auto">
+    // `max-w-xl` is wider than the phone column, so it never bit there; from
+    // `sm` the page is the centred column instead, and on desktop the map
+    // sits beside the clinic's details. The details group is `contents`
+    // below lg, so the phone keeps its order.
+    <div className="p-4 pb-8 max-w-xl mx-auto sm:max-w-2xl lg:max-w-none">
       <BackButton fallback="/app/vets" />
 
-      <div className="mt-3 h-48 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10">
+      <div className="contents lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-8">
+      <div className="mt-3 h-48 sm:h-64 lg:h-80 xl:h-96 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10">
         <Map
           center={[vet.lng, vet.lat]}
           zoom={13}
@@ -77,7 +82,8 @@ export default function VetDetailPage() {
         />
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap mt-4 mb-1.5">
+      <div className="contents lg:block">
+      <div className="flex items-center gap-2 flex-wrap mt-4 mb-1.5 lg:mt-3">
         <h1 className="text-[28px] leading-none text-navy dark:text-biscuit text-balance">{vet.name}</h1>
         {vet.verified && <Badge variant="success">Verified</Badge>}
         {isEmergency && <Badge variant="brand">Emergency</Badge>}
@@ -143,10 +149,12 @@ export default function VetDetailPage() {
         </section>
       )}
 
-      <p className="mt-8 text-2xs text-center text-gray-500 dark:text-gray-400">
+      <p className="mt-8 text-2xs text-center lg:text-left text-gray-500 dark:text-gray-400">
         Vet listings come from OpenStreetMap. Verify hours and emergency
         availability with the clinic before relying on them.
       </p>
+      </div>
+      </div>
     </div>
   );
 }

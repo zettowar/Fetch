@@ -157,7 +157,13 @@ export default function PhotoEditor({
   return (
     // The editor is always after-dark: Night Walk chrome around a black
     // preview (photos are judged against neutral black, not navy).
-    <div className="fixed inset-0 z-50 flex flex-col bg-night text-biscuit">
+    //
+    // Full-screen on a phone. From `sm` it is a panel over a dimmed page: a
+    // 1400px-wide tool tray stretches every slider into a long line, and a
+    // desktop expects an editor to be a dialog. The stage is measured by a
+    // ResizeObserver, so the frame follows the panel's size on its own.
+    <div className="fixed inset-0 z-50 bg-night sm:flex sm:items-center sm:justify-center sm:bg-night/80 sm:p-6">
+    <div className="flex h-full w-full flex-col bg-night text-biscuit sm:h-[min(880px,100%)] sm:max-w-2xl sm:overflow-hidden sm:rounded-3xl sm:border sm:border-white/15">
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-14 flex-shrink-0 border-b border-white/10">
         <button
@@ -275,6 +281,7 @@ export default function PhotoEditor({
           onClick={() => dispatch({ type: 'SET_TAB', tab: 'filter' })}
         />
       </div>
+    </div>
     </div>
   );
 }

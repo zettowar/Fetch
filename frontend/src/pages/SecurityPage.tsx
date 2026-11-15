@@ -56,7 +56,9 @@ export default function SecurityPage() {
   const enabled = user?.totp_enabled;
 
   return (
-    <div className="max-w-md mx-auto p-4">
+    // max-w-md only ever mattered on a phone; from sm the shell's column sets
+    // the width, as it does for every other settings page.
+    <div className="max-w-md mx-auto p-4 sm:max-w-none">
       {/* The calm register: plain type, flat panels, red only on the one
           destructive control (closing the account). */}
       <PageHeader

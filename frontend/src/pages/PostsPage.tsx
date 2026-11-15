@@ -64,7 +64,11 @@ export default function PostsPage() {
   });
 
   return (
-    <div className="pb-6">
+    // A feed stays a readable column at every size: centred from `sm`. Only
+    // at xl, where there is room beside a full-width feed, do search and the
+    // filter move into a sticky side column — so they are still in reach a
+    // long way down the feed. The grid wrapper is `contents` below xl.
+    <div className="pb-6 sm:mx-auto sm:max-w-2xl xl:max-w-[62rem]">
       <PageHeader
         title="Community"
         subtitle="Questions, tips and good news from other Fetchpawz humans."
@@ -76,7 +80,8 @@ export default function PostsPage() {
         }
       />
 
-      <div className="px-4 flex flex-col gap-3">
+      <div className="contents xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+      <div className="px-4 flex flex-col gap-3 xl:col-start-2 xl:row-start-1 xl:sticky xl:top-20">
         <SearchInput
           value={search}
           onChange={setSearch}
@@ -100,7 +105,7 @@ export default function PostsPage() {
         </div>
       </div>
 
-      <div className="px-4 mt-4">
+      <div className="px-4 mt-4 xl:mt-0 xl:col-start-1 xl:row-start-1">
         {isLoading ? (
           <ListSkeleton rows={4} />
         ) : isError ? (
@@ -132,6 +137,7 @@ export default function PostsPage() {
             ))}
           </ul>
         )}
+      </div>
       </div>
 
       <Composer

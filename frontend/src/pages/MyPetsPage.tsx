@@ -54,15 +54,17 @@ export default function MyPetsPage() {
         }
       />
 
+      {/* One full-width card per pet on a phone; cards are square photos, so
+          wider screens deal them out in columns rather than stretching them. */}
       {isLoading ? (
-        <div className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
           <CardSkeleton />
           <CardSkeleton />
         </div>
       ) : isError ? (
         <ErrorState message="Couldn't load your pets." onRetry={() => refetch()} />
       ) : pets && pets.length > 0 ? (
-        <div className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
           {pets.map((pet) => (
             <PetProfileCard
               key={pet.id}

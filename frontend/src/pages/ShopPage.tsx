@@ -10,6 +10,9 @@ import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
+// Two across on a phone, a column more as the pane widens.
+const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4';
+
 function ProductCard({ product, index }: { product: ShopProduct; index: number }) {
   const img = product.featuredImage;
   return (
@@ -89,7 +92,7 @@ export default function ShopPage() {
       />
 
       {isLoading && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className={GRID}>
           {[...Array(4)].map((_, i) => (
             <CardSkeleton key={i} />
           ))}
@@ -109,7 +112,7 @@ export default function ShopPage() {
       )}
 
       {!isLoading && !isError && products.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className={GRID}>
           {products.map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} />
           ))}

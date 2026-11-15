@@ -138,23 +138,33 @@ export default function RescueDashboardPage() {
   const adopted = pets.filter((d) => d.adopted_at);
 
   return (
-    <div className="p-4 pb-8 max-w-xl mx-auto">
-      <div className="flex items-center justify-between gap-3 mb-2">
+    // Tablet: the phone stack as a centred column. Desktop: two columns —
+    // the page's own setup (public page, details, donations) on the left,
+    // the day-to-day work (pets, inquiries) on the right. Settings come
+    // first in the DOM on a phone, so they take the left column here too:
+    // reading and tab order stay the same. `contents` keeps the phone order
+    // below lg. Even halves at 1024, where 5/12 would squeeze the public
+    // link and upload tiles narrower than a phone.
+    <div className="p-4 pb-8 max-w-xl mx-auto sm:max-w-2xl lg:max-w-none lg:grid lg:grid-cols-2 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-x-6">
+      <div className="flex items-center justify-between gap-3 mb-2 lg:col-span-2">
         <h1 className="min-w-0 text-[28px] leading-none text-navy dark:text-biscuit text-balance">{profile.org_name}</h1>
         <Link to="/app/pets/new" className="btn btn-rescue btn-sm shrink-0">
           + Post a pet
         </Link>
       </div>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 lg:col-span-2">
         Pets you post here appear in the swipe feed and the adoption directory.
       </p>
 
+      <div className="contents lg:block lg:min-w-0">
       <PublicPageCard profile={profile} />
 
       <ProfileDetailsCard profile={profile} />
 
       <ConnectDonationsCard externalDonationUrl={profile.donation_url} />
+      </div>
 
+      <div className="contents lg:block lg:min-w-0">
       <section className="mb-8">
         <SectionHeader title={`Adoptable (${unadopted.length})`} />
         {unadopted.length === 0 ? (
@@ -243,6 +253,7 @@ export default function RescueDashboardPage() {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }

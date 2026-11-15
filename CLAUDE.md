@@ -139,10 +139,11 @@ The frontend serves two distinct experiences, split by route tree:
   The gate is enforced server-side: with `INVITE_REQUIRED=true` (prod default)
   `/auth/signup` requires an unused admin-generated invite code and consumes
   it atomically. Rescue signups stay open — they are approval-gated instead.
-- **Web app** (`src/pages/*`) — the authenticated product, a mobile-portrait
-  420px column, mounted under `/app/*` behind `<AuthGuard>` via `AppShell`
-  (top bar + bottom tab bar). All in-app router links MUST use the `/app/...`
-  prefix or they dead-end in the 404.
+- **Web app** (`src/pages/*`) — the authenticated product, mounted under
+  `/app/*` behind `<AuthGuard>` via `AppShell`: a 420px column with a bottom
+  tab bar on a phone, a side rail on a tablet, a sidebar on desktop (see
+  Layout below). All in-app router links MUST use the `/app/...` prefix or
+  they dead-end in the 404.
 - **Auth screens** (login/signup/reset/verify) use `AuthLayout` (centered,
   responsive) at the domain root.
 - **Admin** — full-width own shell at `/admin/*`.
@@ -152,6 +153,8 @@ The frontend serves two distinct experiences, split by route tree:
 2. Add a child route under the `/app` tree in `src/App.tsx` (already inside
    `<AuthGuard>` + `AppShell`); use the un-prefixed child path (e.g. `foo` →
    `/app/foo`). Internal links to it use the full `/app/foo`.
+   If it lays out in columns or grids on a big screen, add it to `WIDE_PAGES`
+   in `components/appLayout.ts`; otherwise it gets the 672px reading column.
 3. Add API functions in `src/api/newfeature.ts` (import `client` from `./client`)
 4. Use TanStack Query: `useQuery({ queryKey: ['key'], queryFn: apiFn })`
 
@@ -214,10 +217,27 @@ development placeholder; set it to the launch city.
 **Layout:**
 - Marketing site: web-first, full-width, responsive (`max-w-7xl` sections), own
   site header + footer, mobile hamburger nav — NOT the app column
-- Consumer app (`/app/*`): 420px max-width, bottom tab bar (6 items), top bar
-  with brand + logout, `pb-20` shell clearance for the tab bar
+- Consumer app (`/app/*`) — three layouts in one tree (`AppShell.tsx`), on
+  Tailwind's default screens:
+  - **Phone (< `sm` 640px)**: the original product — 420px column, top bar
+    with brand + account controls, bottom tab bar (`nav/TabBar.tsx`), `pb-20`
+    shell clearance. Keep it intact: pages only *add* `sm:`/`md:`/`lg:`
+    classes, and regroup into columns with `contents lg:flex …` wrappers so
+    the phone keeps its order.
+  - **Tablet (`sm`–`lg`)**: the tab bar becomes an 88px icon rail
+    (`nav/SideNav.tsx`); Explore opens as a centred dialog, not a sheet.
+  - **Desktop (`lg`+)**: a 240px labelled sidebar that lists Explore's
+    sections in place and adds Rankings/Following/Liked/Help.
+  - The three surfaces read one item list (`nav/navConfig.ts`), so they cannot
+    disagree about what the app contains.
+  - Page width on `sm`+ is decided by the shell, per route
+    (`components/appLayout.ts`): the 672px `column` by default, `wide`
+    (≤1152px) for routes in `WIDE_PAGES`, and the
+    fixed-viewport map pages fill the pane and put the list beside the map
+    from `md`. Use `useMediaQuery` (`hooks/useMediaQuery.ts`) only when
+    *behaviour* changes with the layout; layout itself is classes.
 - Admin panel: full-width, dark top bar, horizontal tab navigation, separate route tree at `/admin/*`
-- Bottom tab bar hidden on admin/marketing routes (they render outside `AppShell`)
+- Tab bar and rail are hidden on admin/marketing routes (they render outside `AppShell`)
 
 ### Testing
 

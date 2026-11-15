@@ -116,9 +116,14 @@ export default function ShopProductPage() {
   };
 
   return (
-    <div className="p-4 pb-8">
-      <BackButton fallback="/app/shop" label="Shop" />
+    // From `md` the photos sit beside the details, the gallery held in view
+    // while the details scroll. `contents` keeps the phone stack's order.
+    <div className="p-4 pb-8 md:grid md:grid-cols-2 md:items-start md:gap-x-8 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] xl:gap-x-10">
+      <div className="contents md:block md:col-span-2">
+        <BackButton fallback="/app/shop" label="Shop" />
+      </div>
 
+      <div className="contents md:block md:min-w-0 md:sticky md:top-20">
       <div className="rounded-3xl overflow-hidden border border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
         {hero ? (
           <img
@@ -150,8 +155,10 @@ export default function ShopProductPage() {
           ))}
         </div>
       )}
+      </div>
 
-      <div className="mt-4">
+      <div className="contents md:block md:min-w-0">
+      <div className="mt-4 md:mt-0">
         <h1 className="text-[28px] leading-none text-navy dark:text-biscuit text-balance">{product.title}</h1>
         <p className="font-display text-2xl leading-none tabular-nums text-navy dark:text-biscuit mt-2">
           {variant ? formatMoney(variant.price) : formatMoney(product.priceRange.min)}
@@ -239,6 +246,7 @@ export default function ShopProductPage() {
           ? 'Shipping & taxes calculated at checkout.'
           : 'Demo product — connect a Shopify store to take real orders.'}
       </p>
+      </div>
     </div>
   );
 }

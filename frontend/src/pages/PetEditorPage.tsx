@@ -603,13 +603,16 @@ export default function PetEditorPage() {
             <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-3">Photos</h2>
             <PhotoUploader petId={id!} onUploaded={() => refetch()} />
             {pet.photos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mt-3">
+              // h-24 is near-square in a phone's thirds; in a 672px column it
+              // crops the (square) photos to strips, so wider screens take
+              // more, square thumbnails instead.
+              <div className="grid grid-cols-3 gap-2 mt-3 sm:grid-cols-5">
                 {pet.photos.map((photo) => (
                   <div key={photo.id} className="relative group">
                     <PetPhoto
                       photo={photo}
                       alt=""
-                      className="w-full h-24 object-cover rounded-lg border-[1.5px] border-navy/20 dark:border-white/10"
+                      className="w-full h-24 object-cover rounded-lg border-[1.5px] border-navy/20 dark:border-white/10 sm:h-auto sm:aspect-square"
                     />
                     {isInReview(photo) && (
                       <InReviewBadge className="absolute bottom-1 left-1" />

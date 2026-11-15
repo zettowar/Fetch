@@ -129,9 +129,13 @@ export default function ParksPage() {
   ];
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    // Phone: header, map, list stacked. From `md` the list column (header,
+    // list) sits beside a full-height map — the wrapper around map + list
+    // turns into `contents` so both join the grid. The list scrolls on its
+    // own, so the selected row still scrolls into view in the side column.
+    <div className="flex flex-col flex-1 min-h-0 md:grid md:grid-cols-[360px_minmax(0,1fr)] lg:grid-cols-[400px_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)]">
       {/* ── Compact header ──────────────────────────────────────────── */}
-      <div className="px-4 pt-3 pb-2.5 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+      <div className="px-4 pt-3 pb-2.5 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface md:col-start-1 md:row-start-1 md:border-r md:px-5 md:pt-4">
         <h1 className="text-2xl leading-none text-navy dark:text-biscuit flex items-center gap-2">
           <BrandIcon name="park" size={24} /> Pet parks
         </h1>
@@ -160,8 +164,8 @@ export default function ParksPage() {
       </div>
 
       {/* ── Map ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="h-[65%] min-h-[280px] relative">
+      <div className="flex-1 flex flex-col min-h-0 md:contents">
+        <div className="h-[65%] min-h-[280px] relative md:h-auto md:min-h-0 md:col-start-2 md:row-start-1 md:row-span-2">
           <Map
             center={initialCenter}
             zoom={12}
@@ -200,7 +204,7 @@ export default function ParksPage() {
         </div>
 
         {/* ── List pane ───────────────────────────────────────────── */}
-        <div className="overflow-y-auto overscroll-contain flex-1 bg-biscuit dark:bg-night">
+        <div className="overflow-y-auto overscroll-contain flex-1 bg-biscuit dark:bg-night md:col-start-1 md:row-start-2 md:border-r md:border-gray-200 md:dark:border-white/10">
           <div className="px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-night-surface border-b border-gray-200 dark:border-white/10 sticky top-0 z-10">
             <span>
               {filteredParks.length} {filteredParks.length === 1 ? 'park' : 'parks'}

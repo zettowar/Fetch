@@ -51,7 +51,9 @@ export default function TransfersPage() {
   const history = transfers.filter((t) => t.status !== 'pending');
 
   return (
-    <div className="p-4 pb-8 max-w-xl mx-auto">
+    // sm:max-w-none: from `sm` the shell's column sets the width, so the
+    // title lines up with every other column page instead of sitting inset.
+    <div className="p-4 pb-8 max-w-xl mx-auto sm:max-w-none">
       <PageHeader
         title="Pet transfers"
         back

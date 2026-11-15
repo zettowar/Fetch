@@ -149,7 +149,8 @@ export default function ParkEditorPage() {
 
         <div className="flex flex-col gap-2" role="group" aria-labelledby="park-editor-location-label">
           <span id="park-editor-location-label" className="field-label">Location</span>
-          <Button type="button" variant="secondary" size="sm" onClick={handleGetLocation}>
+          {/* Full width is a phone habit; in the wider column it reads as a bar. */}
+          <Button type="button" variant="secondary" size="sm" onClick={handleGetLocation} className="sm:self-start">
             Use my location
           </Button>
           <div className="grid grid-cols-2 gap-2">

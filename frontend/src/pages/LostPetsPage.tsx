@@ -111,10 +111,13 @@ export default function LostPetsPage() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    // Phone: header, map, list, footer stacked. From `md` the list column
+    // (header, list, footer) sits beside a full-height map — the wrapper
+    // around map + list turns into `contents` so both join the grid.
+    <div className="flex flex-col flex-1 min-h-0 md:grid md:grid-cols-[360px_minmax(0,1fr)] lg:grid-cols-[400px_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)_auto]">
       {/* ── Compact header ──────────────────────────────────────────── */}
       {/* The calm register: plain Figtree title, flat surfaces, no red. */}
-      <div className="px-4 pt-3 pb-2.5 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+      <div className="px-4 pt-3 pb-2.5 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface md:col-start-1 md:row-start-1 md:border-r md:px-5 md:pt-4">
         <h1 className="font-plain text-xl leading-tight text-navy dark:text-biscuit flex items-center gap-2">
           <BrandIcon name="lost" size={20} /> Lost &amp; Found
         </h1>
@@ -163,8 +166,8 @@ export default function LostPetsPage() {
       </div>
 
       {/* ── Map ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="h-[62%] min-h-[280px] relative">
+      <div className="flex-1 flex flex-col min-h-0 md:contents">
+        <div className="h-[62%] min-h-[280px] relative md:h-auto md:min-h-0 md:col-start-2 md:row-start-1 md:row-span-3">
         <Map
           center={initialCenter}
           zoom={12}
@@ -219,7 +222,7 @@ export default function LostPetsPage() {
         </div>
 
         {/* Recent reports strip — keeps the area below the (smaller) map useful */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-biscuit dark:bg-night border-t border-gray-200 dark:border-white/10">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-biscuit dark:bg-night border-t border-gray-200 dark:border-white/10 md:col-start-1 md:row-start-2 md:border-t-0 md:border-r">
           {isError ? (
             // Never fall through to "no missing pets reported here — good
             // news" when the query actually failed: on this screen a false
@@ -234,10 +237,11 @@ export default function LostPetsPage() {
             </p>
           ) : (
             <ul className="divide-y divide-gray-200 dark:divide-white/10">
-              {reports.slice(0, 6).map((r) => {
+              {/* Six fit under the phone's map; the side column has room for the rest. */}
+              {reports.slice(0, 50).map((r, i) => {
                 const isMissing = r.kind === 'missing';
                 return (
-                  <li key={r.id}>
+                  <li key={r.id} className={i >= 6 ? 'hidden md:block' : undefined}>
                     <Link
                       to={`/app/lost/${r.id}`}
                       className="flex items-center gap-3 px-4 py-2.5 hover:bg-white dark:hover:bg-night-surface transition-colors"
@@ -262,7 +266,7 @@ export default function LostPetsPage() {
         </div>
       </div>
 
-      <div className="border-t border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+      <div className="border-t border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface md:col-start-1 md:row-start-3 md:border-r">
         <LostAlertSubscription center={viewCenter} />
         <div className="px-4 py-2 flex items-center justify-around text-xs text-gray-600 dark:text-gray-300">
           {/* A dash, not a zero: "0 missing" when the request failed reads as

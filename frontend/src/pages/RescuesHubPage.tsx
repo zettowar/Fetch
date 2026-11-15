@@ -17,10 +17,14 @@ const TILE =
 export default function RescuesHubPage() {
   useDocumentTitle('Rescues · Fetchpawz');
   return (
-    <div className="px-4 pt-5 pb-8 flex flex-col gap-5">
+    // Tablet: the phone stack as a centred column (two links stretched to
+    // 900px are just long). Desktop: the two doors side by side, the pink
+    // lead the larger of the pair.
+    <div className="px-4 pt-5 pb-8 flex flex-col gap-5 sm:mx-auto sm:w-full sm:max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-x-6">
       <PageHeader
         title="Rescues"
         subtitle="Find a forever home — or the rescue that has one."
+        className="lg:col-span-2"
       />
 
       {/* The lead: Forever Pink with the toy box inside it. Bagel at 36px+
@@ -44,7 +48,9 @@ export default function RescuesHubPage() {
 
       <Link
         to="/app/rescues/map"
-        className={`${TILE} bg-white dark:bg-night-surface dark:text-biscuit`}
+        // lg:mt-9 matches the lead's room for its Peek, so the two doors'
+        // top edges line up.
+        className={`${TILE} bg-white dark:bg-night-surface dark:text-biscuit lg:mt-9`}
       >
         <div className="min-w-0">
           <p className="eyebrow">Nearby</p>

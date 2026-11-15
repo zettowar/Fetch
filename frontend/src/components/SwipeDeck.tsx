@@ -24,6 +24,19 @@ import { onboarding } from '../utils/onboarding';
 
 const SEEN_PROMPTS_KEY = 'fetch.adoption_prompts_seen';
 
+/**
+ * A bigger deck where there is room for it: desktop width AND a tall window.
+ * Width alone isn't enough — on a 768px-tall laptop a taller card pushes
+ * Pass and Like below the fold, and the buttons are the point. Width and
+ * height grow together (352×480 → 416×560) so the card keeps its shape and
+ * the photo still shows ~90% of its square. Everything that lines up with the
+ * card takes the same width.
+ */
+const ROOMY_WIDTH = '[@media(min-width:1024px)_and_(min-height:900px)]:max-w-md';
+const ROOMY_HEIGHT = '[@media(min-width:1024px)_and_(min-height:900px)]:h-[560px]';
+const KBD =
+  'inline-flex h-5 min-w-[20px] items-center justify-center rounded-md border-[1.5px] border-navy/30 bg-white px-1 font-mono text-2xs text-navy dark:border-white/25 dark:bg-night-surface dark:text-biscuit';
+
 function loadSeenPrompts(): Set<string> {
   try {
     const raw = localStorage.getItem(SEEN_PROMPTS_KEY);
@@ -236,7 +249,8 @@ export default function SwipeDeck() {
 
   if (isLoading) {
     return (
-      <div className="px-4">
+      // Card-width on wider screens too, not a 640px-wide placeholder.
+      <div className={`px-4 sm:mx-auto sm:max-w-sm ${ROOMY_WIDTH}`}>
         <CardSkeleton />
       </div>
     );
@@ -340,7 +354,7 @@ export default function SwipeDeck() {
   return (
     <div className="flex flex-col items-center">
       {/* Vote counter / quota indicator */}
-      <div className="w-full max-w-sm px-4 mb-2 flex flex-col gap-1">
+      <div className={`w-full max-w-sm px-4 mb-2 flex flex-col gap-1 ${ROOMY_WIDTH}`}>
         {!isSubscriber && user ? (
           <>
             <div className="flex items-center justify-between text-xs">
@@ -368,7 +382,7 @@ export default function SwipeDeck() {
         )}
       </div>
 
-      <div className="relative w-full max-w-sm px-4 h-[480px]">
+      <div className={`relative w-full max-w-sm px-4 h-[480px] ${ROOMY_WIDTH} ${ROOMY_HEIGHT}`}>
         <div className="relative h-full w-full">
         {visibleDogs.map((pet, i) => (
           <SwipeCard
@@ -471,9 +485,20 @@ export default function SwipeDeck() {
         </motion.button>
       </div>
 
+      {/* The arrow keys swipe too (the handler above). Said once, quietly, and
+          only where there is a keyboard and a mouse: never on a phone, and
+          not on a touch tablet, where it would be a hint about nothing. */}
+      {!quotaBlocked && (
+        <p className="mt-3 hidden items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 [@media(min-width:640px)_and_(hover:hover)]:flex">
+          <kbd className={KBD}>←</kbd> pass
+          <span aria-hidden className="px-0.5">·</span>
+          <kbd className={KBD}>→</kbd> like
+        </p>
+      )}
+
       {/* Adoption prompt (after right-swipe on a rescue pet) */}
       {prompt && (
-        <div className="w-full max-w-sm mt-3 px-4">
+        <div className={`w-full max-w-sm mt-3 px-4 ${ROOMY_WIDTH}`}>
           <AdoptionPrompt
             petId={prompt.petId}
             dogName={prompt.dogName}
@@ -486,7 +511,7 @@ export default function SwipeDeck() {
       {/* Banner ad slot — non-subscribers only. Placeholder until a real ad
           network is wired up. */}
       {!isSubscriber && (
-        <div className="w-full max-w-sm mt-4 px-4">
+        <div className={`w-full max-w-sm mt-4 px-4 ${ROOMY_WIDTH}`}>
           <Link
             to="/app/billing"
             className="block rounded-2xl bg-white dark:bg-night-surface border border-dashed border-navy/25 dark:border-white/20 px-3.5 py-2.5 hover:border-navy/50 transition-colors"

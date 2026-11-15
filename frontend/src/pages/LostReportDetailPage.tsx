@@ -139,9 +139,16 @@ export default function LostReportDetailPage() {
   const isOwner = user?.id === report.reporter_id;
 
   return (
-    <div className="p-4 pb-8">
+    // Tablet: the phone stack as a centred column. Desktop: the pet (photos,
+    // what happened, where) on the left; on the right the name, what you can
+    // do about it, and the sightings. The three groups are `contents` below
+    // lg, so the phone keeps its order. Row 2 is `1fr` so the right column's
+    // two groups sit flush however tall the left column runs.
+    <div className="p-4 pb-8 sm:mx-auto sm:max-w-2xl lg:max-w-none">
       <BackButton fallback="/app/lost" />
 
+      <div className="contents lg:grid lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-8">
+      <div className="contents lg:block lg:col-start-2 lg:row-start-1">
       {/* Header — the calm register: plain type, a missing badge, never red. */}
       <div className="flex items-center gap-2 mb-3">
         {report.kind === 'missing' ? (
@@ -204,24 +211,27 @@ export default function LostReportDetailPage() {
           Share
         </button>
       </div>
+      </div>
 
-      {/* Photos */}
+      <div className="contents lg:block lg:col-start-1 lg:row-start-1 lg:row-span-2">
+      {/* Photos — square, like every pet photo, once there's room for two
+          across; a lone photo takes the whole width instead of half. */}
       {report.photos.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 lg:mt-0">
           {report.photos.map((p, idx) => (
             <img
               key={p.id}
               src={photoUrl(p)}
               alt={`Photo ${idx + 1} of ${report.pet_name || 'the pet'}`}
               loading="lazy"
-              className="w-full h-48 sm:h-32 object-cover rounded-lg border border-gray-200 dark:border-white/10"
+              className="w-full h-48 sm:h-auto sm:aspect-square sm:only:col-span-2 sm:only:aspect-[4/3] object-cover rounded-lg border border-gray-200 dark:border-white/10"
             />
           ))}
         </div>
       )}
 
       {/* Description */}
-      <p className="mt-4 text-[15px] text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words">
+      <p className="mt-4 lg:first:mt-0 text-[15px] text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words">
         <Linkify>{report.description}</Linkify>
       </p>
 
@@ -243,7 +253,7 @@ export default function LostReportDetailPage() {
                 (within ~{formatRadius(radius)})
               </span>
             </p>
-            <div className="h-56 overflow-hidden rounded-2xl border border-gray-200 dark:border-white/10">
+            <div className="h-56 sm:h-72 lg:h-80 overflow-hidden rounded-2xl border border-gray-200 dark:border-white/10">
               <Map
                 center={[report.last_seen_lng, report.last_seen_lat]}
                 zoom={zoom}
@@ -278,6 +288,13 @@ export default function LostReportDetailPage() {
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
         Reported <TimeAgo value={report.created_at} />
       </p>
+      </div>
+
+      {/* The rest of the right column on desktop, in the phone's order. Not
+          reordered with `order-*`: keyboard focus follows the DOM, and a
+          column whose tab order disagrees with what's on screen is worse
+          than one where the actions sit a little lower. */}
+      <div className="contents lg:flex lg:flex-col lg:col-start-2 lg:row-start-2">
 
       {/* Spread the word — one-tap sharing to the public page */}
       {report.is_public && report.status === 'open' && (() => {
@@ -294,7 +311,7 @@ export default function LostReportDetailPage() {
             <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
               The more neighbors who see {report.pet_name || 'this pet'}, the better the odds of a reunion.
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
               <a href={nextdoor} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
                 Nextdoor
               </a>
@@ -334,7 +351,7 @@ export default function LostReportDetailPage() {
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 mt-6">
+      <div className="flex flex-col sm:flex-row lg:flex-col gap-2 mt-6">
         {isOwner && report.status === 'open' && (
           <Button
             variant="primary"
@@ -482,6 +499,8 @@ export default function LostReportDetailPage() {
             ))}
           </div>
         )}
+      </div>
+      </div>
       </div>
     </div>
   );

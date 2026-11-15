@@ -86,6 +86,11 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
 
 type Kind = 'all' | 'donating' | 'has_website';
 
+// The one measure every band lines up on from `sm` (inert on a phone):
+// centred, capped like the app's wide pages, with its own side padding so
+// the full-bleed header and count bands can hold it too.
+const COLUMN = 'sm:mx-auto sm:w-full sm:max-w-6xl sm:px-6';
+
 export default function RescuesPage() {
   useDocumentTitle('Browse rescues · Fetchpawz');
   const [search, setSearch] = useState('');
@@ -114,21 +119,28 @@ export default function RescuesPage() {
   ];
 
   return (
+    // A list with no map, filling the pane beside the rail. From `sm` the
+    // header, count line and cards share one centred measure (COLUMN) so a
+    // 1600px pane doesn't stretch rows edge to edge; from `md` the cards
+    // tile into a grid. The bands themselves stay full-bleed.
     <div className="flex flex-col flex-1 min-h-0">
       {/* ── Compact header ──────────────────────────────────────────── */}
-      <div className="px-4 pt-3 pb-2 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+      <div className="px-4 pt-3 pb-2 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface sm:px-0 sm:pt-4 sm:pb-3">
+        <div className={COLUMN}>
         <h1 className="text-[28px] leading-none text-navy dark:text-biscuit flex items-center gap-2">
           <BrandIcon name="rescue" size={24} /> Rescues
         </h1>
 
         <SearchInput
-          className="mt-2.5"
+          className="mt-2.5 sm:max-w-xl"
           value={search}
           onChange={setSearch}
           placeholder="Search rescues by name or location..."
         />
 
-        <div className="flex gap-1.5 mt-2 overflow-x-auto -mx-4 px-4 pb-0.5">
+        {/* Phone: one scrolling row bleeding to the edges. With room, the
+            chips just sit on the line. */}
+        <div className="flex gap-1.5 mt-2 overflow-x-auto -mx-4 px-4 pb-0.5 sm:mx-0 sm:px-0 sm:flex-wrap">
           {filterOptions.map((opt) => (
             <button
               key={opt.key}
@@ -139,25 +151,26 @@ export default function RescuesPage() {
             </button>
           ))}
         </div>
+        </div>
       </div>
 
       {/* ── List pane ───────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-biscuit dark:bg-night">
-        <div className="px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 bg-biscuit dark:bg-night border-b border-gray-200 dark:border-white/10 sticky top-0 z-10">
-          <span>
+        <div className="px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 bg-biscuit dark:bg-night border-b border-gray-200 dark:border-white/10 sticky top-0 z-10 sm:px-0">
+          <span className={COLUMN}>
             {filtered.length} {filtered.length === 1 ? 'rescue' : 'rescues'}
             {search && rescues.length !== filtered.length && ` · ${rescues.length - filtered.length} filtered`}
           </span>
         </div>
 
         {isLoading ? (
-          <div className="p-4">
+          <div className={`p-4 ${COLUMN}`}>
             <ListSkeleton rows={4} />
           </div>
         ) : isError ? (
           <ErrorState message="Couldn't load rescues." onRetry={() => refetch()} />
         ) : filtered.length === 0 ? (
-          <div className="p-4">
+          <div className={`p-4 ${COLUMN}`}>
             {search ? (
               <EmptyState illustration="sniffing" title={`No results for "${search}"`} />
             ) : (
@@ -169,7 +182,7 @@ export default function RescuesPage() {
             )}
           </div>
         ) : (
-          <div className="p-4 flex flex-col gap-3">
+          <div className={`p-4 flex flex-col gap-3 sm:py-5 md:grid md:grid-cols-2 md:gap-4 xl:grid-cols-3 ${COLUMN}`}>
             {filtered.map((r) => (
               <RescueCard key={r.id} rescue={r} />
             ))}

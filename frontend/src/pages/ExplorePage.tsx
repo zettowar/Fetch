@@ -22,6 +22,9 @@ const PAGE_SIZE = 18;
 // backend returns random rows each call, so dedup is necessary and the
 // pool is finite (eventually shuffles repeat).
 const MAX_DOGS = 240;
+// Two across on a phone, a column more as the pane widens; the cards keep
+// roughly their phone size rather than stretching.
+const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4';
 
 function ExploreCard({ pet, index }: { pet: Pet; index: number }) {
   const hero = petHeroPhoto(pet);
@@ -191,7 +194,7 @@ export default function ExplorePage() {
       </div>
 
       {isLoading && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className={GRID}>
           {[...Array(6)].map((_, i) => (
             <CardSkeleton key={i} />
           ))}
@@ -218,7 +221,7 @@ export default function ExplorePage() {
 
       {!isLoading && !isError && pets.length > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={GRID}>
             {pets.map((pet, i) => (
               <ExploreCard key={pet.id} pet={pet} index={i} />
             ))}
@@ -228,7 +231,7 @@ export default function ExplorePage() {
           <div ref={sentinelRef} className="h-1" aria-hidden />
 
           {isFetchingNextPage && (
-            <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className={`${GRID} mt-3 sm:mt-4`}>
               {[...Array(2)].map((_, i) => (
                 <CardSkeleton key={i} />
               ))}

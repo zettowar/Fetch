@@ -63,7 +63,12 @@ export default function RescueDetailPage() {
   const hasCoords = rescue.lat != null && rescue.lng != null;
 
   return (
-    <div className="p-4 pb-8 max-w-xl mx-auto">
+    // Tablet: one centred column. Desktop: the rescue (cover, about, pets)
+    // on the left and the adoption inquiry beside it, held in view while the
+    // pets scroll — it is what the page is for. `contents` keeps the phone
+    // stack's order below lg.
+    <div className="p-4 pb-8 max-w-xl mx-auto sm:max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-x-8">
+      <div className="contents lg:block lg:min-w-0">
       <BackButton fallback="/app/rescues" />
       {hasCoords && (
         <div className="mt-3 h-48 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10">
@@ -113,7 +118,7 @@ export default function RescueDetailPage() {
           </div>
         </div>
       </div>
-      <p className="text-[15px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{rescue.description}</p>
+      <p className="text-[15px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap sm:max-w-prose">{rescue.description}</p>
 
       {(rescue.website || rescue.donation_url || (rescue.donations_enabled && donateOpen)) && (
         <div className="flex items-center gap-2 mt-4">
@@ -155,7 +160,7 @@ export default function RescueDetailPage() {
           body="Check back soon."
         />
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
           {pets.map((d) => (
             <Link
               key={d.id}
@@ -198,8 +203,10 @@ export default function RescueDetailPage() {
           ))}
         </div>
       )}
+      </div>
 
-      <div className="mt-8">
+      {/* lg:mt-14 clears the back link, so the form's top meets the cover's. */}
+      <div className="mt-8 lg:mt-14 lg:sticky lg:top-20">
         <AdoptionInquiryForm
           rescueId={rescue.id}
           rescueName={rescue.org_name}

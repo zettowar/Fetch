@@ -111,7 +111,10 @@ export default function CartPage() {
   };
 
   return (
-    <div className="p-4 pb-8">
+    // Tablet: the phone stack as a centred column (cart rows stretched to
+    // 900px put the price a long way from its product). Desktop: the lines
+    // beside an order summary that stays in view while the list scrolls.
+    <div className="p-4 pb-8 sm:mx-auto sm:w-full sm:max-w-2xl lg:max-w-none">
       <BackButton fallback="/app/shop" label="Shop" />
       <PageHeader title="Your cart" className="mb-4" />
 
@@ -139,7 +142,7 @@ export default function CartPage() {
       )}
 
       {!isLoading && !isError && cart && cart.lines.length > 0 && (
-        <>
+        <div className="contents lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6">
           <div className="surface px-3 divide-y divide-gray-200 dark:divide-white/10">
             {cart.lines.map((line) => (
               <CartRow
@@ -152,7 +155,8 @@ export default function CartPage() {
             ))}
           </div>
 
-          <div className="mt-4 pt-1">
+          {/* On lg the summary becomes its own panel (the .surface look). */}
+          <div className="mt-4 pt-1 lg:mt-0 lg:sticky lg:top-20 lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white lg:p-4 dark:lg:border-white/10 dark:lg:bg-night-surface">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Subtotal</span>
               <span className="font-display text-2xl leading-none tabular-nums text-navy dark:text-biscuit">
@@ -178,7 +182,7 @@ export default function CartPage() {
               </>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

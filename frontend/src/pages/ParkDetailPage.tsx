@@ -139,7 +139,11 @@ export default function ParkDetailPage() {
   const attrs = park.attributes || {};
 
   return (
-    <div className="p-4 pb-8">
+    // Tablet: the phone stack as a centred column. Desktop: the park and what
+    // you do there (facts, check in, review) on the left; what's going on
+    // there (meetups, warnings, reviews) on the right. Both groups are
+    // `contents` below lg, so the phone keeps its order.
+    <div className="p-4 pb-8 sm:mx-auto sm:max-w-2xl lg:max-w-none">
       <PageHeader
         back
         backFallback="/app/parks"
@@ -155,6 +159,8 @@ export default function ParkDetailPage() {
           </button>
         }
       />
+      <div className="contents lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-x-8">
+      <div className="contents lg:block">
       {park.address && <p className="mt-1.5 text-gray-600 dark:text-gray-300">{park.address}</p>}
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <a
@@ -341,6 +347,11 @@ export default function ParkDetailPage() {
         </fieldset>
       )}
 
+      </div>
+
+      {/* Each section opens with its own top margin; the column's first one
+          lines up with the address instead. */}
+      <div className="contents lg:block lg:[&>:first-child]:mt-1.5">
       {/* Play dates */}
       <PlayDatesSection parkId={id!} />
 
@@ -402,6 +413,8 @@ export default function ParkDetailPage() {
             body="Be the first to rate this park."
           />
         )}
+      </div>
+      </div>
       </div>
     </div>
   );

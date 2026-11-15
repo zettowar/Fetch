@@ -278,6 +278,18 @@ export default function HomePage() {
     return <Navigate to="/app/rescue/dashboard" replace />;
   }
 
+  // Desktop puts the crown and your own week side by side; the cards that
+  // are about *you* (birthday, your pet's race, a waiting transfer, the
+  // first-run checklist) share the right column. With none of them, the
+  // crown takes the full width rather than leaving a hole.
+  const hasSideCards =
+    Boolean(celebrated?.occasion) ||
+    myHomePets.length > 0 ||
+    pendingTransfers.length > 0 ||
+    showOnboarding;
+  // Full-width rows on the desktop grid.
+  const ROW = 'lg:col-span-2';
+
   return (
     <div className="flex flex-col">
       {myCrown && (
@@ -288,8 +300,14 @@ export default function HomePage() {
           onClose={recheckCrown}
         />
       )}
-      <div className="p-4 pt-5 flex flex-col gap-4">
-        <div className="flex items-end justify-between gap-3 animate-fade-in-up" style={stagger(0)}>
+      {/*
+        Phone: one stack, top to bottom. Tablet: the same stack as a centred
+        column (a dashboard stretched to 900px is just a long phone). Desktop:
+        a two-column grid; `contents` lets the side column's cards stay in the
+        phone stack's order below lg.
+      */}
+      <div className="p-4 pt-5 flex flex-col gap-4 sm:mx-auto sm:w-full sm:max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-6 lg:gap-y-5">
+        <div className={`flex items-end justify-between gap-3 animate-fade-in-up ${ROW}`} style={stagger(0)}>
           <div className="min-w-0">
             <p className="eyebrow">{weekdayLine()}</p>
             <h1 className="mt-1.5 text-[26px] leading-none text-navy dark:text-biscuit text-balance">
@@ -302,14 +320,20 @@ export default function HomePage() {
         </div>
 
         {/* Hero: this week's crown for the home species (single species, no dual view) */}
-        <CrownHero
-          species={homeSpecies}
-          winner={(homeSpecies === 'cat' ? catWinner : dogWinner) ?? null}
-          resetsIn={resetsIn}
-          failed={homeSpecies === 'cat' ? catWinnerFailed : dogWinnerFailed}
-          lastWinner={lastWinner}
-        />
+        <div className={hasSideCards ? '' : ROW}>
+          <CrownHero
+            species={homeSpecies}
+            winner={(homeSpecies === 'cat' ? catWinner : dogWinner) ?? null}
+            resetsIn={resetsIn}
+            failed={homeSpecies === 'cat' ? catWinnerFailed : dogWinnerFailed}
+            lastWinner={lastWinner}
+          />
+        </div>
 
+        {/* Only when it has something in it: an empty column would still be
+            a grid item on desktop, and its row gap would open a hole. */}
+        {hasSideCards && (
+        <div className="contents lg:flex lg:flex-col lg:gap-4">
         {celebrated?.occasion && <OccasionCard pet={celebrated.pet} occasion={celebrated.occasion} />}
 
         {myHomePets.length > 0 && (
@@ -407,13 +431,15 @@ export default function HomePage() {
             </ol>
           </section>
         )}
+        </div>
+        )}
 
         {/* Primary CTA — the one big card; carries a live swipes-left line.
             The next swipe comes second: a Ball Orange card, navy ink. */}
         <Link
           to="/app/swipe"
           style={stagger(1)}
-          className="group relative mt-9 flex items-center justify-between gap-3 rounded-3xl border-[2.5px] border-navy bg-brand-500 p-4 text-navy shadow-toy transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px active:translate-x-[2px] active:translate-y-[3px] active:shadow-none animate-fade-in-up dark:border-brand-500"
+          className="group relative mt-9 lg:mt-12 lg:col-span-2 flex items-center justify-between gap-3 rounded-3xl border-[2.5px] border-navy bg-brand-500 p-4 lg:px-6 lg:py-5 text-navy shadow-toy transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px active:translate-x-[2px] active:translate-y-[3px] active:shadow-none animate-fade-in-up dark:border-brand-500"
         >
           {/* Someone's waiting to be rated: a pet peeking over the card's edge. */}
           <Peek id={peekFor(homeSpecies, user?.id ?? 'home')} className="left-5 h-12" />
@@ -435,7 +461,7 @@ export default function HomePage() {
 
         {/* Rescues + Lost & Found — compact half-width pair under the hero CTA.
             White tiles: pink is the rescue's bean, and a lost pet is never red. */}
-        <div className="grid grid-cols-2 gap-3 animate-fade-in-up" style={stagger(2)}>
+        <div className={`grid grid-cols-2 gap-3 lg:gap-4 animate-fade-in-up ${ROW}`} style={stagger(2)}>
           <Link
             to="/app/rescues"
             className="flex flex-col gap-1 rounded-2xl border-2 border-navy bg-white p-3.5 text-navy shadow-toy-sm transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px active:translate-x-[2px] active:translate-y-[3px] active:shadow-none dark:border-white/15 dark:bg-night-surface dark:text-biscuit"
@@ -462,7 +488,7 @@ export default function HomePage() {
           <Link
             to="/app/donate"
             style={stagger(3)}
-            className="surface flex items-center justify-between gap-3 p-3 transition-colors hover:border-navy/40 animate-fade-in-up dark:hover:border-white/30"
+            className={`surface flex items-center justify-between gap-3 p-3 transition-colors hover:border-navy/40 animate-fade-in-up dark:hover:border-white/30 ${ROW}`}
           >
             <div className="flex items-center gap-3">
               <span className="inline-flex w-9 h-9 items-center justify-center rounded-full bg-brand-100 text-navy dark:bg-brand-500/20 dark:text-biscuit" aria-hidden>
@@ -481,7 +507,7 @@ export default function HomePage() {
 
         {/* Following — strip when the user follows pets, prompt row otherwise */}
         {stripDogs.length > 0 ? (
-          <section className="animate-fade-in-up" style={stagger(3)}>
+          <section className={`animate-fade-in-up ${ROW}`} style={stagger(3)}>
             <div className="flex items-baseline justify-between mb-2">
               <h2 className="eyebrow">Following</h2>
               <Link to="/app/following" className="text-xs font-extrabold text-brand-700 hover:underline dark:text-brand-400">
@@ -544,7 +570,7 @@ export default function HomePage() {
           <Link
             to="/app/following"
             style={stagger(3)}
-            className="surface flex items-center justify-between gap-3 p-3 transition-colors hover:border-navy/40 animate-fade-in-up dark:hover:border-white/30"
+            className={`surface flex items-center justify-between gap-3 p-3 transition-colors hover:border-navy/40 animate-fade-in-up dark:hover:border-white/30 ${ROW}`}
           >
             <div className="flex items-center gap-3">
               <span className="inline-flex w-9 h-9 items-center justify-center rounded-full bg-navy-100 text-navy dark:bg-white/10 dark:text-biscuit" aria-hidden>
@@ -559,7 +585,7 @@ export default function HomePage() {
           </Link>
         )}
 
-        <TailRule className="mt-4 mb-16 animate-fade-in-up">That's the whole walk.</TailRule>
+        <TailRule className={`mt-4 mb-16 animate-fade-in-up ${ROW}`}>That's the whole walk.</TailRule>
       </div>
     </div>
   );

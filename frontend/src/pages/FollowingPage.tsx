@@ -90,8 +90,10 @@ export default function FollowingPage() {
         />
       )}
 
+      {/* Rows on a phone; on wider screens the same row cards tile, two or
+          three across, instead of stretching a 64px photo's row to 900px. */}
       {!isLoading && followedDogs.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
           {followedDogs.map((pet) => (
             <FollowedDogCard key={pet.id} pet={pet} />
           ))}

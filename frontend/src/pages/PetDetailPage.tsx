@@ -35,6 +35,7 @@ import { formatWeekOf } from '../utils/weeklyReset';
 import { occasionShort, occasionToday } from '../utils/occasions';
 import { apiErrorMessage, isNotFound } from '../utils/apiError';
 import { photoIn } from '../utils/photoIn';
+import { DESKTOP_UP, useMediaQuery } from '../hooks/useMediaQuery';
 
 export default function PetDetailPage() {
   const { id } = useParams();
@@ -55,6 +56,8 @@ export default function PetDetailPage() {
   useDocumentTitle(pet ? `${pet.name} · Fetchpawz` : null);
 
   const isOwner = user?.id === pet?.owner_id?.toString();
+  // Desktop moves the gallery into the photo column (see `gallery` below).
+  const isDesktop = useMediaQuery(DESKTOP_UP);
 
   // Paw-print celebration when a follow lands. FollowButton owns the
   // mutation, so watch its shared follower-count cache for the flip.
@@ -142,8 +145,10 @@ export default function PetDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-4">
-        <Skeleton className="w-full h-60 rounded-none -mx-4 -mt-4 mb-4" />
+      // Same shape as the loaded page: a centred column on tablet, the photo
+      // beside the name on desktop.
+      <div className="p-4 sm:mx-auto sm:max-w-2xl sm:p-0 lg:max-w-none lg:grid lg:grid-cols-2 lg:gap-x-8 xl:gap-x-10">
+        <Skeleton className="w-[calc(100%+2rem)] h-60 rounded-none -mx-4 -mt-4 mb-4 sm:w-full sm:mx-0 sm:mt-0 sm:rounded-3xl lg:row-span-4 lg:mb-0 lg:h-auto lg:aspect-square lg:self-start" />
         <Skeleton className="h-7 w-32 mb-2" />
         <Skeleton className="h-4 w-24 mb-4" />
         <Skeleton className="h-16 w-full" />
@@ -175,8 +180,105 @@ export default function PetDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['pet', id] });
   };
 
+  // The gallery and the owner's add-photo row under it. On desktop they sit
+  // under the hero, in the photo column; everywhere else they come after the
+  // facts, as they always have. CSS can't move one block between the two
+  // columns without rendering it twice (two uploaders, two sets of owner
+  // controls, the in-review blobs fetched for both), so this one placement
+  // branches on the layout in JS.
+  const gallery = (
+    <>
+      {/* Photo gallery */}
+      {hasPhotos && (
+        <div className="mt-4">
+          <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">
+            Photos <span className="text-gray-500 dark:text-gray-400 font-bold">({pet.photos.length})</span>
+          </h2>
+          {isOwner && reviewCount > 0 && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              {reviewCount === 1 ? 'One photo is' : `${reviewCount} photos are`} being
+              reviewed. Only you can see {reviewCount === 1 ? 'it' : 'them'} until
+              that's done — usually just a few minutes.
+            </p>
+          )}
+          <div className="grid grid-cols-3 gap-2">
+            {pet.photos.map((photo, idx) => {
+              const isPrimary = photo.id === pet.primary_photo_id;
+              const inReview = isInReview(photo);
+              return (
+                <div key={photo.id} className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => setFullscreenIndex(idx)}
+                    className="block w-full aspect-square rounded-lg overflow-hidden border-2 border-navy dark:border-white/20 transition-transform hover:-translate-y-px active:translate-y-[2px]"
+                    aria-label={`View photo ${idx + 1} fullscreen`}
+                  >
+                    <PetPhoto
+                      photo={photo}
+                      alt={`${pet.name} photo ${idx + 1}`}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                    />
+                  </button>
+                  {inReview && <InReviewBadge className="absolute bottom-1 left-1" />}
+                  {isOwner && (
+                    <>
+                      {/* No "make primary" while in review — a withheld
+                          primary blanks the pet's hero for everyone else, and
+                          the backend refuses it. Delete stays available. */}
+                      {!inReview && (
+                        <button
+                          className={`absolute top-1 right-1 rounded-full w-6 h-6 flex items-center justify-center text-xs transition-opacity shadow ${
+                            isPrimary
+                              ? 'border-[1.5px] border-navy bg-brand-500 text-navy opacity-100'
+                              : 'border-[1.5px] border-navy/30 bg-white/90 text-gray-600 reveal-on-hover hover:text-navy'
+                          }`}
+                          title={isPrimary ? 'Primary photo' : 'Set as primary'}
+                          aria-label={isPrimary ? 'Primary photo' : 'Set as primary'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isPrimary) setPrimaryMutation.mutate(photo.id.toString());
+                          }}
+                        >
+                          <Star size={12} aria-hidden fill={isPrimary ? 'currentColor' : 'none'} />
+                        </button>
+                      )}
+                      <button
+                        className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs border-[1.5px] border-navy/30 bg-white/90 text-gray-600 reveal-on-hover hover:text-danger-600 transition-opacity"
+                        title="Delete photo"
+                        aria-label="Delete photo"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('Delete this photo?')) deletePhotoMutation.mutate(photo.id.toString());
+                        }}
+                      >
+                        <X size={12} aria-hidden />
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Inline photo upload for owners */}
+      {isOwner && hasPhotos && (
+        <div className="mt-3">
+          <PhotoUploader petId={pet.id} onUploaded={handlePhotoUploaded} compact />
+        </div>
+      )}
+    </>
+  );
+
   return (
-    <div className="pb-8">
+    // Phone and tablet: one stack — the hero, then everything else (tablet
+    // centres it; a 935px-wide square photo is a poster, not a profile).
+    // Desktop: the back link across the top, then the photo and its gallery
+    // on the left and the name, numbers and conversation on the right. The
+    // `contents` wrappers vanish below lg, so the phone stack keeps its order.
+    <div className="pb-8 sm:mx-auto sm:max-w-2xl lg:max-w-none lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8 xl:gap-x-10">
       {/* Fullscreen photo overlay */}
       {fullscreenIndex !== null && pet.photos[fullscreenIndex] && (() => {
         const total = pet.photos.length;
@@ -234,8 +336,11 @@ export default function PetDetailPage() {
 
       {/* Hero photo / placeholder, with at most one die-cut sticker slapped on
           its bottom edge — the screen's one tilted thing. A crown outranks an
-          adoption call; gold is for the earned, pink for rescue. */}
-      <div className="relative border-b-[2.5px] border-navy bg-brand-100 dark:border-white/15 dark:bg-night-raised">
+          adoption call; gold is for the earned, pink for rescue. Edge to edge
+          on a phone; on sm+ it is a card you can tap open (no overflow-hidden:
+          the sticker hangs off its edge, so the frames round themselves). */}
+      <div className="contents lg:block lg:col-start-1 lg:row-start-2">
+      <div className="relative border-b-[2.5px] border-navy bg-brand-100 dark:border-white/15 dark:bg-night-raised sm:rounded-3xl sm:border-[2.5px] sm:shadow-toy">
       {occasion?.kind === 'birthday' ? (
         // A birthday is one day a year; it outranks everything else for it.
         <Sticker fill="orange" tilt={-5} className="absolute -bottom-4 right-4 z-10">
@@ -259,11 +364,11 @@ export default function PetDetailPage() {
           src={heroPhotoUrl}
           alt={pet.name}
           ref={photoIn}
-          className="photo-in block aspect-square w-full object-cover cursor-pointer"
+          className="photo-in block aspect-square w-full object-cover cursor-pointer sm:rounded-[25.5px]"
           onClick={openHeroLightbox}
         />
       ) : isOwner ? (
-        <div className="w-full bg-brand-100 p-6 dark:bg-night-surface">
+        <div className="w-full bg-brand-100 p-6 dark:bg-night-surface sm:rounded-[25.5px]">
           <div className="flex flex-col items-center py-4">
             <BrandIcon name="camera" size={32} className="mb-2 text-navy dark:text-biscuit" />
             <p className="text-sm text-navy dark:text-biscuit font-extrabold mb-3">Add your first photo</p>
@@ -272,7 +377,7 @@ export default function PetDetailPage() {
         </div>
       ) : (
         <div
-          className="flex aspect-square w-full items-end justify-center"
+          className="flex aspect-square w-full items-end justify-center sm:overflow-hidden sm:rounded-[25.5px]"
           style={{ background: portraitTint(portraitFor(pet.species, pet.breed_display, pet.id)) }}
         >
           <PetPortrait
@@ -285,9 +390,15 @@ export default function PetDetailPage() {
         </div>
       )}
       </div>
+      {isDesktop && <div className="pt-4">{gallery}</div>}
+      </div>
 
-      <div className="p-4">
-        <BackButton fallback="/app/pets" />
+      <div className="p-4 sm:px-0 lg:contents">
+        <div className="contents lg:block lg:col-span-2 lg:row-start-1">
+          <BackButton fallback="/app/pets" />
+        </div>
+
+        <div className="contents lg:block lg:col-start-2 lg:row-start-2">
 
         {/* Name + age + actions */}
         <div className="flex items-center justify-between">
@@ -432,87 +543,7 @@ export default function PetDetailPage() {
           </div>
         )}
 
-        {/* Photo gallery */}
-        {hasPhotos && (
-          <div className="mt-4">
-            <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">
-              Photos <span className="text-gray-500 dark:text-gray-400 font-bold">({pet.photos.length})</span>
-            </h2>
-            {isOwner && reviewCount > 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                {reviewCount === 1 ? 'One photo is' : `${reviewCount} photos are`} being
-                reviewed. Only you can see {reviewCount === 1 ? 'it' : 'them'} until
-                that's done — usually just a few minutes.
-              </p>
-            )}
-            <div className="grid grid-cols-3 gap-2">
-              {pet.photos.map((photo, idx) => {
-                const isPrimary = photo.id === pet.primary_photo_id;
-                const inReview = isInReview(photo);
-                return (
-                  <div key={photo.id} className="relative group">
-                    <button
-                      type="button"
-                      onClick={() => setFullscreenIndex(idx)}
-                      className="block w-full aspect-square rounded-lg overflow-hidden border-2 border-navy dark:border-white/20 transition-transform hover:-translate-y-px active:translate-y-[2px]"
-                      aria-label={`View photo ${idx + 1} fullscreen`}
-                    >
-                      <PetPhoto
-                        photo={photo}
-                        alt={`${pet.name} photo ${idx + 1}`}
-                        loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-                      />
-                    </button>
-                    {inReview && <InReviewBadge className="absolute bottom-1 left-1" />}
-                    {isOwner && (
-                      <>
-                        {/* No "make primary" while in review — a withheld
-                            primary blanks the pet's hero for everyone else, and
-                            the backend refuses it. Delete stays available. */}
-                        {!inReview && (
-                          <button
-                            className={`absolute top-1 right-1 rounded-full w-6 h-6 flex items-center justify-center text-xs transition-opacity shadow ${
-                              isPrimary
-                                ? 'border-[1.5px] border-navy bg-brand-500 text-navy opacity-100'
-                                : 'border-[1.5px] border-navy/30 bg-white/90 text-gray-600 reveal-on-hover hover:text-navy'
-                            }`}
-                            title={isPrimary ? 'Primary photo' : 'Set as primary'}
-                            aria-label={isPrimary ? 'Primary photo' : 'Set as primary'}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!isPrimary) setPrimaryMutation.mutate(photo.id.toString());
-                            }}
-                          >
-                            <Star size={12} aria-hidden fill={isPrimary ? 'currentColor' : 'none'} />
-                          </button>
-                        )}
-                        <button
-                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs border-[1.5px] border-navy/30 bg-white/90 text-gray-600 reveal-on-hover hover:text-danger-600 transition-opacity"
-                          title="Delete photo"
-                          aria-label="Delete photo"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm('Delete this photo?')) deletePhotoMutation.mutate(photo.id.toString());
-                          }}
-                        >
-                          <X size={12} aria-hidden />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Inline photo upload for owners */}
-        {isOwner && hasPhotos && (
-          <div className="mt-3">
-            <PhotoUploader petId={pet.id} onUploaded={handlePhotoUploaded} compact />
-          </div>
-        )}
+        {!isDesktop && gallery}
 
         {/* Reactions */}
         <div className="mt-4">
@@ -521,6 +552,7 @@ export default function PetDetailPage() {
 
         {/* Comments */}
         <CommentSection targetType="pet" targetId={pet.id} />
+        </div>
       </div>
     </div>
   );

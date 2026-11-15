@@ -62,9 +62,12 @@ export default function RescuesMapPage() {
     }));
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    // Phone: header, map, list stacked. From `md` the list column (header,
+    // list) sits beside a full-height map — the wrapper around map + list
+    // turns into `contents` so both join the grid (same as Lost & Found).
+    <div className="flex flex-col flex-1 min-h-0 md:grid md:grid-cols-[360px_minmax(0,1fr)] lg:grid-cols-[400px_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)]">
       {/* Compact header */}
-      <div className="px-4 pt-3 pb-2 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+      <div className="px-4 pt-3 pb-2 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface md:col-start-1 md:row-start-1 md:border-r md:px-5 md:pt-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-[28px] leading-none text-navy dark:text-biscuit flex items-center gap-2">
             <BrandIcon name="explore" size={24} style={PINK_BEAN} /> Rescue map
@@ -79,8 +82,8 @@ export default function RescuesMapPage() {
       </div>
 
       {/* Map + list */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="h-[62%] min-h-[280px] relative">
+      <div className="flex-1 flex flex-col min-h-0 md:contents">
+        <div className="h-[62%] min-h-[280px] relative md:h-auto md:min-h-0 md:col-start-2 md:row-start-1 md:row-span-2">
           <Map
             center={initialCenter}
             zoom={10}
@@ -105,7 +108,7 @@ export default function RescuesMapPage() {
           )}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-biscuit dark:bg-night border-t border-gray-200 dark:border-white/10">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-biscuit dark:bg-night border-t border-gray-200 dark:border-white/10 md:col-start-1 md:row-start-2 md:border-t-0 md:border-r">
           {isError ? (
             <ErrorState message="Couldn't load nearby rescues." onRetry={() => refetch()} />
           ) : rescues.length === 0 ? (
@@ -114,8 +117,9 @@ export default function RescuesMapPage() {
             </p>
           ) : (
             <ul className="divide-y divide-gray-200 dark:divide-white/10">
-              {rescues.slice(0, 10).map((r) => (
-                <li key={r.id}>
+              {/* Ten fit under the phone's map; the side column has room for the rest. */}
+              {rescues.slice(0, 50).map((r, i) => (
+                <li key={r.id} className={i >= 10 ? 'hidden md:block' : undefined}>
                   <Link
                     to={`/app/rescues/${r.id}`}
                     className="flex items-center gap-3 px-4 py-2 hover:bg-white dark:hover:bg-night-surface transition-colors"

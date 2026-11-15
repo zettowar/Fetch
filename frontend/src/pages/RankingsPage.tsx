@@ -36,20 +36,22 @@ function PetFace({ entry }: { entry: LeaderboardEntry }) {
  */
 function PodiumStep({ entry, mine }: { entry: LeaderboardEntry; mine: boolean }) {
   const first = entry.rank === 1;
-  const height = first ? 'h-16' : entry.rank === 2 ? 'h-11' : 'h-8';
+  // The desktop column is wider than a phone; taller steps (and faces, below)
+  // keep the podium a podium there instead of three flat slabs.
+  const height = first ? 'h-16 lg:h-20' : entry.rank === 2 ? 'h-11 lg:h-14' : 'h-8 lg:h-10';
   return (
     <Link to={`/app/pets/${entry.pet_id}`} className="group flex min-w-0 flex-col items-center text-center">
       <span className="relative inline-flex">
         <span
           className={`block overflow-hidden rounded-full border-2 border-navy bg-brand-100 dark:border-white/30 dark:bg-night-raised ${
-            first ? 'h-16 w-16 ring-4 ring-gold-500' : 'h-12 w-12'
+            first ? 'h-16 w-16 ring-4 ring-gold-500 lg:h-20 lg:w-20' : 'h-12 w-12 lg:h-16 lg:w-16'
           }`}
         >
           <PetFace entry={entry} />
         </span>
         {first && (
           <>
-            <Crown className="absolute -top-6 left-1/2 w-9 -translate-x-1/2 -rotate-6" />
+            <Crown className="absolute -top-6 left-1/2 w-9 -translate-x-1/2 -rotate-6 lg:-top-7 lg:w-11" />
             {/* Sparkle = a win: first place only. */}
             <Accent name="sparkle" className="absolute -left-7 -top-1 h-5 w-5 text-navy dark:text-gold-300" />
             <Accent name="sparkle" className="absolute -right-5 top-7 h-3.5 w-3.5 text-navy dark:text-gold-300" />
@@ -116,9 +118,16 @@ export default function RankingsPage() {
   const showPodium = podium.length === 3;
   const rows = showPodium ? (leaderboard ?? []).filter((e) => e.rank > 3) : (leaderboard ?? []);
   const byRank = (r: number) => podium.find((e) => e.rank === r)!;
+  // Desktop: the race (podium on its board) in the main column, the
+  // sign-off and past winners beside it. The main column spans into the
+  // last, 1fr row, so however long the board runs the side column's two
+  // items stay stacked tight; with no board yet (Monday), the side column
+  // still starts at the top.
+  const MAIN = 'lg:col-start-1 lg:row-start-3 lg:row-span-2';
 
   return (
-    <div className="p-4">
+    // Tablet keeps the phone's single column, centred; desktop splits it.
+    <div className="p-4 sm:mx-auto sm:max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[auto_auto_auto_1fr] lg:items-start lg:gap-x-8 xl:grid-cols-[minmax(0,1fr)_360px]">
       <PageHeader
         title="Rankings"
         subtitle={
@@ -126,21 +135,28 @@ export default function RankingsPage() {
             <BrandIcon name="clock" size={15} /> This week resets in {resetsIn}
           </span>
         }
-        className="mb-4"
+        className="mb-4 lg:col-span-2"
       />
 
-      <div className="flex justify-center mb-5">
+      {/* Over the podium on desktop, not over the gap between the columns. */}
+      <div className="flex justify-center mb-5 lg:col-start-1 lg:row-start-2">
         <SpeciesTabs />
       </div>
 
       {isLoading ? (
-        <ListSkeleton rows={5} />
+        <div className={`contents lg:block ${MAIN}`}>
+          <ListSkeleton rows={5} />
+        </div>
       ) : isError ? (
-        <ErrorState message="Couldn't load the rankings." onRetry={() => refetch()} />
+        <div className={`contents lg:block ${MAIN}`}>
+          <ErrorState message="Couldn't load the rankings." onRetry={() => refetch()} />
+        </div>
       ) : leaderboard && leaderboard.length > 0 ? (
         <>
+          {/* The podium stands on the board: one grid item on desktop. */}
+          <div className={`contents lg:block ${MAIN}`}>
           {showPodium && (
-            <div className="grid grid-cols-[1fr_1.15fr_1fr] items-end gap-2 px-1 pt-6">
+            <div className="grid grid-cols-[1fr_1.15fr_1fr] items-end gap-2 px-1 pt-6 lg:gap-3 lg:pt-8">
               <PodiumStep entry={byRank(2)} mine={myDogIds.has(byRank(2).pet_id.toString())} />
               <PodiumStep entry={byRank(1)} mine={myDogIds.has(byRank(1).pet_id.toString())} />
               <PodiumStep entry={byRank(3)} mine={myDogIds.has(byRank(3).pet_id.toString())} />
@@ -189,10 +205,11 @@ export default function RankingsPage() {
               })}
             </Card>
           )}
+          </div>
 
           {/* The sign-off: the toy box on a navy band, Bagel over the pattern,
               the small print on a plain plate (Brand Book, Shapes → the toy box). */}
-          <section className="toybox-navy mt-6 rounded-3xl border-[2.5px] border-navy bg-navy px-5 py-6 text-center text-biscuit dark:border-white/15">
+          <section className="toybox-navy mt-6 rounded-3xl border-[2.5px] border-navy bg-navy px-5 py-6 text-center text-biscuit dark:border-white/15 lg:col-start-2 lg:row-start-3">
             <p className="font-display text-[36px] leading-[0.95]">Fresh shot Monday</p>
             <p className="mx-auto mt-3 w-fit rounded-full bg-navy px-3 py-1 text-sm font-semibold text-balance">
               Every pet starts the week at zero.
@@ -207,6 +224,7 @@ export default function RankingsPage() {
         <EmptyState
           illustration="sleeping"
           species={species}
+          className={MAIN}
           title="No votes yet this week"
           body="The leaderboard is still napping. Be the first to swipe."
           action={
@@ -218,7 +236,7 @@ export default function RankingsPage() {
       )}
 
       {history.length > 0 && (
-        <div className="mt-8">
+        <div className="mt-8 lg:col-start-2 lg:row-start-4">
           <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">Past winners</h2>
           <Card padding="none" className="divide-y divide-gray-200 dark:divide-white/10">
             {history.map((winner) => (

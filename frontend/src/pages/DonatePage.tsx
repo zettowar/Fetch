@@ -137,9 +137,20 @@ export default function DonatePage() {
   // Only rescues that can actually take money — in-app or via external link.
   const donatable = rescues.filter((r) => r.donations_enabled || r.donation_url);
 
+  // With checkout live, desktop puts the recipient picker (the long part)
+  // beside the amount form, and the form stays in view while the list of
+  // rescues scrolls. Otherwise the page is a short notice and a list, which
+  // stays one centred column at every size.
+  const twoUp = !configLoading && Boolean(config?.enabled);
+
   return (
-    <div className="p-4 flex flex-col gap-5">
+    <div
+      className={`p-4 flex flex-col gap-5 sm:mx-auto sm:w-full sm:max-w-2xl ${
+        twoUp ? 'lg:grid lg:max-w-none lg:grid-cols-2 lg:items-start lg:gap-x-8' : ''
+      }`}
+    >
       <PageHeader
+        className="lg:col-span-2"
         title="Donate"
         subtitle={
           <span className="mt-1 block font-display text-2xl leading-tight text-navy dark:text-biscuit">
@@ -271,11 +282,13 @@ export default function DonatePage() {
           </section>
 
           {/* Amount */}
-          <Card as="section" padding="md">
+          <Card as="section" padding="md" className="lg:sticky lg:top-20">
             <h2 className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit mb-3">
               Donation to {recipientLabel}
             </h2>
-            <div className="grid grid-cols-2 gap-2.5 mb-4" role="radiogroup" aria-label="Amount">
+            {/* Four across when the card is wide enough to keep them tiles
+                rather than slabs; back to two in the desktop's half column. */}
+            <div className="grid grid-cols-2 gap-2.5 mb-4 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4" role="radiogroup" aria-label="Amount">
               {config.presets_cents.map((cents) => {
                 const active = !customAmount && amountCents === cents;
                 return (

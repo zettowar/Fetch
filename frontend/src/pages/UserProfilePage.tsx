@@ -81,9 +81,13 @@ export default function UserProfilePage() {
   };
 
   return (
-    <div className="pb-6">
+    // Phone: one stack. Tablet: the same stack, centred (a menu of rows
+    // stretched to 900px is hard to scan). Desktop: who this is and the
+    // account menu in a side column, their pets in the main one. The
+    // `contents` wrapper vanishes below lg, so the phone order is untouched.
+    <div className="pb-6 sm:mx-auto sm:max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start lg:gap-x-4 xl:grid-cols-[340px_minmax(0,1fr)]">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 pt-3">
+      <div className="flex items-center justify-between px-4 pt-3 lg:col-span-2">
         <BackButton />
         <button
           type="button"
@@ -96,6 +100,7 @@ export default function UserProfilePage() {
         </button>
       </div>
 
+      <div className="contents lg:block lg:col-start-1 lg:row-start-2">
       {/* Header */}
       <section className="flex flex-col items-center text-center px-6 pt-2 pb-6">
         {/* Flat ring, no gradient: the avatar's own navy line does the work. */}
@@ -224,9 +229,10 @@ export default function UserProfilePage() {
           </div>
         </>
       )}
+      </div>
 
       {/* Pets grid */}
-      <section className="mx-4">
+      <section className="mx-4 lg:col-start-2 lg:row-start-2">
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit">
             {isMe ? 'My pets' : `${profile.display_name.split(' ')[0]}'s pets`}
@@ -256,7 +262,7 @@ export default function UserProfilePage() {
             }
           />
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-2 xl:grid-cols-3">
             {pets.map((pet) => (
               <PetProfileCard key={pet.id} pet={pet} showEdit={isMe} />
             ))}
