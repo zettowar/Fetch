@@ -25,6 +25,12 @@ dependencies = [
     "slowapi>=0.1.9,<1",
     "httpx>=0.27,<1",
     "celery[redis]>=5.3,<6",
+    # <5.7: kombu 5.7 refuses redis-py older than 6.1 at runtime, and nothing
+    # in its metadata stops pip pairing it with the redis<6 below. A fresh
+    # prod build did exactly that and the Celery worker crash-looped on start
+    # (VersionMismatch) while every image built and every test passed. Lift
+    # both caps together, after testing the worker and slowapi on redis-py 6.
+    "kombu>=5.3,<5.7",
     "redis>=5.0,<6",
     "structlog>=24.1,<25",
     "sentry-sdk[fastapi]>=1.40,<3",
