@@ -42,7 +42,7 @@ export default function ReportFoundPage() {
       toast.success('Found pet report created');
       navigate(`/app/lost/${report.id}`);
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Failed to create report'));
+      toast.error(apiErrorMessage(err, "Couldn't file the report. Try again in a moment."));
     } finally {
       setSaving(false);
     }

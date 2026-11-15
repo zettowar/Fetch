@@ -261,6 +261,8 @@ export default {
         'slide-up': 'slide-up 0.25s ease-out',
         shimmer: 'shimmer 1.6s linear infinite',
         'fade-in': 'fade-in 0.2s ease-out',
+        // A splash that waits a beat: a session that wakes up fast never flashes orange.
+        'splash-in': 'fade-in 0.22s ease-out 0.18s both',
         'fade-in-up': 'fade-in-up 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
         'scale-in': 'scale-in 0.18s ease-out',
         heartbeat: 'heartbeat 1.6s ease-in-out infinite',

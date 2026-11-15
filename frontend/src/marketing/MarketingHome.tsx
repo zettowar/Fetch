@@ -8,6 +8,8 @@ import { Spinner } from '../components/ui/Skeleton';
 import BrandIcon, { type BrandIconName } from '../components/brand/BrandIcon';
 import PetPortrait, { portraitTint } from '../components/brand/PetPortrait';
 import { Crown } from '../components/brand/RankMedal';
+import TailUnderline from '../components/brand/TailUnderline';
+import Peek from '../components/brand/Peek';
 
 type Feature = { icon: BrandIconName; title: string; body: string };
 
@@ -71,8 +73,8 @@ export default function MarketingHome() {
                 <BrandIcon name="clock" size={16} style={{ '--bean': '#FFFFFF' } as React.CSSProperties} /> In development
               </span>
 
-              <h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl leading-[0.98] tracking-tight text-balance">
-                The pet app with a rescue mission.
+              <h1 className="mt-6 text-[38px] min-[400px]:text-5xl sm:text-6xl lg:text-7xl leading-[0.98] tracking-tight text-balance">
+                The pet app with a <TailUnderline bean="#FFFFFF">rescue mission.</TailUnderline>
               </h1>
 
               <p className="mt-5 text-xl sm:text-2xl font-extrabold text-balance">
@@ -110,7 +112,8 @@ export default function MarketingHome() {
       </section>
 
       {/* ── The cast: every pet is somebody's whole world ──────────── */}
-      <section aria-label="Cats and dogs of Fetchpawz" className="border-b-[2.5px] border-navy bg-navy dark:border-white/10">
+      {/* The toy box lives inside this band: no words over it, just the cast. */}
+      <section aria-label="Cats and dogs of Fetchpawz" className="toybox-navy border-b-[2.5px] border-navy bg-navy dark:border-white/10">
         <div className="mx-auto flex max-w-7xl items-end justify-center gap-0 overflow-hidden px-4 pt-6">
           {CAST.map((id, i) => (
             <PetPortrait
@@ -147,7 +150,8 @@ export default function MarketingHome() {
       </section>
 
       {/* ── Owner features ─────────────────────────────────────── */}
-      <section className="bg-white dark:bg-night-surface border-y border-navy/10 dark:border-white/10">
+      <section className="relative bg-white dark:bg-night-surface border-y border-navy/10 dark:border-white/10">
+        <Peek id="corgi" className="right-[8%] h-14 lg:h-[72px]" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
           <SectionHeading eyebrow="For pet owners" title="Your daily pet fix, with a purpose" />
           <FeatureGrid features={OWNER_FEATURES} />
@@ -161,7 +165,8 @@ export default function MarketingHome() {
       </section>
 
       {/* ── Rescue features ────────────────────────────────────── */}
-      <section className="bg-white dark:bg-night-surface border-y border-navy/10 dark:border-white/10">
+      <section className="relative bg-white dark:bg-night-surface border-y border-navy/10 dark:border-white/10">
+        <Peek id="calico" className="left-[8%] h-14 lg:h-[72px]" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
           <SectionHeading accent="rescue" eyebrow="For rescues" title="Adoption tools, without the busywork" />
           <FeatureGrid features={RESCUE_FEATURES} cols={3} tone="rescue" />

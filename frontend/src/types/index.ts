@@ -80,6 +80,8 @@ export interface LeaderboardEntry {
   breed: string | null; // display string (joined breed names / mix_type label)
   score: number;
   total_votes: number;
+  /** Approved primary photo; null → draw the breed portrait. */
+  primary_photo_url?: string | null;
 }
 
 export interface WeeklyWinner {

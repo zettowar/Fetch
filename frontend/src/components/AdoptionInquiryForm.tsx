@@ -55,7 +55,7 @@ export default function AdoptionInquiryForm({
     onError: (err: unknown) => {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-        ?? 'Failed to send inquiry';
+        ?? "Couldn't send your inquiry. Try again.";
       toast.error(detail);
     },
   });

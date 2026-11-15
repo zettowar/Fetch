@@ -30,7 +30,13 @@ export default function BillingPage() {
         </p>
       </header>
 
-      <section className="rounded-2xl border-2 border-navy bg-navy text-biscuit p-5 mb-6 dark:border-white/15 dark:bg-night-raised">
+      {/* Pack+ wears the ink: the toy box tone-on-tone in navy, a fat Bagel
+          line over it, and the status on a plain navy plate. */}
+      <section className="toybox-navy rounded-3xl border-[2.5px] border-navy bg-navy text-biscuit p-5 mb-6 dark:border-white/15">
+        <p className="font-display text-[40px] leading-[0.95]">
+          {subscription.isSubscriber && !subscription.isLoading ? "You're in the Pack." : 'Run with the Pack.'}
+        </p>
+        <div className="mt-4 w-fit max-w-full rounded-2xl bg-navy px-3.5 py-2.5">
         <p className="text-2xs font-extrabold uppercase tracking-[0.1em] text-biscuit/75">Current status</p>
         <p className="text-xl font-extrabold mt-1 flex items-center gap-2">
           {subscription.isSubscriber && !subscription.isLoading && (
@@ -47,6 +53,7 @@ export default function BillingPage() {
             Upgrade to remove the swipe cap and ads.
           </p>
         )}
+        </div>
       </section>
 
       <ul className="space-y-3 mb-6">

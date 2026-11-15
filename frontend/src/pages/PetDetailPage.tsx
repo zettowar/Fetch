@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Star, X } from 'lucide-react';
 import BrandIcon from '../components/brand/BrandIcon';
 import PetPortrait, { portraitFor, portraitTint } from '../components/brand/PetPortrait';
 import { Crown } from '../components/brand/RankMedal';
+import Sticker from '../components/brand/Sticker';
 import { getPet, setPrimaryPhoto } from '../api/pets';
 import { deletePhoto } from '../api/photos';
 import { getNearbyParks, checkinPark } from '../api/parks';
@@ -30,7 +31,10 @@ import { petAge, petHeroPhoto } from '../utils/time';
 import { DEFAULT_MAP_CENTER } from '../utils/useUserLocation';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
+import { formatWeekOf } from '../utils/weeklyReset';
+import { occasionShort, occasionToday } from '../utils/occasions';
 import { apiErrorMessage, isNotFound } from '../utils/apiError';
+import { photoIn } from '../utils/photoIn';
 
 export default function PetDetailPage() {
   const { id } = useParams();
@@ -95,19 +99,19 @@ export default function PetDetailPage() {
       setShowCheckinPicker(false);
       queryClient.invalidateQueries({ queryKey: ['park-checkins', parkId] });
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to check in')),
+    onError: (err) => toast.error(apiErrorMessage(err, "Couldn't check you in. Try again.")),
   });
 
   const setPrimaryMutation = useMutation({
     mutationFn: (photoId: string) => setPrimaryPhoto(pet!.id.toString(), photoId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pet', id] }),
-    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to set primary photo')),
+    onError: (err) => toast.error(apiErrorMessage(err, "Couldn't change the main photo. Try again.")),
   });
 
   const deletePhotoMutation = useMutation({
     mutationFn: (photoId: string) => deletePhoto(photoId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pet', id] }),
-    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to delete photo')),
+    onError: (err) => toast.error(apiErrorMessage(err, "Couldn't delete that photo. Try again.")),
   });
 
   const handleShare = () => {
@@ -155,6 +159,8 @@ export default function PetDetailPage() {
   }
 
   const heroPhotoUrl = petHeroPhoto(pet);
+  const crowns = stats?.crown_weeks.length ?? 0;
+  const occasion = occasionToday(pet);
   const hasPhotos = pet.photos.length > 0;
   // Only ever non-zero on the owner's own view — nobody else is sent them.
   const reviewCount = pet.photos.filter(isInReview).length;
@@ -226,16 +232,38 @@ export default function PetDetailPage() {
         );
       })()}
 
-      {/* Hero photo / placeholder */}
+      {/* Hero photo / placeholder, with at most one die-cut sticker slapped on
+          its bottom edge — the screen's one tilted thing. A crown outranks an
+          adoption call; gold is for the earned, pink for rescue. */}
+      <div className="relative border-b-[2.5px] border-navy bg-brand-100 dark:border-white/15 dark:bg-night-raised">
+      {occasion?.kind === 'birthday' ? (
+        // A birthday is one day a year; it outranks everything else for it.
+        <Sticker fill="orange" tilt={-5} className="absolute -bottom-4 right-4 z-10">
+          {occasionShort(occasion)}
+        </Sticker>
+      ) : crowns > 0 ? (
+        <Sticker fill="gold" tilt={-5} className="absolute -bottom-4 right-4 z-10">
+          <Crown className="w-5" />
+          {pet.species === 'cat' ? 'Top Cat' : 'Top Dog'}
+          {crowns > 1 && <span className="font-sans text-base font-black">×{crowns}</span>}
+        </Sticker>
+      ) : pet.adoptable && pet.rescue_name ? (
+        <Sticker fill="pink" tilt={-5} className="absolute -bottom-4 right-4 z-10">Adopt me</Sticker>
+      ) : occasion?.kind === 'homecoming' ? (
+        <Sticker fill="pink" tilt={4} className="absolute -bottom-4 right-4 z-10">{occasionShort(occasion)}</Sticker>
+      ) : pet.adopted_at ? (
+        <Sticker fill="pink" tilt={4} className="absolute -bottom-4 right-4 z-10">Adopted!</Sticker>
+      ) : null}
       {heroPhotoUrl ? (
         <img
           src={heroPhotoUrl}
           alt={pet.name}
-          className="w-full h-60 object-cover cursor-pointer border-b-[2.5px] border-navy dark:border-white/15"
+          ref={photoIn}
+          className="photo-in block w-full h-60 object-cover cursor-pointer"
           onClick={openHeroLightbox}
         />
       ) : isOwner ? (
-        <div className="w-full border-b-[2.5px] border-navy bg-brand-100 p-6 dark:border-white/15 dark:bg-night-surface">
+        <div className="w-full bg-brand-100 p-6 dark:bg-night-surface">
           <div className="flex flex-col items-center py-4">
             <BrandIcon name="camera" size={32} className="mb-2 text-navy dark:text-biscuit" />
             <p className="text-sm text-navy dark:text-biscuit font-extrabold mb-3">Add your first photo</p>
@@ -244,7 +272,7 @@ export default function PetDetailPage() {
         </div>
       ) : (
         <div
-          className="flex h-60 w-full items-end justify-center border-b-[2.5px] border-navy dark:border-white/15"
+          className="flex h-60 w-full items-end justify-center"
           style={{ background: portraitTint(portraitFor(pet.species, pet.breed_display, pet.id)) }}
         >
           <PetPortrait
@@ -256,6 +284,7 @@ export default function PetDetailPage() {
           />
         </div>
       )}
+      </div>
 
       <div className="p-4">
         <BackButton fallback="/app/pets" />
@@ -264,17 +293,11 @@ export default function PetDetailPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <h1 className="text-[34px] leading-none text-navy dark:text-biscuit">{pet.name}</h1>
-            {stats && stats.crown_weeks.length > 0 && (
-              <Badge
-                variant="gold"
-                size="md"
-                className="self-center"
-                icon={<Crown className="w-3.5" />}
-                title={`Top Pet ${stats.crown_weeks.length === 1 ? 'once' : `${stats.crown_weeks.length} times`} — most recently the week of ${stats.crown_weeks[0]}`}
-                aria-label={`Top Pet winner, ${stats.crown_weeks.length} ${stats.crown_weeks.length === 1 ? 'time' : 'times'}`}
-              >
-                {stats.crown_weeks.length > 1 ? `×${stats.crown_weeks.length}` : 'Top Pet'}
-              </Badge>
+            {crowns > 0 && (
+              // The sticker on the hero says it loudly; this says it precisely.
+              <span className="sr-only">
+                {`Top ${pet.species === 'cat' ? 'Cat' : 'Dog'} ${crowns === 1 ? 'once' : `${crowns} times`}, most recently the week of ${formatWeekOf(stats!.crown_weeks[0])}`}
+              </span>
             )}
             {age && <span className="text-sm font-bold text-gray-500 dark:text-gray-400">{age}</span>}
           </div>

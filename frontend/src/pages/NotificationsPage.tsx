@@ -28,6 +28,7 @@ const TYPE_ICONS: Record<string, BrandIconName> = {
   follow: 'follow',
   comment: 'comment',
   sighting: 'eye',
+  lost_reunited: 'rescue',
   transfer_received: 'share',
   transfer_resolved: 'share',
   inquiry_received: 'rescue',
@@ -228,7 +229,7 @@ function SettingsTab() {
     },
     onError: (_err, _patch, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(['notification-prefs'], ctx.prev);
-      toast.error('Failed to save preference');
+      toast.error("Couldn't save that setting. Try again.");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-prefs'] });

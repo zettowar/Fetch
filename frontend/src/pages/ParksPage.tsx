@@ -233,7 +233,7 @@ export default function ParksPage() {
                   parks.length === 0 ? (
                     // Adding a park is staff-only on the server. Offering the
                     // form to everyone meant filling it in to be told
-                    // "Failed to add park", so members get the same route Vets
+                    // "Couldn't add the park. Try again.", so members get the same route Vets
                     // uses: tell us, and we add it.
                     isAdmin ? (
                       <>

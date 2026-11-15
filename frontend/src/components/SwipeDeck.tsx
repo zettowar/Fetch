@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -54,6 +54,7 @@ export default function SwipeDeck() {
   const { isSubscriber } = useSubscription();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lastVote, setLastVote] = useState<{ petId: string; index: number } | null>(null);
+  const [likes, setLikes] = useState(0);
   const [prompt, setPrompt] = useState<PromptState | null>(null);
   const quota = useSwipeQuota(Boolean(user) && !isSubscriber);
   const [adOpen, setAdOpen] = useState(false);
@@ -140,7 +141,10 @@ export default function SwipeDeck() {
 
       const value: 1 | -1 = direction === 'right' ? 1 : -1;
       navigator.vibrate?.(direction === 'right' ? 20 : 10);
-      if (direction === 'right') fireLikeBurst();
+      if (direction === 'right') {
+        fireLikeBurst();
+        setLikes((n) => n + 1);
+      }
       setLastVote({ petId: pet.id, index: currentIndex });
       setCurrentIndex((i) => i + 1);
       // Kept so Rewind can wait for this request to land before taking it back.
@@ -183,10 +187,26 @@ export default function SwipeDeck() {
     [pets, currentIndex, voteMutation, refetch, user, prompt, isSubscriber, quota, fireLikeBurst],
   );
 
+  // On a keyboard the arrows are the swipe: ← pass, → like. Not while typing,
+  // with a modifier held, or with a dialog (an ad, a report) on top.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.repeat || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      e.preventDefault();
+      handleSwipe(e.key === 'ArrowRight' ? 'right' : 'left');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleSwipe]);
+
   const handleUndo = async () => {
     if (!lastVote) return;
     if (!isSubscriber) {
-      toast('Rewind is a Pack+ perk', { icon: '\ud83d\udd12' });
+      toast('Rewind is a Pack+ perk', { icon: <BrandIcon name="lock" size={18} /> });
       return;
     }
     const target = lastVote;
@@ -268,7 +288,7 @@ export default function SwipeDeck() {
             visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 260, damping: 16 } },
           }}
         >
-          <PetIllustration species={filterToSpecies(speciesFilter) ?? 'dog'} name="sleeping" className="h-32 w-auto" />
+          <PetIllustration species={filterToSpecies(speciesFilter) ?? 'dog'} name={ratedCount > 0 ? 'ball' : 'sleeping'} className="h-32 w-auto" />
         </motion.span>
         <motion.p
           className="text-xl font-extrabold tracking-tight text-navy dark:text-biscuit mb-2 text-balance"
@@ -403,6 +423,8 @@ export default function SwipeDeck() {
           transition={{ type: 'spring', stiffness: 420, damping: 22 }}
           className="w-16 h-16 rounded-full border-[2.5px] border-navy bg-white text-navy flex items-center justify-center shadow-ledge transition-colors hover:bg-gray-50"
           aria-label="Pass"
+          aria-keyshortcuts="ArrowLeft"
+          title="Pass (←)"
         >
           <BrandIcon name="pass" size={30} />
         </motion.button>
@@ -438,8 +460,13 @@ export default function SwipeDeck() {
           transition={{ type: 'spring', stiffness: 420, damping: 22 }}
           className="relative w-16 h-16 rounded-full border-[2.5px] border-navy bg-brand-500 text-navy flex items-center justify-center shadow-ledge transition-colors hover:bg-brand-400"
           aria-label="Like"
+          aria-keyshortcuts="ArrowRight"
+          title="Like (→)"
         >
-          <BrandIcon name="like" size={30} style={{ '--bean': '#FFFFFF' } as React.CSSProperties} />
+          {/* Re-keyed per like so the heart wags every time (Brand Book, Motion → wag). */}
+          <span key={likes} className={likes ? 'animate-wag' : undefined}>
+            <BrandIcon name="like" size={30} style={{ '--bean': '#FFFFFF' } as React.CSSProperties} />
+          </span>
           <PawBurstLayer />
         </motion.button>
       </div>

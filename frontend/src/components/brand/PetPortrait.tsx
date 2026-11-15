@@ -116,8 +116,11 @@ export default function PetPortrait({
   breed?: string | null;
   seed?: string;
   background?: boolean;
-  /** `face` crops to a circle-friendly head-and-shoulders square. */
-  crop?: 'full' | 'face';
+  /**
+   * `face` crops to a circle-friendly head-and-shoulders square; `peek` shows
+   * only ears to muzzle, for a pet peeking over the top edge of something.
+   */
+  crop?: 'full' | 'face' | 'peek';
   className?: string;
   title?: string;
   style?: CSSProperties;
@@ -129,7 +132,7 @@ export default function PetPortrait({
     : ({ 'aria-hidden': true, focusable: false } as const);
   return (
     <svg
-      viewBox={crop === 'face' ? '34 30 132 132' : '0 0 200 200'}
+      viewBox={crop === 'face' ? '34 30 132 132' : crop === 'peek' ? '30 10 140 122' : '0 0 200 200'}
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       style={background ? { background: portraitTint(pid), ...style } : style}

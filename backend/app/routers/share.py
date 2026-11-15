@@ -156,10 +156,17 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
     twitter = f"https://twitter.com/intent/tweet?text={quote(share_line)}&url={quote(public_url)}"
 
     # --- optional fragments ---
+    # The reunion, by name where there is one. Still the calm register: the
+    # good news is told plainly, with thanks to the people who shared.
+    home_line = (
+        (f"{e_name} is home safe." if pet else "This pet is home safe.")
+        if missing else "This pet is back with their family."
+    )
     resolved_banner = (
-        f"<div style=\"background:#d6f3e6;color:#1c1f45;font-weight:700;border-radius:14px;"
-        f"border:2px solid #22b07a;padding:12px 16px;margin-bottom:16px;text-align:center\">Good news: this "
-        f"{'pet has been found' if missing else 'report is resolved'}. Thank you for caring.</div>"
+        f"<div style=\"background:#d6f3e6;color:#1c1f45;border-radius:14px;"
+        f"border:2px solid #22b07a;padding:14px 16px;margin-bottom:16px;text-align:center\">"
+        f"<strong style=\"display:block;font-size:17px\">{home_line}</strong>"
+        f"<span style=\"font-size:14px\">Thank you to everyone who looked and shared.</span></div>"
         if resolved else ""
     )
     photo_block = (

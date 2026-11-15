@@ -285,3 +285,65 @@ async def test_patch_subscription_404_when_none(client: AsyncClient):
 async def test_lost_requires_auth(client: AsyncClient):
     res = await client.get("/api/v1/lost/reports/nearby", params={"lat": 37, "lng": -122, "radius_km": 5})
     assert res.status_code in (401, 403)
+
+
+async def _new_user(client: AsyncClient, name: str) -> dict:
+    res = await client.post("/api/v1/auth/signup", json={
+        "email": f"{name}-{uuid.uuid4().hex[:8]}@fetchapp.dev",
+        "password": "password123", "display_name": name.title(),
+    })
+    return {"Authorization": f"Bearer {res.json()['tokens']['access_token']}"}
+
+
+async def _inbox_titles(client: AsyncClient, headers: dict) -> list[str]:
+    res = await client.get("/api/v1/notifications/inbox", headers=headers)
+    assert res.status_code == 200
+    body = res.json()
+    items = body["items"] if isinstance(body, dict) else body
+    return [n["title"] for n in items if n["type"] == "lost_reunited"]
+
+
+@pytest.mark.asyncio
+async def test_reunion_thanks_each_helper_once(client: AsyncClient):
+    """When a missing pet is marked home, everyone who reported a sighting is
+    told — once, by the pet's name — and the owner is not told about their own
+    reunion. A second resolve says nothing new."""
+    owner = await _new_user(client, "owner")
+    pet = await client.post("/api/v1/pets", json={"name": "Biscuit"}, headers=owner)
+    report = await client.post("/api/v1/lost/reports", json={
+        "kind": "missing", "pet_id": pet.json()["id"], "description": "Small tan terrier",
+        "last_seen_lat": 43.65, "last_seen_lng": -79.38,
+    }, headers=owner)
+    report_id = report.json()["id"]
+
+    helper = await _new_user(client, "helper")
+    for _ in range(2):  # two sightings, one person
+        res = await client.post(
+            f"/api/v1/lost/reports/{report_id}/sightings",
+            data={"lat": "43.651", "lng": "-79.381"}, headers=helper,
+        )
+        assert res.status_code == 201
+
+    assert (await client.post(f"/api/v1/lost/reports/{report_id}/resolve", headers=owner)).status_code == 200
+    assert await _inbox_titles(client, helper) == ["Biscuit is home"]
+    assert await _inbox_titles(client, owner) == []
+
+    assert (await client.post(f"/api/v1/lost/reports/{report_id}/resolve", headers=owner)).status_code == 200
+    assert await _inbox_titles(client, helper) == ["Biscuit is home"]
+
+
+@pytest.mark.asyncio
+async def test_reunion_share_page_names_the_pet(client: AsyncClient):
+    owner = await _new_user(client, "owner")
+    pet = await client.post("/api/v1/pets", json={"name": "Pickle"}, headers=owner)
+    report = await client.post("/api/v1/lost/reports", json={
+        "kind": "missing", "pet_id": pet.json()["id"], "description": "Grey cat",
+        "last_seen_lat": 43.65, "last_seen_lng": -79.38, "is_public": True,
+    }, headers=owner)
+    report_id = report.json()["id"]
+    await client.post(f"/api/v1/lost/reports/{report_id}/resolve", headers=owner)
+
+    page = await client.get(f"/lost/{report_id}")
+    assert page.status_code == 200
+    assert "Pickle is home safe." in page.text
+    assert "Thank you to everyone who looked and shared." in page.text

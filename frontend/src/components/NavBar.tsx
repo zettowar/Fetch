@@ -175,17 +175,17 @@ export default function NavBar() {
               : '/'
           }
           aria-label="Fetchpawz home"
-          className="flex min-w-0 items-center text-[22px] text-navy dark:text-biscuit transition-transform duration-150 ease-soft-out active:scale-[0.98]"
+          className="group/logo flex min-w-0 items-center text-[22px] text-navy dark:text-biscuit transition-transform duration-150 ease-soft-out active:scale-[0.98]"
         >
           {/* Admins carry a sixth control; below the 420px app column there
               is no room for it and the wordmark, so the mark stands alone. */}
           {user?.role === 'admin' ? (
             <>
               <PawMark decorative className="h-[26px] w-[26px] text-brand-500 min-[420px]:hidden" />
-              <Lockup className="hidden min-[420px]:inline-flex" />
+              <Lockup wag className="hidden min-[420px]:inline-flex" />
             </>
           ) : (
-            <Lockup />
+            <Lockup wag />
           )}
         </Link>
         {isAuthenticated ? (
@@ -228,7 +228,7 @@ export default function NavBar() {
             {showCart && (
               <Link
                 to="/app/cart"
-                aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : 'Cart'}
+                aria-label={cartCount > 0 ? `Cart, ${cartCount} ${cartCount === 1 ? 'item' : 'items'}` : 'Cart'}
                 title="Cart"
                 className={`relative ${TOP_BAR_BUTTON}`}
               >
@@ -391,7 +391,7 @@ export default function NavBar() {
       )}
 
       {isAuthenticated && (
-        <ExploreSheet open={exploreOpen} onClose={() => setExploreOpen(false)} />
+        <ExploreSheet open={exploreOpen} onClose={() => setExploreOpen(false)} species={user?.species_preference} />
       )}
     </>
   );

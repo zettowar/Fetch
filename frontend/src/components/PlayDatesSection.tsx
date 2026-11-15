@@ -207,7 +207,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       setNotes('');
       invalidate();
     },
-    onError: () => toast.error('Failed to create meetup'),
+    onError: () => toast.error("Couldn't create the meetup. Try again."),
   });
 
   const cancelMutation = useMutation({
@@ -216,7 +216,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       toast.success('Meetup cancelled');
       invalidate();
     },
-    onError: () => toast.error('Failed to cancel'),
+    onError: () => toast.error("Couldn't cancel. Try again."),
   });
 
   const rsvpMutation = useMutation({
@@ -226,13 +226,13 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       setDogPickerOpenFor(null);
       invalidate();
     },
-    onError: () => toast.error('Failed to RSVP'),
+    onError: () => toast.error("Couldn't save your RSVP. Try again."),
   });
 
   const removeRsvpMutation = useMutation({
     mutationFn: ({ id, petId }: { id: string; petId: string }) => removeRsvp(id, petId),
     onSuccess: invalidate,
-    onError: () => toast.error('Failed to leave'),
+    onError: () => toast.error("Couldn't leave. Try again."),
   });
 
   const canCreate = myDogs.length > 0;

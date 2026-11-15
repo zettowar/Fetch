@@ -3,6 +3,7 @@ import { getOwnPhotoBlob } from '../api/photos';
 import { photoUrl } from '../utils/time';
 import type { Photo } from '../types';
 import Badge from './ui/Badge';
+import { photoIn } from '../utils/photoIn';
 
 /**
  * Renders a pet photo, including the owner's own photos still in moderation.
@@ -44,7 +45,7 @@ export default function PetPhoto({ photo, alt, className = '', ...imgProps }: Pe
     // image (the public URL for this photo would 404).
     return <div className={`${className} shimmer`} />;
   }
-  return <img src={src} alt={alt} className={className} {...imgProps} />;
+  return <img ref={photoIn} src={src} alt={alt} className={`photo-in ${className}`} {...imgProps} />;
 }
 
 /**

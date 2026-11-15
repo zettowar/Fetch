@@ -251,7 +251,7 @@ export default function PetEditorPage() {
       }
       queryClient.invalidateQueries({ queryKey: ['my-pets'] });
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Failed to save'));
+      toast.error(apiErrorMessage(err, "Couldn't save. Try again."));
     } finally {
       setSaving(false);
       setUploadingPhotoIndex(null);
@@ -266,7 +266,7 @@ export default function PetEditorPage() {
       queryClient.invalidateQueries({ queryKey: ['my-pets'] });
       navigate('/app/pets');
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Failed to delete'));
+      toast.error(apiErrorMessage(err, "Couldn't delete. Try again."));
     }
   };
 
@@ -279,7 +279,7 @@ export default function PetEditorPage() {
       toast.success('Photo deleted');
       refetch();
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Failed to delete photo'));
+      toast.error(apiErrorMessage(err, "Couldn't delete that photo. Try again."));
     }
   };
 

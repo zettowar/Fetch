@@ -4,6 +4,7 @@ import { petHeroPhoto } from '../utils/time';
 import BrandIcon from './brand/BrandIcon';
 import PetPortrait from './brand/PetPortrait';
 import RankMedal from './brand/RankMedal';
+import { photoIn } from '../utils/photoIn';
 
 interface PetProfileCardProps {
   pet: Pet;
@@ -34,7 +35,8 @@ export default function PetProfileCard({ pet, showEdit, rank }: PetProfileCardPr
             src={photoUrl}
             alt={pet.name}
             loading="lazy"
-            className="absolute inset-0 w-full h-full object-cover"
+            ref={photoIn}
+            className="photo-in absolute inset-0 w-full h-full object-cover"
           />
         ) : (
           <div className="absolute inset-0 flex items-end justify-center overflow-hidden">

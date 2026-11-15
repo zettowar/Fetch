@@ -1,12 +1,19 @@
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeftRight, ArrowRight, Check, ChevronRight } from 'lucide-react';
 import BrandIcon from '../components/brand/BrandIcon';
 import PetPortrait from '../components/brand/PetPortrait';
 import { Crown } from '../components/brand/RankMedal';
+import Accent from '../components/brand/Accent';
+import Peek from '../components/brand/Peek';
+import TailRule from '../components/brand/TailRule';
+import CrownMoment, { crownMomentSeen } from '../components/CrownMoment';
+import PetWeekCard from '../components/PetWeekCard';
+import OccasionCard from '../components/OccasionCard';
+import { occasionToday } from '../utils/occasions';
 import SpeciesTabs from '../components/SpeciesTabs';
-import { getCurrentWinner } from '../api/rankings';
+import { getCurrentRankings, getCurrentWinner, getWinnerHistory } from '../api/rankings';
 import { useSpeciesFilter } from '../hooks/useSpeciesFilter';
 import type { WeeklyWinner, Species } from '../types';
 import { getMyFollows } from '../api/social';
@@ -16,15 +23,31 @@ import { getNearbyReports } from '../api/lost';
 import { getDonationConfig } from '../api/donations';
 import { useAuth } from '../store/AuthContext';
 import { petHeroPhoto } from '../utils/time';
-import { useWeeklyResetCountdown, nextWeeklyReset } from '../utils/weeklyReset';
+import { useWeeklyResetCountdown, nextWeeklyReset, weekBucket } from '../utils/weeklyReset';
 import { onboarding } from '../utils/onboarding';
 import { useSwipeQuota } from '../utils/swipeQuota';
 import { useSubscription } from '../utils/useSubscription';
 import { DEFAULT_MAP_CENTER, useUserLocation } from '../utils/useUserLocation';
 import { useSectionOpen } from '../hooks/usePublicFlags';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { photoIn } from '../utils/photoIn';
 
 const MAX_STRIP_AVATARS = 8;
+
+// Faces that read at 48px over an orange card: light coats, clear eyes. The
+// navy-coated ones (lab, rottie, black cat…) turn into a dark blob up there.
+const PEEKERS: Record<Species, string[]> = {
+  dog: ['golden', 'corgi', 'beagle', 'shiba', 'frenchie', 'pom', 'cavalier', 'husky'],
+  cat: ['ginger', 'calico', 'siamese', 'white', 'tabby', 'persian'],
+};
+
+/** A stable peeker per person, so Home doesn't reshuffle on every visit. */
+function peekFor(species: Species, seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+  const cast = PEEKERS[species];
+  return cast[Math.abs(h) % cast.length];
+}
 
 function weekdayLine(): string {
   return new Date().toLocaleDateString(undefined, { weekday: 'long' });
@@ -55,10 +78,13 @@ function CrownHero({
   winner,
   resetsIn,
   failed = false,
+  lastWinner = null,
 }: {
   species: Species;
   winner: WeeklyWinner | null;
   resetsIn: string;
+  /** Last week's settled crown: continuity until someone leads this week. */
+  lastWinner?: WeeklyWinner | null;
   /** The winner request failed: say so instead of claiming there is none. */
   failed?: boolean;
 }) {
@@ -76,7 +102,8 @@ function CrownHero({
               <img
                 src={winner.primary_photo_url}
                 alt={winner.pet_name || 'Weekly winner'}
-                className="h-full w-full object-cover"
+                ref={photoIn}
+                className="photo-in h-full w-full object-cover"
               />
             ) : winner ? (
               <PetPortrait species={species} breed={winner.breed} seed={winner.pet_id} crop="face" background className="h-full w-full" />
@@ -85,6 +112,13 @@ function CrownHero({
             )}
           </span>
           <Crown className="absolute -top-[30px] left-1/2 w-11 -translate-x-1/2 -rotate-6 animate-crown-drop" />
+          {/* Sparkle = a win. Two, and only when someone has earned it. */}
+          {winner && (
+            <>
+              <Accent name="sparkle" className="absolute -left-10 top-0 h-7 w-7 text-navy dark:text-gold-300" />
+              <Accent name="sparkle" className="absolute -right-8 top-11 h-[18px] w-[18px] text-navy dark:text-gold-300" />
+            </>
+          )}
         </span>
         {winner ? (
           <>
@@ -102,7 +136,11 @@ function CrownHero({
         ) : (
           <>
             <p className="mt-3 font-display text-[26px] leading-none">No winner yet</p>
-            <p className="mt-1 text-sm font-semibold text-navy/70 dark:text-gray-300">The crown is up for grabs.</p>
+            <p className="mt-1 text-sm font-semibold text-navy/70 dark:text-gray-300">
+              {lastWinner?.pet_name
+                ? `${lastWinner.pet_name} wore it last week. The crown is up for grabs.`
+                : 'The crown is up for grabs.'}
+            </p>
           </>
         )}
       </div>
@@ -158,6 +196,35 @@ export default function HomePage() {
     enabled: !isRescue,
   });
   const pendingTransfers = transfers.filter((t) => t.status === 'pending');
+
+  // The crown moment: last week's settled crown, when it went to one of mine.
+  const { data: recentWinners = [] } = useQuery({
+    queryKey: ['crown-moment-winners'],
+    queryFn: () => getWinnerHistory(4),
+    enabled: !isRescue,
+    staleTime: 10 * 60_000,
+  });
+  const [, recheckCrown] = useReducer((n: number) => n + 1, 0);
+  const lastWeek = weekBucket(1);
+  const myCrown = recentWinners.find(
+    (w) => w.week_bucket === lastWeek && myDogs.some((p) => p.id === w.pet_id) && !crownMomentSeen(w),
+  );
+  const myCrownPet = myCrown ? myDogs.find((p) => p.id === myCrown.pet_id) : undefined;
+  const lastWinner = recentWinners.find((w) => w.week_bucket === lastWeek && w.species === homeSpecies) ?? null;
+
+  // Your pet's week: the owner's pets in the home species, against the leader.
+  const myHomePets = myDogs.filter((p) => p.species === homeSpecies && p.is_active);
+  const { data: board = [] } = useQuery({
+    queryKey: ['rankings', 'current', homeSpecies],
+    queryFn: () => getCurrentRankings(homeSpecies),
+    enabled: !isRescue && myHomePets.length > 0,
+    staleTime: 60_000,
+  });
+
+  // A pet's day: a birthday or a homecoming, today, for one of mine.
+  const celebrated = myDogs
+    .map((pet) => ({ pet, occasion: occasionToday(pet) }))
+    .find((x) => x.occasion !== null);
   const resetsIn = useWeeklyResetCountdown();
 
   // Live bits for the CTA cards: swipes left today + missing pets nearby.
@@ -213,6 +280,14 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col">
+      {myCrown && (
+        <CrownMoment
+          key={myCrown.id}
+          winner={myCrown}
+          shareable={myCrownPet?.is_public !== false}
+          onClose={recheckCrown}
+        />
+      )}
       <div className="p-4 pt-5 flex flex-col gap-4">
         <div className="flex items-end justify-between gap-3 animate-fade-in-up" style={stagger(0)}>
           <div className="min-w-0">
@@ -232,7 +307,14 @@ export default function HomePage() {
           winner={(homeSpecies === 'cat' ? catWinner : dogWinner) ?? null}
           resetsIn={resetsIn}
           failed={homeSpecies === 'cat' ? catWinnerFailed : dogWinnerFailed}
+          lastWinner={lastWinner}
         />
+
+        {celebrated?.occasion && <OccasionCard pet={celebrated.pet} occasion={celebrated.occasion} />}
+
+        {myHomePets.length > 0 && (
+          <PetWeekCard pets={myHomePets} species={homeSpecies} board={board} />
+        )}
 
         {/* Pending pet transfers — only shown when an invitation is waiting */}
         {pendingTransfers.length > 0 && (
@@ -331,15 +413,17 @@ export default function HomePage() {
         <Link
           to="/app/swipe"
           style={stagger(1)}
-          className="group flex items-center justify-between gap-3 rounded-3xl border-[2.5px] border-navy bg-brand-500 p-4 text-navy shadow-toy transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px active:translate-x-[2px] active:translate-y-[3px] active:shadow-none animate-fade-in-up dark:border-brand-500"
+          className="group relative mt-9 flex items-center justify-between gap-3 rounded-3xl border-[2.5px] border-navy bg-brand-500 p-4 text-navy shadow-toy transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px active:translate-x-[2px] active:translate-y-[3px] active:shadow-none animate-fade-in-up dark:border-brand-500"
         >
+          {/* Someone's waiting to be rated: a pet peeking over the card's edge. */}
+          <Peek id={peekFor(homeSpecies, user?.id ?? 'home')} className="left-5 h-12" />
           <div className="min-w-0">
             <p className="text-lg font-extrabold leading-tight">Ready to swipe?</p>
             <p className="mt-0.5 text-sm font-semibold">
               {isSubscriber
                 ? 'Unlimited swipes, fresh pets waiting'
                 : swipesLeft > 0
-                  ? `${swipesLeft} swipes left today`
+                  ? `${swipesLeft} ${swipesLeft === 1 ? 'swipe' : 'swipes'} left today`
                   : 'Out of swipes. They reset tomorrow.'}
             </p>
           </div>
@@ -404,22 +488,29 @@ export default function HomePage() {
                 See all
               </Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 snap-x snap-mandatory scrollbar-none">
+            <div className="flex gap-3 overflow-x-auto pt-1 pb-1 -mx-4 px-4 snap-x snap-mandatory scrollbar-none">
               {stripDogs.map((pet) => {
                 const photo = petHeroPhoto(pet);
+                // A followed pet's day: a ring in its colour and the day under the name.
+                const day = occasionToday(pet);
                 return (
                   <Link
                     key={pet.id}
                     to={`/app/pets/${pet.id}`}
                     className="flex flex-col items-center gap-1.5 w-16 snap-start flex-shrink-0"
                   >
-                    <div className="w-14 h-14 overflow-hidden rounded-full border-2 border-navy dark:border-white/30">
+                    <div
+                      className={`w-14 h-14 overflow-hidden rounded-full border-2 border-navy bg-brand-100 dark:border-white/30 dark:bg-night-raised ${
+                        day ? `ring-[3px] ring-offset-1 ring-offset-biscuit dark:ring-offset-night ${day.kind === 'birthday' ? 'ring-brand-500' : 'ring-pink-500'}` : ''
+                      }`}
+                    >
                       {photo ? (
                         <img
                           src={photo}
                           alt={pet.name}
                           loading="lazy"
-                          className="h-full w-full object-cover"
+                          ref={photoIn}
+                          className="photo-in h-full w-full object-cover"
                         />
                       ) : (
                         <PetPortrait species={pet.species} breed={pet.breed_display} seed={pet.id} crop="face" background className="h-full w-full" />
@@ -428,6 +519,11 @@ export default function HomePage() {
                     <span className="text-2xs text-gray-700 dark:text-gray-300 font-bold truncate w-full text-center">
                       {pet.name}
                     </span>
+                    {day && (
+                      <span className="-mt-1 text-[10px] font-extrabold uppercase tracking-[0.06em] text-navy dark:text-biscuit">
+                        {day.kind === 'birthday' ? 'Birthday' : `${day.years}y home`}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -462,6 +558,8 @@ export default function HomePage() {
             <ChevronRight size={18} aria-hidden className="text-navy dark:text-biscuit" />
           </Link>
         )}
+
+        <TailRule className="mt-4 mb-16 animate-fade-in-up">That's the whole walk.</TailRule>
       </div>
     </div>
   );

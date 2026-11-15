@@ -42,7 +42,7 @@ export default function ParkEditorPage() {
         setLng(park.lng.toString());
         setAttrs(park.attributes ?? {});
       })
-      .catch(() => toast.error('Failed to load park'))
+      .catch(() => toast.error("Couldn't load this park."))
       .finally(() => setLoading(false));
   }, [parkId]);
 
@@ -91,7 +91,7 @@ export default function ParkEditorPage() {
         navigate(`/app/parks/${park.id}`);
       }
     } catch {
-      toast.error(isEditing ? 'Failed to update park' : 'Failed to add park');
+      toast.error(isEditing ? "Couldn't update the park. Try again." : "Couldn't add the park. Try again.");
     } finally {
       setSaving(false);
     }

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePublicFlags } from '../hooks/usePublicFlags';
 import BrandIcon, { type BrandIconName } from './brand/BrandIcon';
+import Peek from './brand/Peek';
 import type { PublicFlags } from '../api/publicSite';
 
 interface ExploreItem {
@@ -66,12 +67,14 @@ const ITEMS: ExploreItem[] = [
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** The viewer's species preference: a cat person gets a cat peeking in. */
+  species?: string | null;
 }
 
 // Bottom-anchored sheet that slides up from above the tab bar. Mirrors the
 // pattern in native iOS/Android share sheets — drag/tap the handle to close,
 // tap the backdrop to dismiss, Esc to close on keyboards.
-export default function ExploreSheet({ open, onClose }: Props) {
+export default function ExploreSheet({ open, onClose, species }: Props) {
   const flags = usePublicFlags();
   useEffect(() => {
     if (!open) return;
@@ -105,7 +108,9 @@ export default function ExploreSheet({ open, onClose }: Props) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-40 bg-night/50"
+          // Above the help button (FeedbackWidget, z-50), which otherwise
+          // floats over the sheet's last row.
+          className="fixed inset-0 z-[51] bg-night/50"
           aria-hidden
         />
       )}
@@ -129,8 +134,10 @@ export default function ExploreSheet({ open, onClose }: Props) {
           // Centered with mx-auto, not left-1/2 -translate-x-1/2: framer-motion
           // owns this element's inline transform for the slide-up, which would
           // clobber a class-based translateX and shove the sheet half offscreen.
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-app rounded-t-3xl border-t-[2.5px] border-navy bg-biscuit dark:border-white/15 dark:bg-night-surface pb-[calc(env(safe-area-inset-bottom)+18px)]"
+          className="fixed inset-x-0 bottom-0 z-[52] mx-auto w-full max-w-app rounded-t-3xl border-t-[2.5px] border-navy bg-biscuit dark:border-white/15 dark:bg-night-surface pb-[calc(env(safe-area-inset-bottom)+18px)]"
         >
+          {/* Somebody's always curious what's in here. */}
+          <Peek id={species === 'cat' ? 'ginger' : 'corgi'} className="right-9 h-14" />
           {/* Drag handle */}
           <button
             type="button"
@@ -142,7 +149,7 @@ export default function ExploreSheet({ open, onClose }: Props) {
           </button>
 
           <div className="px-4 pt-1 pb-3">
-            <h2 className="text-xl font-extrabold tracking-tight text-navy dark:text-biscuit">Explore</h2>
+            <h2 className="font-display text-[28px] leading-none text-navy dark:text-biscuit">Explore</h2>
           </div>
 
           {/* Six doors, each with its icon and four words or fewer. */}

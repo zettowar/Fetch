@@ -37,3 +37,26 @@ export function useWeeklyResetCountdown(): string {
   }, []);
   return value;
 }
+
+/**
+ * The week bucket the backend files votes and crowns under: that ISO week's
+ * Monday (UTC) as YYYY-MM-DD. `weeksAgo = 1` is the week whose crown was
+ * settled at the last reset.
+ */
+export function weekBucket(weeksAgo = 0, now: Date = new Date()): string {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const sinceMonday = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - sinceMonday - 7 * weeksAgo);
+  return d.toISOString().slice(0, 10);
+}
+
+/** "Nov 9" for a week bucket ("2026-11-09"); the raw value if it doesn't parse. */
+export function formatWeekOf(bucket: string): string {
+  const [y, m, d] = bucket.split('-').map(Number);
+  if (!y || !m || !d) return bucket;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}

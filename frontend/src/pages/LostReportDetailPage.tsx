@@ -82,10 +82,15 @@ export default function LostReportDetailPage() {
   const resolveMutation = useMutation({
     mutationFn: () => resolveLostReport(id!),
     onSuccess: () => {
-      toast.success('Report resolved');
+      // The calm register holds even for good news: plain, warm, no exclamation.
+      toast.success(
+        report?.kind === 'missing'
+          ? `So glad ${report.pet_name ? `${report.pet_name} is` : "they're"} home. Anyone who sent a sighting will hear the news.`
+          : 'Marked as reunited. The report is closed.',
+      );
       queryClient.invalidateQueries({ queryKey: ['lost-report', id] });
     },
-    onError: () => toast.error('Failed to resolve'),
+    onError: () => toast.error("Couldn't mark it resolved. Try again."),
   });
 
   const sightingMutation = useMutation({
@@ -105,7 +110,7 @@ export default function LostReportDetailPage() {
       setSightPhoto(null);
       queryClient.invalidateQueries({ queryKey: ['sightings', id] });
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to add sighting')),
+    onError: (err) => toast.error(apiErrorMessage(err, "Couldn't add the sighting. Try again.")),
   });
 
   const contactMutation = useMutation({
@@ -115,7 +120,7 @@ export default function LostReportDetailPage() {
       setShowContactForm(false);
       setContactMessage('');
     },
-    onError: () => toast.error('Failed to send message'),
+    onError: () => toast.error("Couldn't send your message. Try again."),
   });
 
   if (isLoading) {
@@ -153,6 +158,25 @@ export default function LostReportDetailPage() {
           {report.status === 'open' ? 'Open' : report.status === 'resolved' ? 'Resolved' : 'Closed'}
         </Badge>
       </div>
+
+      {/* The reunion. Still the calm register — Figtree, a flat green plate,
+          no exclamation — but it says the one thing everyone was waiting for. */}
+      {report.status === 'resolved' && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border-2 border-green-600 bg-green-100 p-4 text-navy dark:border-green-400/50 dark:bg-green-500/15 dark:text-biscuit">
+          {/* The house with a heart — "home" in this set is the bone. */}
+          <BrandIcon name="rescue" size={24} className="mt-0.5 shrink-0" style={{ '--bean': 'currentColor' } as React.CSSProperties} />
+          <div>
+            <p className="text-base font-extrabold">
+              {report.kind === 'missing'
+                ? `${report.pet_name || 'This pet'} is home safe.`
+                : 'This pet is back with their family.'}
+            </p>
+            <p className="mt-0.5 text-sm text-navy/80 dark:text-biscuit/80">
+              Thank you to everyone who looked, shared and sent a sighting.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Pet info */}
       <div className="flex items-start justify-between gap-2">

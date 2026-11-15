@@ -70,6 +70,26 @@ describe('SwipeDeck', () => {
     expect(screen.getByText(/1 rated this session/)).toBeInTheDocument();
   });
 
+  it('the arrow keys swipe: → likes, ← passes, but not while typing', async () => {
+    const pets = [makeDog('d1'), makeDog('d2'), makeDog('d3')];
+    vi.spyOn(feedApi, 'getFeed').mockResolvedValue(pets as never);
+    const cast = vi.spyOn(votesApi, 'castVote').mockResolvedValue({} as never);
+
+    renderDeck();
+    await screen.findByLabelText('Like');
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    await waitFor(() => expect(cast).toHaveBeenCalledWith('d1', 1));
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    await waitFor(() => expect(cast).toHaveBeenCalledWith('d2', -1));
+
+    // An arrow inside a text field moves the caret, not the deck.
+    const field = document.createElement('input');
+    document.body.appendChild(field);
+    fireEvent.keyDown(field, { key: 'ArrowRight' });
+    expect(cast).toHaveBeenCalledTimes(2);
+    field.remove();
+  });
+
   it('left-swipe casts a -1 vote', async () => {
     const pets = [makeDog('d1'), makeDog('d2')];
     vi.spyOn(feedApi, 'getFeed').mockResolvedValue(pets as never);

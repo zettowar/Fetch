@@ -86,7 +86,7 @@ export default function ParkDetailPage() {
       setShowCheckinPicker(false);
       queryClient.invalidateQueries({ queryKey: ['park-checkins', id] });
     },
-    onError: () => toast.error('Failed to check in'),
+    onError: () => toast.error("Couldn't check you in. Try again."),
   });
 
   const checkoutMutation = useMutation({
@@ -95,7 +95,7 @@ export default function ParkDetailPage() {
       toast.success('Checked out');
       queryClient.invalidateQueries({ queryKey: ['park-checkins', id] });
     },
-    onError: () => toast.error('Failed to check out'),
+    onError: () => toast.error("Couldn't start checkout. Try again."),
   });
 
   // Review form
@@ -118,7 +118,7 @@ export default function ParkDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['park-reviews', id] });
       queryClient.invalidateQueries({ queryKey: ['park', id] });
     },
-    onError: () => toast.error('Failed to post review'),
+    onError: () => toast.error("Couldn't post your review. Try again."),
   });
 
   if (isLoading) {
@@ -189,13 +189,13 @@ export default function ParkDetailPage() {
       <div className="surface flex gap-6 mt-4 px-4 py-3">
         <div className="text-center">
           <p className="font-display text-2xl leading-none text-navy dark:text-biscuit">
-            {park.avg_rating ? park.avg_rating.toFixed(1) : '--'}
+            {park.avg_rating ? park.avg_rating.toFixed(1) : 'New'}
           </p>
-          <p className="eyebrow mt-1.5">Rating</p>
+          <p className="eyebrow mt-1.5">{park.avg_rating ? 'Rating' : 'No rating yet'}</p>
         </div>
         <div className="text-center">
           <p className="font-display text-2xl leading-none text-navy dark:text-biscuit">{park.review_count}</p>
-          <p className="eyebrow mt-1.5">Reviews</p>
+          <p className="eyebrow mt-1.5">{park.review_count === 1 ? 'Review' : 'Reviews'}</p>
         </div>
       </div>
 

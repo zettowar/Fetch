@@ -13,7 +13,7 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
     // Same-origin by default. crossOrigin is unnecessary for object URLs.
     img.addEventListener('load', () => resolve(img));
     img.addEventListener('error', () =>
-      reject(new Error('Failed to load image')),
+      reject(new Error("Couldn't open that image.")),
     );
     img.src = src;
   });

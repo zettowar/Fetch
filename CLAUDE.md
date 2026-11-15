@@ -623,7 +623,8 @@ These are scaffolded but not fully wired — marked with `PHASEn` comments in co
 - **Push notification delivery** — subscriptions are stored
   (`routers/notifications.py`) but never dispatched. (The in-app notification
   inbox IS real: `services/notify.py` emits on follows, comments, sightings,
-  transfers, inquiries, weekly wins, and photo moderation; push would be a
+  transfers, inquiries, weekly wins, photo moderation, and reunions (a
+  resolved missing-pet report thanks everyone who sent a sighting, once); push would be a
   second delivery channel for the same events.) The PWA manifest now exists,
   which iOS requires before Web Push can work at all.
 - **Billing checkout** — entitlements can be granted/revoked by an admin

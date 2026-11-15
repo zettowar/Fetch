@@ -15,6 +15,7 @@ import PageHeader from '../components/ui/PageHeader';
 import PetPortrait from '../components/brand/PetPortrait';
 import type { Pet } from '../types';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { photoIn } from '../utils/photoIn';
 
 const PAGE_SIZE = 18;
 // Cap the feed to keep memory + DOM size sane on long sessions. The
@@ -39,13 +40,14 @@ function ExploreCard({ pet, index }: { pet: Pet; index: number }) {
       // A pet card is a thing you touch: navy line and the small toy shadow.
       className="bg-white dark:bg-night-surface rounded-2xl border-2 border-navy dark:border-white/15 shadow-toy-sm overflow-hidden flex flex-col"
     >
-      <Link to={`/app/pets/${pet.id}`} className="block relative group overflow-hidden border-b-2 border-navy dark:border-white/15">
+      <Link to={`/app/pets/${pet.id}`} className="block relative group overflow-hidden border-b-2 border-navy bg-brand-100 dark:border-white/15 dark:bg-night-raised">
         {hero ? (
           <img
             src={hero}
             alt={pet.name}
             loading="lazy"
-            className="w-full aspect-square object-cover transition-transform duration-300 ease-soft-out group-hover:scale-[1.03]"
+            ref={photoIn}
+            className="photo-in w-full aspect-square object-cover transition-transform duration-300 ease-soft-out group-hover:scale-[1.03]"
           />
         ) : (
           <PetPortrait

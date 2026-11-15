@@ -8,6 +8,7 @@ import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { photoIn } from '../utils/photoIn';
 
 export default function LikedPetsPage() {
   useDocumentTitle('Liked pets · Fetchpawz');
@@ -56,9 +57,9 @@ export default function LikedPetsPage() {
                 to={`/app/pets/${pet.id}`}
                 className="group rounded-2xl overflow-hidden bg-white dark:bg-night-surface border-2 border-navy dark:border-white/15 shadow-toy-sm transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px hover:shadow-toy active:translate-x-[2px] active:translate-y-[3px] active:shadow-none"
               >
-                <div className="aspect-square relative border-b-2 border-navy dark:border-white/15">
+                <div className="aspect-square relative border-b-2 border-navy bg-brand-100 dark:border-white/15 dark:bg-night-raised">
                   {photo ? (
-                    <img src={photo} alt={pet.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                    <img ref={photoIn} src={photo} alt={pet.name} loading="lazy" className="photo-in absolute inset-0 h-full w-full object-cover" />
                   ) : (
                     <PetPortrait
                       species={pet.species}

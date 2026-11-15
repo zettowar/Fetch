@@ -51,9 +51,9 @@ export default function MarketingLayout() {
             <Link
               to="/"
               aria-label="Fetchpawz home"
-              className="flex items-center gap-2.5 text-[26px] text-navy dark:text-biscuit transition-transform active:scale-[0.98]"
+              className="group/logo flex items-center gap-2.5 text-[26px] text-navy dark:text-biscuit transition-transform active:scale-[0.98]"
             >
-              <Lockup />
+              <Lockup wag />
               <span className="hidden rounded-full border-[1.5px] border-navy px-2 py-0.5 text-2xs font-extrabold uppercase tracking-[0.1em] text-navy dark:border-biscuit/40 dark:text-biscuit sm:inline">
                 Beta
               </span>

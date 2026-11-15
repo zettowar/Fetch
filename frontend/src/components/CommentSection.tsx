@@ -33,7 +33,7 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
       setBody('');
       queryClient.invalidateQueries({ queryKey: ['comments', targetType, targetId] });
     },
-    onError: () => toast.error('Failed to post comment'),
+    onError: () => toast.error("Couldn't post your comment. Try again."),
   });
 
   const deleteMutation = useMutation({

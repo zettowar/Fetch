@@ -97,6 +97,48 @@ white and Biscuit) — never Ball Orange (`brand-500`) text on a light ground.
   photo, marketing, and placeholders.
 - `<Crown>` — the drawn crown (winners only).
 
+### Flair — the cartouche, and where it goes
+
+Each of these has one job and a budget. None of them ever appears in Lost &
+Found.
+
+- `<Accent name>` — accent marks. sparkle = a win (Home crown card, the #1
+  podium step, the crown moment), burst = a tap landed, zzz = nothing yet.
+  Three at most per composition.
+- `<Sticker fill tilt>` — a die-cut Bagel pill with a white edge, slapped on
+  the pet hero's bottom edge: crown (gold) › "Adopt me" › "Adopted!" (pink).
+  It is the screen's one tilted thing, so one sticker per screen.
+- `<Rosette title caption>` — the weekly crown made physical. Only in
+  `<CrownMoment>`, the full-gold screen an owner sees once when last week's
+  settled crown went to their pet (`crownMomentSeen` keys it per week + pet).
+- `<Peek id>` — a cast portrait peeking over the top edge of its `relative`
+  parent (Home's swipe card, the Explore sheet, the rescues band, marketing
+  sections). Give it room above: it sits outside the parent.
+- `<TailRule>` closes a long page (Home); `<TailUnderline>` underlines one
+  phrase in a headline (marketing hero, Donate). The tail is used once per
+  view, besides the wordmark's own.
+- `.toybox-biscuit|navy|orange|pink` — the pattern, for the insides of
+  things: the splash, a band, a cover. Bagel at 36px+ may sit on it; anything
+  smaller sits on a plain plate (`bg-navy` / `bg-white` / the fill colour).
+- `<Splash>` — the orange toy-box screen while the session wakes
+  (`AuthGuard`); it waits ~180ms before fading in so a fast boot never flashes.
+
+### Beyond the book (same spirit, new moments)
+
+- `<PetWeekCard>` (Home) — where *your* pet stands in this week's race: the
+  gap to the crown on an orange track with the crown as a navy line at the
+  finish (gold only once it's won). Rank comes from the live board's order,
+  which breaks ties the way the crown does. A pet with no approved photo isn't
+  in the deck, and the card says so and offers the fix instead of a rank.
+- Occasions (`utils/occasions.ts`) — birthdays (orange) and homecomings, the
+  anniversary of `adopted_at` (pink: adoption). `<OccasionCard>` on the
+  owner's Home, a sticker on the profile (a birthday outranks the crown for
+  its one day), and a ring on the Following strip.
+- The reunion — a resolved missing-pet report gets a flat green "is home
+  safe" plate, in-app and on the public share page, and everyone who sent a
+  sighting gets a `lost_reunited` inbox note. Still the calm register: plain
+  type, no exclamation, no flair.
+
 ## The calm register (Lost & Found)
 
 Missing pets get plain type: `<PageHeader plain>`, Figtree only, flat cards,
@@ -114,6 +156,11 @@ render differently on every phone and can't take our colours. Use a
 
 - Loading: grids → `CardSkeleton` · row lists → `ListSkeleton` · full-page
   and maps → `PawSpinner` (the paw-step beans)
+- Photos: `className="photo-in"` + `ref={photoIn}` (`utils/photoIn.ts`) on a
+  pet photo's `<img>`, inside a frame with a tint (`bg-brand-100
+  dark:bg-night-raised`). It fades in once decoded instead of popping in;
+  `PetPhoto` already does this. Not on an `<img>` that carries its own
+  background or border — those would fade too.
 - Empty: `<EmptyState illustration=…>` — a doodle, one bold line, one plain
   line, one button. sleeping = nothing yet · sniffing = nothing found ·
   ball = success · digging = error/404 · howling = alerts
@@ -124,8 +171,9 @@ render differently on every phone and can't take our colours. Use a
 ## Motion
 
 - Ease `ease-soft-out` for UI, `ease-bounce` for game objects only.
-- `animate-wag` on a like, `animate-crown-drop` once a week for winners,
-  `animate-tail-wag` is the logo's own move.
+- `animate-wag` on a like (the deck's Like heart), `animate-crown-drop` once a
+  week for winners, `animate-tail-wag` is the logo's own move — on load in the
+  headers, and on hover of any `group/logo` ancestor.
 - Celebrations: `usePawBurst()`; it no-ops under reduced motion.
 
 ## Component index

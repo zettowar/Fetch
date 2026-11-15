@@ -28,7 +28,7 @@ export default function FeedbackWidget() {
       setBody('');
       setOpen(false);
     } catch {
-      toast.error('Failed to send feedback');
+      toast.error("Couldn't send your feedback. Try again.");
     } finally {
       setSending(false);
     }

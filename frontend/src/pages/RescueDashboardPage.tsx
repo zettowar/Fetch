@@ -264,7 +264,7 @@ function AdoptableDogRow({
       toast.success(`${pet.name} marked adopted`);
       onChanged();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to mark adopted')),
+    onError: (err) => toast.error(apiErrorMessage(err, "Couldn't mark them adopted. Try again.")),
   });
   const transfer = useMutation({
     mutationFn: () => transferDog(pet.id, { invited_email: email.trim().toLowerCase() }),
@@ -399,7 +399,7 @@ function InquiryRow({
       toast.success('Inquiry updated');
       onChanged();
     },
-    onError: (err) => toast.error(apiErrorMessage(err, 'Failed to update inquiry')),
+    onError: (err) => toast.error(apiErrorMessage(err, "Couldn't update the inquiry. Try again.")),
   });
 
   const aboutDog = inquiry.pet_id ? pets.find((d) => d.id === inquiry.pet_id) : undefined;

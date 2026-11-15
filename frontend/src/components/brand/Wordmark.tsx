@@ -30,7 +30,8 @@ const LETTERS = [
 ];
 
 /**
- * `wag` swings the tail once on mount (the logo's own move, 900ms). It
+ * `wag` swings the tail once on mount (the logo's own move, 900ms). It also
+ * swings on hover of any ancestor marked `group/logo` (the header links). It
  * respects reduced motion through the global rule in index.css.
  */
 export default function Wordmark({
@@ -62,7 +63,7 @@ export default function Wordmark({
         <path key={d} d={d} {...STROKE} />
       ))}
       <g
-        className={wag ? 'animate-tail-wag' : undefined}
+        className={`${wag ? 'animate-tail-wag' : ''} group-hover/logo:animate-tail-wag`}
         style={{ transformOrigin: '4120px 690px', transformBox: 'view-box' }}
       >
         <path d="M4120 690C4290 690 4350 800 4280 905C4260 935 4230 940 4210 919" {...STROKE} />

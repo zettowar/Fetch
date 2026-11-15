@@ -12,6 +12,9 @@ import BrandIcon from '../components/brand/BrandIcon';
 import PetPortrait from '../components/brand/PetPortrait';
 import { Crown } from '../components/brand/RankMedal';
 import FoundPetForm from './FoundPetForm';
+import { photoIn } from '../utils/photoIn';
+import Rosette from '../components/brand/Rosette';
+import { formatWeekOf, weekBucket } from '../utils/weeklyReset';
 
 function ageLabel(birthday: string | null): string | null {
   if (!birthday) return null;
@@ -67,6 +70,8 @@ export default function PublicPetPage() {
 
   const age = ageLabel(pet.birthday);
 
+  const latestCrown = pet.crown_weeks[0];
+
   return (
     <div className="animate-fade-in">
       <div className="mx-auto max-w-2xl px-4 sm:px-6 py-10 lg:py-14">
@@ -76,9 +81,10 @@ export default function PublicPetPage() {
           <div className="relative aspect-square sm:aspect-[4/3] bg-brand-100 dark:bg-night-raised border-b-[2.5px] border-navy dark:border-night-raised">
             {pet.primary_photo_url ? (
               <img
+                ref={photoIn}
                 src={pet.primary_photo_url}
                 alt={`Photo of ${pet.name}`}
-                className="absolute inset-0 h-full w-full object-cover"
+                className="photo-in absolute inset-0 h-full w-full object-cover"
               />
             ) : (
               <PetPortrait
@@ -104,6 +110,17 @@ export default function PublicPetPage() {
                 Adopted
               </Badge>
             )}
+            {/* The payoff for a shared crown: the rosette pinned to the photo,
+                for its latest win. The page's one tilted thing. */}
+            {latestCrown && (
+              <div className="absolute bottom-3 right-3 w-28 -rotate-6 drop-shadow-[0_6px_10px_rgba(17,19,46,0.35)] sm:w-36">
+                <Rosette
+                  title={pet.species === 'cat' ? 'Top Cat' : 'Top Dog'}
+                  caption={latestCrown === weekBucket(0) ? 'This week' : formatWeekOf(latestCrown)}
+                  className="block w-full"
+                />
+              </div>
+            )}
           </div>
 
           {/* Identity */}
@@ -115,8 +132,8 @@ export default function PublicPetPage() {
                 <span
                   key={week}
                   role="img"
-                  title={`Top Pet, week of ${week}`}
-                  aria-label={`Top Pet, week of ${week}`}
+                  title={`Top Pet, week of ${formatWeekOf(week)}`}
+                  aria-label={`Top Pet, week of ${formatWeekOf(week)}`}
                   className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-navy bg-gold-500"
                 >
                   <Crown className="w-5" />

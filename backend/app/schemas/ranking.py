@@ -12,6 +12,7 @@ class LeaderboardEntry(BaseModel):
     breed: str | None = None
     score: int
     total_votes: int
+    primary_photo_url: str | None = None
 
 
 class WeeklyWinnerOut(BaseModel):

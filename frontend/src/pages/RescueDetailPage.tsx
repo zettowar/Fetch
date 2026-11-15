@@ -84,10 +84,15 @@ export default function RescueDetailPage() {
           />
         </div>
       )}
-      <div className="flex items-center gap-3 mt-4 mb-3">
+      {/* No pin to show: the cover is Forever Pink with the toy box inside it,
+          and the logo tile sits on its bottom edge. */}
+      {!hasCoords && (
+        <div className="toybox-pink mt-3 h-28 rounded-3xl border-[2.5px] border-navy bg-pink-500 dark:border-white/15" aria-hidden />
+      )}
+      <div className={`flex mb-3 ${hasCoords ? 'mt-4 items-center gap-3' : '-mt-8 flex-col items-start gap-2.5'}`}>
         {/* The rescue's logo tile: Forever Pink leads on rescue surfaces. */}
         <span
-          className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-navy bg-pink-500 text-navy shadow-toy-sm dark:border-white/15"
+          className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-navy bg-pink-500 text-navy shadow-toy-sm dark:border-white/15 ${hasCoords ? '' : 'ml-4 ring-4 ring-biscuit dark:ring-night'}`}
           aria-hidden
         >
           {rescue.logo_url ? (

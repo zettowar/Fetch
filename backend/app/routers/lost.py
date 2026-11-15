@@ -347,7 +347,11 @@ async def resolve_report(
 ):
     result = await db.execute(
         select(LostReport)
-        .options(selectinload(LostReport.photos), selectinload(LostReport.sightings))
+        .options(
+            selectinload(LostReport.photos),
+            selectinload(LostReport.sightings),
+            selectinload(LostReport.pet),
+        )
         .where(LostReport.id == report_id)
     )
     report = result.scalar_one_or_none()
@@ -356,9 +360,28 @@ async def resolve_report(
     if report.reporter_id != user.id:
         raise HTTPException(status_code=403, detail="Not your report")
 
+    was_open = report.status == "open"
     report.status = "resolved"
     report.resolved_at = datetime.now(timezone.utc)
     report.resolved_by = user.id
+
+    # Close the loop for the people who helped: everyone who reported a
+    # sighting of a missing pet hears that it made it home. Once, on the
+    # actual reunion (a repeat resolve is a no-op), never to someone either
+    # side has blocked, and in the calm register — no exclamation marks.
+    if was_open and report.kind == "missing":
+        helpers = {s.reporter_id for s in report.sightings if s.reporter_id != user.id}
+        name = report.pet.name if report.pet else None
+        for helper_id in helpers:
+            if await is_blocked_between(db, user.id, helper_id):
+                continue
+            await notify(
+                db, helper_id,
+                type="lost_reunited",
+                title=f"{name} is home" if name else "A pet you helped look for is home",
+                body="Thank you for your sighting. It helped.",
+                link=f"/app/lost/{report_id}",
+            )
     await db.commit()
 
     result = await db.execute(

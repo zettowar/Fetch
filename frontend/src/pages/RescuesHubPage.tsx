@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import BrandIcon from '../components/brand/BrandIcon';
+import Peek from '../components/brand/Peek';
 import PageHeader from '../components/ui/PageHeader';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
@@ -22,16 +23,22 @@ export default function RescuesHubPage() {
         subtitle="Find a forever home — or the rescue that has one."
       />
 
-      <Link to="/app/rescues/browse" className={`${TILE} bg-pink-500`}>
-        <div className="min-w-0">
-          <p className="text-2xs font-extrabold uppercase tracking-[0.1em] text-navy">Adoptables</p>
-          <p className="text-base font-extrabold mt-0.5">Browse rescues</p>
-          <p className="text-xs font-semibold text-navy mt-0.5 truncate">
-            Verified rescues and their adoptable pets
-          </p>
-        </div>
-        <div className="flex-shrink-0 w-11 h-11 rounded-full border-2 border-navy bg-white text-navy flex items-center justify-center">
-          <BrandIcon name="rescue" size={22} />
+      {/* The lead: Forever Pink with the toy box inside it. Bagel at 36px+
+          rides the pattern; the small print sits on a plain white plate. */}
+      <Link
+        to="/app/rescues/browse"
+        className="toybox-pink relative mt-9 flex flex-col gap-4 rounded-3xl border-[2.5px] border-navy bg-pink-500 p-5 text-navy shadow-toy transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px active:translate-x-[2px] active:translate-y-[3px] active:shadow-none"
+      >
+        <Peek id="scruff" className="right-6 h-14" />
+        <p className="font-display text-[38px] leading-[0.95] text-balance">Somebody's waiting for a sofa.</p>
+        <div className="flex items-center justify-between gap-3 rounded-2xl border-2 border-navy bg-white px-3.5 py-2.5">
+          <div className="min-w-0">
+            <p className="text-base font-extrabold">Browse rescues</p>
+            <p className="text-xs font-semibold text-gray-600 truncate">Verified rescues and their adoptable pets</p>
+          </div>
+          <span className="flex-shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-navy bg-pink-100" aria-hidden>
+            <BrandIcon name="rescue" size={20} style={PINK_BEAN} />
+          </span>
         </div>
       </Link>
 

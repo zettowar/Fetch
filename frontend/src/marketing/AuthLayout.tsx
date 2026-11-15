@@ -14,9 +14,9 @@ export default function AuthLayout() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link
             to="/"
-            className="flex items-center text-[22px] text-navy dark:text-biscuit transition-transform duration-150 ease-soft-out active:scale-[0.98]"
+            className="group/logo flex items-center text-[22px] text-navy dark:text-biscuit transition-transform duration-150 ease-soft-out active:scale-[0.98]"
           >
-            <Lockup />
+            <Lockup wag />
           </Link>
           <Link
             to="/"

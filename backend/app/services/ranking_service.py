@@ -9,10 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.pet import Pet, SPECIES, pet_in_play
+from app.models.photo import Photo
 from app.models.vote import Vote
 from app.models.weekly_winner import WeeklyWinner
 from app.services.breed_display import breed_display
 from app.services.feed_service import current_week_bucket
+from app.storage import get_storage
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +62,20 @@ async def get_current_leaderboard(
         )
         pets_by_id = {d.id: d for d in pet_result.scalars().all()}
 
+    # The same face the pet wears everywhere else. Approved photos only: a
+    # primary is never unapproved by design, but a withheld photo must not
+    # leak here if that invariant ever slips.
+    photo_urls: dict = {}
+    primary_ids = [p.primary_photo_id for p in pets_by_id.values() if p.primary_photo_id]
+    if primary_ids:
+        photo_result = await db.execute(
+            select(Photo.id, Photo.storage_key).where(
+                Photo.id.in_(primary_ids), Photo.moderation_status == "approved"
+            )
+        )
+        storage = get_storage()
+        photo_urls = {pid: storage.url(key) for pid, key in photo_result.all()}
+
     leaderboard = []
     for rank, row in enumerate(rows, 1):
         pet = pets_by_id.get(row.pet_id)
@@ -72,6 +88,7 @@ async def get_current_leaderboard(
                 "breed": breed_display(pet.mix_type, pet.breeds, pet.species),
                 "score": row.score,
                 "total_votes": row.total_votes,
+                "primary_photo_url": photo_urls.get(pet.primary_photo_id),
             })
 
     return leaderboard

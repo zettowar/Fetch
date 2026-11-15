@@ -16,6 +16,7 @@ import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import Input from '../components/ui/Input';
 import PageHeader from '../components/ui/PageHeader';
+import TailUnderline from '../components/brand/TailUnderline';
 import SearchInput from '../components/ui/SearchInput';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import PawTrail from '../components/flair/PawTrail';
@@ -141,8 +142,8 @@ export default function DonatePage() {
       <PageHeader
         title="Donate"
         subtitle={
-          <span className="block font-display text-2xl leading-tight text-navy dark:text-biscuit">
-            Every bone counts.
+          <span className="mt-1 block font-display text-2xl leading-tight text-navy dark:text-biscuit">
+            Every <TailUnderline>bone counts.</TailUnderline>
           </span>
         }
         back

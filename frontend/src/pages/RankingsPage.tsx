@@ -11,12 +11,23 @@ import PageHeader from '../components/ui/PageHeader';
 import BrandIcon from '../components/brand/BrandIcon';
 import PetPortrait from '../components/brand/PetPortrait';
 import RankMedal, { Crown } from '../components/brand/RankMedal';
+import Accent from '../components/brand/Accent';
 import type { LeaderboardEntry } from '../types';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { useAuth } from '../store/AuthContext';
-import { useWeeklyResetCountdown } from '../utils/weeklyReset';
+import { formatWeekOf, useWeeklyResetCountdown, weekBucket } from '../utils/weeklyReset';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { photoIn } from '../utils/photoIn';
+
+/** The pet's own photo when it has one, the breed portrait when it doesn't. */
+function PetFace({ entry }: { entry: LeaderboardEntry }) {
+  return entry.primary_photo_url ? (
+    <img ref={photoIn} src={entry.primary_photo_url} alt="" className="photo-in h-full w-full object-cover" />
+  ) : (
+    <PetPortrait species={entry.species} breed={entry.breed} seed={entry.pet_id} crop="face" background className="h-full w-full" />
+  );
+}
 
 /**
  * One step of the podium. Only first place gets gold — a Crown Gold block and
@@ -30,20 +41,27 @@ function PodiumStep({ entry, mine }: { entry: LeaderboardEntry; mine: boolean })
     <Link to={`/app/pets/${entry.pet_id}`} className="group flex min-w-0 flex-col items-center text-center">
       <span className="relative inline-flex">
         <span
-          className={`block overflow-hidden rounded-full border-2 border-navy dark:border-white/30 ${
+          className={`block overflow-hidden rounded-full border-2 border-navy bg-brand-100 dark:border-white/30 dark:bg-night-raised ${
             first ? 'h-16 w-16 ring-4 ring-gold-500' : 'h-12 w-12'
           }`}
         >
-          <PetPortrait species={entry.species} breed={entry.breed} seed={entry.pet_id} crop="face" background className="h-full w-full" />
+          <PetFace entry={entry} />
         </span>
-        {first && <Crown className="absolute -top-6 left-1/2 w-9 -translate-x-1/2 -rotate-6" />}
+        {first && (
+          <>
+            <Crown className="absolute -top-6 left-1/2 w-9 -translate-x-1/2 -rotate-6" />
+            {/* Sparkle = a win: first place only. */}
+            <Accent name="sparkle" className="absolute -left-7 -top-1 h-5 w-5 text-navy dark:text-gold-300" />
+            <Accent name="sparkle" className="absolute -right-5 top-7 h-3.5 w-3.5 text-navy dark:text-gold-300" />
+          </>
+        )}
       </span>
       <p className="mt-1.5 w-full truncate text-sm font-extrabold text-navy dark:text-biscuit">
         {entry.pet_name}
         {mine && <span className="sr-only"> (yours)</span>}
       </p>
       <p className="text-xs text-gray-600 dark:text-gray-300">
-        {entry.score} {first ? (entry.score === 1 ? 'like' : 'likes') : ''}
+        {entry.score} {entry.score === 1 ? 'like' : 'likes'}
       </p>
       <span
         className={`mt-1.5 flex w-full items-center justify-center rounded-t-xl border-2 border-b-0 border-navy font-display text-2xl leading-none text-navy dark:border-white/20 ${height} ${
@@ -75,10 +93,14 @@ export default function RankingsPage() {
     queryFn: () => getCurrentRankings(species),
   });
 
-  const { data: history } = useQuery({
+  const { data: historyRows } = useQuery({
     queryKey: ['rankings', 'history', filter],
-    queryFn: () => getWinnerHistory(12, species),
+    queryFn: () => getWinnerHistory(14, species),
   });
+  // The history includes the week in progress (its leader holds a provisional
+  // row); that one is the podium above, not a past winner.
+  const thisWeek = weekBucket(0);
+  const history = (historyRows ?? []).filter((w) => w.week_bucket !== thisWeek).slice(0, 12);
 
   const { data: myDogs } = useQuery({
     queryKey: ['my-pets'],
@@ -142,6 +164,9 @@ export default function RankingsPage() {
                     }`}
                   >
                     <RankMedal rank={entry.rank} size="sm" />
+                    <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-navy bg-brand-100 dark:border-white/20 dark:bg-night-raised">
+                      <PetFace entry={entry} />
+                    </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="font-extrabold text-navy dark:text-biscuit truncate">{entry.pet_name}</p>
@@ -157,13 +182,26 @@ export default function RankingsPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-extrabold text-navy dark:text-biscuit">{entry.score}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{entry.total_votes} votes</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{entry.total_votes} {entry.total_votes === 1 ? 'vote' : 'votes'}</p>
                     </div>
                   </Link>
                 );
               })}
             </Card>
           )}
+
+          {/* The sign-off: the toy box on a navy band, Bagel over the pattern,
+              the small print on a plain plate (Brand Book, Shapes → the toy box). */}
+          <section className="toybox-navy mt-6 rounded-3xl border-[2.5px] border-navy bg-navy px-5 py-6 text-center text-biscuit dark:border-white/15">
+            <p className="font-display text-[36px] leading-[0.95]">Fresh shot Monday</p>
+            <p className="mx-auto mt-3 w-fit rounded-full bg-navy px-3 py-1 text-sm font-semibold text-balance">
+              Every pet starts the week at zero.
+            </p>
+            <Link to="/app/swipe" className="btn btn-primary btn-sm mt-4">
+              <BrandIcon name="like" size={16} />
+              Rate pets
+            </Link>
+          </section>
         </>
       ) : (
         <EmptyState
@@ -179,7 +217,7 @@ export default function RankingsPage() {
         />
       )}
 
-      {history && history.length > 0 && (
+      {history.length > 0 && (
         <div className="mt-8">
           <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">Past winners</h2>
           <Card padding="none" className="divide-y divide-gray-200 dark:divide-white/10">
@@ -193,7 +231,7 @@ export default function RankingsPage() {
                 <div className="flex-1">
                   <p className="font-extrabold text-navy dark:text-biscuit">{winner.pet_name || 'Unknown'}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Week of {winner.week_bucket}
+                    {winner.species === 'cat' ? 'Top Cat' : 'Top Dog'} · week of {formatWeekOf(winner.week_bucket)}
                   </p>
                 </div>
                 <p className="font-extrabold text-navy dark:text-biscuit">{winner.score}</p>

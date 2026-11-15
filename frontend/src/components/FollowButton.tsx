@@ -54,7 +54,7 @@ export default function FollowButton({ petId }: FollowButtonProps) {
     onMutate: () => applyOptimistic(true),
     onError: (err, _vars, ctx) => {
       rollback(ctx);
-      toast.error(apiErrorMessage(err, 'Failed to follow'));
+      toast.error(apiErrorMessage(err, "Couldn't follow. Try again."));
     },
     onSettled: invalidateAffected,
   });
@@ -64,7 +64,7 @@ export default function FollowButton({ petId }: FollowButtonProps) {
     onMutate: () => applyOptimistic(false),
     onError: (err, _vars, ctx) => {
       rollback(ctx);
-      toast.error(apiErrorMessage(err, 'Failed to unfollow'));
+      toast.error(apiErrorMessage(err, "Couldn't unfollow. Try again."));
     },
     onSettled: invalidateAffected,
   });
