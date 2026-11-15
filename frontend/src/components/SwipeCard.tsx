@@ -56,7 +56,9 @@ export default function SwipeCard({ pet, onSwipe, isTop }: SwipeCardProps) {
       animate={{ scale: isTop ? 1 : 0.95, y: isTop ? 0 : 8, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
     >
-      <div className="relative h-[62%] shrink-0 border-b-[2.5px] border-navy bg-brand-100 dark:border-white/15 dark:bg-night-raised">
+      {/* Photos are square (the editor only makes squares); at 66% of the
+          480px card this shows ~90% of one and still leaves the text room. */}
+      <div className="relative h-[66%] shrink-0 border-b-[2.5px] border-navy bg-brand-100 dark:border-white/15 dark:bg-night-raised">
         {photoUrl ? (
           <img ref={photoIn} src={photoUrl} alt={pet.name} className="photo-in h-full w-full object-cover" draggable={false} />
         ) : (

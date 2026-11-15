@@ -1,6 +1,6 @@
 /**
- * Image-downscale helpers used by PhotoEditor for:
- *   - a preview-res copy of the source (fast crop/filter manipulation)
+ * Image helpers used by PhotoEditor for:
+ *   - the working image (upright, capped, shown and exported alike)
  *   - filter-strip thumbnails (one per preset)
  *
  * We never send these back to the server — they're purely for the editor UI.
@@ -23,6 +23,8 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
 export function downscaleToCanvas(
   img: HTMLImageElement,
   maxEdge: number,
+  /** Paint this under the image first — flattens transparency. */
+  background?: string,
 ): HTMLCanvasElement {
   const longEdge = Math.max(img.naturalWidth, img.naturalHeight);
   const scale = longEdge > maxEdge ? maxEdge / longEdge : 1;
@@ -36,24 +38,45 @@ export function downscaleToCanvas(
   // imageSmoothingQuality is hinted here but not strictly required.
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
+  if (background) {
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, w, h);
+  }
   ctx.drawImage(img, 0, 0, w, h);
   return canvas;
 }
 
+/** The photo the editor works on — see `prepareWorkingImage`. */
+export interface WorkingImage {
+  /** Object URL the cropper displays. Revoke when done. */
+  url: string;
+  /** The same pixels, for the exporter to draw from. */
+  canvas: HTMLCanvasElement;
+}
+
 /**
- * Build a preview data URL for the main Cropper. We cap at 1280px on the
- * long edge so filter previews and pan/zoom feel instant on phones.
+ * Normalise a picked photo into the one image the editor shows AND exports.
+ *
+ * Always re-drawn through a canvas, even when it's already small: drawing
+ * applies the file's EXIF orientation, so a phone photo that is stored
+ * sideways with a "rotate me" tag comes out as upright pixels with no tag.
+ * From here on there is no orientation to disagree about — the cropper's
+ * <img> and the exporter's canvas hold the same upright pixels at the same
+ * size. (The editor used to show a downscaled copy that replaced the
+ * original mid-session, so a crop could be measured on one image and cut
+ * from the other.)
+ *
+ * `maxEdge` caps the long side; saved photos are capped at the same size.
  */
-export async function buildPreviewUrl(
-  src: string,
-  maxEdge = 1280,
-): Promise<string> {
+export async function prepareWorkingImage(src: string, maxEdge = 1600): Promise<WorkingImage> {
   const img = await loadImage(src);
-  if (Math.max(img.naturalWidth, img.naturalHeight) <= maxEdge) {
-    return src; // already small enough, no need to copy
-  }
-  const canvas = downscaleToCanvas(img, maxEdge);
-  return canvas.toDataURL('image/jpeg', 0.9);
+  if (!img.naturalWidth || !img.naturalHeight) throw new Error("Couldn't open that image.");
+  // White under the photo: a transparent PNG would otherwise go black in the
+  // JPEG it becomes (the server flattens onto white for the same reason).
+  const canvas = downscaleToCanvas(img, maxEdge, '#FFFFFF');
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+  if (!blob) throw new Error("Couldn't open that image.");
+  return { url: URL.createObjectURL(blob), canvas };
 }
 
 /**

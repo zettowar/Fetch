@@ -78,7 +78,7 @@ export default function PublicPetPage() {
         {/* The trading card: white, the navy line and the toy shadow, the
             photo on a tint and the name in Bagel. */}
         <article className="toy overflow-hidden rounded-3xl bg-white dark:bg-night-surface">
-          <div className="relative aspect-square sm:aspect-[4/3] bg-brand-100 dark:bg-night-raised border-b-[2.5px] border-navy dark:border-night-raised">
+          <div className="relative aspect-square bg-brand-100 dark:bg-night-raised border-b-[2.5px] border-navy dark:border-night-raised">
             {pet.primary_photo_url ? (
               <img
                 ref={photoIn}

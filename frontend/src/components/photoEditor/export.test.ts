@@ -1,125 +1,82 @@
 import { describe, it, expect } from 'vitest';
-import { exportGeometry, rotatedSize } from './export';
-import { DEFAULT_STATE, type EditorState } from './editorState';
+import { exportPlan, outputToSource, planCovered, MAX_OUTPUT_EDGE } from './export';
+import { DEFAULT_STATE, editorReducer, type Action, type EditorState } from './editorState';
 
 /**
- * These lock down the coordinate space `croppedAreaPixels` is expressed in:
- * the media's ROTATED BOUNDING BOX, per react-easy-crop's `computeCroppedArea`.
- * Getting this wrong (e.g. sizing the intermediate canvas to the image's
- * diagonal) offsets every crop and pulls empty canvas — which JPEG flattens to
- * black bands — into the exported photo.
+ * The exporter draws the preview's own transform at one scale. These pin that
+ * down from the outside: where output pixels sample the source photo.
  */
 
-function stateWith(over: Partial<EditorState>): EditorState {
-  return { ...DEFAULT_STATE, ...over };
+// A 1600×1200 working image shown at 400×300 in a 400×600 stage: the square
+// frame is 300 on a side, and one display px is four source px.
+const SOURCE = { width: 1600, height: 1200 };
+function editor(...actions: Action[]): EditorState {
+  return [
+    { type: 'SET_MEDIA', media: { width: 400, height: 300 } } as Action,
+    { type: 'SET_CONTAINER', container: { width: 400, height: 600 } } as Action,
+    ...actions,
+  ].reduce(editorReducer, DEFAULT_STATE);
+}
+/** The plan without the hairline overscan, so the sampling is exact. */
+function exact(state: EditorState, source = SOURCE) {
+  return { ...exportPlan(state, source), overscan: 1 };
 }
 
-const full = (w: number, h: number) => ({ x: 0, y: 0, width: w, height: h });
-
-describe('rotatedSize', () => {
-  it('is a no-op at 0°', () => {
-    expect(rotatedSize(800, 600, 0)).toEqual({ width: 800, height: 600 });
+describe('exportPlan', () => {
+  it('refuses to plan before the cropper has measured the photo', () => {
+    expect(() => exportPlan(DEFAULT_STATE, SOURCE)).toThrow();
   });
 
-  it('swaps the axes at 90° and 270°', () => {
-    for (const deg of [90, 270]) {
-      const { width, height } = rotatedSize(800, 600, deg);
-      expect(width).toBeCloseTo(600);
-      expect(height).toBeCloseTo(800);
+  it('at rest, saves the centred square at the photo’s own resolution', () => {
+    const plan = exact(editor());
+    expect([plan.outW, plan.outH]).toEqual([1200, 1200]);
+    expect(outputToSource(plan, 0, 0)).toEqual({ x: 200, y: 0 });
+    expect(outputToSource(plan, 1200, 1200)).toEqual({ x: 1400, y: 1200 });
+  });
+
+  it('saves what the preview frames: a pan moves the sample by the same amount', () => {
+    // Photo dragged 50 display px right → the frame sees 50 px further left.
+    const plan = exact(editor({ type: 'SET_CROP', crop: { x: 50, y: 0 } }));
+    const centre = outputToSource(plan, plan.outW / 2, plan.outH / 2);
+    expect(centre.x).toBeCloseTo(800 - 50 * 4, 6);
+    expect(centre.y).toBeCloseTo(600, 6);
+  });
+
+  it('mirrors on flip and turns the right way on a quarter turn', () => {
+    const flipped = exact(editor({ type: 'FLIP_H' }));
+    expect(outputToSource(flipped, 0, 0).x).toBeCloseTo(1400, 6);
+
+    // Rotated 90° clockwise, the new top-left is the old bottom-left.
+    const turned = exact(editor({ type: 'ROTATE_CW' }));
+    const tl = outputToSource(turned, 0, 0);
+    expect(tl.x).toBeCloseTo(200, 6);
+    expect(tl.y).toBeCloseTo(1200, 6);
+  });
+
+  it('never samples outside the photo, whatever the edit', () => {
+    let seed = 11;
+    const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+    for (let i = 0; i < 2000; i++) {
+      const actions: Action[] = [];
+      for (let r = Math.floor(rand() * 4); r > 0; r--) actions.push({ type: 'ROTATE_CW' });
+      actions.push({ type: 'SET_STRAIGHTEN', degrees: rand() * 90 - 45 });
+      if (rand() < 0.5) actions.push({ type: 'FLIP_H' });
+      if (rand() < 0.5) actions.push({ type: 'FLIP_V' });
+      actions.push({ type: 'SET_ZOOM', zoom: rand() * 6 });
+      actions.push({ type: 'SET_CROP', crop: { x: (rand() - 0.5) * 3000, y: (rand() - 0.5) * 3000 } });
+      expect(planCovered(exact(editor(...actions)))).toBe(true);
     }
   });
 
-  it('grows to the enclosing box at 45°', () => {
-    const { width, height } = rotatedSize(800, 600, 45);
-    const expected = (800 + 600) / Math.SQRT2;
-    expect(width).toBeCloseTo(expected);
-    expect(height).toBeCloseTo(expected);
-  });
-});
-
-describe('exportGeometry', () => {
-  it('throws until the cropper has reported an area', () => {
-    expect(() => exportGeometry(800, 600, DEFAULT_STATE)).toThrow(
-      /No crop area/,
-    );
+  it('caps the saved photo’s long edge', () => {
+    const big = { width: 4000, height: 3000 };
+    const plan = exportPlan(editor(), big);
+    expect(Math.max(plan.outW, plan.outH)).toBe(MAX_OUTPUT_EDGE);
   });
 
-  it('makes the intermediate buffer the image itself when unrotated', () => {
-    // The regression: an unedited photo must map 1:1, with no offset between
-    // the crop origin and the image origin.
-    const g = exportGeometry(
-      800,
-      600,
-      stateWith({ croppedAreaPixels: full(800, 600) }),
-    );
-    expect(g.fit).toBe(1);
-    expect(g.bboxW).toBe(800);
-    expect(g.bboxH).toBe(600);
-    expect(g.drawW).toBe(800);
-    expect(g.drawH).toBe(600);
-    expect([g.cropX, g.cropY, g.cropW, g.cropH]).toEqual([0, 0, 800, 600]);
-  });
-
-  it('keeps a full-frame crop flush with the buffer at every angle', () => {
-    // A crop covering the whole bounding box must land exactly on it — any
-    // gap is the black banding, any overhang is the off-centre framing.
-    for (const rotation of [0, 90, 180, 270]) {
-      const box = rotatedSize(800, 600, rotation);
-      const g = exportGeometry(
-        800,
-        600,
-        stateWith({
-          rotation,
-          croppedAreaPixels: full(
-            Math.round(box.width),
-            Math.round(box.height),
-          ),
-        }),
-      );
-      expect(g.cropX + g.cropW).toBeCloseTo(g.bboxW, 0);
-      expect(g.cropY + g.cropH).toBeCloseTo(g.bboxH, 0);
-    }
-  });
-
-  it('folds straighten into the rotation', () => {
-    const g = exportGeometry(
-      800,
-      600,
-      stateWith({ rotation: 90, straighten: -15, croppedAreaPixels: full(1, 1) }),
-    );
-    expect(g.rotationRad).toBeCloseTo((75 * Math.PI) / 180);
-    const box = rotatedSize(800, 600, 75);
-    expect(g.bboxW).toBeCloseTo(box.width);
-    expect(g.bboxH).toBeCloseTo(box.height);
-  });
-
-  it('scales image, box and crop by one shared factor past the area cap', () => {
-    // 4032×3024 rotated 45° needs a ~5000² box — over the browser cap, which
-    // renders blank and exports as solid black. Everything must shrink together
-    // or the crop drifts out of the (now smaller) buffer.
-    const g = exportGeometry(
-      4032,
-      3024,
-      stateWith({
-        rotation: 45,
-        croppedAreaPixels: { x: 1000, y: 900, width: 2000, height: 2000 },
-      }),
-    );
-    expect(g.fit).toBeLessThan(1);
-    expect(g.bboxW * g.bboxH).toBeLessThanOrEqual(16_000_000);
-    expect(g.drawW / 4032).toBeCloseTo(g.fit);
-    expect(g.cropX).toBeCloseTo(1000 * g.fit);
-    expect(g.cropY).toBeCloseTo(900 * g.fit);
-    expect(g.cropW).toBeCloseTo(2000 * g.fit);
-    expect(g.cropH).toBeCloseTo(2000 * g.fit);
-  });
-
-  it('leaves normal-sized photos untouched', () => {
-    const g = exportGeometry(
-      1280,
-      960,
-      stateWith({ rotation: 45, croppedAreaPixels: full(600, 600) }),
-    );
-    expect(g.fit).toBe(1);
+  it('overscans by a hairline so an edge-aligned frame can’t leave a seam', () => {
+    const plan = exportPlan(editor(), SOURCE);
+    expect(plan.overscan).toBeGreaterThan(1);
+    expect(plan.overscan).toBeLessThan(1.01);
   });
 });

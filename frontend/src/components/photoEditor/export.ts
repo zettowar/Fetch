@@ -1,6 +1,6 @@
-import type { EditorState } from './editorState';
+import { totalRotation, frameOf, type EditorState } from './editorState';
+import type { Point, Size } from './coverage';
 import { toFilterString } from './presets';
-import { loadImage } from './thumbnail';
 import { applyPixelAdjustments, hasPixelAdjustments } from './pixelOps';
 import {
   applyColorMatrix,
@@ -8,168 +8,161 @@ import {
   isIdentityMatrix,
 } from './colorMatrix';
 
-/** Bounding box of a `w`×`h` rectangle rotated by `deg`. This is
- *  react-easy-crop's own `rotateSize` — reproduced here because the box it
- *  returns IS the coordinate space `croppedAreaPixels` is expressed in. */
-export function rotatedSize(
-  w: number,
-  h: number,
-  deg: number,
-): { width: number; height: number } {
-  const rad = (deg * Math.PI) / 180;
-  return {
-    width: Math.abs(Math.cos(rad) * w) + Math.abs(Math.sin(rad) * h),
-    height: Math.abs(Math.sin(rad) * w) + Math.abs(Math.cos(rad) * h),
-  };
-}
-
-/** Browsers cap total canvas area (Safari/iOS ≈ 16.7M px = 4096²) and silently
- *  render an over-limit canvas BLANK — which `toBlob('image/jpeg')` then
- *  flattens to solid black (JPEG has no alpha). */
-const MAX_CANVAS_AREA = 16_000_000; // px²; conservative across browsers
-
-export interface ExportGeometry {
-  /** Uniform downscale keeping every buffer under `MAX_CANVAS_AREA`; 1 = no-op. */
-  fit: number;
-  /** Source draw size (scaled). */
-  drawW: number;
-  drawH: number;
-  /** Rotated bounding box = the space `croppedAreaPixels` lives in (scaled). */
-  bboxW: number;
-  bboxH: number;
-  /** Crop rect within that bounding box (scaled). */
-  cropX: number;
-  cropY: number;
-  cropW: number;
-  cropH: number;
-  rotationRad: number;
-}
+/** Saved photos are at most this many px on a side (the server's cap too). */
+export const MAX_OUTPUT_EDGE = 1600;
 
 /**
- * Map `state.croppedAreaPixels` onto the buffers the exporter draws into.
+ * How to draw the saved photo: the preview's own transform, at one scale.
  *
- * The one rule that matters: react-easy-crop reports the crop rect relative to
- * the top-left of the media's ROTATED BOUNDING BOX (`computeCroppedArea` →
- * `rotateSize(naturalWidth, naturalHeight, rotation)`), not the raw image and
- * not a diagonal-sized square. The intermediate canvas therefore has to be
- * exactly that bounding box, or every crop lands offset by half the difference
- * — pulling the framing off-centre and dragging empty (→ black) canvas into
- * the result even at rotation 0, where the box is just the image itself.
+ * The editor shows the photo as `translate(offset) rotate(θ) scale(zoom)
+ * flip` about its centre, under a square frame centred in the container.
+ * The export draws exactly that, onto a canvas the size of the frame, with
+ * every display length multiplied by `k` (output px per display px). There
+ * is no crop rectangle to reconstruct and no intermediate canvas — which is
+ * where the old exporter went wrong (its crops landed offset and dragged
+ * empty canvas, flattened to black bands, into saved photos).
  *
- * Pure + exported so the geometry is unit-testable without a real canvas.
+ * `k` is chosen so that at zoom 1 one photo pixel becomes one output pixel,
+ * then capped at MAX_OUTPUT_EDGE. `overscan` enlarges the draw a hair about
+ * the centre: when the frame sits exactly on the photo's edge, that edge's
+ * antialiasing would otherwise blend with empty canvas into a dark seam.
  */
-export function exportGeometry(
-  naturalWidth: number,
-  naturalHeight: number,
-  state: EditorState,
-): ExportGeometry {
-  const area = state.croppedAreaPixels;
-  if (!area) {
-    throw new Error('No crop area — wait for onCropComplete before exporting');
+export interface ExportPlan {
+  outW: number;
+  outH: number;
+  /** Photo-centre offset from the output centre, output px (pre-overscan). */
+  offset: Point;
+  rotationRad: number;
+  flipX: 1 | -1;
+  flipY: 1 | -1;
+  /** Output px per source px (pre-overscan). */
+  scale: number;
+  overscan: number;
+  source: Size;
+}
+
+export function exportPlan(state: EditorState, source: Size, maxEdge = MAX_OUTPUT_EDGE): ExportPlan {
+  const frame = frameOf(state);
+  const media = state.geometry?.media;
+  if (!frame || !media || frame.width <= 0 || media.width <= 0) {
+    throw new Error('The editor hasn’t measured the photo yet');
   }
-  const totalRotDeg = state.rotation + state.straighten;
-
-  // Scale the whole pipeline down uniformly if the bounding box would blow the
-  // canvas-area cap (a full-res 4032×3024 phone photo rotated 45° needs a
-  // ~5040² ≈ 25M-px box). `area` is in that same space, so it scales with it.
-  const raw = rotatedSize(naturalWidth, naturalHeight, totalRotDeg);
-  const fit = Math.min(1, Math.sqrt(MAX_CANVAS_AREA / (raw.width * raw.height)));
-
+  const displayPerSource = media.width / source.width;
+  // 1 source px → 1 output px at zoom 1, unless that would exceed the cap.
+  let k = 1 / (state.zoom * displayPerSource);
+  const longest = Math.max(frame.width, frame.height) * k;
+  if (longest > maxEdge) k *= maxEdge / longest;
+  const outW = Math.max(1, Math.round(frame.width * k));
+  const outH = Math.max(1, Math.round(frame.height * k));
+  // Re-derive the scale from the rounded canvas, so the canvas is the frame
+  // exactly — rounding up half a pixel would otherwise reach past the frame,
+  // and past the photo when the frame sits on its edge.
+  k = outW / frame.width;
   return {
-    fit,
-    drawW: naturalWidth * fit,
-    drawH: naturalHeight * fit,
-    bboxW: raw.width * fit,
-    bboxH: raw.height * fit,
-    cropX: area.x * fit,
-    cropY: area.y * fit,
-    cropW: area.width * fit,
-    cropH: area.height * fit,
-    rotationRad: (totalRotDeg * Math.PI) / 180,
+    outW,
+    outH,
+    offset: { x: state.crop.x * k, y: state.crop.y * k },
+    rotationRad: (totalRotation(state) * Math.PI) / 180,
+    flipX: state.flipH ? -1 : 1,
+    flipY: state.flipV ? -1 : 1,
+    scale: state.zoom * k * displayPerSource,
+    overscan: 1 + 2 / Math.min(outW, outH),
+    source,
   };
 }
 
+/** Where an output pixel samples the source photo (source px, origin top-left). */
+export function outputToSource(plan: ExportPlan, ox: number, oy: number): Point {
+  // Undo, in reverse: centre + overscan, offset, rotation, flip, scale.
+  let x = (ox - plan.outW / 2) / plan.overscan - plan.offset.x;
+  let y = (oy - plan.outH / 2) / plan.overscan - plan.offset.y;
+  const c = Math.cos(-plan.rotationRad);
+  const s = Math.sin(-plan.rotationRad);
+  [x, y] = [c * x - s * y, s * x + c * y];
+  x = (x * plan.flipX) / plan.scale + plan.source.width / 2;
+  y = (y * plan.flipY) / plan.scale + plan.source.height / 2;
+  return { x, y };
+}
+
+/** True when all four output corners sample inside the source photo. */
+export function planCovered(plan: ExportPlan, eps = 1e-6): boolean {
+  return [
+    [0, 0],
+    [plan.outW, 0],
+    [plan.outW, plan.outH],
+    [0, plan.outH],
+  ].every(([ox, oy]) => {
+    const p = outputToSource(plan, ox, oy);
+    return p.x >= -eps && p.y >= -eps && p.x <= plan.source.width + eps && p.y <= plan.source.height + eps;
+  });
+}
+
+function draw(ctx: CanvasRenderingContext2D, source: CanvasImageSource, plan: ExportPlan) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, plan.outW, plan.outH);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.translate(plan.outW / 2, plan.outH / 2);
+  ctx.scale(plan.overscan, plan.overscan);
+  ctx.translate(plan.offset.x, plan.offset.y);
+  ctx.rotate(plan.rotationRad);
+  ctx.scale(plan.flipX * plan.scale, plan.flipY * plan.scale);
+  ctx.drawImage(source, -plan.source.width / 2, -plan.source.height / 2, plan.source.width, plan.source.height);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+/** Every pixel on the four edges fully opaque — the photo covers the canvas. */
+function edgesOpaque(ctx: CanvasRenderingContext2D, w: number, h: number): boolean {
+  const strips = [
+    ctx.getImageData(0, 0, w, 1),
+    ctx.getImageData(0, h - 1, w, 1),
+    ctx.getImageData(0, 0, 1, h),
+    ctx.getImageData(w - 1, 0, 1, h),
+  ];
+  for (const { data } of strips) {
+    for (let i = 3; i < data.length; i += 4) if (data[i] < 255) return false;
+  }
+  return true;
+}
+
 /**
- * Turn the editor state + the full-resolution source into a finished JPEG
- * blob ready to POST to the server. Runs once when the user taps "Done".
+ * Turn the editor state and its working image into the JPEG that gets
+ * uploaded. `source` must be the very image the cropper displayed (same
+ * pixels, same size) — the editor hands over its working canvas.
  *
- * Pipeline, in order:
- *   1. Load the full-res image.
- *   2. Compose rotation (90° snaps) + straighten (−45..45°) + flips into an
- *      intermediate canvas the size of the rotated bounding box — the space
- *      `croppedAreaPixels` is measured in (see `exportGeometry`).
- *   3. Crop that rotated buffer onto the output canvas (no `ctx.filter` —
- *      Safari's canvas filter is a no-op for canvas sources, which silently
- *      dropped every filter/adjustment from saved photos).
- *   4. In one read-modify-write pass over the output buffer, bake in the
- *      color filters (preset + brightness/contrast/saturation) as a color
- *      matrix (see `colorMatrix.ts`) and the per-pixel adjustments (warmth,
- *      highlights, shadows, vignette) from `pixelOps.ts`. Warmth and tone are
- *      kept out of the color matrix so they aren't applied twice.
- *   5. Export as JPEG at 0.92 quality.
+ * The frame can't leave the photo (coverage.ts keeps it on), and two checks
+ * here make sure of it anyway: the plan's corners are tested mathematically,
+ * then the drawn edges are tested pixel by pixel. If either finds daylight,
+ * the draw is nudged in and retried; if that still fails the export throws,
+ * because uploading a photo with a black edge is worse than asking the person
+ * to try again.
  */
 export async function renderEditedBlob(
-  src: string,
+  source: HTMLCanvasElement,
   state: EditorState,
 ): Promise<Blob> {
-  const img = await loadImage(src);
-  const {
-    drawW,
-    drawH,
-    bboxW,
-    bboxH,
-    cropX,
-    cropY,
-    cropW,
-    cropH,
-    rotationRad,
-  } = exportGeometry(img.naturalWidth, img.naturalHeight, state);
+  const plan = exportPlan(state, { width: source.width, height: source.height });
+  for (let i = 0; i < 40 && !planCovered(plan); i++) plan.overscan *= 1.002;
 
-  // Intermediate canvas === the rotated bounding box, so the crop rect can be
-  // used verbatim. Round the *canvas* up but keep the transform on the exact
-  // (unrounded) centre — that's the origin react-easy-crop measured from.
-  const rot = document.createElement('canvas');
-  rot.width = Math.max(1, Math.ceil(bboxW));
-  rot.height = Math.max(1, Math.ceil(bboxH));
-  const rctx = rot.getContext('2d');
-  if (!rctx) throw new Error('Canvas 2D unavailable');
-  rctx.imageSmoothingEnabled = true;
-  rctx.imageSmoothingQuality = 'high';
-
-  rctx.translate(bboxW / 2, bboxH / 2);
-  rctx.rotate(rotationRad);
-  rctx.scale(state.flipH ? -1 : 1, state.flipV ? -1 : 1);
-  rctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
-
-  // Output canvas sized to the (scaled) crop region. Anything the crop pulls in
-  // from outside the image (rotated corners) stays transparent and flattens to
-  // black on JPEG encode — matching the editor's black preview background.
   const out = document.createElement('canvas');
-  out.width = Math.max(1, Math.round(cropW));
-  out.height = Math.max(1, Math.round(cropH));
-  const octx = out.getContext('2d');
-  if (!octx) throw new Error('Canvas 2D unavailable');
-  octx.imageSmoothingEnabled = true;
-  octx.imageSmoothingQuality = 'high';
-  // No octx.filter here on purpose — color filters are baked in by the matrix
-  // pass below so the result is identical across browsers (see colorMatrix.ts).
-  octx.drawImage(
-    rot,
-    cropX,
-    cropY,
-    cropW,
-    cropH,
-    0,
-    0,
-    out.width,
-    out.height,
-  );
+  out.width = plan.outW;
+  out.height = plan.outH;
+  const ctx = out.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('Canvas 2D unavailable');
 
-  // Single read-modify-write pass: color filters first (preset +
-  // brightness/contrast/saturation, as a color matrix), then the per-pixel
-  // adjustments (warmth/highlights/shadows/vignette). Warmth and tone are
-  // excluded from the matrix string so they aren't applied twice. Skip the
-  // O(n) loop entirely when nothing is set.
+  draw(ctx, source, plan);
+  for (let i = 0; i < 6 && !edgesOpaque(ctx, plan.outW, plan.outH); i++) {
+    plan.overscan *= 1.004;
+    draw(ctx, source, plan);
+  }
+  if (!edgesOpaque(ctx, plan.outW, plan.outH)) {
+    throw new Error('Couldn’t frame that photo cleanly. Zoom in a little and try again.');
+  }
+
+  // One read-modify-write pass for the look: colour filters (preset +
+  // brightness/contrast/saturation) as a colour matrix, then the per-pixel
+  // adjustments. No ctx.filter: Safari ignores it for canvas sources, which
+  // once silently dropped every filter from saved photos.
   const colorMatrix = filterStringToColorMatrix(
     toFilterString(state.filter, state.adjustments, {
       warmthInCss: false,
@@ -184,18 +177,15 @@ export async function renderEditedBlob(
     vignette: state.adjustments.vignette,
   };
   if (needsColor || hasPixelAdjustments(pixelAdj)) {
-    const imgData = octx.getImageData(0, 0, out.width, out.height);
+    const imgData = ctx.getImageData(0, 0, plan.outW, plan.outH);
     if (needsColor) applyColorMatrix(imgData, colorMatrix);
     if (hasPixelAdjustments(pixelAdj)) applyPixelAdjustments(imgData, pixelAdj);
-    octx.putImageData(imgData, 0, 0);
+    ctx.putImageData(imgData, 0, 0);
   }
 
   return new Promise<Blob>((resolve, reject) => {
     out.toBlob(
-      (blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error('Canvas toBlob failed'));
-      },
+      (blob) => (blob ? resolve(blob) : reject(new Error('Couldn’t save that photo. Try again.'))),
       'image/jpeg',
       0.92,
     );

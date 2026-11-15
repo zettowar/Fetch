@@ -1,12 +1,10 @@
 import asyncio
-import io
 from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
 from fastapi.responses import Response
 from fastapi.concurrency import run_in_threadpool
-from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +17,7 @@ from app.models.user import User
 from app.schemas.photo import PhotoOut
 from app.services.moderation import check_image
 from app.services.primary_photo import reassign_primary_photo
+from app.services.image_processing import ImageRejected, process_image
 from app.storage import generate_storage_key, get_storage
 
 logger = structlog.stdlib.get_logger()
@@ -65,51 +64,23 @@ MAX_DIMENSION = 1600
 def _process_upload(
     data: bytes, fallback_content_type: str | None
 ) -> tuple[str, bytes, tuple[int, int]]:
-    """Validate, resize and re-encode an upload. Runs in a worker thread.
+    """Validate, orient, resize and re-encode an upload. Runs in a worker
+    thread. The work is ``services.image_processing.process_image`` — shared
+    with rescue images — and a rejection becomes a 400 here.
 
-    Returns ``(content_type, encoded_bytes, (width, height))``. Raises
-    ``HTTPException`` for anything the client got wrong, exactly as before —
-    Starlette propagates it out of the threadpool unchanged.
+    Returns ``(content_type, encoded_bytes, (width, height))``.
     """
     try:
-        img = Image.open(io.BytesIO(data))
-        img.verify()
-        img = Image.open(io.BytesIO(data))  # re-open after verify
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid image file")
-
-    content_type = f"image/{img.format.lower()}" if img.format else fallback_content_type
-    if content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP are allowed")
-
-    # Checked from the header, before any pixel data is materialised.
-    width, height = img.size
-    if width * height > MAX_PIXELS:
-        raise HTTPException(
-            status_code=400,
-            detail="Image dimensions are too large (over 30 megapixels)",
+        out = process_image(
+            data,
+            max_dim=MAX_DIMENSION,
+            max_pixels=MAX_PIXELS,
+            allowed_types=ALLOWED_TYPES,
+            fallback_content_type=fallback_content_type,
         )
-
-    # Image.resize() returns a copy with format=None, so capture the source
-    # format before scaling or every large upload would fall back to JPEG
-    # (500ing on RGBA PNGs and storing mislabeled bytes otherwise).
-    save_format = (img.format or "JPEG").upper()
-
-    img = _resize_image(img, MAX_DIMENSION)
-
-    buf = io.BytesIO()
-    if save_format == "WEBP":
-        if img.mode == "P":
-            img = img.convert("RGBA")
-        img.save(buf, format="WEBP", quality=85)
-    elif save_format == "PNG":
-        img.save(buf, format="PNG")
-    else:
-        if img.mode not in ("RGB", "L", "CMYK"):
-            img = img.convert("RGB")
-        img.save(buf, format="JPEG", quality=85)
-    buf.seek(0)
-    return content_type, buf.read(), img.size
+    except ImageRejected as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return out.content_type, out.data, (out.width, out.height)
 
 
 def _cached_image(
@@ -125,19 +96,6 @@ def _cached_image(
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers=headers)
     return Response(content=data, media_type=media_type, headers=headers)
-
-
-def _resize_image(img: Image.Image, max_dim: int) -> Image.Image:
-    w, h = img.size
-    if w <= max_dim and h <= max_dim:
-        return img
-    if w > h:
-        new_w = max_dim
-        new_h = int(h * max_dim / w)
-    else:
-        new_h = max_dim
-        new_w = int(w * max_dim / h)
-    return img.resize((new_w, new_h), Image.LANCZOS)
 
 
 @router.post("/pets/{pet_id}/photos", response_model=PhotoOut, status_code=status.HTTP_201_CREATED)

@@ -29,7 +29,7 @@ export default function PetProfileCard({ pet, showEdit, rank }: PetProfileCardPr
         aria-label={`View ${pet.name}`}
         className="absolute inset-0 z-[1] rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-brand-500"
       />
-      <div className="relative aspect-[4/3] border-b-2 border-navy bg-gray-100 dark:border-white/15 dark:bg-night-raised">
+      <div className="relative aspect-square border-b-2 border-navy bg-gray-100 dark:border-white/15 dark:bg-night-raised">
         {photoUrl ? (
           <img
             src={photoUrl}

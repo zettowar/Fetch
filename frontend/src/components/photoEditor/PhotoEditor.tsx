@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import Cropper, { type Area } from 'react-easy-crop';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import Cropper, { type MediaSize } from 'react-easy-crop';
 import toast from 'react-hot-toast';
 import {
-  ASPECT_RATIOS,
   DEFAULT_STATE,
+  MAX_ZOOM,
   editorReducer,
+  frameOf,
   isDirty,
+  minZoomOf,
+  totalRotation,
 } from './editorState';
 import { toFilterString } from './presets';
-import { buildPreviewUrl } from './thumbnail';
+import { prepareWorkingImage, type WorkingImage } from './thumbnail';
 import { renderEditedBlob } from './export';
+import PawSpinner from '../flair/PawSpinner';
 import CropPanel from './CropPanel';
 import AdjustPanel from './AdjustPanel';
 import FilterPanel from './FilterPanel';
@@ -26,25 +30,49 @@ export default function PhotoEditor({
   onCancel,
 }: PhotoEditorProps) {
   const [state, dispatch] = useReducer(editorReducer, DEFAULT_STATE);
-  const [previewSrc, setPreviewSrc] = useState(imageSrc);
+  const [work, setWork] = useState<WorkingImage | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null);
 
-  // Downscale the source once for the Cropper preview. Full-res stays
-  // untouched until Done.
+  // One working image for the whole session — upright, capped, and the same
+  // pixels the export draws from. The cropper waits for it rather than
+  // starting on the original and swapping mid-edit.
   useEffect(() => {
     let cancelled = false;
-    buildPreviewUrl(imageSrc, 1280)
-      .then((url) => {
-        if (!cancelled) setPreviewSrc(url);
+    let made: WorkingImage | null = null;
+    prepareWorkingImage(imageSrc)
+      .then((w) => {
+        made = w;
+        if (cancelled) URL.revokeObjectURL(w.url);
+        else setWork(w);
       })
       .catch(() => {
-        // On failure fall back to the original — correctness over speed.
-        if (!cancelled) setPreviewSrc(imageSrc);
+        if (cancelled) return;
+        toast.error("Couldn't open that photo. Try another one.");
+        onCancel();
       });
     return () => {
       cancelled = true;
+      if (made) URL.revokeObjectURL(made.url);
     };
+    // onCancel is a parent callback; re-running on its identity would
+    // rebuild the working image mid-edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageSrc]);
+
+  // The stage the cropper fills. Its size decides the frame, so it's watched.
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      dispatch({ type: 'SET_CONTAINER', container: { width: r.width, height: r.height } });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [work]);
 
   // Esc closes (matches native dialog behavior). Doesn't fire during confirm
   // so we don't drop a half-finished export.
@@ -59,9 +87,8 @@ export default function PhotoEditor({
     return () => window.removeEventListener('keydown', onKey);
   }, [confirming, onCancel]);
 
-  const onCropComplete = useCallback((_: Area, areaPixels: Area) => {
-    dispatch({ type: 'SET_CROPPED_AREA', area: areaPixels });
-  }, []);
+  const frame = frameOf(state);
+  const minZoom = minZoomOf(state);
 
   // CSS filter for the live preview: warmth + tone use approximations so
   // the sliders visibly move, but the export pipeline turns these off to
@@ -112,16 +139,12 @@ export default function PhotoEditor({
   }, [state.adjustments.vignette]);
 
   const handleConfirm = async () => {
-    if (!state.croppedAreaPixels) return;
+    if (!work || !frame) return;
     setConfirming(true);
     try {
-      // Export off the SAME image the cropper measured against (previewSrc).
-      // croppedAreaPixels lives in that image's coordinate space, so exporting
-      // from the full-res original would (a) mis-map the crop and (b) on large
-      // photos build a canvas past the browser's size limit, which Safari
-      // renders blank → a JPEG of that flattens to solid black. previewSrc is
-      // the untouched original for images already under the 1280px cap.
-      const blob = await renderEditedBlob(previewSrc, state);
+      // Drawn from the working canvas — the same pixels the cropper showed —
+      // with the preview's own transform (see export.ts).
+      const blob = await renderEditedBlob(work.canvas, state);
       onConfirm(blob);
     } catch (err) {
       const message =
@@ -157,7 +180,7 @@ export default function PhotoEditor({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={confirming || !state.croppedAreaPixels}
+            disabled={confirming || !work || !frame}
             className="btn btn-primary btn-sm"
           >
             {confirming && (
@@ -172,17 +195,30 @@ export default function PhotoEditor({
       </div>
 
       {/* Preview */}
-      <div className="relative flex-1 min-h-0">
+      <div ref={stageRef} className="relative flex-1 min-h-0">
+        {!work ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <PawSpinner label="Opening your photo" />
+          </div>
+        ) : (
         <Cropper
-          image={previewSrc}
+          image={work.url}
           crop={state.crop}
           zoom={state.zoom}
-          rotation={state.rotation + state.straighten}
+          rotation={totalRotation(state)}
           transform={mediaTransform}
-          aspect={ASPECT_RATIOS[state.aspect]}
+          // Square, always: the shape every photo is shown in. The frame is
+          // ours (fixed while straightening), and zoom can't drop below the
+          // point where the photo covers it — see coverage.ts.
+          aspect={1}
+          cropSize={frame ?? undefined}
+          minZoom={minZoom}
+          maxZoom={Math.max(MAX_ZOOM, minZoom)}
           onCropChange={(crop) => dispatch({ type: 'SET_CROP', crop })}
           onZoomChange={(zoom) => dispatch({ type: 'SET_ZOOM', zoom })}
-          onCropComplete={onCropComplete}
+          setMediaSize={(m: MediaSize) =>
+            dispatch({ type: 'SET_MEDIA', media: { width: m.width, height: m.height } })
+          }
           showGrid={state.showGrid}
           objectFit="contain"
           style={{
@@ -201,6 +237,7 @@ export default function PhotoEditor({
             },
           }}
         />
+        )}
       </div>
 
       {/* Tool tray */}
@@ -215,7 +252,7 @@ export default function PhotoEditor({
           <FilterPanel
             state={state}
             dispatch={dispatch}
-            imageSrc={previewSrc}
+            imageSrc={work?.url ?? imageSrc}
           />
         )}
       </div>

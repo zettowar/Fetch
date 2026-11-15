@@ -259,7 +259,7 @@ export default function PetDetailPage() {
           src={heroPhotoUrl}
           alt={pet.name}
           ref={photoIn}
-          className="photo-in block w-full h-60 object-cover cursor-pointer"
+          className="photo-in block aspect-square w-full object-cover cursor-pointer"
           onClick={openHeroLightbox}
         />
       ) : isOwner ? (
@@ -272,7 +272,7 @@ export default function PetDetailPage() {
         </div>
       ) : (
         <div
-          className="flex h-60 w-full items-end justify-center"
+          className="flex aspect-square w-full items-end justify-center"
           style={{ background: portraitTint(portraitFor(pet.species, pet.breed_display, pet.id)) }}
         >
           <PetPortrait

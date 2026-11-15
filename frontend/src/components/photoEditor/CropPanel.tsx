@@ -1,15 +1,6 @@
 import { useId } from 'react';
-import type { Action, AspectKey, EditorState } from './editorState';
-import { ASPECT_RATIOS } from './editorState';
-
-const ASPECTS: { key: AspectKey; label: string }[] = [
-  { key: '1:1', label: '1:1' },
-  { key: '4:5', label: '4:5' },
-  { key: '3:4', label: '3:4' },
-  { key: '16:9', label: '16:9' },
-  { key: '9:16', label: '9:16' },
-  { key: 'free', label: 'Free' },
-];
+import type { Action, EditorState } from './editorState';
+import { MAX_ZOOM, minZoomOf } from './editorState';
 
 interface Props {
   state: EditorState;
@@ -36,27 +27,9 @@ function flipActionForVisualAxis(
 export default function CropPanel({ state, dispatch }: Props) {
   const straightenId = useId();
   const zoomId = useId();
+  const minZoom = minZoomOf(state);
   return (
     <div className="flex flex-col gap-3 px-4 py-3">
-      {/* Aspect ratio chips */}
-      <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1">
-        {ASPECTS.map((a) => (
-          <button
-            key={a.key}
-            type="button"
-            onClick={() => dispatch({ type: 'SET_ASPECT', aspect: a.key })}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full border-[1.5px] text-xs font-extrabold font-mono transition-colors ${
-              state.aspect === a.key
-                ? 'border-navy bg-brand-500 text-navy'
-                : 'border-white/15 bg-white/10 text-biscuit hover:bg-white/20'
-            }`}
-            aria-pressed={state.aspect === a.key}
-          >
-            {a.label}
-          </button>
-        ))}
-      </div>
-
       {/* Transform icon row */}
       <div className="flex items-center justify-around rounded-2xl border border-white/10 bg-night-surface py-2">
         <IconButton
@@ -154,8 +127,8 @@ export default function CropPanel({ state, dispatch }: Props) {
         <input
           id={zoomId}
           type="range"
-          min={1}
-          max={5}
+          min={minZoom}
+          max={Math.max(MAX_ZOOM, minZoom)}
           step={0.01}
           value={state.zoom}
           onChange={(e) =>
@@ -165,11 +138,10 @@ export default function CropPanel({ state, dispatch }: Props) {
         />
       </div>
 
-      <p className="text-2xs text-biscuit/50 text-center">
-        Aspect: {state.aspect === 'free' ? 'Free' : state.aspect}
-        {ASPECT_RATIOS[state.aspect] !== undefined && state.aspect !== 'free'
-          ? ` · ${(ASPECT_RATIOS[state.aspect] as number).toFixed(2)}`
-          : ''}
+      {/* Why there's no aspect choice, and why straightening zooms. */}
+      <p className="text-2xs text-biscuit/60 text-center text-balance">
+        Square, the shape your pet appears in everywhere. Straightening zooms in
+        so the frame stays on the photo.
       </p>
     </div>
   );

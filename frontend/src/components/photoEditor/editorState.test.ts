@@ -15,19 +15,32 @@ describe('editorReducer', () => {
     expect(out.crop).toEqual({ x: 10, y: -5 });
   });
 
-  it('clamps zoom to [1, 5]', () => {
+  it('clamps zoom to [1, 5] at rest', () => {
     const lo = editorReducer(DEFAULT_STATE, { type: 'SET_ZOOM', zoom: 0.1 });
     expect(lo.zoom).toBe(1);
     const hi = editorReducer(DEFAULT_STATE, { type: 'SET_ZOOM', zoom: 99 });
     expect(hi.zoom).toBe(5);
   });
 
-  it('changing aspect resets crop + zoom (prevents out-of-bounds)', () => {
-    const start: EditorState = { ...DEFAULT_STATE, crop: { x: 50, y: 50 }, zoom: 2.5 };
-    const out = editorReducer(start, { type: 'SET_ASPECT', aspect: '4:5' });
-    expect(out.aspect).toBe('4:5');
-    expect(out.crop).toEqual({ x: 0, y: 0 });
-    expect(out.zoom).toBe(1);
+  it('once measured, keeps the frame on the photo: zooms in to straighten, pulls a pan back', () => {
+    let s = [
+      { type: 'SET_MEDIA', media: { width: 400, height: 300 } } as const,
+      { type: 'SET_CONTAINER', container: { width: 400, height: 600 } } as const,
+    ].reduce(editorReducer, DEFAULT_STATE);
+    expect(s.zoom).toBe(1);
+    s = editorReducer(s, { type: 'SET_STRAIGHTEN', degrees: 10 });
+    expect(s.zoom).toBeGreaterThan(1);
+    // Zooming back out stops at the minimum that still covers the frame.
+    const out = editorReducer(s, { type: 'SET_ZOOM', zoom: 1 });
+    expect(out.zoom).toBeCloseTo(s.zoom, 9);
+    // A wild pan lands on the nearest offset that keeps the frame covered.
+    const pan = editorReducer(s, { type: 'SET_CROP', crop: { x: 900, y: 0 } });
+    expect(pan.crop.x).toBeLessThan(100);
+  });
+
+  it('re-centres on a quarter turn', () => {
+    const start: EditorState = { ...DEFAULT_STATE, crop: { x: 40, y: 0 } };
+    expect(editorReducer(start, { type: 'ROTATE_CW' }).crop).toEqual({ x: 0, y: 0 });
   });
 
   it('rotates clockwise and wraps at 360', () => {
@@ -77,7 +90,7 @@ describe('editorReducer', () => {
     expect(u.adjustments.saturation).toBe(-40);
   });
 
-  it('RESET wipes everything but keeps the current tab', () => {
+  it('RESET wipes the edit but keeps the current tab and the measurements', () => {
     let s: EditorState = { ...DEFAULT_STATE, tab: 'filter', rotation: 90 };
     s = editorReducer(s, { type: 'FLIP_H' });
     s = editorReducer(s, { type: 'SET_FILTER', filter: 'vivid' });

@@ -395,6 +395,34 @@ everywhere. When the primary photo is deleted or rejected,
 `services/primary_photo.reassign_primary_photo` hands the slot to the next
 approved photo instead of leaving it empty.
 
+## Photos: one shape, one transform (the pipeline is the product)
+
+Every pet photo goes picker → editor → server → square frames, and each step
+holds one rule. They exist because each was once broken in production.
+
+- **One working image** (`photoEditor/thumbnail.ts → prepareWorkingImage`):
+  the picked file is redrawn once through a canvas (EXIF orientation baked
+  in, transparency flattened onto white, long edge ≤1600) and the cropper
+  shows exactly that image while the export draws from the same canvas. The
+  editor used to start on the original and swap to a downscale mid-edit.
+- **Square only.** No aspect choice — the frame you crop is the frame the app
+  shows (profile hero, share page, pet cards, grids are square; the swipe
+  card shows ~90% of the square).
+- **The frame stays on the photo** (`photoEditor/coverage.ts`). react-easy-crop
+  only keeps the frame inside the photo's rotated *bounding box*, which has
+  empty corners once straightened — those became black triangles. The
+  reducer normalises after every action: zoom ≥ `minZoomToCover`, offset =
+  nearest legal one (`clampOffset`). Property-tested.
+- **Export = the preview's transform** (`photoEditor/export.ts`): drawn
+  `translate·rotate·flip·scale` at one scale onto a frame-sized canvas — no
+  crop rectangle to reconstruct (the old exporter's offset crops are the
+  black bands in early photos). Corners are checked mathematically, then the
+  edge pixels for opacity; it throws rather than upload a black edge.
+- **Server** (`services/image_processing.py`, used for pet photos, sighting
+  photos, rescue logos/covers): applies EXIF orientation *before* stripping
+  metadata (stripping alone stored phone photos sideways), flattens alpha on
+  white for JPEG, converts CMYK to RGB, keeps the ICC profile.
+
 ## Personality traits (free-form + admin-curated)
 
 Traits are **not** a fixed enum. Owners type whatever they like in the pet
