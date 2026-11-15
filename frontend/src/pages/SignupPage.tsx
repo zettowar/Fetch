@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { signup } from '../api/auth';
 import { lookupInvite } from '../api/publicSite';
 import { useAuth } from '../store/AuthContext';
-import AuthHero from '../components/AuthHero';
+import AuthHero, { AUTH_CARD, AUTH_LINK } from '../components/AuthHero';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
@@ -81,11 +81,8 @@ export default function SignupPage() {
       />
 
       {/* Form card */}
-      <div className="px-5 mt-8">
-        <form
-          onSubmit={handleSubmit}
-          className="w-full max-w-sm mx-auto bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-soft-lg flex flex-col gap-4"
-        >
+      <div className="px-1 sm:px-5 mt-7">
+        <form onSubmit={handleSubmit} className={`${AUTH_CARD} flex flex-col gap-4`}>
           <Input
             label="Display name"
             placeholder="Your name"
@@ -124,8 +121,8 @@ export default function SignupPage() {
             <p
               className={`text-xs ${
                 inviteNotice
-                  ? 'text-red-500 dark:text-red-400'
-                  : 'text-gray-400 dark:text-gray-500'
+                  ? 'font-semibold text-danger-700 dark:text-danger-300'
+                  : 'text-gray-500 dark:text-gray-400'
               }`}
             >
               {inviteNotice ?? 'Required while Fetchpawz is in private beta.'}
@@ -136,26 +133,27 @@ export default function SignupPage() {
             Create account
           </Button>
 
-          <p className="text-2xs text-center text-gray-400 dark:text-gray-500 leading-snug">
+          <p className="text-2xs text-center text-gray-500 dark:text-gray-400 leading-snug">
             By creating an account you agree to the{' '}
-            <Link to="/terms" className="underline hover:text-gray-600 dark:hover:text-gray-300">Terms</Link>
+            <Link to="/terms" className="font-bold underline hover:text-navy dark:hover:text-biscuit">Terms</Link>
             {' '}and{' '}
-            <Link to="/privacy" className="underline hover:text-gray-600 dark:hover:text-gray-300">Privacy Policy</Link>
+            <Link to="/privacy" className="font-bold underline hover:text-navy dark:hover:text-biscuit">Privacy Policy</Link>
             , and to be a good pet person.
           </p>
         </form>
 
         <SSOButtons />
 
-        <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-300">
           Already have an account?{' '}
-          <Link to="/login" className="text-brand-600 font-semibold hover:text-brand-700 hover:underline">
+          <Link to="/login" className={AUTH_LINK}>
             Log in
           </Link>
         </p>
-        <p className="mt-2 text-center text-xs text-gray-400 dark:text-gray-500">
+        <p className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
           Are you a rescue?{' '}
-          <Link to="/signup-rescue" className="font-medium text-purple-600 dark:text-purple-400 hover:underline">
+          {/* Rescue is Forever Pink's job. */}
+          <Link to="/signup-rescue" className="font-bold text-pink-700 dark:text-pink-300 hover:underline">
             Apply here →
           </Link>
         </p>

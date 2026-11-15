@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MailX } from 'lucide-react';
 import { unsubscribe, type UnsubscribeResult } from '../api/publicSite';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { Spinner } from '../components/ui/Skeleton';
+import BrandIcon from '../components/brand/BrandIcon';
 
 /**
  * Where the footer "Unsubscribe" link lands.
@@ -35,25 +35,30 @@ export default function UnsubscribePage() {
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center">
       {!result && !failed ? (
-        <Spinner className="mx-auto h-8 w-8" />
+        <Spinner size="lg" className="justify-center" />
       ) : (
         <>
-          <MailX
-            size={40}
-            className="mx-auto text-gray-400 dark:text-gray-500"
-            aria-hidden
-          />
-          <h1 className="mt-4 text-2xl font-bold tracking-tight">
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 text-navy dark:bg-brand-500/20 dark:text-biscuit">
+            <BrandIcon name="mail" size={32} />
+          </span>
+          {/* Done is good news (Bagel); a dead link or an outage is the calm,
+              plain register. */}
+          <h1
+            className={`mt-5 text-navy dark:text-biscuit text-balance ${
+              done ? 'text-[32px] leading-tight' : 'font-plain text-2xl'
+            }`}
+          >
             {done
               ? "You're unsubscribed"
               : invalid
                 ? 'That link has expired'
                 : "Something went wrong"}
           </h1>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">
+          <p className="mt-2 text-gray-600 dark:text-gray-300">
             {done ? (
               <>
-                You won&rsquo;t get <strong>{result.label?.toLowerCase()}</strong>{' '}
+                You won&rsquo;t get{' '}
+                <strong className="font-extrabold text-navy dark:text-biscuit">{result.label?.toLowerCase()}</strong>{' '}
                 from us any more. Account and security emails &mdash; password
                 resets, email verification &mdash; still come through.
               </>
@@ -63,17 +68,11 @@ export default function UnsubscribePage() {
               'We could not reach the server. Please try the link again in a moment.'
             )}
           </p>
-          <div className="mt-6 flex justify-center gap-2">
-            <Link
-              to="/app/notifications"
-              className="inline-flex items-center rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-            >
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Link to="/app/notifications" className="btn btn-primary">
               Notification settings
             </Link>
-            <Link
-              to="/"
-              className="inline-flex items-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-            >
+            <Link to="/" className="btn btn-secondary">
               Back to Fetchpawz
             </Link>
           </div>

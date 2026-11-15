@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import Map from './Map';
+import { useEffect, useId, useState } from 'react';
+import Map, { MAP_PIN } from './Map';
 import { DEFAULT_MAP_CENTER } from '../utils/useUserLocation';
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
   /** Map fallback center when no value is picked. Defaults to SF. */
   fallbackCenter?: [number, number]; // [lng, lat]
   heightClass?: string;
-  /** Color used for the marker + circle. Default amber. */
+  /** Color used for the marker + circle. Default Ball Orange (the search area). */
   accentColor?: string;
 }
 
@@ -36,8 +36,9 @@ export default function LocationPicker({
   onRadiusChange,
   fallbackCenter = DEFAULT_FALLBACK,
   heightClass = 'h-64',
-  accentColor = '#f59e0b',
+  accentColor = MAP_PIN.play,
 }: Props) {
+  const radiusLabelId = useId();
   // Prompt the browser for location on mount if we don't already have one.
   const [requestedGeo, setRequestedGeo] = useState(false);
   useEffect(() => {
@@ -78,7 +79,7 @@ export default function LocationPicker({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className={`w-full ${heightClass} overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700`}>
+      <div className={`w-full ${heightClass} overflow-hidden rounded-2xl border border-gray-200 dark:border-white/10`}>
         <Map
           center={center}
           zoom={zoom}
@@ -91,15 +92,17 @@ export default function LocationPicker({
         />
       </div>
 
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+      <p className="text-xs text-gray-600 dark:text-gray-300">
         {value ? (
           <>
-            <span className="font-medium text-gray-700 dark:text-gray-300">Pinned: </span>
-            {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
+            <span className="font-extrabold text-navy dark:text-biscuit">Pinned: </span>
+            <span className="font-mono">
+              {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
+            </span>
             <button
               type="button"
               onClick={() => onChange(null)}
-              className="ml-3 text-brand-500 hover:underline"
+              className="ml-3 font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit"
             >
               Clear
             </button>
@@ -112,28 +115,25 @@ export default function LocationPicker({
       {onRadiusChange && (
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search radius</label>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span id={radiusLabelId} className="field-label">Search radius</span>
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
               {radiusMeters != null ? formatRadius(radiusMeters) : '—'}
             </span>
           </div>
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap" role="group" aria-labelledby={radiusLabelId}>
             {RADIUS_PRESETS.map((p) => (
               <button
                 key={p.meters}
                 type="button"
                 onClick={() => onRadiusChange(p.meters)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  radiusMeters === p.meters
-                    ? 'bg-brand-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
+                aria-pressed={radiusMeters === p.meters}
+                className={`chip ${radiusMeters === p.meters ? 'chip-on' : 'hover:bg-gray-50 dark:hover:bg-night-surface'}`}
               >
                 {p.label}
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+          <p className="text-2xs text-gray-500 dark:text-gray-400">
             The orange circle on the map shows the area you're asking others to search.
             Also controls how much coordinates are fuzzed on the public map for your privacy.
           </p>

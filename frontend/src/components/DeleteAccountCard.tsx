@@ -39,8 +39,10 @@ export default function DeleteAccountCard() {
   });
 
   return (
-    <Card className="border-danger-200 dark:border-danger-500/30">
-      <h2 className="text-base font-bold tracking-tight text-danger-700 dark:text-danger-300">
+    // The calm register: a plain panel and navy ink. Red is kept for the one
+    // destructive control, not the card around it.
+    <Card>
+      <h2 className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit">
         Close your account
       </h2>
       <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300">
@@ -105,7 +107,7 @@ export default function DeleteAccountCard() {
               Close account
             </Button>
           </div>
-          <p className="text-2xs text-gray-400 dark:text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Need your data removed entirely rather than deactivated? Email
             support and we&rsquo;ll handle it.
           </p>

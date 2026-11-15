@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { PawPrint } from 'lucide-react';
 import { getExplorePets } from '../api/pets';
 import { useSpeciesFilter, filterToSpecies } from '../hooks/useSpeciesFilter';
 import SpeciesTabs from '../components/SpeciesTabs';
@@ -12,6 +11,8 @@ import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import FollowButton from '../components/FollowButton';
 import Button from '../components/ui/Button';
+import PageHeader from '../components/ui/PageHeader';
+import PetPortrait from '../components/brand/PetPortrait';
 import type { Pet } from '../types';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
@@ -35,9 +36,10 @@ function ExploreCard({ pet, index }: { pet: Pet; index: number }) {
         // Stagger only within a freshly loaded page; index resets per page
         delay: Math.min((index % PAGE_SIZE) * 0.03, 0.25),
       }}
-      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-soft-sm overflow-hidden flex flex-col"
+      // A pet card is a thing you touch: navy line and the small toy shadow.
+      className="bg-white dark:bg-night-surface rounded-2xl border-2 border-navy dark:border-white/15 shadow-toy-sm overflow-hidden flex flex-col"
     >
-      <Link to={`/app/pets/${pet.id}`} className="block relative group">
+      <Link to={`/app/pets/${pet.id}`} className="block relative group overflow-hidden border-b-2 border-navy dark:border-white/15">
         {hero ? (
           <img
             src={hero}
@@ -46,9 +48,13 @@ function ExploreCard({ pet, index }: { pet: Pet; index: number }) {
             className="w-full aspect-square object-cover transition-transform duration-300 ease-soft-out group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="w-full aspect-square bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 flex items-center justify-center">
-            <span className="text-5xl opacity-40">{pet.species === 'cat' ? '🐱' : '🐶'}</span>
-          </div>
+          <PetPortrait
+            species={pet.species}
+            breed={pet.breed_display}
+            seed={pet.id}
+            background
+            className="block w-full aspect-square"
+          />
         )}
       </Link>
       <div className="p-3 flex flex-col gap-2 flex-1">
@@ -56,18 +62,18 @@ function ExploreCard({ pet, index }: { pet: Pet; index: number }) {
           <div className="flex items-baseline gap-2">
             <Link
               to={`/app/pets/${pet.id}`}
-              className="font-semibold text-gray-900 dark:text-gray-100 truncate hover:text-brand-600 transition-colors"
+              className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit truncate hover:underline decoration-brand-500 decoration-2 underline-offset-2"
             >
               {pet.name}
             </Link>
             {age && (
-              <span className="text-2xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+              <span className="text-2xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                 {age}
               </span>
             )}
           </div>
           {pet.breed_display && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{pet.breed_display}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-300 truncate">{pet.breed_display}</p>
           )}
         </div>
         <div className="mt-auto pt-1">
@@ -162,23 +168,22 @@ export default function ExplorePage() {
 
   return (
     <div className="p-4 pb-8">
-      <div className="flex items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <PawPrint size={20} aria-hidden className="text-brand-500" /> Explore the Pack
-        </h1>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => refetch()}
-          loading={isFetching && !isLoading && !isFetchingNextPage}
-          aria-label="Shuffle"
-        >
-          Shuffle
-        </Button>
-      </div>
-      <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">
-        Meet new pets from the community. Follow the ones you love.
-      </p>
+      <PageHeader
+        title="Explore the pack"
+        subtitle="Meet new pets from the community. Follow the ones you love."
+        className="mb-3"
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => refetch()}
+            loading={isFetching && !isLoading && !isFetchingNextPage}
+            aria-label="Shuffle"
+          >
+            Shuffle
+          </Button>
+        }
+      />
       <div className="mb-5">
         <SpeciesTabs />
       </div>
@@ -202,8 +207,8 @@ export default function ExplorePage() {
           title="No pets to explore yet"
           body="Check back once more pets join the pack."
           action={
-            <Link to="/app/pets/new">
-              <Button size="sm">Add your pet</Button>
+            <Link to="/app/pets/new" className="btn btn-primary btn-sm">
+              Add your pet
             </Link>
           }
         />
@@ -229,8 +234,8 @@ export default function ExplorePage() {
           )}
 
           {!hasNextPage && (
-            <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
-              You've met the whole pack. 🐾
+            <p className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 mt-6">
+              You've met the whole pack.
             </p>
           )}
         </>

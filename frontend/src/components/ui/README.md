@@ -1,77 +1,132 @@
-# Fetchpawz UI conventions
+# Fetchpawz UI conventions (Brand Book, Edition 2)
 
-The one-page contract for styling app code. When in doubt, copy what a
-shared component does — don't hand-roll.
+The one-page contract for styling app code. The brand book is the source;
+this is how it lands in Tailwind. When in doubt, copy what a shared
+component does — don't hand-roll.
 
-## Type scale
+## Colour: every colour has one job
+
+The stock Tailwind palettes are re-pointed at the brand in
+`tailwind.config.js`, so old classes already land on brand colours. Use the
+names below in new code.
+
+| Name | Hex | Job |
+|---|---|---|
+| `brand-500` / `orange-500` | #FF6A1F Ball Orange | Play: the primary button, the like, the mark, selected states |
+| `navy` | #1C1F45 Leash Navy | Ink: text, outlines, the toy shadow |
+| `gold-500` | #FFC233 Crown Gold | **Earned only**: crowns, ranks, this week's winners. Never decoration, never a sale |
+| `pink-500` | #FF5C93 Forever Pink | **Rescue only**: a pet who needs a home, rescues, adoption |
+| `green-500` | #22B07A Off-Leash Green | Real world: parks, verified, found, "I can help" |
+| `biscuit` | #FFF2E3 | The page. `night` (#11132E) after dark |
+| `danger-500` | #D0313D | Errors and destructive actions only. **A lost pet is not an error** |
+| `gray-*` | navy ink scale | Muted ink: `text-gray-600` muted, `text-gray-500` meta |
+
+Rules:
+- **Navy on colour.** Text on any colour fill is `text-navy`. White on Ball
+  Orange fails contrast — never `bg-brand-500 text-white`. (Danger solid is
+  the one fill with white text.)
+- **No gradients.** Flat fills only: `bg-brand-500`, `bg-white`, tints like
+  `bg-brand-100`.
+- Surfaces: page `bg-biscuit dark:bg-night` (the shell does this), panels
+  `bg-white dark:bg-night-surface`, raised `dark:bg-night-raised`, hairline
+  `border-gray-200 dark:border-white/10`. The `.surface` class is the panel.
+- Ink: primary `text-navy dark:text-biscuit`, muted `text-gray-600
+  dark:text-gray-300`, meta `text-gray-500 dark:text-gray-400`.
+- Every light class needs its dark partner.
+
+## Type
 
 | Role | Classes |
 |---|---|
-| Page title (h1) | `text-2xl font-bold tracking-tight` (use `<PageHeader>`) |
-| Section heading (h2) | `text-lg font-bold tracking-tight` (use `<SectionHeader>`) |
-| Card title | `text-base font-semibold` |
-| Body | `text-sm` |
-| Meta / captions | `text-xs text-gray-500 dark:text-gray-400` |
-| Micro (badge counts) | `text-2xs` |
+| Page title (h1) | Bagel Fat One 28px — `<PageHeader>` (h1 is Bagel globally) |
+| Calm title | `<PageHeader plain>` / `font-plain` — Lost & Found, security, errors |
+| Section heading (h2) | `text-lg font-extrabold` — `<SectionHeader>` |
+| Pet names, ranks, big numbers | `font-display` (Bagel), **24px and up** only |
+| Card title | `text-base font-extrabold` |
+| Body | `text-sm`/`text-[15px]` Figtree |
+| Eyebrow / field label | `.eyebrow` / `.field-label` (11px caps) |
+| Codes (tags, invites, hex) | `font-mono` (DM Mono) |
 
-No arbitrary sizes: `text-[10px]`/`text-[11px]` → `text-2xs`, `text-[13px]`
-→ `text-xs`, `text-[15px]` → `text-sm`/`text-base` by role.
+Bagel has one weight: never pair `font-display` with `font-bold`. Sentence
+case everywhere. No exclamation marks in errors.
 
-## Radius, padding, shadows
+## Shape
 
-- Cards & sheets `rounded-2xl` · inputs & md buttons `rounded-xl` · sm
-  buttons `rounded-lg` · pills/avatars/icon buttons `rounded-full`
-- Card padding steps: `p-3` dense · `p-4` default · `p-5` roomy (the
-  `<Card padding>` prop)
-- Shadows: resting `shadow-soft-sm` · hover/elevated `shadow-soft` ·
-  overlays `shadow-soft-lg` · brand CTA hover `shadow-brand-glow`.
-  `shadow-md` is deprecated in app code.
+- Radius: `rounded-lg` 10 (inputs, tiles) · `rounded-2xl` 20 (panels) ·
+  `rounded-3xl` 28 (cards, sheets) · `rounded-full` (buttons, chips, avatars).
+- **Objects you touch** (pet cards, swipe cards, interactive tiles) get a
+  2–2.5px navy line and the toy shadow: `.toy`, `shadow-toy` (3px right, 4px
+  down) or `<Card interactive>`. **Panels stay flat** (hairline, no shadow).
+- Buttons sit on a navy ledge: `shadow-ledge`. Never soft glows.
 
-## Semantic colors
+## Buttons and links that look like buttons
 
-`success` (emerald), `warning` (amber), `danger` (red), `info` (sky) are
-full palette aliases in tailwind.config.js. Recipes:
+`<Button variant size loading>` or, on a `<Link>`, the same classes:
+`className="btn btn-primary"` · `btn-secondary` · `btn-ghost` · `btn-danger`
+· `btn-rescue` (pink, rescue features only) · `btn-park` (green, parks and
+"I can help") · sizes `btn-sm` / `btn-lg` · icon-only `btn-icon` · `btn-paper` (white in
+both themes, for buttons on an orange or pink band).
+Inline links: `.link` (navy, orange underline) or the deep link orange
+`text-brand-700 dark:text-brand-400` (the brand book's link colour, AA on
+white and Biscuit) — never Ball Orange (`brand-500`) text on a light ground.
+`<textarea>` and `<select>`: `.field` (the `<Input>` look).
+**One `btn-primary` per screen.**
 
-- Solid: `bg-{tone}-500 text-white` (hover `-600`, active `-700`)
-- Tint (badges, banners): `bg-{tone}-100 text-{tone}-700
-  dark:bg-{tone}-500/15 dark:text-{tone}-300` (warning uses `-800` light)
-- Border accent: `border-{tone}-200 dark:border-{tone}-500/30`
+## Chips, segments, badges
 
-New code uses semantic names; migrate raw `red/amber/emerald/sky` classes
-only when touching a file anyway.
+- Traits and filters: `.chip` (white, navy line, punched hole), picked
+  `.chip chip-on` (orange), "add your own" `.chip chip-add`.
+- One-of-a-few: `.seg` with children; the picked one gets `seg-on`
+  (or `aria-selected`/`aria-pressed`).
+- `<Badge variant>`: `success` verified/approved/found · `warning` pending ·
+  `danger` suspended/urgent (never lost) · `info` · `neutral` · `brand` ·
+  `gold` earned (#3 in Hamilton, Top Pet) · `rescue` needs a home ·
+  `missing` a lost pet (navy, orange dot) · `review` held for review (dashed).
+- Ranks: `<RankMedal rank>` (`components/brand`) — gold only for #1.
 
-## Icons (lucide-react)
+## Brand art (`components/brand`)
 
-- Named imports only: `import { Bell } from 'lucide-react'`
-- Sizes: inline with text / inside buttons `16` · top-bar 32px icon
-  buttons `18` · tab bar `26` (strokeWidth 2; 2.5 + `fill="currentColor"`
-  when active)
-- Icons are always `aria-hidden`; the accessible name lives on the parent.
-- Emoji stays only for personality: copy, celebrations, marketing.
+- `<Lockup>` mark + drawn wordmark; `<Wordmark>`; `PawMark` is the Crown Paw
+  (`simple` below 24px). The name is drawn — never set "Fetchpawz" in a font
+  as a logo.
+- `<BrandIcon name>` — the 36 drawn icons (24 grid, 2px stroke, one bean).
+  Use them for features, tabs, tiles and empty states. Lucide is fine for
+  minor controls (chevrons, x, more) because it matches the grid and stroke.
+- `<PetPortrait species breed seed>` — the 39-breed cast (artwork loads lazily
+  from `portraitData.ts`; ids and tints in `portraitIndex.ts`), for a pet with no
+  photo, marketing, and placeholders.
+- `<Crown>` — the drawn crown (winners only).
+
+## The calm register (Lost & Found)
+
+Missing pets get plain type: `<PageHeader plain>`, Figtree only, flat cards,
+no tilt, no toy shadow, no doodles, no jokes, no exclamation marks. Missing =
+`<Badge variant="missing">`; found/sighting/"I can help" = green. Never
+danger red. Pins sit inside a privacy circle, never on a house.
+
+## No emoji in UI
+
+No emoji in labels, headings, buttons, tiles, toasts or empty states — they
+render differently on every phone and can't take our colours. Use a
+`<BrandIcon>` or nothing. (A push notification may carry one.)
 
 ## States
 
-- Loading: grids → `CardSkeleton` · row lists → `ListSkeleton` · maps →
-  `PawSpinner` in a floating `.glass` pill · full-page → `PawSpinner`
-- Empty: `<EmptyState illustration=…>` — sleeping = nothing yet ·
-  sniffing = search found nothing · ball = liked/social · digging =
-  lost & found / 404 · howling = alerts
-- Error: `<ErrorState onRetry>` (digging dog by default)
-
-## Badges
-
-`<Badge variant>` semantics: success = active/approved/verified ·
-warning = pending/attention · danger = urgent/suspended/lost ·
-info = informational · brand = traits/features · neutral = everything else.
+- Loading: grids → `CardSkeleton` · row lists → `ListSkeleton` · full-page
+  and maps → `PawSpinner` (the paw-step beans)
+- Empty: `<EmptyState illustration=…>` — a doodle, one bold line, one plain
+  line, one button. sleeping = nothing yet · sniffing = nothing found ·
+  ball = success · digging = error/404 · howling = alerts
+- Error: `<ErrorState onRetry>`
+- Toasts: navy, bottom, four seconds. What happened first, what it means
+  second.
 
 ## Motion
 
-- Tappable cards: `<Card interactive>` (or `hover-lift pressable`)
-- Icon buttons: `active:scale-95`
-- Celebrations: `usePawBurst()` — fire on likes/wins/creations; it
-  no-ops under reduced motion automatically.
-- All CSS keyframes are neutralized globally by the reduced-motion rule
-  in index.css; gate JS-driven framer loops on `useReducedMotion()`.
+- Ease `ease-soft-out` for UI, `ease-bounce` for game objects only.
+- `animate-wag` on a like, `animate-crown-drop` once a week for winners,
+  `animate-tail-wag` is the logo's own move.
+- Celebrations: `usePawBurst()`; it no-ops under reduced motion.
 
 ## Component index
 

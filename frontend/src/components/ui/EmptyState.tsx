@@ -13,14 +13,13 @@ interface EmptyStateProps {
 }
 
 /**
- * Consistent empty-state block for list pages and sections.
- * - Centered with soft background card
- * - Optional pet illustration (preferred) or leading emoji/icon
- * - Optional action (usually a Link wrapping a Button)
+ * The brand empty state: a doodle, one bold line, one plain line, one
+ * button. Never a dead end.
  *
- * Illustration guide: sleeping = nothing here yet · sniffing = search/
- * filter found nothing · ball = liked/social · digging = lost & found /
- * error · howling = alerts.
+ * Doodle guide: sleeping = nothing here yet · sniffing = search/filter found
+ * nothing · ball = success / liked · digging = error, 404 · howling = alerts.
+ * Prefer `illustration`; `icon` remains for the few places without one and
+ * should be a drawn icon, not an emoji.
  */
 export default function EmptyState({
   icon,
@@ -33,23 +32,23 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 py-10 px-6 text-center ${className}`}
+      className={`rounded-2xl bg-white dark:bg-night-surface border border-gray-200 dark:border-white/10 py-9 px-6 text-center ${className}`}
     >
       {illustration ? (
         <PetIllustration
           name={illustration}
           species={species}
-          className="mx-auto mb-4 h-28 w-auto text-gray-400 dark:text-gray-500"
+          className="mx-auto mb-3 h-28 w-auto"
         />
       ) : (
         icon && (
-          <div className="text-4xl mb-3 leading-none" aria-hidden>
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-3xl leading-none text-navy dark:bg-brand-500/20 dark:text-brand-200" aria-hidden>
             {icon}
           </div>
         )
       )}
-      <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{title}</p>
-      {body && <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-snug">{body}</div>}
+      <p className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit text-balance">{title}</p>
+      {body && <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-snug text-balance max-w-xs mx-auto">{body}</div>}
       {action && <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">{action}</div>}
     </div>
   );

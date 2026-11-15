@@ -13,7 +13,8 @@ interface Particle {
   colorClass: string;
 }
 
-const COLORS = ['text-brand-400', 'text-brand-500', 'text-amber-400'];
+// Orange beans with a few in ink: the like, landing. Gold stays for crowns.
+const COLORS = ['text-brand-500', 'text-brand-400', 'text-navy dark:text-biscuit'];
 
 /**
  * Celebration burst of paw prints — likes, weekly wins, adoption
@@ -69,7 +70,7 @@ export function usePawBurst() {
             animate={{ x: p.x, y: p.y, scale: p.scale, opacity: 0, rotate: p.rotate }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: p.delay }}
           >
-            <PawMark decorative className="h-4 w-4" />
+            <PawMark decorative simple className="h-4 w-4" />
           </motion.span>
         ))}
       </span>

@@ -4,13 +4,37 @@
 
 @layer base {
   :root {
-    --brand: 238 122 16;
-    --success: 16 185 129; /* emerald-500 */
-    --warning: 245 158 11; /* amber-500 */
-    --danger: 239 68 68; /* red-500 */
-    --info: 14 165 233; /* sky-500 */
-    --toast-bg: rgb(17 24 39 / 0.92);
-    --toast-border: rgb(255 255 255 / 0.08);
+    /* Brand book, Edition 2. Channels (r g b) so Tailwind can add alpha. */
+    --brand: 255 106 31; /* Ball Orange */
+    --navy: 28 31 69; /* Leash Navy */
+    --success: 34 176 122; /* Off-Leash Green */
+    --warning: 255 194 51; /* Crown Gold */
+    --danger: 208 49 61; /* Danger — errors only, never Lost & Found */
+    --info: 28 31 69;
+    --toy-shadow: 28 31 69; /* the hard 3/4px nudge */
+    /* Hex aliases for SVG art (icons, doodles, portraits). */
+    --orange: #ff6a1f;
+    --gold: #ffc233;
+    --pink: #ff5c93;
+    --green: #22b07a;
+    --ink: #1c1f45;
+    --paper: #fff2e3;
+    /* The doodles' pen and fur flip with the page. */
+    --pen: #1c1f45;
+    --fur-dog: #ffe4d1;
+    --fur-cat: #e3e4f0;
+    --toast-bg: #1c1f45;
+    --toast-fg: #fff2e3;
+    --toast-border: rgb(255 242 227 / 0.08);
+  }
+  html.dark {
+    --toy-shadow: 5 6 26;
+    --pen: #fff2e3;
+    --fur-dog: #4a3326;
+    --fur-cat: #3a3d6e;
+    --toast-bg: #fff2e3;
+    --toast-fg: #1c1f45;
+    --toast-border: rgb(28 31 69 / 0.12);
   }
 
   html {
@@ -25,19 +49,28 @@
     color-scheme: dark;
   }
 
+  /* Biscuit pages, Leash Navy ink. After dark, Night Walk becomes the
+     ground and Biscuit becomes the text. */
   body {
-    @apply font-sans text-gray-900 bg-gray-50;
-    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    @apply font-sans text-navy bg-biscuit;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   html.dark body {
-    @apply text-gray-100 bg-gray-950;
+    @apply bg-night text-biscuit;
   }
 
+  ::selection {
+    background: rgb(255 106 31 / 0.28);
+  }
+
+  /* Page titles are set in the fat one. Bagel Fat One has a single weight,
+     so weight utilities on an h1 must never fake a bold. */
   h1 {
-    @apply tracking-tight;
-    letter-spacing: -0.02em;
+    @apply font-display;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    font-synthesis: none;
   }
 
   h2, h3, h4 {
@@ -51,14 +84,9 @@
   }
 
   :focus-visible {
-    outline: 2px solid rgb(var(--brand) / 0.6);
-    outline-offset: 2px;
-    border-radius: 6px;
-  }
-
-  button:focus-visible,
-  a:focus-visible {
+    outline: 3px solid rgb(var(--brand));
     outline-offset: 3px;
+    border-radius: 6px;
   }
 
   /* Smoother native controls */
@@ -81,6 +109,136 @@
   }
 }
 
+@layer components {
+  /* ── Buttons (Brand Book, The app → Component sheet) ─────────────────
+     Pill, 2px Leash Navy line, sitting on a navy ledge it presses onto.
+     Navy text on every colour fill. One .btn-primary per screen; .btn-rescue
+     (pink) and .btn-park (green) only inside their own features. Use these on
+     <Link>s and anchors; <Button> renders the same classes. */
+  .btn {
+    @apply relative inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border-2 px-5 py-2 text-[15px] font-extrabold leading-tight tracking-tight no-underline transition-[transform,box-shadow,background-color,color,border-color] duration-150 ease-soft-out;
+  }
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    @apply cursor-not-allowed opacity-55 shadow-none;
+    transform: none;
+  }
+  .btn-sm {
+    @apply min-h-[36px] px-3.5 py-1 text-sm;
+  }
+  .btn-lg {
+    @apply min-h-[52px] px-7 py-3 text-lg;
+  }
+  .btn-ledge {
+    @apply border-navy shadow-ledge hover:-translate-y-px hover:shadow-[0_4px_0_0_rgb(var(--toy-shadow))] active:translate-y-[2px] active:shadow-ledge-sm;
+  }
+  .btn-primary {
+    @apply btn-ledge bg-brand-500 text-navy hover:bg-brand-400;
+  }
+  .btn-secondary {
+    @apply btn-ledge bg-white text-navy hover:bg-gray-50 dark:border-biscuit/40 dark:bg-night-surface dark:text-biscuit dark:hover:bg-night-raised;
+  }
+  .btn-danger {
+    @apply btn-ledge bg-danger-500 text-white hover:bg-danger-600;
+  }
+  .btn-rescue {
+    @apply btn-ledge bg-pink-500 text-navy hover:bg-pink-400;
+  }
+  .btn-park {
+    @apply btn-ledge bg-green-500 text-navy hover:bg-green-400;
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent text-gray-700 hover:bg-navy/5 hover:text-navy active:bg-navy/10 dark:text-gray-200 dark:hover:bg-white/10 dark:hover:text-biscuit;
+  }
+  /* A white button that stays white after dark — for buttons sitting on a
+     colour band (orange or pink) that keeps its colour in both themes. */
+  .btn-paper {
+    @apply btn-ledge bg-white text-navy hover:bg-gray-50;
+  }
+  /* Icon-only round control (top bar, card corners). */
+  .btn-icon {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[1.5px] border-navy/25 text-navy transition-colors hover:border-navy hover:bg-white active:scale-95 dark:border-white/25 dark:text-biscuit dark:hover:border-biscuit dark:hover:bg-night-raised;
+  }
+
+  /* ── Chips: collar tags with a hole punched in them ─────────────────
+     Traits and filters. Picked chips fill with Ball Orange. */
+  .chip {
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] border-navy bg-white px-3 py-1 text-sm font-bold text-navy transition-colors dark:border-white/30 dark:bg-night-raised dark:text-biscuit;
+  }
+  .chip::before {
+    content: '';
+    @apply h-2 w-2 shrink-0 rounded-full border-[1.5px] border-current;
+  }
+  .chip-on {
+    @apply bg-brand-500 text-navy dark:border-navy dark:bg-brand-500 dark:text-navy;
+  }
+  .chip-on::before {
+    @apply bg-navy;
+  }
+  .chip-add {
+    @apply border-dashed text-gray-600 dark:text-gray-300;
+  }
+  .chip-add::before {
+    display: none;
+  }
+
+  /* ── Surfaces ────────────────────────────────────────────────────────
+     Panels are flat: white (Night Surface after dark), a hairline, 20px. */
+  .surface {
+    @apply rounded-2xl border border-gray-200 bg-white dark:border-white/10 dark:bg-night-surface;
+  }
+  /* Inline text link: navy ink with an orange underline. (The deep link
+     orange, text-brand-700, is the other option; Ball Orange text on white
+     fails contrast.) */
+  .link {
+    @apply font-extrabold text-navy underline decoration-brand-500 decoration-2 underline-offset-[3px] transition-colors hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit;
+  }
+  /* Field: the <Input> look for <textarea> and <select>. */
+  .field {
+    @apply w-full min-h-[48px] rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy outline-none transition-[border-color,box-shadow] duration-150 placeholder:font-medium placeholder:text-gray-400 hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 disabled:cursor-not-allowed disabled:border-dashed disabled:bg-gray-50 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400;
+  }
+  /* Field label: small caps above the input. */
+  .field-label {
+    @apply text-2xs font-extrabold uppercase tracking-[0.1em] text-gray-600 dark:text-gray-300;
+  }
+  /* Segmented control: one-of-a-few, the picked one in Ball Orange. */
+  .seg {
+    @apply inline-flex gap-1 rounded-full border-[1.5px] border-navy/25 bg-white p-1 dark:border-white/20 dark:bg-night-surface;
+  }
+  .seg > * {
+    @apply rounded-full px-3.5 py-1.5 text-sm font-extrabold text-navy transition-colors dark:text-biscuit;
+  }
+  .seg > *:not(.seg-on):not([aria-selected='true']):not([aria-pressed='true']):hover {
+    @apply bg-navy/5 dark:bg-white/10;
+  }
+  /* A tighter focus ring so it isn't clipped inside a scrolling .seg. */
+  .seg > *:focus-visible {
+    outline-offset: -3px;
+  }
+  .seg > .seg-on,
+  .seg > [aria-selected='true'],
+  .seg > [aria-pressed='true'] {
+    @apply bg-brand-500 text-navy;
+  }
+
+  /* A thing you can touch: 2.5px Leash Navy line and the toy shadow. */
+  .toy {
+    @apply border-[2.5px] border-navy shadow-toy dark:border-night-raised;
+  }
+  /* The calm register (Lost & Found, account security, errors): plain type,
+     no tilt, no toy shadow. Opts a page title out of Bagel. */
+  .font-plain,
+  h1.font-plain {
+    @apply font-sans;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  /* Eyebrow: small caps label above a title or a field. */
+  .eyebrow {
+    @apply text-2xs font-extrabold uppercase tracking-[0.1em] text-gray-600 dark:text-gray-300;
+  }
+}
+
 @layer utilities {
   /*
    * A control that appears when its `.group` is hovered — on devices that can
@@ -100,12 +258,17 @@
     }
   }
 
+  .font-display {
+    font-weight: 400;
+    font-synthesis: none;
+  }
+
   .shimmer {
     background: linear-gradient(
       90deg,
-      rgb(243 244 246) 0%,
-      rgb(229 231 235) 50%,
-      rgb(243 244 246) 100%
+      rgb(28 31 69 / 0.07) 0%,
+      rgb(28 31 69 / 0.13) 50%,
+      rgb(28 31 69 / 0.07) 100%
     );
     background-size: 200% 100%;
     animation: shimmer 1.6s linear infinite;
@@ -113,18 +276,18 @@
   .dark .shimmer {
     background: linear-gradient(
       90deg,
-      rgb(31 41 55) 0%,
-      rgb(55 65 81) 50%,
-      rgb(31 41 55) 100%
+      rgb(255 242 227 / 0.06) 0%,
+      rgb(255 242 227 / 0.12) 50%,
+      rgb(255 242 227 / 0.06) 100%
     );
     background-size: 200% 100%;
   }
   .dark .glass {
-    @apply bg-gray-900/70;
+    @apply bg-night-surface/90;
   }
 
   .glass {
-    @apply bg-white/80 backdrop-blur-md backdrop-saturate-150;
+    @apply bg-biscuit/90 backdrop-blur-md backdrop-saturate-150;
   }
 
   .safe-bottom {
@@ -159,52 +322,48 @@
    `fetch-popup` className on the react-map-gl <Popup>. */
 .fetch-popup .maplibregl-popup-content {
   padding: 0;
-  border-radius: 14px;
-  box-shadow:
-    0 10px 30px -10px rgb(0 0 0 / 0.20),
-    0 4px 12px -4px rgb(0 0 0 / 0.10);
+  border-radius: 20px;
+  box-shadow: 3px 4px 0 0 #1c1f45;
   background: white;
-  border: 1px solid rgb(229 231 235); /* gray-200 */
+  border: 2.5px solid #1c1f45;
   overflow: hidden;
 }
 .fetch-popup .maplibregl-popup-close-button {
   font-size: 22px;
   line-height: 1;
   padding: 4px 10px;
-  color: rgb(107 114 128); /* gray-500 */
+  color: #5d6085;
   background: transparent;
   border: none;
   transition: color 0.15s ease;
 }
 .fetch-popup .maplibregl-popup-close-button:hover {
-  color: rgb(17 24 39); /* gray-900 */
+  color: #1c1f45;
   background: transparent;
 }
 /* Tip shares the popup border color so there's no visible seam. */
 .fetch-popup .maplibregl-popup-tip {
-  border-top-color: white;
-  border-bottom-color: white;
+  border-top-color: #1c1f45;
+  border-bottom-color: #1c1f45;
 }
 
 /* Dark-mode variants — without these the popup body keeps its white
    background while the content inside uses the dark text palette, giving
    light-grey-on-white text that's essentially unreadable. */
 .dark .fetch-popup .maplibregl-popup-content {
-  background: rgb(17 24 39); /* gray-900 */
-  border-color: rgb(31 41 55); /* gray-800 */
-  box-shadow:
-    0 10px 30px -10px rgb(0 0 0 / 0.60),
-    0 4px 12px -4px rgb(0 0 0 / 0.40);
+  background: #1b1e44;
+  border-color: #3a3d6e;
+  box-shadow: 3px 4px 0 0 #05061a;
 }
 .dark .fetch-popup .maplibregl-popup-close-button {
-  color: rgb(156 163 175); /* gray-400 */
+  color: #a9abcb;
 }
 .dark .fetch-popup .maplibregl-popup-close-button:hover {
-  color: rgb(243 244 246); /* gray-100 */
+  color: #fff2e3;
 }
 .dark .fetch-popup .maplibregl-popup-tip {
-  border-top-color: rgb(17 24 39);
-  border-bottom-color: rgb(17 24 39);
+  border-top-color: #3a3d6e;
+  border-bottom-color: #3a3d6e;
 }
 
 /* Tighten MapLibre's navigation-rail look — drop the blue focus ring on
@@ -217,5 +376,6 @@
 .maplibregl-ctrl-group {
   border-radius: 10px !important;
   overflow: hidden;
-  box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.06) !important;
+  border: 2px solid #1c1f45 !important;
+  box-shadow: 2px 3px 0 0 #1c1f45 !important;
 }

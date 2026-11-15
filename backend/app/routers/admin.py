@@ -1478,7 +1478,7 @@ async def approve_photo(
         await notify(
             db, pet.owner_id,
             type="photo_moderated",
-            title=f"A photo of {pet.name} was approved",
+            title=f"{pet.name}'s photo was approved",
             body="It's now visible across Fetchpawz.",
             link=f"/app/pets/{pet.id}",
         )
@@ -1506,7 +1506,7 @@ async def reject_photo(
         await notify(
             db, pet.owner_id,
             type="photo_moderated",
-            title=f"A photo of {pet.name} was removed",
+            title=f"{pet.name}'s photo was removed",
             body="It didn't pass review. You can upload a different one any time.",
             link=f"/app/pets/{pet.id}",
         )

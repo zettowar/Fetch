@@ -10,7 +10,7 @@ describe('Badge', () => {
 
   it('applies the variant tint classes', () => {
     render(<Badge variant="success">Active</Badge>);
-    expect(screen.getByText('Active')).toHaveClass('bg-success-100');
+    expect(screen.getByText('Active')).toHaveClass('bg-success-500');
   });
 
   it('renders a leading icon slot', () => {

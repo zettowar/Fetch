@@ -1,8 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import type React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Camera, ChevronLeft, ChevronRight, Crown, Star, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, X } from 'lucide-react';
+import BrandIcon from '../components/brand/BrandIcon';
+import PetPortrait, { portraitFor, portraitTint } from '../components/brand/PetPortrait';
+import { Crown } from '../components/brand/RankMedal';
 import { getPet, setPrimaryPhoto } from '../api/pets';
 import { deletePhoto } from '../api/photos';
 import { getNearbyParks, checkinPark } from '../api/parks';
@@ -19,7 +23,6 @@ import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
-import PetIllustration from '../components/flair/PetIllustration';
 import { usePawBurst } from '../components/flair/PawBurst';
 import Linkify from '../components/Linkify';
 import TimeAgo from '../components/TimeAgo';
@@ -136,7 +139,7 @@ export default function PetDetailPage() {
   if (isLoading) {
     return (
       <div className="p-4">
-        <Skeleton className="w-full h-56 rounded-none -mx-4 -mt-4 mb-4" />
+        <Skeleton className="w-full h-60 rounded-none -mx-4 -mt-4 mb-4" />
         <Skeleton className="h-7 w-32 mb-2" />
         <Skeleton className="h-4 w-24 mb-4" />
         <Skeleton className="h-16 w-full" />
@@ -182,7 +185,7 @@ export default function PetDetailPage() {
         };
         return (
           <div
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-night/95 flex items-center justify-center"
             onClick={() => setFullscreenIndex(null)}
           >
             <PetPhoto
@@ -228,21 +231,29 @@ export default function PetDetailPage() {
         <img
           src={heroPhotoUrl}
           alt={pet.name}
-          className="w-full h-56 object-cover cursor-pointer"
+          className="w-full h-60 object-cover cursor-pointer border-b-[2.5px] border-navy dark:border-white/15"
           onClick={openHeroLightbox}
         />
       ) : isOwner ? (
-        <div className="w-full bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 p-6">
+        <div className="w-full border-b-[2.5px] border-navy bg-brand-100 p-6 dark:border-white/15 dark:bg-night-surface">
           <div className="flex flex-col items-center py-4">
-            <Camera size={32} aria-hidden className="mb-2 text-brand-400" />
-            <p className="text-sm text-brand-600 font-medium mb-3">Add your first photo</p>
+            <BrandIcon name="camera" size={32} className="mb-2 text-navy dark:text-biscuit" />
+            <p className="text-sm text-navy dark:text-biscuit font-extrabold mb-3">Add your first photo</p>
             <PhotoUploader petId={pet.id} onUploaded={handlePhotoUploaded} />
           </div>
         </div>
       ) : (
-        <div className="w-full h-56 bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 flex flex-col items-center justify-center">
-          <PetIllustration species={pet.species} name="sleeping" className="h-24 w-auto text-brand-300 dark:text-brand-400/60" />
-          <span className="text-sm text-brand-400 mt-2">No photos yet</span>
+        <div
+          className="flex h-60 w-full items-end justify-center border-b-[2.5px] border-navy dark:border-white/15"
+          style={{ background: portraitTint(portraitFor(pet.species, pet.breed_display, pet.id)) }}
+        >
+          <PetPortrait
+            species={pet.species}
+            breed={pet.breed_display}
+            seed={pet.id}
+            className="h-[95%] w-auto"
+            title={`${pet.name}, no photos yet`}
+          />
         </div>
       )}
 
@@ -252,25 +263,28 @@ export default function PetDetailPage() {
         {/* Name + age + actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <h1 className="text-2xl font-bold">{pet.name}</h1>
+            <h1 className="text-[34px] leading-none text-navy dark:text-biscuit">{pet.name}</h1>
             {stats && stats.crown_weeks.length > 0 && (
               <Badge
-                variant="warning"
-                icon={<Crown size={12} />}
+                variant="gold"
+                size="md"
+                className="self-center"
+                icon={<Crown className="w-3.5" />}
                 title={`Top Pet ${stats.crown_weeks.length === 1 ? 'once' : `${stats.crown_weeks.length} times`} — most recently the week of ${stats.crown_weeks[0]}`}
                 aria-label={`Top Pet winner, ${stats.crown_weeks.length} ${stats.crown_weeks.length === 1 ? 'time' : 'times'}`}
               >
                 {stats.crown_weeks.length > 1 ? `×${stats.crown_weeks.length}` : 'Top Pet'}
               </Badge>
             )}
-            {age && <span className="text-sm text-gray-400 dark:text-gray-500">{age}</span>}
+            {age && <span className="text-sm font-bold text-gray-500 dark:text-gray-400">{age}</span>}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleShare}
-              className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+              className="btn btn-ghost btn-sm px-2.5"
               title="Share profile"
             >
+              <BrandIcon name="share" size={16} />
               Share
             </button>
             {!isOwner && (
@@ -280,65 +294,79 @@ export default function PetDetailPage() {
               </span>
             )}
             {isOwner && (
-              <Link
-                to={`/app/pets/${pet.id}/edit`}
-                className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
-              >
+              <Link to={`/app/pets/${pet.id}/edit`} className="btn btn-secondary btn-sm">
                 Edit
               </Link>
             )}
           </div>
         </div>
-        {pet.breed_display && <p className="text-gray-500 dark:text-gray-400">{pet.breed_display}</p>}
+        {pet.breed_display && (
+          <p className="mt-1 font-semibold text-gray-600 dark:text-gray-300">{pet.breed_display}</p>
+        )}
         {stats?.week_rank != null && (
-          <p className="mt-0.5 text-sm font-medium text-brand-600 dark:text-brand-400">
-            #{stats.week_rank} of {stats.week_total} this week · {stats.week_score} ❤️
-          </p>
+          // Three numbers, drawn like the brand book's stat tiles.
+          <div className="mt-3 grid grid-cols-3 gap-2" aria-label={`Rank ${stats.week_rank} of ${stats.week_total} this week, score ${stats.week_score}`}>
+            <div className="surface px-2 py-2 text-center">
+              <p className="font-display text-2xl leading-none text-navy dark:text-biscuit">#{stats.week_rank}</p>
+              <p className="eyebrow mt-1">of {stats.week_total}</p>
+            </div>
+            <div className="surface px-2 py-2 text-center">
+              <p className="font-display text-2xl leading-none text-navy dark:text-biscuit">{stats.week_score}</p>
+              <p className="eyebrow mt-1">score</p>
+            </div>
+            <div className="surface px-2 py-2 text-center">
+              <p className="font-display text-2xl leading-none text-navy dark:text-biscuit">{stats.likes}</p>
+              <p className="eyebrow mt-1">likes</p>
+            </div>
+          </div>
         )}
 
         {pet.adoptable && pet.rescue_name && (
-          <div className="mt-3 rounded-xl border border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10 px-3 py-2 text-sm">
-            <span className="font-semibold text-brand-700 dark:text-brand-300">Adoptable</span>
-            <span className="text-brand-700 dark:text-brand-300"> · available at </span>
-            {pet.rescue_id ? (
-              <Link to={`/app/rescues/${pet.rescue_id}`} className="font-medium text-brand-700 dark:text-brand-300 hover:underline">
-                {pet.rescue_name}
-              </Link>
-            ) : (
-              <span className="font-medium text-brand-700 dark:text-brand-300">{pet.rescue_name}</span>
-            )}
+          <div className="mt-3 flex items-center gap-2 rounded-2xl border-2 border-navy bg-pink-100 px-3 py-2.5 text-sm text-navy dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-biscuit">
+            <Badge variant="rescue">Needs a home</Badge>
+            <span>
+              Available at{' '}
+              {pet.rescue_id ? (
+                <Link to={`/app/rescues/${pet.rescue_id}`} className="font-extrabold hover:underline">
+                  {pet.rescue_name}
+                </Link>
+              ) : (
+                <span className="font-extrabold">{pet.rescue_name}</span>
+              )}
+            </span>
           </div>
         )}
 
         {pet.adopted_at && (
-          <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-            🎉 Adopted {new Date(pet.adopted_at).toLocaleDateString()}
+          <div className="mt-3 flex items-center gap-2 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface px-3 py-2.5 text-sm text-navy dark:text-biscuit">
+            <BrandIcon name="rescue" size={18} />
+            Adopted {new Date(pet.adopted_at).toLocaleDateString()}
             {pet.rescue_name ? ` — from ${pet.rescue_name}` : ''}
           </div>
         )}
         {pet.bio && (
-          <p className="text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-wrap leading-relaxed">
+          <p className="text-navy/85 dark:text-biscuit/85 mt-3 whitespace-pre-wrap leading-relaxed">
             <Linkify>{pet.bio}</Linkify>
           </p>
         )}
         {pet.traits && pet.traits.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
+          <div className="flex flex-wrap gap-1.5 mt-3">
             {pet.traits.map((t) => (
-              <Badge key={t} variant="brand" size="md">
+              <span key={t} className="chip">
                 {t}
-              </Badge>
+              </span>
             ))}
           </div>
         )}
 
-        <div className="flex items-center gap-3 mt-1">
+        <div className="flex items-center gap-3 mt-3">
           <Link
             to={`/app/users/${pet.owner_id}`}
-            className="text-sm text-brand-500 hover:underline"
+            className="text-sm font-extrabold text-brand-700 dark:text-brand-400 hover:underline"
           >
             Owner profile
           </Link>
-          <span className="text-xs text-gray-400 dark:text-gray-500">Added <TimeAgo value={pet.created_at} /></span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">Added <TimeAgo value={pet.created_at} /></span>
           {!isOwner && (
             <ReportButton
               targetType="pet"
@@ -354,24 +382,25 @@ export default function PetDetailPage() {
           <div className="mt-4">
             <button
               onClick={() => showCheckinPicker ? setShowCheckinPicker(false) : handleOpenCheckinPicker()}
-              className="text-sm text-brand-500 font-medium hover:underline"
+              className={showCheckinPicker ? 'btn btn-ghost btn-sm' : 'btn btn-park btn-sm'}
             >
-              {showCheckinPicker ? 'Cancel' : '+ Check in to a park'}
+              {!showCheckinPicker && <BrandIcon name="park" size={16} style={{ '--bean': '#1C1F45' } as React.CSSProperties} />}
+              {showCheckinPicker ? 'Cancel' : 'Check in to a park'}
             </button>
             {showCheckinPicker && (
               <div className="mt-2 flex flex-col gap-2">
                 {nearbyParks.length === 0 ? (
-                  <p className="text-sm text-gray-400 dark:text-gray-500">No parks found nearby</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No parks found nearby</p>
                 ) : (
                   nearbyParks.map((park) => (
                     <button
                       key={park.id}
                       onClick={() => checkinMutation.mutate(park.id)}
                       disabled={checkinMutation.isPending}
-                      className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl text-sm hover:border-brand-300 transition-colors text-left"
+                      className="flex items-center justify-between px-3 py-2 bg-white dark:bg-night-surface border-2 border-navy/20 dark:border-white/15 rounded-xl text-sm hover:border-green-500 transition-colors text-left"
                     >
-                      <span className="font-medium">{park.name}</span>
-                      {park.address && <span className="text-xs text-gray-400 dark:text-gray-500 truncate ml-2">{park.address}</span>}
+                      <span className="font-extrabold">{park.name}</span>
+                      {park.address && <span className="text-xs text-gray-500 dark:text-gray-400 truncate ml-2">{park.address}</span>}
                     </button>
                   ))
                 )}
@@ -383,8 +412,8 @@ export default function PetDetailPage() {
         {/* Photo gallery */}
         {hasPhotos && (
           <div className="mt-4">
-            <h2 className="text-lg font-semibold mb-2">
-              Photos <span className="text-gray-400 dark:text-gray-500 font-normal">({pet.photos.length})</span>
+            <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">
+              Photos <span className="text-gray-500 dark:text-gray-400 font-bold">({pet.photos.length})</span>
             </h2>
             {isOwner && reviewCount > 0 && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -402,7 +431,7 @@ export default function PetDetailPage() {
                     <button
                       type="button"
                       onClick={() => setFullscreenIndex(idx)}
-                      className="block w-full aspect-square rounded-lg overflow-hidden ring-1 ring-gray-100 hover:ring-2 hover:ring-brand-400 focus-visible:ring-2 focus-visible:ring-brand-500 transition-all active:scale-[0.98]"
+                      className="block w-full aspect-square rounded-lg overflow-hidden border-2 border-navy dark:border-white/20 transition-transform hover:-translate-y-px active:translate-y-[2px]"
                       aria-label={`View photo ${idx + 1} fullscreen`}
                     >
                       <PetPhoto
@@ -422,8 +451,8 @@ export default function PetDetailPage() {
                           <button
                             className={`absolute top-1 right-1 rounded-full w-6 h-6 flex items-center justify-center text-xs transition-opacity shadow ${
                               isPrimary
-                                ? 'bg-brand-500 text-white opacity-100'
-                                : 'bg-white/80 text-gray-400 dark:text-gray-500 reveal-on-hover hover:text-brand-500'
+                                ? 'border-[1.5px] border-navy bg-brand-500 text-navy opacity-100'
+                                : 'border-[1.5px] border-navy/30 bg-white/90 text-gray-600 reveal-on-hover hover:text-navy'
                             }`}
                             title={isPrimary ? 'Primary photo' : 'Set as primary'}
                             aria-label={isPrimary ? 'Primary photo' : 'Set as primary'}
@@ -436,7 +465,7 @@ export default function PetDetailPage() {
                           </button>
                         )}
                         <button
-                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs bg-white/80 text-gray-400 dark:text-gray-500 reveal-on-hover hover:text-danger-500 dark:hover:text-danger-400 transition-opacity shadow"
+                          className="absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center text-xs border-[1.5px] border-navy/30 bg-white/90 text-gray-600 reveal-on-hover hover:text-danger-600 transition-opacity"
                           title="Delete photo"
                           aria-label="Delete photo"
                           onClick={(e) => {

@@ -7,8 +7,12 @@ import Input from '../../components/ui/Input';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import PageHeader from '../../components/ui/PageHeader';
+import SectionHeader from '../../components/ui/SectionHeader';
 import TimeAgo from '../../components/TimeAgo';
+import { CHECK, FIELD, ROWS } from './adminStyles';
 
 const SEGMENTS = [
   { value: 'all', label: 'All users' },
@@ -26,7 +30,7 @@ export default function AdminAnnouncementsPage() {
   const [segment, setSegment] = useState('all');
   const [sendEmail, setSendEmail] = useState(false);
 
-  const { data: history = [], isLoading } = useQuery({
+  const { data: history = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-announcements'],
     queryFn: getAnnouncements,
   });
@@ -45,36 +49,37 @@ export default function AdminAnnouncementsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Announcements</h1>
+      <PageHeader title="Announcements" className="mb-5" />
 
-      <Card className="mb-6">
-        <h2 className="text-sm font-semibold mb-3">Compose broadcast</h2>
+      <Card padding="lg" className="mb-7">
+        <h2 className="text-base font-extrabold text-navy dark:text-biscuit mb-3">Compose broadcast</h2>
         <div className="space-y-3">
           <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What's happening" />
-          <div>
-            <label className="block text-sm font-medium mb-1">Message</label>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="admin-announcement-message" className="field-label">Message</label>
             <textarea
+              id="admin-announcement-message"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-sm"
+              className={`w-full ${FIELD}`}
               placeholder="Body of the announcement"
             />
           </div>
           <Input label="Link (optional)" value={link} onChange={(e) => setLink(e.target.value)} placeholder="/app/news" />
           <div className="flex flex-wrap items-center gap-3">
-            <label className="text-sm">
-              Audience{' '}
+            <label className="flex items-center gap-2">
+              <span className="field-label">Audience</span>{' '}
               <select
                 value={segment}
                 onChange={(e) => setSegment(e.target.value)}
-                className="rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1 text-sm ml-1"
+                className={FIELD}
               >
                 {SEGMENTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </label>
-            <label className="flex items-center gap-1.5 text-sm">
-              <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} className="accent-brand-500" />
+            <label className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold">
+              <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} className={CHECK} />
               Also email
             </label>
             <div className="flex-1" />
@@ -92,21 +97,23 @@ export default function AdminAnnouncementsPage() {
         </div>
       </Card>
 
-      <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">History</h2>
+      <SectionHeader title="History" />
       {isLoading ? (
         <ListSkeleton rows={3} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load announcements." onRetry={() => refetch()} />
       ) : history.length === 0 ? (
         <EmptyState className="py-6" title="No announcements sent yet" />
       ) : (
-        <Card as="ul" padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card as="ul" padding="none" className={ROWS}>
           {history.map((a) => (
             <li key={a.id} className="p-3 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{a.title}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-bold text-navy dark:text-biscuit">{a.title}</span>
                 <Badge variant="neutral" className="uppercase">{a.segment}</Badge>
                 {a.send_email && <Badge variant="info">emailed</Badge>}
-                <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
-                  {a.recipient_count} recipient{a.recipient_count !== 1 ? 's' : ''} · <TimeAgo value={a.created_at} />
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
+                  {a.recipient_count} recipient{a.recipient_count !== 1 ? 's' : ''} · <TimeAgo value={a.created_at} className="font-mono" />
                 </span>
               </div>
               <p className="text-gray-600 dark:text-gray-300 mt-1">{a.body}</p>

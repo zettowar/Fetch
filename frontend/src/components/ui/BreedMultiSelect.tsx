@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Breed, Species } from '../../types';
 import { listBreeds } from '../../api/breeds';
@@ -25,6 +25,7 @@ export default function BreedMultiSelect({
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const inputId = useId();
 
   const { data: all = [] } = useQuery({
     queryKey: ['breeds', species ?? 'all'],
@@ -65,23 +66,24 @@ export default function BreedMultiSelect({
 
   return (
     <div className="flex flex-col gap-1" ref={wrapRef}>
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+      <label htmlFor={inputId} className="field-label">{label}</label>
+      {/* Matches <Input>: 10px corners, a 2px soft navy line, orange on focus. */}
       <div
-        className={`flex flex-wrap items-center gap-1.5 rounded-xl border border-gray-300 dark:border-gray-700 px-2 py-2 min-h-[44px] ${
-          disabled ? 'bg-gray-50 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-900'
-        } focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-200 dark:focus-within:ring-brand-500/30`}
+        className={`flex flex-wrap items-center gap-1.5 rounded-lg border-2 px-2 py-2 min-h-[48px] transition-[border-color,box-shadow] duration-150 ease-soft-out ${
+          disabled
+            ? 'border-dashed border-navy/25 bg-gray-50 dark:border-white/20 dark:bg-night'
+            : 'border-navy/25 bg-white hover:border-navy/40 dark:border-white/20 dark:bg-night-surface dark:hover:border-white/35'
+        } focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/25 dark:focus-within:border-brand-400`}
       >
+        {/* A picked breed is a picked chip: Ball Orange, navy line. */}
         {value.map((b) => (
-          <span
-            key={b.id}
-            className="inline-flex items-center gap-1 rounded-full bg-brand-100 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 text-sm px-2.5 py-0.5"
-          >
+          <span key={b.id} className="chip chip-on gap-1 pr-1.5">
             {b.name}
             <button
               type="button"
               onClick={() => remove(b.id)}
               disabled={disabled}
-              className="text-brand-500 hover:text-brand-700 text-xs leading-none"
+              className="-my-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-sm font-extrabold leading-none text-navy hover:bg-navy/10"
               aria-label={`Remove ${b.name}`}
             >
               ×
@@ -90,8 +92,9 @@ export default function BreedMultiSelect({
         ))}
         {!atCap && (
           <input
+            id={inputId}
             type="text"
-            className="flex-1 min-w-[120px] outline-none text-base"
+            className="flex-1 min-w-[120px] bg-transparent outline-none text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 dark:text-biscuit dark:placeholder:text-gray-500"
             placeholder={value.length === 0 ? placeholder : ''}
             value={query}
             disabled={disabled}
@@ -105,26 +108,26 @@ export default function BreedMultiSelect({
       </div>
       {open && !disabled && !atCap && suggestions.length > 0 && (
         <div className="relative">
-          <ul className="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
+          <ul className="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-lg border-2 border-navy bg-white shadow-toy-sm dark:border-white/20 dark:bg-night-raised">
             {suggestions.map((b) => (
               <li key={b.id}>
                 <button
                   type="button"
                   onClick={() => add(b)}
-                  className="w-full text-left px-3 py-2 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-sm flex items-center justify-between"
+                  className="w-full text-left px-3 py-2.5 hover:bg-brand-100 dark:hover:bg-brand-500/15 text-sm font-semibold text-navy dark:text-biscuit flex items-center justify-between"
                 >
                   <span>{b.name}</span>
-                  {b.group && <span className="text-xs text-gray-400 dark:text-gray-500">{b.group}</span>}
+                  {b.group && <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{b.group}</span>}
                 </button>
               </li>
             ))}
           </ul>
         </div>
       )}
-      <p className="text-xs text-gray-400 dark:text-gray-500">
+      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
         {atCap
-          ? `Maximum ${max} breeds selected`
-          : `${value.length}/${max} breeds selected`}
+          ? `${max}/${max} picked — that's the most`
+          : `${value.length}/${max} picked`}
       </p>
     </div>
   );

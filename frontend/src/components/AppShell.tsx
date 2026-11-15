@@ -39,7 +39,7 @@ export default function AppShell() {
 
   return (
     <div
-      className={`mx-auto max-w-app bg-white dark:bg-gray-900 shadow-soft-lg ${
+      className={`mx-auto max-w-app bg-biscuit dark:bg-night min-[421px]:border-x min-[421px]:border-navy/10 dark:min-[421px]:border-white/10 ${
         isFixedViewport
           ? // h-dvh tracks the real visible viewport (iOS URL bar). The
             // bottom padding reserves space for the fixed tab bar using the

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { followDog, unfollowDog, getFollowerCount } from '../api/social';
 import { apiErrorMessage } from '../utils/apiError';
+import BrandIcon from './brand/BrandIcon';
 
 interface FollowButtonProps {
   petId: string;
@@ -80,21 +81,27 @@ export default function FollowButton({ petId }: FollowButtonProps) {
       onClick={() => (isFollowing ? unfollowMutation : followMutation).mutate()}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ease-soft-out active:scale-[0.97] ${
+      // Never btn-primary: this sits on every card in a list, and a screen
+      // gets one primary. Follow is the white pill with the follow icon;
+      // Following is the selected state (an orange tint on a soft line), and
+      // hovering it previews the unfollow in danger ink.
+      className={`btn btn-sm ${
         isFollowing
           ? hovered
-            ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30'
-            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700'
-          : 'bg-brand-500 text-white shadow-soft-sm hover:bg-brand-600 hover:shadow-brand-glow'
-      } ${pending ? 'opacity-75 cursor-wait' : ''}`}
+            ? 'border-[1.5px] border-danger-500 bg-danger-50 text-danger-700 dark:border-danger-400 dark:bg-danger-500/15 dark:text-danger-200'
+            : 'border-[1.5px] border-navy/30 bg-brand-100 text-navy dark:border-white/20 dark:bg-brand-500/20 dark:text-brand-100'
+          : 'btn-secondary'
+      } ${pending ? 'cursor-wait' : ''}`}
       disabled={pending}
       aria-busy={pending}
     >
-      {pending && (
+      {pending ? (
         <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+      ) : (
+        !isFollowing && <BrandIcon name="follow" size={16} />
       )}
       <span>{label}</span>
-      <span className="tabular-nums opacity-80">({count})</span>
+      <span className="tabular-nums font-bold opacity-70">({count})</span>
     </button>
   );
 }

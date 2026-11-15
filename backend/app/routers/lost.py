@@ -408,7 +408,12 @@ async def add_sighting(
             ),
         )
 
-    result = await db.execute(select(LostReport).where(LostReport.id == report_id))
+    result = await db.execute(
+        select(LostReport)
+        .where(LostReport.id == report_id)
+        # The pet is loaded only for its name in the reporter's notification.
+        .options(selectinload(LostReport.pet))
+    )
     report = result.scalar_one_or_none()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -472,7 +477,12 @@ async def add_sighting(
         await notify(
             db, report.reporter_id,
             type="sighting",
-            title="New sighting on your lost-pet report",
+            # The pet's name leads where there is one (Brand Book, inbox).
+            title=(
+                f"New sighting of {report.pet.name}"
+                if report.pet
+                else "New sighting on your lost-pet report"
+            ),
             body=body.note[:120] if body.note else None,
             link=f"/app/lost/{report_id}",
         )

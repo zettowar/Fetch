@@ -1,62 +1,54 @@
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import { PawPrint as DogIcon, HousePlus, Map as MapIcon } from 'lucide-react';
+import BrandIcon from '../components/brand/BrandIcon';
+import PageHeader from '../components/ui/PageHeader';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+
+// The rescue hub is Forever Pink's home: the lead tile is a pink plate, and
+// every bean on the page is pink.
+const PINK_BEAN = { '--bean': 'var(--pink)' } as CSSProperties;
+
+// A tile you can touch: 2px Leash Navy line on the toy shadow, pressing
+// down onto it (same motion as <Card interactive>).
+const TILE =
+  'group flex items-center justify-between gap-3 rounded-2xl border-2 border-navy p-3.5 text-navy shadow-toy-sm transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px hover:shadow-toy active:translate-x-[2px] active:translate-y-[3px] active:shadow-none dark:border-white/15';
 
 export default function RescuesHubPage() {
   useDocumentTitle('Rescues · Fetchpawz');
   return (
     <div className="px-4 pt-5 pb-8 flex flex-col gap-5">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <HousePlus size={20} aria-hidden className="text-brand-500" /> Rescues
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Find a forever home — or the rescue that has one.
-        </p>
-      </div>
+      <PageHeader
+        title="Rescues"
+        subtitle="Find a forever home — or the rescue that has one."
+      />
 
-      <Link
-        to="/app/rescues/browse"
-        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 text-white p-3.5 shadow-soft-lg hover:shadow-[0_10px_30px_-8px_rgba(147,51,234,0.5)] hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
-      >
-        <div className="relative z-10 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-2xs uppercase tracking-widest opacity-80">Adoptables</p>
-            <p className="text-base font-bold mt-0.5">Browse rescues</p>
-            <p className="text-xs opacity-90 mt-0.5 truncate">
-              Verified rescues and their adoptable pets
-            </p>
-          </div>
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <DogIcon size={20} aria-hidden />
-          </div>
+      <Link to="/app/rescues/browse" className={`${TILE} bg-pink-500`}>
+        <div className="min-w-0">
+          <p className="text-2xs font-extrabold uppercase tracking-[0.1em] text-navy">Adoptables</p>
+          <p className="text-base font-extrabold mt-0.5">Browse rescues</p>
+          <p className="text-xs font-semibold text-navy mt-0.5 truncate">
+            Verified rescues and their adoptable pets
+          </p>
         </div>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-5 -bottom-5 w-20 h-20 rounded-full bg-white/10 blur-xl"
-        />
+        <div className="flex-shrink-0 w-11 h-11 rounded-full border-2 border-navy bg-white text-navy flex items-center justify-center">
+          <BrandIcon name="rescue" size={22} />
+        </div>
       </Link>
 
       <Link
         to="/app/rescues/map"
-        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white p-3.5 shadow-soft-lg hover:shadow-[0_10px_30px_-8px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 ease-soft-out"
+        className={`${TILE} bg-white dark:bg-night-surface dark:text-biscuit`}
       >
-        <div className="relative z-10 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-2xs uppercase tracking-widest opacity-80">Nearby</p>
-            <p className="text-base font-bold mt-0.5">Rescue map</p>
-            <p className="text-xs opacity-90 mt-0.5 truncate">
-              See rescues plotted near you
-            </p>
-          </div>
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <MapIcon size={20} aria-hidden />
-          </div>
+        <div className="min-w-0">
+          <p className="eyebrow">Nearby</p>
+          <p className="text-base font-extrabold mt-0.5">Rescue map</p>
+          <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 truncate">
+            See rescues plotted near you
+          </p>
         </div>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-5 -bottom-5 w-20 h-20 rounded-full bg-white/10 blur-xl"
-        />
+        <div className="flex-shrink-0 w-11 h-11 rounded-full bg-pink-100 text-navy dark:bg-pink-500/20 dark:text-biscuit flex items-center justify-center">
+          <BrandIcon name="explore" size={22} style={PINK_BEAN} />
+        </div>
       </Link>
     </div>
   );

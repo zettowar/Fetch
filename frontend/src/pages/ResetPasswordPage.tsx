@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { KeyRound, TriangleAlert } from 'lucide-react';
 import { resetPassword } from '../api/auth';
-import AuthHero from '../components/AuthHero';
+import AuthHero, { AUTH_CARD, AUTH_LINK } from '../components/AuthHero';
+import BrandIcon from '../components/brand/BrandIcon';
 import DogIllustration from '../components/flair/DogIllustration';
 import Button from '../components/ui/Button';
 import PasswordInput from '../components/ui/PasswordInput';
@@ -25,20 +25,17 @@ export default function ResetPasswordPage() {
         <AuthHero
           title="Invalid link"
           subtitle="This reset link is missing a token."
-          icon={<TriangleAlert size={32} aria-hidden />}
+          icon={<BrandIcon name="help" size={32} />}
         />
-        <div className="px-5 mt-8">
-          <div className="w-full max-w-sm mx-auto bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-soft-lg text-center">
-            <DogIllustration
-              name="howling"
-              className="mx-auto mb-4 h-28 w-auto text-gray-400 dark:text-gray-500"
-            />
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="px-1 sm:px-5 mt-7">
+          <div className={`${AUTH_CARD} text-center`}>
+            <DogIllustration name="howling" className="mx-auto mb-4 h-28 w-auto" />
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Reset links only work when opened straight from the email. Request a fresh one and try again.
             </p>
           </div>
-          <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
-            <Link to="/forgot-password" className="text-brand-600 font-semibold hover:text-brand-700 hover:underline">
+          <p className="mt-6 text-center text-sm">
+            <Link to="/forgot-password" className={AUTH_LINK}>
               Request a new link
             </Link>
           </p>
@@ -74,13 +71,10 @@ export default function ResetPasswordPage() {
       <AuthHero
         title="Pick a new password"
         subtitle="At least 8 characters — make it one only you would guess."
-        icon={<KeyRound size={32} aria-hidden />}
+        icon={<BrandIcon name="lock" size={32} />}
       />
-      <div className="px-5 mt-8">
-        <form
-          onSubmit={handleSubmit}
-          className="w-full max-w-sm mx-auto bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-soft-lg flex flex-col gap-4"
-        >
+      <div className="px-1 sm:px-5 mt-7">
+        <form onSubmit={handleSubmit} className={`${AUTH_CARD} flex flex-col gap-4`}>
           <PasswordInput
             label="New password"
             value={password}

@@ -26,7 +26,8 @@ export default function SpeciesTabs({
     <div
       role="tablist"
       aria-label="Filter by species"
-      className={`inline-flex rounded-full bg-gray-100 dark:bg-gray-800 p-1 ${className}`}
+      // `.seg` paints the selected tab (aria-selected) in Ball Orange.
+      className={`seg ${className}`}
     >
       {options.map((o) => (
         <button
@@ -35,11 +36,7 @@ export default function SpeciesTabs({
           type="button"
           aria-selected={active === o.value}
           onClick={() => setFilter(o.value)}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            active === o.value
-              ? 'bg-white dark:bg-gray-900 text-brand-600 shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-          }`}
+          className={`px-4 ${active === o.value ? 'seg-on' : 'hover:bg-navy/5 dark:hover:bg-white/10'}`}
         >
           {o.label}
         </button>

@@ -9,7 +9,7 @@ function Mail() {
   return (
     <a
       href={`mailto:${CONTACT}`}
-      className="font-medium text-brand-600 dark:text-brand-400 hover:underline"
+      className="font-bold text-brand-700 dark:text-brand-400 hover:underline"
     >
       {CONTACT}
     </a>
@@ -20,7 +20,7 @@ function PrivacyLink({ children }: { children: React.ReactNode }) {
   return (
     <Link
       to="/privacy"
-      className="font-medium text-brand-600 dark:text-brand-400 hover:underline"
+      className="font-bold text-brand-700 dark:text-brand-400 hover:underline"
     >
       {children}
     </Link>
@@ -321,7 +321,7 @@ const SECTIONS: LegalSectionSpec[] = [
           recorded. You must not attempt to defeat that offset, and you must not
           publish another user's precise location.
         </p>
-        <p className="rounded-xl border border-warning-200 dark:border-warning-500/30 bg-warning-50 dark:bg-warning-500/10 p-4 text-gray-700 dark:text-gray-300">
+        <p className="rounded-lg border-2 border-navy/20 bg-navy-50 p-4 text-gray-700 dark:border-white/15 dark:bg-white/5 dark:text-gray-200">
           <Term>Safety.</Term> We do not verify the identity of any user. Fraud
           directed at the owners of missing animals is common. Do not send money
           to a person claiming to hold your pet. Arrange to meet in a public

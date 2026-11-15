@@ -132,14 +132,16 @@ export default function PhotoEditor({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
+    // The editor is always after-dark: Night Walk chrome around a black
+    // preview (photos are judged against neutral black, not navy).
+    <div className="fixed inset-0 z-50 flex flex-col bg-night text-biscuit">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 h-12 flex-shrink-0 border-b border-white/10">
+      <div className="flex items-center justify-between px-4 h-14 flex-shrink-0 border-b border-white/10">
         <button
           type="button"
           onClick={onCancel}
           disabled={confirming}
-          className="text-sm text-white/80 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="text-sm font-bold text-biscuit/80 hover:text-biscuit disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Cancel
         </button>
@@ -148,7 +150,7 @@ export default function PhotoEditor({
             type="button"
             onClick={() => dispatch({ type: 'RESET' })}
             disabled={!isDirty(state) || confirming}
-            className="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="text-xs font-bold text-biscuit/60 hover:text-biscuit disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             Reset
           </button>
@@ -156,11 +158,11 @@ export default function PhotoEditor({
             type="button"
             onClick={handleConfirm}
             disabled={confirming || !state.croppedAreaPixels}
-            className="rounded-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white text-sm font-semibold px-4 py-1.5 transition-colors inline-flex items-center gap-2"
+            className="btn btn-primary btn-sm"
           >
             {confirming && (
               <span
-                className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin"
+                className="h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin"
                 aria-hidden
               />
             )}
@@ -219,7 +221,7 @@ export default function PhotoEditor({
       </div>
 
       {/* Tab bar */}
-      <div className="flex-shrink-0 grid grid-cols-3 border-t border-white/10 bg-black safe-bottom">
+      <div className="flex-shrink-0 grid grid-cols-3 border-t border-white/10 bg-night safe-bottom">
         <TabButton
           label="Crop"
           active={state.tab === 'crop'}
@@ -253,8 +255,8 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`h-14 flex items-center justify-center text-sm font-medium transition-colors ${
-        active ? 'text-white' : 'text-white/50 hover:text-white/80'
+      className={`h-14 flex items-center justify-center text-sm font-extrabold transition-colors ${
+        active ? 'text-biscuit' : 'text-biscuit/50 hover:text-biscuit/80'
       }`}
       aria-pressed={active}
     >
@@ -262,7 +264,7 @@ function TabButton({
         {label}
         {active && (
           <span
-            className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-brand-500"
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-1 w-6 rounded-full bg-brand-500"
             aria-hidden
           />
         )}

@@ -12,9 +12,12 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import Input from '../../components/ui/Input';
+import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import { CHECK, FIELD, ROWS } from './adminStyles';
 
 /** Marketing-site news articles. Published posts show on /news immediately;
  *  drafts stay here until published. */
@@ -29,7 +32,7 @@ export default function AdminNewsPage() {
   const [linkLabel, setLinkLabel] = useState('');
   const [isPublished, setIsPublished] = useState(true);
 
-  const { data: posts = [], isLoading } = useQuery({
+  const { data: posts = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-news'],
     queryFn: getAdminNews,
   });
@@ -111,12 +114,19 @@ export default function AdminNewsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">News</h1>
-        <Button size="sm" onClick={() => { const opening = !showForm; resetForm(); setShowForm(opening); }}>
-          {showForm ? 'Cancel' : 'New Post'}
-        </Button>
-      </div>
+      <PageHeader
+        title="News"
+        className="mb-5"
+        action={
+          <Button
+            size="sm"
+            variant={showForm ? 'secondary' : 'primary'}
+            onClick={() => { const opening = !showForm; resetForm(); setShowForm(opening); }}
+          >
+            {showForm ? 'Cancel' : 'New Post'}
+          </Button>
+        }
+      />
 
       {showForm && (
         <Card className="mb-4 flex flex-col gap-3">
@@ -127,10 +137,11 @@ export default function AdminNewsPage() {
             onChange={(e) => setTag(e.target.value)}
             placeholder="Product, Milestone, Partnerships…"
           />
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Body</label>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="admin-news-body" className="field-label">Body</label>
             <textarea
-              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 resize-y"
+              id="admin-news-body"
+              className={`${FIELD} resize-y`}
               rows={6}
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -150,12 +161,12 @@ export default function AdminNewsPage() {
               placeholder="Apply as a rescue"
             />
           </div>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-navy dark:text-biscuit">
             <input
               type="checkbox"
               checked={isPublished}
               onChange={(e) => setIsPublished(e.target.checked)}
-              className="rounded border-gray-300 dark:border-gray-700"
+              className={CHECK}
             />
             Published (visible on the public News page)
           </label>
@@ -171,26 +182,28 @@ export default function AdminNewsPage() {
 
       {isLoading ? (
         <ListSkeleton rows={4} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load news posts." onRetry={() => refetch()} />
       ) : posts.length === 0 ? (
         <EmptyState className="py-6" title="No news posts yet" />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {posts.map((post) => (
             <div key={post.id} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold">{post.title}</p>
+                    <p className="text-base font-extrabold text-navy dark:text-biscuit">{post.title}</p>
                     <Badge variant="brand">{post.tag}</Badge>
                     {!post.is_published && <Badge variant="neutral">Draft</Badge>}
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 whitespace-pre-wrap">
                     {post.body}
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {post.is_published && post.published_at
-                      ? <>Published <TimeAgo value={post.published_at} /></>
-                      : <>Created <TimeAgo value={post.created_at} /></>}
+                      ? <>Published <TimeAgo value={post.published_at} className="font-mono" /></>
+                      : <>Created <TimeAgo value={post.created_at} className="font-mono" /></>}
                     {post.link_label && <> · links to “{post.link_label}”</>}
                   </p>
                 </div>

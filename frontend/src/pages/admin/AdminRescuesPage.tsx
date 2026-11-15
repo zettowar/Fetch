@@ -11,10 +11,14 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import SearchInput from '../../components/ui/SearchInput';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
+import BrandIcon from '../../components/brand/BrandIcon';
 import { apiErrorMessage } from '../../utils/apiError';
+import { FIELD, LINK, segItem } from './adminStyles';
 
 type Tab = 'pending' | 'approved' | 'rejected';
 
@@ -23,7 +27,7 @@ export default function AdminRescuesPage() {
   const [query, setQuery] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
-  const { data: profiles = [], isLoading } = useQuery({
+  const { data: profiles = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-rescue-profiles', tab, searchTerm],
     queryFn: () => adminListRescueProfiles(tab, searchTerm),
   });
@@ -56,26 +60,22 @@ export default function AdminRescuesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Rescue applications</h1>
+      <PageHeader title="Rescue applications" className="mb-5" />
 
       <form
         onSubmit={(e) => { e.preventDefault(); setSearchTerm(query); }}
         className="flex gap-2 mb-4"
       >
         <SearchInput className="flex-1" placeholder="Search org name or location..." value={query} onChange={setQuery} />
-        <Button type="submit" size="sm">Search</Button>
+        <Button type="submit" size="sm" variant="secondary">Search</Button>
       </form>
 
-      <div className="flex gap-1 mb-4">
+      <div className="seg mb-4">
         {(['pending', 'approved', 'rejected'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-              tab === t
-                ? 'bg-brand-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`capitalize ${segItem(tab === t)}`}
           >
             {t}
           </button>
@@ -84,6 +84,8 @@ export default function AdminRescuesPage() {
 
       {isLoading ? (
         <ListSkeleton rows={3} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load rescue applications." onRetry={() => refetch()} />
       ) : profiles.length === 0 ? (
         <EmptyState className="py-6" title={`No ${tab} applications`} />
       ) : (
@@ -130,20 +132,21 @@ function ReviewCard({
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold">{profile.org_name}</h3>
+            <BrandIcon name="rescue" size={20} className="text-navy dark:text-biscuit" />
+            <h3 className="text-base font-extrabold text-navy dark:text-biscuit">{profile.org_name}</h3>
             <Badge variant={profile.donations_enabled ? 'success' : 'neutral'} className="uppercase">
               {profile.donations_enabled ? 'Payouts live' : 'No payouts'}
             </Badge>
           </div>
           {profile.location && (
-            <p className="text-xs text-gray-400 dark:text-gray-500">{profile.location}</p>
+            <p className="mt-0.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{profile.location}</p>
           )}
-          <p className="text-2xs text-gray-400 dark:text-gray-500">
-            Submitted <TimeAgo value={profile.created_at} />
+          <p className="text-2xs text-gray-500 dark:text-gray-400">
+            Submitted <TimeAgo value={profile.created_at} className="font-mono" />
           </p>
         </div>
       </div>
-      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{profile.description}</p>
+      <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{profile.description}</p>
       {(profile.website || profile.donation_url) && (
         <div className="flex flex-wrap gap-2 mt-2 text-xs">
           {profile.website && (
@@ -151,7 +154,7 @@ function ReviewCard({
               href={profile.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-brand-500 hover:underline"
+              className={`break-all ${LINK}`}
             >
               {profile.website}
             </a>
@@ -161,7 +164,7 @@ function ReviewCard({
               href={profile.donation_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-brand-500 hover:underline"
+              className={LINK}
             >
               donate
             </a>
@@ -169,14 +172,14 @@ function ReviewCard({
         </div>
       )}
       {profile.proof_details && (
-        <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-2 text-xs text-gray-600 dark:text-gray-300">
-          <span className="font-medium">Proof: </span>
+        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-xs text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-gray-200">
+          <span className="font-bold text-navy dark:text-biscuit">Proof: </span>
           <span className="whitespace-pre-wrap">{profile.proof_details}</span>
         </div>
       )}
       {profile.review_note && (
-        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          <span className="font-medium">Note: </span>
+        <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">
+          <span className="font-bold text-navy dark:text-biscuit">Note: </span>
           {profile.review_note}
         </p>
       )}
@@ -199,7 +202,7 @@ function ReviewCard({
         ) : (
           <div className="mt-3 flex flex-col gap-2">
             <textarea
-              className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm"
+              className={FIELD}
               rows={2}
               placeholder="Reason (shown to the applicant)"
               value={note}
@@ -224,7 +227,7 @@ function ReviewCard({
 
       {/* Re-review / revoke — available once a decision has already been made. */}
       {tab !== 'pending' && (
-        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-white/10">
           {profile.status !== 'approved' && (
             <Button size="sm" loading={busy} onClick={() => onSetStatus('approved')}>Approve</Button>
           )}
@@ -242,7 +245,7 @@ function ReviewCard({
           <input
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
-            className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1.5 text-sm"
+            className={`flex-1 ${FIELD}`}
           />
           <Button size="sm" loading={busy} disabled={!orgName.trim() || orgName === profile.org_name} onClick={() => { onEdit({ org_name: orgName.trim() }); setEditing(false); }}>
             Save

@@ -4,9 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { changeEmail, changePassword, updateMe } from '../api/auth';
 import { getMyBlocks, unblockUser } from '../api/social';
-import { Ban, Lock, Pencil } from 'lucide-react';
+import { Ban } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
-import BackButton from '../components/ui/BackButton';
+import PageHeader from '../components/ui/PageHeader';
+import BrandIcon from '../components/brand/BrandIcon';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
@@ -37,7 +38,7 @@ export default function ProfileEditPage() {
   }, [user]);
 
   if (!user) {
-    return <div className="p-4 text-gray-500 dark:text-gray-400">Not signed in.</div>;
+    return <div className="p-4 text-gray-600 dark:text-gray-300">Not signed in.</div>;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,10 +69,7 @@ export default function ProfileEditPage() {
 
   return (
     <div className="p-4">
-      <BackButton fallback={`/app/users/${user.id}`} />
-      <h1 className="text-2xl font-bold mt-2 mb-4 flex items-center gap-2">
-        <Pencil size={20} aria-hidden className="text-brand-500" /> Edit profile
-      </h1>
+      <PageHeader back backFallback={`/app/users/${user.id}`} title="Edit profile" className="mb-5" />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md">
         <Input
@@ -82,15 +80,16 @@ export default function ProfileEditPage() {
           required
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 tracking-tight">
+          <label htmlFor="profile-edit-email" className="field-label">
             Email
           </label>
           <input
+            id="profile-edit-email"
             value={user.email}
             disabled
-            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5 text-base text-gray-500 dark:text-gray-400 shadow-soft-sm cursor-not-allowed"
+            className="w-full min-h-[48px] rounded-lg border-2 border-dashed border-navy/25 bg-gray-50 px-3.5 py-2.5 text-base font-semibold text-gray-500 cursor-not-allowed dark:border-white/20 dark:bg-night dark:text-gray-400"
           />
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Change it in the Account section below — the new address gets a
             confirmation link first.
           </p>
@@ -110,17 +109,17 @@ export default function ProfileEditPage() {
           max={new Date().toISOString().slice(0, 10)}
         />
 
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="flex flex-col gap-1.5 pt-4 border-t border-gray-200 dark:border-white/10 mt-2">
+          <span className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit">
             Which pets do you want to see?
           </span>
-          <span className="text-xs text-gray-400 dark:text-gray-500 mb-1">
+          <span className="text-xs text-gray-500 dark:text-gray-400 mb-1">
             Sets your Home page. Pick one, or “Both” to switch between them there.
           </span>
           <div
             role="radiogroup"
             aria-label="Species preference"
-            className="inline-flex self-start rounded-full bg-gray-100 dark:bg-gray-800 p-1"
+            className="seg self-start"
           >
             {([['dog', 'Dogs'], ['cat', 'Cats'], ['both', 'Both']] as const).map(([val, label]) => (
               <button
@@ -129,10 +128,8 @@ export default function ProfileEditPage() {
                 role="radio"
                 aria-checked={speciesPreference === val}
                 onClick={() => setSpeciesPreference(val)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  speciesPreference === val
-                    ? 'bg-white dark:bg-gray-900 text-brand-600 shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                className={`px-4 ${
+                  speciesPreference === val ? 'seg-on' : 'hover:bg-navy/5 dark:hover:bg-white/10'
                 }`}
               >
                 {label}
@@ -141,19 +138,19 @@ export default function ProfileEditPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+        <div className="flex flex-col gap-1.5 pt-4 border-t border-gray-200 dark:border-white/10 mt-2">
           <label className="flex items-start gap-2.5 cursor-pointer">
             <input
               type="checkbox"
               checked={showAdoptionPrompt}
               onChange={(e) => setShowAdoptionPrompt(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-brand-500 focus:ring-brand-400"
+              className="mt-0.5 h-5 w-5 flex-shrink-0 cursor-pointer accent-brand-500"
             />
             <span className="flex flex-col">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-bold text-navy dark:text-biscuit">
                 Show adoption prompts
               </span>
-              <span className="text-xs text-gray-400 dark:text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 When you like a pet from a rescue, we'll let you know they're up
                 for adoption. Turn this off if you'd rather not see it.
               </span>
@@ -211,8 +208,8 @@ function AccountSection() {
 
   return (
     <section className="mt-10 max-w-md">
-      <h2 className="text-lg font-bold flex items-center gap-2">
-        <Lock size={18} aria-hidden className="text-brand-500" /> Account
+      <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit flex items-center gap-2">
+        <BrandIcon name="lock" size={22} /> Account
       </h2>
 
       <Card
@@ -220,7 +217,7 @@ function AccountSection() {
         className="mt-3 flex flex-col gap-3"
         onSubmit={(e) => { e.preventDefault(); passwordMutation.mutate(); }}
       >
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Change password</p>
+        <p className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit">Change password</p>
         <PasswordInput
           label="Current password"
           value={currentPassword}
@@ -237,7 +234,7 @@ function AccountSection() {
           showStrength
           autoComplete="new-password"
         />
-        <Button type="submit" size="sm" loading={passwordMutation.isPending} className="self-start">
+        <Button type="submit" size="sm" variant="secondary" loading={passwordMutation.isPending} className="self-start">
           Update password
         </Button>
       </Card>
@@ -247,7 +244,7 @@ function AccountSection() {
         className="mt-4 flex flex-col gap-3"
         onSubmit={(e) => { e.preventDefault(); emailMutation.mutate(); }}
       >
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Change email</p>
+        <p className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit">Change email</p>
         <Input
           label="New email"
           type="email"
@@ -263,11 +260,11 @@ function AccountSection() {
           required
           autoComplete="current-password"
         />
-        <p className="text-xs text-gray-400 dark:text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           We'll email a confirmation link to the new address. Nothing changes
           until it's clicked.
         </p>
-        <Button type="submit" size="sm" loading={emailMutation.isPending} className="self-start">
+        <Button type="submit" size="sm" variant="secondary" loading={emailMutation.isPending} className="self-start">
           Send confirmation
         </Button>
       </Card>
@@ -277,7 +274,7 @@ function AccountSection() {
 
 function BlockedUsersSection() {
   const queryClient = useQueryClient();
-  const { data: blocks = [], isLoading } = useQuery({
+  const { data: blocks = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['my-blocks'],
     queryFn: getMyBlocks,
   });
@@ -291,19 +288,35 @@ function BlockedUsersSection() {
     onError: () => toast.error("Couldn't unblock right now"),
   });
 
+  // A failed load must not read as "you've blocked no one".
+  if (isError) {
+    return (
+      <section className="mt-8 max-w-md">
+        <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit flex items-center gap-2">
+          <Ban size={20} aria-hidden className="text-gray-500 dark:text-gray-400" /> Blocked users
+        </h2>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+          Couldn't load your blocked list.{' '}
+          <button type="button" onClick={() => refetch()} className="link">
+            Try again
+          </button>
+        </p>
+      </section>
+    );
+  }
   if (isLoading || blocks.length === 0) return null;
 
   return (
     <section className="mt-8 max-w-md">
-      <h2 className="text-lg font-bold flex items-center gap-2">
-        <Ban size={18} aria-hidden className="text-danger-500" /> Blocked users
+      <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit flex items-center gap-2">
+        <Ban size={20} aria-hidden className="text-gray-500 dark:text-gray-400" /> Blocked users
       </h2>
-      <Card as="ul" padding="none" className="mt-3 divide-y divide-gray-100 dark:divide-gray-800">
+      <Card as="ul" padding="none" className="mt-3 divide-y divide-gray-200 dark:divide-white/10">
         {blocks.map((b) => (
           <li key={b.user_id} className="flex items-center gap-3 px-4 py-3">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{b.display_name}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-sm font-bold text-navy dark:text-biscuit truncate">{b.display_name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Blocked <TimeAgo value={b.blocked_at} />
               </p>
             </div>

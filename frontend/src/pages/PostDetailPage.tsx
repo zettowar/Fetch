@@ -7,6 +7,7 @@ import { useAuth } from '../store/AuthContext';
 import { apiErrorMessage, isNotFound } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import Avatar from '../components/ui/Avatar';
+import Badge from '../components/ui/Badge';
 import BackButton from '../components/ui/BackButton';
 import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
 import Skeleton from '../components/ui/Skeleton';
@@ -75,38 +76,29 @@ export default function PostDetailPage() {
       <article className="px-4 mt-2">
         <div className="flex items-center gap-2">
           <Avatar name={post.author_name || 'U'} size="sm" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="text-sm font-bold text-navy dark:text-biscuit">
             {post.author_name || 'Unknown'}
           </span>
           <TimeAgo
             value={post.created_at}
-            className="text-xs text-gray-400 dark:text-gray-500"
+            className="text-xs text-gray-500 dark:text-gray-400"
           />
           {post.pinned && (
             <Pin size={13} className="text-brand-500" aria-label="Pinned" />
           )}
         </div>
 
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-balance">
+        <h1 className="mt-3 text-[28px] leading-tight text-navy dark:text-biscuit text-balance">
           {post.title}
         </h1>
 
         {(badge || (post.tags && post.tags.length > 0)) && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {badge && (
-              <span
-                className={`rounded-full px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide ${badge.className}`}
-              >
-                {badge.label}
-              </span>
-            )}
+            {badge && <Badge variant={badge.variant}>{badge.label}</Badge>}
             {post.tags?.map((t) => (
-              <span
-                key={t}
-                className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"
-              >
+              <Badge key={t} variant="neutral">
                 #{t}
-              </span>
+              </Badge>
             ))}
           </div>
         )}
@@ -115,7 +107,7 @@ export default function PostDetailPage() {
           <Linkify>{post.body}</Linkify>
         </div>
 
-        <div className="mt-6 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800 pt-3">
+        <div className="mt-6 flex items-center gap-3 border-t border-gray-200 dark:border-white/10 pt-3">
           {canDelete ? (
             <button
               type="button"
@@ -125,7 +117,7 @@ export default function PostDetailPage() {
                 }
               }}
               disabled={removeMutation.isPending}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 transition-colors hover:text-danger-600 dark:text-gray-500 dark:hover:text-danger-400"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 transition-colors hover:text-danger-600 dark:text-gray-400 dark:hover:text-danger-300"
             >
               <Trash2 size={13} aria-hidden />
               Delete

@@ -11,9 +11,12 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import PaginationFooter from '../../components/ui/PaginationFooter';
+import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
+import { LINK, ROWS, segItem } from './adminStyles';
 
 const PAGE_SIZE = 50;
 
@@ -24,13 +27,20 @@ const STATUS_TABS = [
   { value: 'all', label: 'All' },
 ];
 
+// The calm register: a missing pet is the navy "missing" pill, a found one is
+// green, and nothing in Lost & Found is ever danger red.
 const KIND_LABELS: Record<string, string> = {
-  missing: '🔴 Missing',
-  found: '🟢 Found',
+  missing: 'Missing',
+  found: 'Found',
 };
 
-const STATUS_VARIANTS: Record<string, 'danger' | 'success' | 'neutral'> = {
-  open: 'danger',
+const KIND_VARIANTS: Record<string, 'missing' | 'success'> = {
+  missing: 'missing',
+  found: 'success',
+};
+
+const STATUS_VARIANTS: Record<string, 'info' | 'success' | 'neutral'> = {
+  open: 'info',
   resolved: 'success',
   closed: 'neutral',
 };
@@ -40,7 +50,7 @@ export default function AdminLostReportsPage() {
   const [offset, setOffset] = useState(0);
   const queryClient = useQueryClient();
 
-  const { data: page, isLoading } = useQuery({
+  const { data: page, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-lost-reports', statusFilter, offset],
     queryFn: () => getAdminLostReports({ status: statusFilter, offset, limit: PAGE_SIZE }),
     staleTime: 2 * 60 * 1000,
@@ -66,47 +76,59 @@ export default function AdminLostReportsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Lost &amp; Found Reports</h1>
+      <PageHeader plain title="Lost & Found Reports" className="mb-5" />
 
-      <div className="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
+      <div className="seg mb-4">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => { setStatusFilter(tab.value); setOffset(0); }}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              statusFilter === tab.value
-                ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            className={segItem(statusFilter === tab.value)}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      {reports.length > 0 && (
-        <div className="flex gap-3 mb-3 text-xs text-gray-500 dark:text-gray-400">
-          <span>{total} total</span>
-          {missingCount > 0 && <span>🔴 {missingCount} missing (page)</span>}
-          {foundCount > 0 && <span>🟢 {foundCount} found (page)</span>}
+      {!isError && reports.length > 0 && (
+        <div className="flex gap-3 mb-3 text-xs font-semibold text-gray-600 dark:text-gray-300">
+          <span className="font-mono font-normal text-gray-500 dark:text-gray-400">{total} total</span>
+          {missingCount > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="h-2 w-2 rounded-full bg-brand-500" />
+              {missingCount} missing (page)
+            </span>
+          )}
+          {foundCount > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="h-2 w-2 rounded-full bg-success-500" />
+              {foundCount} found (page)
+            </span>
+          )}
         </div>
       )}
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load lost & found reports." onRetry={() => refetch()} />
       ) : reports.length === 0 ? (
         <EmptyState className="py-6" title={`No reports with status "${statusFilter}"`} />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {reports.map((report: AdminLostReport) => (
             <div key={report.id} className="px-4 py-3">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium">
-                      {KIND_LABELS[report.kind] ?? report.kind}
+                    <span className="inline-flex items-center gap-1.5 text-sm font-bold text-navy dark:text-biscuit">
+                      {KIND_VARIANTS[report.kind] ? (
+                        <Badge variant={KIND_VARIANTS[report.kind]}>{KIND_LABELS[report.kind]}</Badge>
+                      ) : (
+                        report.kind
+                      )}
                       {report.pet_name && (
-                        <span className="ml-1 text-gray-700 dark:text-gray-300">— {report.pet_name}</span>
+                        <span className="ml-1">— {report.pet_name}</span>
                       )}
                     </span>
                     <Badge variant={STATUS_VARIANTS[report.status] ?? 'neutral'}>
@@ -114,17 +136,17 @@ export default function AdminLostReportsPage() {
                     </Badge>
                   </div>
 
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                     {report.description}
                   </p>
 
-                  <div className="flex items-center gap-2 mt-1 text-2xs text-gray-400 dark:text-gray-500 flex-wrap">
+                  <div className="flex items-center gap-2 mt-1 text-2xs text-gray-500 dark:text-gray-400 flex-wrap">
                     <span>
                       Reporter:{' '}
                       <Link
                         to={`/app/users/${report.reporter_id}`}
                         target="_blank"
-                        className="text-brand-500 hover:underline"
+                        className={LINK}
                       >
                         {report.reporter_name ?? 'Unknown'}
                       </Link>
@@ -135,13 +157,13 @@ export default function AdminLostReportsPage() {
                         <Link
                           to={`/app/pets/${report.pet_id}`}
                           target="_blank"
-                          className="text-brand-500 hover:underline"
+                          className={LINK}
                         >
                           {report.pet_name ?? report.pet_id.slice(0, 8)}
                         </Link>
                       </span>
                     )}
-                    <span className="ml-auto"><TimeAgo value={report.created_at} /></span>
+                    <span className="ml-auto font-mono"><TimeAgo value={report.created_at} /></span>
                   </div>
                 </div>
 
@@ -165,13 +187,15 @@ export default function AdminLostReportsPage() {
         </Card>
       )}
 
-      <PaginationFooter
-        offset={offset}
-        pageSize={PAGE_SIZE}
-        rendered={reports.length}
-        total={total}
-        onChange={setOffset}
-      />
+      {!isError && (
+        <PaginationFooter
+          offset={offset}
+          pageSize={PAGE_SIZE}
+          rendered={reports.length}
+          total={total}
+          onChange={setOffset}
+        />
+      )}
     </div>
   );
 }

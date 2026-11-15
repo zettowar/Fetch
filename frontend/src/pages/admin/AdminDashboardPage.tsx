@@ -4,6 +4,10 @@ import { getStats, getStatsTimeseries } from '../../api/admin';
 import { Spinner } from '../../components/ui/Skeleton';
 import ErrorState from '../../components/ui/ErrorState';
 import Card from '../../components/ui/Card';
+import PageHeader from '../../components/ui/PageHeader';
+import SectionHeader from '../../components/ui/SectionHeader';
+import BrandIcon, { type BrandIconName } from '../../components/brand/BrandIcon';
+import { STAT_INK, STAT_NUMBER } from './adminStyles';
 
 function formatHours(h: number | null): string {
   if (h === null) return '--';
@@ -12,6 +16,9 @@ function formatHours(h: number | null): string {
   // floor, not round: 36h is "1d 12h", and rounding the days made it "2d 12h".
   return `${Math.floor(h / 24)}d ${Math.round(h % 24)}h`;
 }
+
+/** A linked panel stays flat; hovering firms up its hairline. */
+const LINKED_PANEL = 'transition-colors hover:border-navy/40 dark:hover:border-white/30';
 
 export default function AdminDashboardPage() {
   const { data: stats, isLoading, isError, refetch, dataUpdatedAt } = useQuery({
@@ -44,35 +51,44 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <span className="text-xs text-gray-400 dark:text-gray-500">
-          Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
-        </span>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        className="mb-5"
+        action={
+          <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+            Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
+          </span>
+        }
+      />
 
       {/* Urgent action bar */}
       {hasUrgent && (
-        <div className={`rounded-xl p-3 mb-4 flex items-center justify-between ${reportSlaBreached || ticketSlaBreached ? 'bg-danger-50 border border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30' : 'bg-warning-50 border border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30'}`}>
-          <div className="flex items-center gap-3 text-sm">
+        <div
+          className={`rounded-2xl border-[1.5px] p-3 mb-5 flex items-center justify-between gap-3 ${
+            reportSlaBreached || ticketSlaBreached
+              ? 'bg-danger-50 border-danger-300 dark:bg-danger-500/10 dark:border-danger-500/40'
+              : 'bg-warning-100 border-warning-500/70 dark:bg-warning-500/10 dark:border-warning-400/40'
+          }`}
+        >
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             {stats.pending_reports > 0 && (
-              <Link to="/admin/reports" className="font-medium text-danger-700 dark:text-danger-300 hover:underline">
+              <Link to="/admin/reports" className="font-bold text-danger-700 dark:text-danger-300 hover:underline underline-offset-2">
                 {stats.pending_reports} pending report{stats.pending_reports > 1 ? 's' : ''}
                 {stats.oldest_pending_report_hours !== null && (
-                  <span className="text-xs text-danger-500 dark:text-danger-400 ml-1">(oldest: {formatHours(stats.oldest_pending_report_hours)})</span>
+                  <span className="text-xs font-semibold text-danger-600 dark:text-danger-400 ml-1">(oldest: {formatHours(stats.oldest_pending_report_hours)})</span>
                 )}
               </Link>
             )}
             {stats.open_tickets > 0 && (
-              <Link to="/admin/tickets" className="font-medium text-warning-700 dark:text-warning-300 hover:underline">
+              <Link to="/admin/tickets" className="font-bold text-warning-800 dark:text-warning-200 hover:underline underline-offset-2">
                 {stats.open_tickets} open ticket{stats.open_tickets > 1 ? 's' : ''}
                 {stats.oldest_open_ticket_hours !== null && (
-                  <span className="text-xs text-warning-500 dark:text-warning-400 ml-1">(oldest: {formatHours(stats.oldest_open_ticket_hours)})</span>
+                  <span className="text-xs font-semibold text-warning-800 dark:text-warning-300 ml-1">(oldest: {formatHours(stats.oldest_open_ticket_hours)})</span>
                 )}
               </Link>
             )}
           </div>
-          <Link to="/admin/reports" className="text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200">
+          <Link to="/admin/reports" className="shrink-0 text-xs font-bold text-navy dark:text-biscuit hover:underline underline-offset-2">
             Review &rarr;
           </Link>
         </div>
@@ -81,18 +97,18 @@ export default function AdminDashboardPage() {
       {/* 14-day trends */}
       {series && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <TrendCard label="New Users" color="#2563eb" values={series.new_users} />
-          <TrendCard label="New Reports" color="#dc2626" values={series.new_reports} />
-          <TrendCard label="New Pets" color="#16a34a" values={series.new_dogs} />
+          <TrendCard label="New Users" values={series.new_users} />
+          <TrendCard label="New Reports" values={series.new_reports} />
+          <TrendCard label="New Pets" values={series.new_dogs} />
         </div>
       )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <StatCard label="Total Users" value={stats.total_users} />
-        <StatCard label="Active" value={stats.active_users} color="text-success-600 dark:text-success-400" />
-        <StatCard label="Suspended" value={stats.suspended_users} color={stats.suspended_users > 0 ? 'text-danger-600 dark:text-danger-400' : 'text-gray-400 dark:text-gray-500'} />
-        <StatCard label="New (7d)" value={stats.users_last_7d} color="text-blue-600 dark:text-blue-400" />
+        <StatCard label="Active" value={stats.active_users} color="text-success-700 dark:text-success-400" />
+        <StatCard label="Suspended" value={stats.suspended_users} color={stats.suspended_users > 0 ? 'text-danger-600 dark:text-danger-400' : 'text-gray-500 dark:text-gray-400'} />
+        <StatCard label="New (7d)" value={stats.users_last_7d} color="text-brand-700 dark:text-brand-300" />
         <StatCard label="Total Pets" value={stats.total_pets} />
         <StatCard label="Reports (7d)" value={stats.reports_last_7d} />
       </div>
@@ -101,20 +117,20 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-3 gap-3 mb-6">
         <MoneyCard label="Donations raised" cents={stats.donations_total_cents} link="/admin/donations" />
         <MoneyCard label="Donations (7d)" cents={stats.donations_last_7d_cents} link="/admin/donations" />
-        <StatCard label="Open inquiries" value={stats.open_inquiries} link="/admin/inquiries" color={stats.open_inquiries > 0 ? 'text-warning-600 dark:text-warning-400' : undefined} />
+        <StatCard label="Open inquiries" value={stats.open_inquiries} link="/admin/inquiries" color={stats.open_inquiries > 0 ? 'text-warning-800 dark:text-warning-300' : undefined} />
       </div>
 
       {/* Quick actions */}
-      <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Quick Actions</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-        <QuickAction to="/admin/reports" icon="🚩" label="Review Reports" count={stats.pending_reports} urgent={stats.pending_reports > 0} />
-        <QuickAction to="/admin/tickets" icon="🎟️" label="Handle Tickets" count={stats.open_tickets} urgent={stats.open_tickets > 0} />
-        <QuickAction to="/admin/rescues" icon="🏠" label="Verify Rescues" count={stats.unverified_rescues} />
-        <QuickAction to="/admin/invites" icon="✉️" label="Manage Invites" count={stats.unused_invites} />
+      <SectionHeader title="Quick Actions" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-7">
+        <QuickAction to="/admin/reports" icon="flag" label="Review Reports" count={stats.pending_reports} urgent={stats.pending_reports > 0} />
+        <QuickAction to="/admin/tickets" icon="chat" label="Handle Tickets" count={stats.open_tickets} urgent={stats.open_tickets > 0} />
+        <QuickAction to="/admin/rescues" icon="rescue" label="Verify Rescues" count={stats.unverified_rescues} />
+        <QuickAction to="/admin/invites" icon="mail" label="Manage Invites" count={stats.unused_invites} />
       </div>
 
       {/* Beta health */}
-      <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Beta Program</h2>
+      <SectionHeader title="Beta Program" />
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Feedback" value={stats.total_feedback} link="/admin/feedback" />
         <StatCard label="Unused Invites" value={stats.unused_invites} link="/admin/invites" />
@@ -124,57 +140,56 @@ export default function AdminDashboardPage() {
   );
 }
 
-function StatCard({ label, value, color = 'text-gray-800 dark:text-gray-200', link }: { label: string; value: number; color?: string; link?: string }) {
+function StatCard({ label, value, color = STAT_INK, link }: { label: string; value: number; color?: string; link?: string }) {
   const content = (
-    <Card className="hover:shadow-soft transition-shadow">
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{label}</p>
+    <Card className={link ? LINKED_PANEL : undefined}>
+      <p className={`${STAT_NUMBER} ${color}`}>{value}</p>
+      <p className="eyebrow mt-1.5">{label}</p>
     </Card>
   );
-  return link ? <Link to={link}>{content}</Link> : content;
+  return link ? <Link to={link} className="block rounded-2xl">{content}</Link> : content;
 }
 
 function MoneyCard({ label, cents, link }: { label: string; cents: number; link?: string }) {
   const money = (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'usd' });
   const content = (
-    <Card className="hover:shadow-soft transition-shadow">
-      <p className="text-2xl font-bold text-success-600 dark:text-success-400">{money}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{label}</p>
+    <Card className={link ? LINKED_PANEL : undefined}>
+      <p className={`${STAT_NUMBER} text-success-700 dark:text-success-400`}>{money}</p>
+      <p className="eyebrow mt-1.5">{label}</p>
     </Card>
   );
-  return link ? <Link to={link}>{content}</Link> : content;
+  return link ? <Link to={link} className="block rounded-2xl">{content}</Link> : content;
 }
 
-function TrendCard({ label, color, values }: { label: string; color: string; values: number[] }) {
+function TrendCard({ label, values }: { label: string; values: number[] }) {
   const latest = values[values.length - 1] ?? 0;
   const half = Math.floor(values.length / 2);
   const currentTotal = values.slice(half).reduce((a, b) => a + b, 0);
   const priorTotal = values.slice(0, half).reduce((a, b) => a + b, 0);
   const delta = currentTotal - priorTotal;
   const deltaColor =
-    delta > 0 ? 'text-success-600 dark:text-success-400' : delta < 0 ? 'text-danger-600 dark:text-danger-400' : 'text-gray-400 dark:text-gray-500';
+    delta > 0 ? 'text-success-700 dark:text-success-400' : delta < 0 ? 'text-danger-600 dark:text-danger-400' : 'text-gray-500 dark:text-gray-400';
 
   return (
     <Card>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{label} · 14d</p>
-      <div className="flex items-baseline gap-2 mt-1">
-        <span className="text-2xl font-bold text-gray-800 dark:text-gray-200">{latest}</span>
-        <span className={`text-xs font-medium ${deltaColor}`}>
+      <p className="eyebrow">{label} · 14d</p>
+      <div className="flex items-baseline gap-2 mt-1.5">
+        <span className={`${STAT_NUMBER} ${STAT_INK}`}>{latest}</span>
+        <span className={`text-xs font-bold ${deltaColor}`}>
           {delta > 0 ? '+' : ''}{delta} vs. prior 7d
         </span>
       </div>
-      <Sparkline values={values} color={color} className="mt-2" />
+      <Sparkline values={values} className="mt-2 text-brand-600 dark:text-brand-400" />
     </Card>
   );
 }
 
 function Sparkline({
   values,
-  color,
   width = 160,
   height = 32,
   className,
-}: { values: number[]; color: string; width?: number; height?: number; className?: string }) {
+}: { values: number[]; width?: number; height?: number; className?: string }) {
   if (!values.length) return null;
   const max = Math.max(1, ...values);
   const step = values.length > 1 ? width / (values.length - 1) : 0;
@@ -194,10 +209,11 @@ function Sparkline({
     >
       <polyline
         fill="none"
-        stroke={color}
-        strokeWidth="1.5"
+        stroke="currentColor"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
         points={points}
       />
     </svg>
@@ -210,17 +226,19 @@ function QuickAction({
   count,
   urgent,
   icon,
-}: { to: string; label: string; count: number; urgent?: boolean; icon?: string }) {
+}: { to: string; label: string; count: number; urgent?: boolean; icon?: BrandIconName }) {
   return (
     <Link
       to={to}
-      className={`rounded-xl border p-3 text-center hover:shadow-sm transition-shadow ${
-        urgent ? 'border-danger-200 bg-danger-50' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'
+      className={`rounded-2xl border-[1.5px] p-3 text-center transition-colors ${
+        urgent
+          ? 'border-danger-300 bg-danger-50 hover:border-danger-500 dark:border-danger-500/40 dark:bg-danger-500/10 dark:hover:border-danger-400'
+          : 'border-gray-200 bg-white hover:border-navy/40 dark:border-white/10 dark:bg-night-surface dark:hover:border-white/30'
       }`}
     >
-      {icon && <p className="text-lg leading-none mb-1" aria-hidden>{icon}</p>}
-      <p className={`text-lg font-bold ${urgent ? 'text-danger-600 dark:text-danger-400' : 'text-gray-700 dark:text-gray-300'}`}>{count}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+      {icon && <BrandIcon name={icon} size={24} className="mx-auto mb-1.5 text-navy dark:text-biscuit" />}
+      <p className={`${STAT_NUMBER} ${urgent ? 'text-danger-600 dark:text-danger-400' : STAT_INK}`}>{count}</p>
+      <p className="text-xs font-bold text-gray-600 dark:text-gray-300">{label}</p>
     </Link>
   );
 }

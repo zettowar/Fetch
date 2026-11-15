@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getDonationBySession, formatCents, type Donation } from '../api/donations';
-import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Spinner } from '../components/ui/Skeleton';
 import DogIllustration from '../components/flair/DogIllustration';
@@ -66,60 +65,51 @@ export default function DonateReturnPage() {
         {status === 'verifying' && (
           <>
             <Spinner className="h-8 w-8 my-4" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Confirming your donation…
             </p>
           </>
         )}
         {status === 'success' && donation && (
           <>
-            <DogIllustration
-              name="ball"
-              className="mb-4 h-28 w-auto text-gray-400 dark:text-gray-500"
-            />
-            <h1 className="text-2xl font-bold mb-1">You're a good human!</h1>
+            <DogIllustration name="ball" className="mb-4 h-28 w-auto" />
+            <h1 className="text-[28px] leading-none text-navy dark:text-biscuit mb-2 text-balance">You're a good human!</h1>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
               Your {formatCents(donation.amount_cents)} donation to{' '}
-              <span className="font-semibold">{donation.recipient_name}</span> went
-              through. 🐾
+              <span className="font-extrabold text-navy dark:text-biscuit">{donation.recipient_name}</span> went
+              through.
             </p>
             <div className="flex gap-2">
-              <Link to="/app/donations">
-                <Button variant="secondary">My donations</Button>
+              <Link to="/app/donations" className="btn btn-secondary">
+                My donations
               </Link>
-              <Link to="/app/home">
-                <Button>Back home</Button>
+              <Link to="/app/home" className="btn btn-primary">
+                Back home
               </Link>
             </div>
           </>
         )}
         {status === 'processing' && (
           <>
-            <DogIllustration
-              name="sniffing"
-              className="mb-4 h-28 w-auto text-gray-400 dark:text-gray-500"
-            />
-            <h1 className="text-xl font-bold mb-1">Payment is processing</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <DogIllustration name="sniffing" className="mb-4 h-28 w-auto" />
+            <h1 className="font-plain text-xl text-navy dark:text-biscuit mb-1">Payment is processing</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
               We'll confirm it shortly — check your donation history in a minute.
             </p>
-            <Link to="/app/donations">
-              <Button variant="secondary">My donations</Button>
+            <Link to="/app/donations" className="btn btn-secondary">
+              My donations
             </Link>
           </>
         )}
         {status === 'error' && (
           <>
-            <DogIllustration
-              name="howling"
-              className="mb-4 h-28 w-auto text-gray-400 dark:text-gray-500"
-            />
-            <h1 className="text-xl font-bold mb-1">We couldn't find that donation</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <DogIllustration name="howling" className="mb-4 h-28 w-auto" />
+            <h1 className="font-plain text-xl text-navy dark:text-biscuit mb-1">We couldn't find that donation</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
               If you completed payment, it'll show up in your history shortly.
             </p>
-            <Link to="/app/donations">
-              <Button variant="secondary">My donations</Button>
+            <Link to="/app/donations" className="btn btn-secondary">
+              My donations
             </Link>
           </>
         )}

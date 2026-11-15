@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { BellRing } from 'lucide-react';
 import {
   createSubscription,
   getMySubscription,
@@ -9,6 +8,7 @@ import {
 } from '../api/lost';
 import { apiErrorMessage } from '../utils/apiError';
 import Button from './ui/Button';
+import BrandIcon from './brand/BrandIcon';
 
 interface Props {
   /** Map centre — what the user is currently looking at. */
@@ -67,13 +67,17 @@ export default function LostAlertSubscription({ center }: Props) {
   // Already subscribed → a compact on/off row.
   if (sub) {
     return (
-      <div className="flex items-center gap-2.5 border-t border-gray-100 px-4 py-2.5 dark:border-gray-800">
-        <BellRing
-          size={15}
-          aria-hidden
-          className={sub.enabled ? 'text-brand-500' : 'text-gray-400'}
+      <div className="flex items-center gap-2.5 border-t border-gray-200 px-4 py-2 dark:border-white/10">
+        <BrandIcon
+          name="bell"
+          size={18}
+          className={
+            sub.enabled
+              ? 'text-navy dark:text-biscuit'
+              : 'text-gray-500 [--bean:currentColor] dark:text-gray-400'
+          }
         />
-        <p className="flex-1 min-w-0 text-xs text-gray-600 dark:text-gray-300">
+        <p className="flex-1 min-w-0 text-xs font-semibold text-gray-700 dark:text-gray-200">
           {sub.enabled
             ? `Alerting you about pets lost within ${sub.radius_km} km`
             : 'Lost-pet alerts are paused'}
@@ -82,7 +86,7 @@ export default function LostAlertSubscription({ center }: Props) {
           type="button"
           onClick={() => toggle.mutate(!sub.enabled)}
           disabled={toggle.isPending}
-          className="flex-shrink-0 text-xs font-semibold text-brand-500 hover:underline disabled:opacity-50"
+          className="btn btn-secondary btn-sm flex-shrink-0"
         >
           {sub.enabled ? 'Pause' : 'Resume'}
         </button>
@@ -91,22 +95,24 @@ export default function LostAlertSubscription({ center }: Props) {
   }
 
   return (
-    <div className="border-t border-gray-100 px-4 py-2.5 dark:border-gray-800">
+    <div className="border-t border-gray-200 px-4 py-2.5 dark:border-white/10">
       {!expanded ? (
         <button
           type="button"
           onClick={() => setExpanded(true)}
           className="flex w-full items-center gap-2.5 text-left"
         >
-          <BellRing size={15} className="text-brand-500" aria-hidden />
-          <span className="flex-1 text-xs text-gray-600 dark:text-gray-300">
+          <BrandIcon name="bell" size={18} className="text-navy dark:text-biscuit" />
+          <span className="flex-1 text-xs font-semibold text-gray-700 dark:text-gray-200">
             Get emailed when a pet goes missing near here
           </span>
-          <span className="text-xs font-semibold text-brand-500">Set up</span>
+          <span className="text-xs font-extrabold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 dark:text-biscuit">
+            Set up
+          </span>
         </button>
       ) : (
         <div>
-          <p className="text-xs text-gray-600 dark:text-gray-300">
+          <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">
             Alert me about pets lost within&hellip;
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -131,7 +137,7 @@ export default function LostAlertSubscription({ center }: Props) {
               Cancel
             </Button>
           </div>
-          <p className="mt-2 text-2xs text-gray-400 dark:text-gray-500">
+          <p className="mt-2 text-2xs text-gray-500 dark:text-gray-400">
             Centred on the area you&rsquo;re viewing. You can pause or change it
             any time.
           </p>

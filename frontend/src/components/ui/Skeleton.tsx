@@ -3,13 +3,13 @@ interface SkeletonProps {
 }
 
 export default function Skeleton({ className = '' }: SkeletonProps) {
-  return <div className={`shimmer rounded-xl ${className}`} />;
+  return <div className={`shimmer rounded-lg ${className}`} />;
 }
 
 export function CardSkeleton() {
   return (
     <div
-      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-soft-sm overflow-hidden animate-fade-in"
+      className="bg-white dark:bg-night-surface rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden animate-fade-in"
       aria-busy="true"
       aria-label="Loading"
     >
@@ -32,7 +32,7 @@ export { default as Spinner } from '../flair/PawSpinner';
 export function ListSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div
-      className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-soft-sm divide-y divide-gray-100 dark:divide-gray-800 animate-fade-in"
+      className="bg-white dark:bg-night-surface rounded-2xl border border-gray-200 dark:border-white/10 divide-y divide-gray-200 dark:divide-white/10 animate-fade-in"
       aria-busy="true"
       aria-label="Loading"
     >

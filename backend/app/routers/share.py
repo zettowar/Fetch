@@ -75,13 +75,14 @@ def _not_found() -> HTMLResponse:
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         "<meta name=\"robots\" content=\"noindex\">"
         "<title>Not found · Fetchpawz</title></head>"
-        "<body style=\"font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;"
-        "background:#fff7ed;color:#1f2937;display:flex;min-height:100vh;margin:0;"
+        "<body style=\"font-family:Figtree,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;"
+        "background:#fff2e3;color:#1c1f45;display:flex;min-height:100vh;margin:0;"
         "align-items:center;justify-content:center;text-align:center;padding:24px\">"
-        "<div><div style=\"font-size:48px\">🐾</div>"
-        "<h1 style=\"margin:.5rem 0\">This report isn't available</h1>"
-        "<p style=\"color:#6b7280\">It may have been resolved, removed, or set to private.</p>"
-        f"<p><a href=\"{html.escape(_base())}\" style=\"color:#ee7a10;font-weight:600\">"
+        f"<div><img src=\"{html.escape(_abs('/email-lockup.png') or '')}\" width=\"170\" height=\"38\" "
+        "alt=\"Fetchpawz\" style=\"display:block;margin:0 auto 20px\">"
+        "<h1 style=\"margin:.5rem 0;font-weight:800\">This report isn't available</h1>"
+        "<p style=\"color:#5d6085\">It may have been resolved, removed, or set to private.</p>"
+        f"<p><a href=\"{html.escape(_base())}\" style=\"color:#c94a0d;font-weight:800\">"
         "Go to Fetchpawz</a></p></div></body></html>"
     )
     return HTMLResponse(body, status_code=404)
@@ -113,8 +114,11 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
     photo = _pet_photo_url(pet) or _abs("/og-image.png")
 
     kind_label = "Missing" if missing else "Found"
-    accent = "#ef4444" if missing else "#3b82f6"
-    emoji = "🚨" if missing else "🐾"
+    # The calm register (Brand Book): a missing pet is navy with an orange dot,
+    # a found pet is Off-Leash Green. Never red — a lost pet isn't an error.
+    badge_style = (
+        "background:#1c1f45;color:#fff2e3" if missing else "background:#22b07a;color:#1c1f45"
+    )
     resolved = report.status != "open"
 
     # --- text (escaped for HTML) ---
@@ -145,7 +149,7 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
 
     # --- share targets ---
     where_bit = " near this area" if map_link else ""
-    share_line = f"{emoji} {kind_label.upper()}: {name}{where_bit} — please share to help!"
+    share_line = f"{kind_label.upper()}: {name}{where_bit}. Please share to help."
     nd_body = quote(f"{share_line} {public_url}")
     nextdoor = f"https://nextdoor.com/sharekit/?source=fetchpawz&body={nd_body}"
     facebook = f"https://www.facebook.com/sharer/sharer.php?u={quote(public_url)}"
@@ -153,31 +157,32 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
 
     # --- optional fragments ---
     resolved_banner = (
-        f"<div style=\"background:#dcfce7;color:#166534;font-weight:600;border-radius:14px;"
-        f"padding:12px 16px;margin-bottom:16px;text-align:center\">🎉 Good news — this "
+        f"<div style=\"background:#d6f3e6;color:#1c1f45;font-weight:700;border-radius:14px;"
+        f"border:2px solid #22b07a;padding:12px 16px;margin-bottom:16px;text-align:center\">Good news: this "
         f"{'pet has been found' if missing else 'report is resolved'}. Thank you for caring.</div>"
         if resolved else ""
     )
     photo_block = (
         f"<img src=\"{html.escape(photo)}\" alt=\"Photo of {e_name}\" "
-        f"style=\"width:100%;max-height:420px;object-fit:cover;display:block\">"
+        f"style=\"width:100%;max-height:420px;object-fit:cover;display:block;border-bottom:2px solid #1c1f45\">"
         if photo else ""
     )
-    breed_block = f"<p style=\"margin:2px 0 0;color:#6b7280\">{e_breed}</p>" if e_breed else ""
+    breed_block = f"<p style=\"margin:2px 0 0;color:#5d6085;font-weight:600\">{e_breed}</p>" if e_breed else ""
     loc_block = (
-        f"<p style=\"margin:16px 0 4px;font-weight:600\">{'Last seen near' if missing else 'Found near'} "
-        f"<span style=\"font-weight:400;color:#6b7280;font-size:.9em\">(within ~{radius_txt})</span></p>"
+        f"<p style=\"margin:16px 0 4px;font-weight:800\">{'Last seen near' if missing else 'Found near'} "
+        f"<span style=\"font-weight:500;color:#5d6085;font-size:.9em\">(within ~{radius_txt}, "
+        f"to protect the owner's home)</span></p>"
         f"<a href=\"{map_link}\" target=\"_blank\" rel=\"noopener nofollow\" "
-        f"style=\"display:inline-block;color:{accent};font-weight:600;text-decoration:none\">"
-        f"📍 View the area on a map →</a>"
+        f"style=\"display:inline-block;color:#c94a0d;font-weight:800;text-decoration:none\">"
+        f"View the area on a map →</a>"
         if map_link else ""
     )
     # Sightings/contact loop lives in the app (auth'd relay keeps the reporter's
     # address hidden). Anonymous finders are funnelled there.
     cta_block = "" if resolved else (
-        f"<a href=\"{app_url}\" style=\"display:block;text-align:center;background:{accent};"
-        f"color:#fff;font-weight:700;padding:14px;border-radius:14px;text-decoration:none;"
-        f"margin-top:20px\">Seen {e_name}? Report a sighting in the app →</a>"
+        f"<a href=\"{app_url}\" style=\"display:block;text-align:center;background:#22b07a;"
+        f"color:#1c1f45;font-weight:800;padding:14px;border-radius:999px;text-decoration:none;"
+        f"border:2px solid #1c1f45;margin-top:20px\">Seen {e_name}? Report a sighting in the app →</a>"
     )
 
     page = f"""<!doctype html>
@@ -185,7 +190,10 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ee7a10">
+<meta name="theme-color" content="#1c1f45">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <title>{title} · Fetchpawz</title>
 <meta name="description" content="{html.escape(og_desc)}">
 {'<meta name="robots" content="noindex">' if resolved else '<meta name="robots" content="index,follow">'}
@@ -203,44 +211,47 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
 <meta name="twitter:description" content="{html.escape(og_desc)}">
 <meta name="twitter:image" content="{html.escape(photo)}">
 <style>
+  /* Brand book, the calm register: Biscuit page, Leash Navy ink, Figtree only,
+     flat cards, no tilt, no jokes. */
   *{{box-sizing:border-box}}
-  body{{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:#fff7ed;color:#1f2937;line-height:1.5}}
+  body{{margin:0;font-family:Figtree,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:#fff2e3;color:#1c1f45;line-height:1.5}}
   .wrap{{max-width:560px;margin:0 auto;padding:20px 16px 48px}}
-  .brand{{display:flex;align-items:center;gap:8px;font-weight:800;color:#ee7a10;
-    text-decoration:none;font-size:18px;margin-bottom:16px}}
-  .card{{background:#fff;border-radius:20px;overflow:hidden;
-    box-shadow:0 10px 30px -12px rgba(0,0,0,.2)}}
+  .brand{{display:inline-block;margin-bottom:18px}}
+  .brand img{{display:block;width:150px;height:auto}}
+  .card{{background:#fff;border-radius:20px;overflow:hidden;border:2px solid #1c1f45}}
   .pad{{padding:20px}}
-  .badge{{display:inline-block;background:{accent};color:#fff;font-weight:800;font-size:12px;
-    letter-spacing:.05em;text-transform:uppercase;padding:4px 10px;border-radius:999px}}
-  h1{{font-size:26px;margin:12px 0 0}}
-  .desc{{white-space:pre-wrap;word-break:break-word;margin:16px 0 0;color:#374151}}
+  .badge{{display:inline-flex;align-items:center;gap:6px;{badge_style};font-weight:800;font-size:12px;
+    letter-spacing:.08em;text-transform:uppercase;padding:5px 11px;border-radius:999px;border:1.5px solid #1c1f45}}
+  .badge:before{{content:"";width:7px;height:7px;border-radius:50%;background:{'#ff6a1f' if missing else '#1c1f45'}}}
+  h1{{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:12px 0 0}}
+  .desc{{white-space:pre-wrap;word-break:break-word;margin:16px 0 0;color:#44476b}}
   .share{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}}
-  .share a,.share button{{font:inherit;font-weight:700;font-size:14px;border:0;cursor:pointer;
-    padding:12px;border-radius:12px;text-align:center;text-decoration:none;color:#fff}}
-  .nd{{background:#8ed500;color:#14330a!important}} .fb{{background:#1877f2}}
-  .tw{{background:#0f1419}} .cp{{background:#e5e7eb;color:#1f2937!important}}
-  .muted{{color:#6b7280;font-size:13px}}
-  .chips{{margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0}}
-  .chips a{{color:#2563eb;text-decoration:none;font-size:13px;margin-right:14px;white-space:nowrap}}
-  footer{{text-align:center;margin-top:24px;color:#9ca3af;font-size:12px}}
-  footer a{{color:#ee7a10;text-decoration:none;font-weight:600}}
+  .share a,.share button{{font:inherit;font-weight:800;font-size:14px;cursor:pointer;
+    padding:11px;border-radius:999px;text-align:center;text-decoration:none;
+    background:#fff;color:#1c1f45;border:2px solid rgba(28,31,69,.25)}}
+  .share a:hover,.share button:hover{{border-color:#1c1f45}}
+  .muted{{color:#5d6085;font-size:13px}}
+  .chips{{margin-top:20px;padding-top:16px;border-top:1px solid #e4e1e7}}
+  .chips a{{color:#c94a0d;font-weight:700;text-decoration:none;font-size:13px;margin-right:14px;white-space:nowrap}}
+  footer{{text-align:center;margin-top:24px;color:#5d6085;font-size:12px}}
+  footer a{{color:#c94a0d;text-decoration:none;font-weight:800}}
   @media (prefers-color-scheme: dark){{
-    body{{background:#0b0b0f;color:#e5e7eb}} .card{{background:#16161c}}
-    h1{{color:#f3f4f6}} .desc{{color:#cbd5e1}} .chips{{border-color:#26262e}}
-    .cp{{background:#26262e;color:#e5e7eb!important}}
+    body{{background:#11132e;color:#fff2e3}} .card{{background:#1b1e44;border-color:#3a3d6e}}
+    h1{{color:#fff2e3}} .desc{{color:#c6c8de}} .chips{{border-color:#262a58}}
+    .share a,.share button{{background:#1b1e44;color:#fff2e3;border-color:rgba(255,242,227,.3)}}
+    .muted,footer{{color:#a9abcb}} .chips a,footer a{{color:#ff8445}}
   }}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <a class="brand" href="{_base()}">🐾 Fetchpawz</a>
+  <a class="brand" href="{_base()}"><img src="{_abs('/email-lockup.png')}" alt="Fetchpawz" width="150" height="34"></a>
   {resolved_banner}
   <div class="card">
     {photo_block}
     <div class="pad">
-      <span class="badge">{emoji} {kind_label}</span>
+      <span class="badge">{kind_label}</span>
       <h1>{e_name}</h1>
       {breed_block}
       <p class="desc">{html.escape(desc)}</p>

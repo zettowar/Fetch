@@ -19,11 +19,14 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import PageHeader from '../../components/ui/PageHeader';
+import ErrorState from '../../components/ui/ErrorState';
+import SectionHeader from '../../components/ui/SectionHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import { CHECK, FIELD, ROWS, ROW_HOVER, STAT_INK, STAT_NUMBER } from './adminStyles';
 
-const inputClasses =
-  'rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-brand-500 bg-white dark:bg-gray-900';
+const inputClasses = FIELD;
 
 const errDetail = (e: unknown): string | undefined =>
   (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -55,17 +58,31 @@ export default function AdminSystemPage() {
   const set = <K extends keyof typeof BLANK>(key: K, value: (typeof BLANK)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const { data: health, dataUpdatedAt } = useQuery({
+  const {
+    data: health,
+    dataUpdatedAt,
+    isError: healthError,
+    refetch: refetchHealth,
+  } = useQuery({
     queryKey: ['admin-system-jobs'],
     queryFn: getSystemJobs,
     refetchInterval: 15000,
   });
-  const { data: jobs, isLoading } = useQuery({
+  const {
+    data: jobs,
+    isLoading,
+    isError: jobsError,
+    refetch: refetchJobs,
+  } = useQuery({
     queryKey: ['admin-scheduled-tasks'],
     queryFn: listScheduledTasks,
     refetchInterval: 15000,
   });
-  const { data: availableTasks = [] } = useQuery({
+  const {
+    data: availableTasks = [],
+    isError: tasksError,
+    refetch: refetchTasks,
+  } = useQuery({
     queryKey: ['admin-available-tasks'],
     queryFn: getAvailableTasks,
   });
@@ -209,48 +226,61 @@ export default function AdminSystemPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">System</h1>
-        {dataUpdatedAt > 0 && (
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
-          </span>
-        )}
-      </div>
+      <PageHeader
+        title="System"
+        className="mb-5"
+        action={
+          dataUpdatedAt > 0 && (
+            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+              Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
+            </span>
+          )
+        }
+      />
 
-      {/* Health cards */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <Card>
-          <p className="text-2xl font-bold">{health?.broker_queue_depth ?? '—'}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Broker queue depth</p>
-        </Card>
-        <Card>
-          <p
-            className={`text-2xl font-bold ${
-              anyUnregistered
-                ? 'text-danger-600 dark:text-danger-400'
-                : 'text-success-600 dark:text-success-400'
-            }`}
-          >
-            {anyUnregistered ? 'Attention' : 'Healthy'}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Scheduled jobs</p>
-        </Card>
-      </div>
+      {/* Health cards. The second card is derived from the jobs list, so a
+          failed jobs load must not leave it reading "Healthy". */}
+      {healthError || jobsError ? (
+        <ErrorState
+          message="Couldn't load system health."
+          onRetry={() => {
+            if (healthError) refetchHealth();
+            if (jobsError) refetchJobs();
+          }}
+        />
+      ) : (
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <Card>
+            <p className={`${STAT_NUMBER} ${STAT_INK}`}>{health?.broker_queue_depth ?? '—'}</p>
+            <p className="eyebrow mt-1.5">Broker queue depth</p>
+          </Card>
+          <Card>
+            <p
+              className={`flex items-center gap-2 text-xl font-extrabold leading-tight ${
+                anyUnregistered
+                  ? 'text-danger-600 dark:text-danger-400'
+                  : 'text-success-700 dark:text-success-400'
+              }`}
+            >
+              <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${anyUnregistered ? 'bg-danger-500' : 'bg-success-500'}`} />
+              {anyUnregistered ? 'Attention' : 'Healthy'}
+            </p>
+            <p className="eyebrow mt-1.5">Scheduled jobs</p>
+          </Card>
+        </div>
+      )}
 
       {anyUnregistered && (
-        <div className="mb-4 rounded-lg bg-danger-50 dark:bg-danger-500/10 border border-danger-200 dark:border-danger-500/30 p-3 text-sm text-danger-700 dark:text-danger-300">
+        <div className="mb-5 rounded-2xl bg-danger-50 dark:bg-danger-500/10 border-[1.5px] border-danger-300 dark:border-danger-500/40 p-3 text-sm font-semibold text-danger-700 dark:text-danger-300">
           One or more jobs point at a task the worker doesn't have registered — they'll be
           dispatched but silently discarded. Fix the task name or remove the job.
         </div>
       )}
 
       {/* Email deliverability probe */}
-      <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-        Email
-      </h2>
-      <Card className="mb-6 flex flex-col gap-3">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+      <SectionHeader title="Email" />
+      <Card className="mb-7 flex flex-col gap-3">
+        <p className="text-xs text-gray-600 dark:text-gray-300">
           Sends a probe through Resend to confirm the API key, sender domain, and DNS are
           working. Failures are reported here with the provider's reason.
         </p>
@@ -274,6 +304,7 @@ export default function AdminSystemPage() {
             />
           </div>
           <Button
+            variant="secondary"
             onClick={() => testEmailMutation.mutate()}
             loading={testEmailMutation.isPending}
             disabled={!canSendTest}
@@ -283,13 +314,13 @@ export default function AdminSystemPage() {
         </div>
         {testResult && (
           <div
-            className={`rounded-lg border p-3 text-sm ${
+            className={`rounded-lg border-[1.5px] p-3 text-sm ${
               testResult.delivered
-                ? 'bg-success-50 dark:bg-success-500/10 border-success-200 dark:border-success-500/30 text-success-700 dark:text-success-300'
-                : 'bg-danger-50 dark:bg-danger-500/10 border-danger-200 dark:border-danger-500/30 text-danger-700 dark:text-danger-300'
+                ? 'bg-success-50 dark:bg-success-500/10 border-success-500/50 dark:border-success-500/40 text-success-800 dark:text-success-200'
+                : 'bg-danger-50 dark:bg-danger-500/10 border-danger-300 dark:border-danger-500/40 text-danger-700 dark:text-danger-300'
             }`}
           >
-            <p className="font-medium">
+            <p className="font-extrabold">
               {testResult.delivered ? 'Accepted by Resend' : 'Not delivered'}
             </p>
             <p className="mt-0.5">{testResult.detail}</p>
@@ -301,21 +332,22 @@ export default function AdminSystemPage() {
       </Card>
 
       {/* Editor header */}
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-          Scheduled jobs (Celery Beat)
-        </h2>
-        <Button
-          size="sm"
-          onClick={() => {
-            const opening = !showForm;
-            resetForm();
-            setShowForm(opening);
-          }}
-        >
-          {showForm ? 'Cancel' : 'New job'}
-        </Button>
-      </div>
+      <SectionHeader
+        title="Scheduled jobs (Celery Beat)"
+        action={
+          <Button
+            size="sm"
+            variant={showForm ? 'secondary' : 'primary'}
+            onClick={() => {
+              const opening = !showForm;
+              resetForm();
+              setShowForm(opening);
+            }}
+          >
+            {showForm ? 'Cancel' : 'New job'}
+          </Button>
+        }
+      />
 
       {showForm && (
         <Card className="mb-4 flex flex-col gap-3">
@@ -326,34 +358,48 @@ export default function AdminSystemPage() {
               onChange={(e) => set('name', e.target.value)}
               placeholder="nightly-cleanup"
             />
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Task</label>
-              <select
-                className={inputClasses}
-                value={form.task}
-                onChange={(e) => set('task', e.target.value)}
-              >
-                <option value="">Select a task…</option>
-                {availableTasks.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-col gap-1.5">
+              {/* Without the task list the picker is an empty dropdown and the
+                  job can never be saved — say why instead. */}
+              {tasksError ? (
+                <ErrorState message="Couldn't load the task list." onRetry={() => refetchTasks()} />
+              ) : (
+                <>
+                  <label htmlFor="scheduled-job-task" className="field-label">Task</label>
+                  <select
+                    id="scheduled-job-task"
+                    className={`${inputClasses} min-h-[48px] font-mono`}
+                    value={form.task}
+                    onChange={(e) => set('task', e.target.value)}
+                  >
+                    <option value="">Select a task…</option>
+                    {availableTasks.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
             </div>
           </div>
 
           {/* Schedule type */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Schedule</label>
-            <div className="flex gap-4 text-sm">
+            <span id="scheduled-job-schedule-label" className="field-label">Schedule</span>
+            <div
+              className="flex gap-4 text-sm font-semibold"
+              role="radiogroup"
+              aria-labelledby="scheduled-job-schedule-label"
+            >
               {(['interval', 'crontab'] as ScheduleType[]).map((t) => (
-                <label key={t} className="inline-flex items-center gap-1.5 capitalize">
+                <label key={t} className="inline-flex cursor-pointer items-center gap-1.5 capitalize">
                   <input
                     type="radio"
                     name="scheduleType"
                     checked={form.scheduleType === t}
                     onChange={() => set('scheduleType', t)}
+                    className={CHECK}
                   />
                   {t}
                 </label>
@@ -362,15 +408,16 @@ export default function AdminSystemPage() {
 
             {form.scheduleType === 'interval' ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Every</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300">Every</span>
                 <input
                   type="number"
                   min={1}
-                  className={`${inputClasses} w-32`}
+                  aria-label="Interval in seconds"
+                  className={`${inputClasses} w-32 font-mono`}
                   value={form.intervalSeconds}
                   onChange={(e) => set('intervalSeconds', e.target.value)}
                 />
-                <span className="text-sm text-gray-500">seconds</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300">seconds</span>
               </div>
             ) : (
               <div className="grid grid-cols-5 gap-2">
@@ -384,15 +431,16 @@ export default function AdminSystemPage() {
                   ] as [keyof typeof BLANK, string][]
                 ).map(([key, lbl]) => (
                   <div key={key} className="flex flex-col gap-1">
-                    <label className="text-[11px] text-gray-500">{lbl}</label>
+                    <label htmlFor={`scheduled-job-cron-${key}`} className="field-label">{lbl}</label>
                     <input
-                      className={`${inputClasses} text-center`}
+                      id={`scheduled-job-cron-${key}`}
+                      className={`${inputClasses} text-center font-mono`}
                       value={form[key] as string}
                       onChange={(e) => set(key, e.target.value as never)}
                     />
                   </div>
                 ))}
-                <p className="col-span-5 text-xs text-gray-400">
+                <p className="col-span-5 text-xs text-gray-500 dark:text-gray-400">
                   Cron syntax, UTC (e.g. <code>*/5</code>, <code>0,30</code>, <code>mon</code>).
                 </p>
               </div>
@@ -406,34 +454,35 @@ export default function AdminSystemPage() {
           />
 
           <div className="flex gap-6">
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-navy dark:text-biscuit">
               <input
                 type="checkbox"
                 checked={form.enabled}
                 onChange={(e) => set('enabled', e.target.checked)}
-                className="rounded border-gray-300 dark:border-gray-700"
+                className={CHECK}
               />
               Enabled
             </label>
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-navy dark:text-biscuit">
               <input
                 type="checkbox"
                 checked={form.oneOff}
                 onChange={(e) => set('oneOff', e.target.checked)}
-                className="rounded border-gray-300 dark:border-gray-700"
+                className={CHECK}
               />
               Run once, then disable
             </label>
           </div>
 
           <details className="text-sm">
-            <summary className="cursor-pointer text-gray-500 select-none">
+            <summary className="cursor-pointer font-bold text-gray-600 dark:text-gray-300 select-none">
               Advanced — args / kwargs (JSON)
             </summary>
             <div className="grid gap-3 sm:grid-cols-2 mt-2">
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-gray-500">args (array)</label>
+                <label htmlFor="scheduled-job-args" className="field-label">args (array)</label>
                 <textarea
+                  id="scheduled-job-args"
                   className={`${inputClasses} font-mono`}
                   rows={2}
                   value={form.argsText}
@@ -441,8 +490,9 @@ export default function AdminSystemPage() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-gray-500">kwargs (object)</label>
+                <label htmlFor="scheduled-job-kwargs" className="field-label">kwargs (object)</label>
                 <textarea
+                  id="scheduled-job-kwargs"
                   className={`${inputClasses} font-mono`}
                   rows={2}
                   value={form.kwargsText}
@@ -462,27 +512,31 @@ export default function AdminSystemPage() {
         </Card>
       )}
 
-      {isLoading || !jobs ? (
+      {isLoading ? (
+        <ListSkeleton rows={4} />
+      ) : jobsError ? (
+        <ErrorState message="Couldn't load scheduled jobs." onRetry={() => refetchJobs()} />
+      ) : !jobs ? (
         <ListSkeleton rows={4} />
       ) : jobs.length === 0 ? (
         <Card>
-          <p className="text-sm text-gray-500 py-4 text-center">No scheduled jobs.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 py-4 text-center">No scheduled jobs.</p>
         </Card>
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {jobs.map((job) => (
-            <div key={job.id} className="p-3 flex items-start gap-3">
+            <div key={job.id} className={`p-3 flex items-start gap-3 ${ROW_HOVER}`}>
               <input
                 type="checkbox"
                 checked={job.enabled}
                 disabled={toggleMutation.isPending}
                 onChange={() => toggleMutation.mutate(job)}
                 title={job.enabled ? 'Disable' : 'Enable'}
-                className="mt-1 rounded border-gray-300 dark:border-gray-700"
+                className={`mt-1 ${CHECK}`}
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className={`font-semibold text-sm ${job.enabled ? '' : 'text-gray-400'}`}>
+                  <p className={`font-bold text-sm ${job.enabled ? 'text-navy dark:text-biscuit' : 'text-gray-500 dark:text-gray-400'}`}>
                     {job.name}
                   </p>
                   {job.one_off && <Badge variant="neutral">one-off</Badge>}
@@ -490,12 +544,12 @@ export default function AdminSystemPage() {
                     {job.registered ? 'registered' : 'missing'}
                   </Badge>
                 </div>
-                <p className="font-mono text-[11px] text-gray-400 dark:text-gray-500 truncate">
+                <p className="font-mono text-2xs text-gray-500 dark:text-gray-400 truncate">
                   {job.task}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {job.schedule_display} · runs: {job.total_run_count} ·{' '}
-                  {job.last_run_at ? <>last <TimeAgo value={job.last_run_at} /></> : 'never run'}
+                  <span className="font-mono">{job.schedule_display}</span> · runs: {job.total_run_count} ·{' '}
+                  {job.last_run_at ? <>last <TimeAgo value={job.last_run_at} className="font-mono" /></> : 'never run'}
                 </p>
               </div>
               <div className="flex gap-1 shrink-0">

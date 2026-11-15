@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { PawPrint } from 'lucide-react';
 import { contactTagOwner } from '../api/tags';
 import { apiErrorMessage } from '../utils/apiError';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import BrandIcon from '../components/brand/BrandIcon';
 
 interface FoundPetFormProps {
   /** Tag code from the scanned collar tag — the credential for this relay. */
@@ -18,6 +18,9 @@ interface FoundPetFormProps {
  * Deliberately usable with no account — someone standing in the street holding
  * a loose dog is not going to sign up. The owner's email is never exposed; the
  * finder leaves their own contact details, which ride in the email body.
+ *
+ * The calm register: a flat panel, plain type, three fields and one orange
+ * button. Sent is green — found is the real world's colour, not a party.
  */
 export default function FoundPetForm({ code, petName }: FoundPetFormProps) {
   const [name, setName] = useState('');
@@ -43,13 +46,13 @@ export default function FoundPetForm({ code, petName }: FoundPetFormProps) {
     return (
       <section
         aria-live="polite"
-        className="rounded-2xl border border-green-200 bg-green-50 p-6 text-center dark:border-green-900 dark:bg-green-950/40"
+        className="rounded-2xl border-2 border-green-500 bg-green-50 p-6 text-center dark:border-green-500/60 dark:bg-green-500/10"
       >
-        <PawPrint className="mx-auto h-8 w-8 text-green-600 dark:text-green-400" aria-hidden />
-        <h2 className="mt-3 text-lg font-bold tracking-tight text-green-900 dark:text-green-100">
+        <BrandIcon name="check" size={36} className="mx-auto text-green-700 dark:text-green-300" />
+        <h2 className="mt-3 text-lg font-extrabold text-navy dark:text-biscuit">
           Message sent to {petName}&rsquo;s owner
         </h2>
-        <p className="mt-1.5 text-sm text-green-800 dark:text-green-200">
+        <p className="mt-1.5 text-sm text-gray-700 dark:text-gray-200">
           They have your contact details and should be in touch shortly. Thank you
           for helping {petName} get home.
         </p>
@@ -58,12 +61,11 @@ export default function FoundPetForm({ code, petName }: FoundPetFormProps) {
   }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-soft dark:border-gray-800 dark:bg-gray-900">
-      <h2 className="text-lg font-bold tracking-tight">Found {petName}?</h2>
-      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+    <section className="surface p-6">
+      <h2 className="font-plain text-2xl text-navy dark:text-biscuit">Found {petName}?</h2>
+      <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300">
         Send their owner a message. We&rsquo;ll pass on whatever contact details
-        you leave below &mdash; your message goes straight to them, and their
-        email address stays private.
+        you leave below &mdash; your message goes straight to them.
       </p>
 
       <form
@@ -90,10 +92,7 @@ export default function FoundPetForm({ code, petName }: FoundPetFormProps) {
           required
         />
         <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="found-pet-message"
-            className="text-sm font-medium text-gray-700 dark:text-gray-200"
-          >
+          <label htmlFor="found-pet-message" className="field-label">
             Message
           </label>
           <textarea
@@ -104,20 +103,24 @@ export default function FoundPetForm({ code, petName }: FoundPetFormProps) {
             rows={4}
             required
             placeholder={`I found ${petName} near…`}
-            className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            className="w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400"
           />
         </div>
 
         {mutation.isError && (
-          <p role="alert" className="text-sm text-danger-600 dark:text-danger-400">
+          <p role="alert" className="text-sm font-semibold text-danger-700 dark:text-danger-300">
             {apiErrorMessage(mutation.error, "Couldn't send your message")}
           </p>
         )}
 
-        <Button type="submit" disabled={!canSubmit} loading={mutation.isPending}>
+        <Button type="submit" size="lg" disabled={!canSubmit} loading={mutation.isPending}>
           Send message
         </Button>
-        <p className="text-2xs text-center text-gray-400 dark:text-gray-500">
+        <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300">
+          <BrandIcon name="lock" size={18} />
+          Their email address stays private.
+        </p>
+        <p className="text-xs text-center text-gray-500 dark:text-gray-400">
           If {petName} needs urgent help, please also contact your local animal
           control or a vet.
         </p>

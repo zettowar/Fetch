@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ExternalLink, Heart, HeartHandshake, HousePlus, PawPrint } from 'lucide-react';
+import { ExternalLink, Heart } from 'lucide-react';
 import {
   createDonationCheckout,
   formatCents,
   getDonationConfig,
 } from '../api/donations';
 import { listRescues, type RescuePublic } from '../api/rescues';
+import BrandIcon from '../components/brand/BrandIcon';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
 import Input from '../components/ui/Input';
 import PageHeader from '../components/ui/PageHeader';
 import SearchInput from '../components/ui/SearchInput';
@@ -20,6 +22,27 @@ import PawTrail from '../components/flair/PawTrail';
 import { appToast } from '../utils/appToast';
 import { apiErrorMessage } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+
+// A tile you can touch: 2px Leash Navy line on the toy shadow. Picked, it
+// takes its recipient's colour: Ball Orange for Fetchpawz, Forever Pink for
+// a rescue.
+const TILE =
+  'rounded-2xl border-2 border-navy text-left shadow-toy-sm transition-[transform,box-shadow,background-color] duration-150 ease-soft-out hover:-translate-y-px hover:shadow-toy active:translate-x-[2px] active:translate-y-[3px] active:shadow-none dark:border-white/15';
+const TILE_IDLE = 'bg-white dark:bg-night-surface';
+const TILE_PLATFORM_ON = 'bg-brand-100 dark:bg-brand-500/20';
+const TILE_RESCUE_ON = 'bg-pink-100 dark:bg-pink-500/20';
+const SECTION_TITLE = 'text-base font-extrabold tracking-tight text-navy dark:text-biscuit mb-2';
+
+function RescueMark() {
+  return (
+    <span
+      className="inline-flex w-10 h-10 shrink-0 items-center justify-center rounded-full border-2 border-navy bg-pink-100 text-navy dark:border-white/15 dark:bg-pink-500/20 dark:text-biscuit"
+      aria-hidden
+    >
+      <BrandIcon name="rescue" size={20} />
+    </span>
+  );
+}
 
 type Recipient =
   | { type: 'platform' }
@@ -34,7 +57,12 @@ export default function DonatePage() {
     queryFn: getDonationConfig,
   });
   const [search, setSearch] = useState('');
-  const { data: rescues = [], isLoading: rescuesLoading } = useQuery({
+  const {
+    data: rescues = [],
+    isLoading: rescuesLoading,
+    isError: rescuesFailed,
+    refetch: refetchRescues,
+  } = useQuery({
     queryKey: ['rescues', search],
     queryFn: () => listRescues(search || undefined),
   });
@@ -112,7 +140,11 @@ export default function DonatePage() {
     <div className="p-4 flex flex-col gap-5">
       <PageHeader
         title="Donate"
-        subtitle="Every bone counts."
+        subtitle={
+          <span className="block font-display text-2xl leading-tight text-navy dark:text-biscuit">
+            Every bone counts.
+          </span>
+        }
         back
         backFallback="/app/home"
       />
@@ -132,32 +164,30 @@ export default function DonatePage() {
         <>
           {/* Recipient */}
           <section>
-            <h2 className="text-sm font-bold tracking-tight text-gray-800 dark:text-gray-200 mb-2">
+            <h2 className={SECTION_TITLE}>
               Who are you supporting?
             </h2>
             <div className="flex flex-col gap-2">
               <button
                 type="button"
                 onClick={() => setRecipient({ type: 'platform' })}
-                className={`relative overflow-hidden text-left rounded-2xl border p-3.5 transition-all duration-200 ease-soft-out active:scale-[0.99] ${
-                  recipient.type === 'platform'
-                    ? 'border-brand-400 ring-2 ring-brand-200 dark:ring-brand-500/30 bg-brand-50/60 dark:bg-brand-500/10'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-brand-200'
+                className={`relative overflow-hidden p-3.5 ${TILE} ${
+                  recipient.type === 'platform' ? TILE_PLATFORM_ON : TILE_IDLE
                 }`}
               >
                 <PawTrail
                   steps={3}
                   direction={-18}
                   size={12}
-                  className="absolute top-2 right-3 text-brand-300/40 dark:text-brand-500/20"
+                  className="absolute top-2 right-3 text-navy/15 dark:text-biscuit/15"
                 />
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex w-9 h-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white" aria-hidden>
-                    <HeartHandshake size={18} />
+                  <span className="inline-flex w-10 h-10 shrink-0 items-center justify-center rounded-full border-2 border-navy bg-brand-500 text-navy" aria-hidden>
+                    <BrandIcon name="donate" size={20} style={{ '--bean': 'var(--paper)' } as CSSProperties} />
                   </span>
                   <div>
-                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Support Fetchpawz</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-base font-extrabold text-navy dark:text-biscuit">Support Fetchpawz</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
                       Keep the pack running — servers, treats, and new features.
                     </p>
                   </div>
@@ -172,6 +202,8 @@ export default function DonatePage() {
               />
               {rescuesLoading ? (
                 <ListSkeleton rows={3} />
+              ) : rescuesFailed ? (
+                <ErrorState message="Couldn't load rescues." onRetry={() => refetchRescues()} />
               ) : donatable.length === 0 ? (
                 <EmptyState
                   illustration="sniffing"
@@ -189,18 +221,12 @@ export default function DonatePage() {
                           <button
                             type="button"
                             onClick={() => setRecipient({ type: 'rescue', rescue })}
-                            className={`w-full text-left rounded-2xl border p-3 transition-all duration-200 ease-soft-out active:scale-[0.99] ${
-                              selected
-                                ? 'border-brand-400 ring-2 ring-brand-200 dark:ring-brand-500/30 bg-brand-50/60 dark:bg-brand-500/10'
-                                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-brand-200'
-                            }`}
+                            className={`w-full p-3 ${TILE} ${selected ? TILE_RESCUE_ON : TILE_IDLE}`}
                           >
                             <div className="flex items-center gap-3">
-                              <span className="inline-flex w-9 h-9 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-300" aria-hidden>
-                                <HousePlus size={18} />
-                              </span>
+                              <RescueMark />
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                <p className="text-sm font-extrabold text-navy dark:text-biscuit truncate">
                                   {rescue.org_name}
                                 </p>
                                 {rescue.location && (
@@ -222,20 +248,18 @@ export default function DonatePage() {
                           href={rescue.donation_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 hover:border-brand-200 transition-all duration-200 ease-soft-out active:scale-[0.99]"
+                          className={`flex items-center gap-3 p-3 ${TILE} ${TILE_IDLE}`}
                         >
-                          <span className="inline-flex w-9 h-9 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-300" aria-hidden>
-                            <HousePlus size={18} />
-                          </span>
+                          <RescueMark />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                            <p className="text-sm font-extrabold text-navy dark:text-biscuit truncate">
                               {rescue.org_name}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                               Donates via their own page
                             </p>
                           </div>
-                          <ExternalLink size={16} aria-hidden className="text-gray-400 shrink-0" />
+                          <ExternalLink size={16} aria-hidden className="text-gray-500 dark:text-gray-400 shrink-0" />
                         </a>
                       </li>
                     );
@@ -247,10 +271,10 @@ export default function DonatePage() {
 
           {/* Amount */}
           <Card as="section" padding="md">
-            <h2 className="text-sm font-bold tracking-tight text-gray-800 dark:text-gray-200 mb-3">
+            <h2 className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit mb-3">
               Donation to {recipientLabel}
             </h2>
-            <div className="flex flex-wrap gap-2 mb-3" role="radiogroup" aria-label="Amount">
+            <div className="grid grid-cols-2 gap-2.5 mb-4" role="radiogroup" aria-label="Amount">
               {config.presets_cents.map((cents) => {
                 const active = !customAmount && amountCents === cents;
                 return (
@@ -264,10 +288,12 @@ export default function DonatePage() {
                       setCustomAmount('');
                       setAmountError(undefined);
                     }}
-                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 ${
+                    // Chunky Bagel tiles: white on a navy line, the picked one
+                    // in Ball Orange.
+                    className={`min-h-[60px] rounded-lg border-2 border-navy px-3 py-2.5 text-center font-display text-2xl leading-none tabular-nums shadow-toy-sm transition-[transform,box-shadow,background-color] duration-150 ease-soft-out hover:-translate-y-px hover:shadow-toy active:translate-x-[2px] active:translate-y-[3px] active:shadow-none ${
                       active
-                        ? 'bg-brand-500 text-white shadow-brand-glow'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-brand-50 dark:hover:bg-brand-500/10'
+                        ? 'bg-brand-500 text-navy dark:border-navy'
+                        : 'bg-white text-navy dark:border-white/15 dark:bg-night-surface dark:text-biscuit'
                     }`}
                   >
                     {formatCents(cents)}
@@ -304,7 +330,7 @@ export default function DonatePage() {
               />
             </div>
             {recipient.type === 'rescue' && config.platform_fee_percent > 0 && (
-              <p className="mt-2 text-2xs text-gray-500 dark:text-gray-400">
+              <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">
                 {config.platform_fee_percent}% supports Fetchpawz's platform costs; the
                 rest goes straight to {recipientLabel}.
               </p>
@@ -312,16 +338,15 @@ export default function DonatePage() {
             <Button
               className="w-full mt-4"
               size="lg"
+              // Platform gifts are Ball Orange; a gift to a rescue is Forever Pink.
+              variant={recipient.type === 'rescue' ? 'rescue' : 'primary'}
               loading={submitting}
               disabled={effectiveCents == null}
               onClick={donate}
             >
-              <span className="inline-flex items-center gap-2">
-                <PawPrint size={18} aria-hidden />
-                Donate{effectiveCents ? ` ${formatCents(effectiveCents)}` : ''}
-              </span>
+              Donate{effectiveCents ? ` ${formatCents(effectiveCents)}` : ''}
             </Button>
-            <p className="mt-2 text-2xs text-center text-gray-400 dark:text-gray-500">
+            <p className="mt-2 text-xs text-center text-gray-500 dark:text-gray-400">
               Secure checkout by Stripe. You'll be redirected to complete payment.
             </p>
           </Card>
@@ -342,7 +367,7 @@ function RescueLinkList({
   if (loading || donating.length === 0) return null;
   return (
     <section>
-      <h2 className="text-sm font-bold tracking-tight text-gray-800 dark:text-gray-200 mb-2">
+      <h2 className={SECTION_TITLE}>
         Donate to a rescue
       </h2>
       <ul className="flex flex-col gap-2">
@@ -352,15 +377,13 @@ function RescueLinkList({
               href={rescue.donation_url!}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 hover:border-brand-200 transition-all duration-200 ease-soft-out"
+              className={`flex items-center gap-3 p-3 ${TILE} ${TILE_IDLE}`}
             >
-              <span className="inline-flex w-9 h-9 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-300" aria-hidden>
-                <HousePlus size={18} />
-              </span>
-              <span className="min-w-0 flex-1 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+              <RescueMark />
+              <span className="min-w-0 flex-1 text-sm font-extrabold text-navy dark:text-biscuit truncate">
                 {rescue.org_name}
               </span>
-              <ExternalLink size={16} aria-hidden className="text-gray-400 shrink-0" />
+              <ExternalLink size={16} aria-hidden className="text-gray-500 dark:text-gray-400 shrink-0" />
             </a>
           </li>
         ))}

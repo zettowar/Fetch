@@ -6,8 +6,9 @@ export default function SwipePage() {
   useDocumentTitle('Rate pets · Fetchpawz');
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4 text-center">Rate</h1>
-      <div className="flex justify-center mb-4">
+      {/* One title per screen, top left; the filter sits on the same line. */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h1 className="text-[28px] leading-none text-navy dark:text-biscuit">Rate</h1>
         <SpeciesTabs />
       </div>
       <SwipeDeck />

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Megaphone, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { getSiteBanner } from '../api/publicSite';
+import BrandIcon from './brand/BrandIcon';
 
 const DISMISSED_KEY = 'fetch.banner.dismissed';
 
@@ -39,10 +40,12 @@ export default function MaintenanceBanner() {
   return (
     <div
       role="status"
-      className="relative z-30 flex items-start gap-2.5 bg-warning-100 px-4 py-2.5 text-sm text-warning-900 dark:bg-warning-500/15 dark:text-warning-100"
+      // An operational notice is information, not an achievement: a flat
+      // white strip with a hairline and the bell, never Crown Gold.
+      className="relative z-30 flex items-start gap-2.5 border-b border-gray-200 bg-white px-4 py-2.5 text-sm text-navy dark:border-white/10 dark:bg-night-surface dark:text-biscuit"
     >
-      <Megaphone size={16} className="mt-0.5 flex-shrink-0" aria-hidden />
-      <p className="flex-1 min-w-0">{text}</p>
+      <BrandIcon name="bell" size={18} className="mt-px" />
+      <p className="flex-1 min-w-0 font-semibold">{text}</p>
       <button
         type="button"
         aria-label="Dismiss announcement"
@@ -54,7 +57,7 @@ export default function MaintenanceBanner() {
           }
           setDismissed(text);
         }}
-        className="-mr-1 -mt-0.5 flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+        className="-mr-1 -mt-0.5 flex-shrink-0 rounded-full p-1.5 text-gray-600 transition-colors hover:bg-navy/5 hover:text-navy dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-biscuit"
       >
         <X size={15} aria-hidden />
       </button>

@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { HeartHandshake, HousePlus } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { getMyDonations, formatCents, type DonationStatus } from '../api/donations';
+import BrandIcon from '../components/brand/BrandIcon';
 import Badge from '../components/ui/Badge';
-import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
@@ -19,6 +19,9 @@ const STATUS_BADGE: Record<DonationStatus, { variant: 'success' | 'neutral' | 'w
   failed: { variant: 'warning', label: 'Not completed' },
   refunded: { variant: 'danger', label: 'Refunded' },
 };
+
+// Platform gifts wear Ball Orange; gifts to a rescue wear Forever Pink.
+const ORANGE_BEAN = { '--bean': 'var(--orange)' } as CSSProperties;
 
 export default function DonationHistoryPage() {
   useDocumentTitle('My donations · Fetchpawz');
@@ -43,34 +46,34 @@ export default function DonationHistoryPage() {
           body="Chip in for the rescues doing the hard work — or toss Fetchpawz a bone."
           action={
             donateOpen ? (
-              <Link to="/app/donate">
-                <Button size="sm">Donate</Button>
+              <Link to="/app/donate" className="btn btn-primary btn-sm">
+                Donate
               </Link>
             ) : undefined
           }
         />
       ) : (
-        <Card padding="none" as="ul" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" as="ul" className="divide-y divide-gray-200 dark:divide-white/10">
           {donations.map((d) => {
             const badge = STATUS_BADGE[d.status] ?? STATUS_BADGE.pending;
             return (
               <li key={d.id} className="flex items-center gap-3 p-3">
                 <span
-                  className={`inline-flex w-9 h-9 shrink-0 items-center justify-center rounded-full ${
+                  className={`inline-flex w-10 h-10 shrink-0 items-center justify-center rounded-full border-2 border-navy text-navy dark:border-white/15 dark:text-biscuit ${
                     d.recipient_type === 'platform'
-                      ? 'bg-brand-100 dark:bg-brand-500/15 text-brand-600 dark:text-brand-300'
-                      : 'bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-300'
+                      ? 'bg-brand-100 dark:bg-brand-500/20'
+                      : 'bg-pink-100 dark:bg-pink-500/20'
                   }`}
                   aria-hidden
                 >
                   {d.recipient_type === 'platform' ? (
-                    <HeartHandshake size={18} />
+                    <BrandIcon name="donate" size={20} style={ORANGE_BEAN} />
                   ) : (
-                    <HousePlus size={18} />
+                    <BrandIcon name="rescue" size={20} />
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                  <p className="text-sm font-extrabold text-navy dark:text-biscuit truncate">
                     {d.recipient_name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -78,7 +81,7 @@ export default function DonationHistoryPage() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                  <p className="mb-1 text-sm font-extrabold tabular-nums text-navy dark:text-biscuit">
                     {formatCents(d.amount_cents)}
                   </p>
                   <Badge variant={badge.variant}>{badge.label}</Badge>

@@ -2,11 +2,14 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAuditLog, type AuditLogEntry } from '../../api/admin';
 import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import ErrorState from '../../components/ui/ErrorState';
+import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
+import { FIELD, ROWS, ROW_HOVER } from './adminStyles';
 
 type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
@@ -34,10 +37,10 @@ function actionVariant(action: string): BadgeVariant {
 function MetadataView({ meta }: { meta: Record<string, unknown> | null }) {
   if (!meta || Object.keys(meta).length === 0) return null;
   return (
-    <div className="mt-1 text-2xs text-gray-400 dark:text-gray-500 font-mono">
+    <div className="mt-1 text-2xs text-gray-500 dark:text-gray-400 font-mono">
       {Object.entries(meta).map(([k, v]) => (
         <span key={k} className="mr-2">
-          {k}: <span className="text-gray-600 dark:text-gray-300">{String(v)}</span>
+          {k}: <span className="text-navy dark:text-biscuit">{String(v)}</span>
         </span>
       ))}
     </div>
@@ -67,16 +70,19 @@ export default function AdminAuditPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Audit Log</h1>
-        <button onClick={() => refetch()} className="text-xs text-brand-500 hover:underline">
-          Refresh
-        </button>
-      </div>
+      <PageHeader
+        title="Audit Log"
+        className="mb-5"
+        action={
+          <Button size="sm" variant="ghost" onClick={() => refetch()}>
+            Refresh
+          </Button>
+        }
+      />
 
       <div className="flex flex-wrap gap-2 mb-4">
         <select
-          className="rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1.5 text-sm"
+          className={`${FIELD} font-mono`}
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
         >
@@ -90,7 +96,7 @@ export default function AdminAuditPage() {
         </select>
 
         <select
-          className="rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1.5 text-sm"
+          className={`${FIELD} font-mono`}
           value={targetTypeFilter}
           onChange={(e) => setTargetTypeFilter(e.target.value)}
         >
@@ -104,7 +110,7 @@ export default function AdminAuditPage() {
         </select>
 
         <select
-          className="rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1.5 text-sm"
+          className={FIELD}
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value))}
         >
@@ -122,9 +128,9 @@ export default function AdminAuditPage() {
       ) : entries.length === 0 ? (
         <EmptyState className="py-6" title="No audit entries found" />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {entries.map((entry: AuditLogEntry) => (
-            <div key={entry.id} className="px-4 py-3">
+            <div key={entry.id} className={`px-4 py-3 ${ROW_HOVER}`}>
               <div className="flex items-start gap-3">
                 <Badge className="font-mono shrink-0 mt-0.5" variant={actionVariant(entry.action)}>
                   {entry.action}
@@ -132,21 +138,21 @@ export default function AdminAuditPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     {entry.target_type && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
                         {entry.target_type}
                         {entry.target_id && (
-                          <span className="text-gray-300 dark:text-gray-600 ml-1 font-mono">
+                          <span className="font-normal text-gray-500 dark:text-gray-400 ml-1 font-mono">
                             {entry.target_id.slice(0, 8)}…
                           </span>
                         )}
                       </span>
                     )}
-                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto shrink-0">
+                    <span className="font-mono text-xs text-gray-500 dark:text-gray-400 ml-auto shrink-0">
                       <TimeAgo value={entry.created_at} />
                     </span>
                   </div>
                   {entry.actor_id && (
-                    <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-2xs text-gray-500 dark:text-gray-400 mt-0.5">
                       by <span className="font-mono">{entry.actor_id.slice(0, 8)}…</span>
                     </p>
                   )}

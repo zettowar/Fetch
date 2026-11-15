@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Check, PawPrint as DogIcon, Pencil, QrCode, X } from 'lucide-react';
-import BackButton from '../components/ui/BackButton';
+import { Check, X } from 'lucide-react';
+import PageHeader from '../components/ui/PageHeader';
+import Badge from '../components/ui/Badge';
+import BrandIcon from '../components/brand/BrandIcon';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { claimTag, getTagsForPet, unlinkTag } from '../api/tags';
@@ -21,7 +23,9 @@ import Input from '../components/ui/Input';
 import BreedMultiSelect from '../components/ui/BreedMultiSelect';
 import type { Breed, MixType, Species } from '../types';
 import PetPhoto, { InReviewBadge, isInReview } from '../components/PetPhoto';
-import { apiErrorMessage } from '../utils/apiError';
+import { apiErrorMessage, isNotFound } from '../utils/apiError';
+import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
+import { Spinner } from '../components/ui/Skeleton';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 interface PendingPhoto {
@@ -52,7 +56,13 @@ export default function PetEditorPage() {
   const [uploadingPhotoIndex, setUploadingPhotoIndex] = useState<number | null>(null);
   const { fire, PawBurstLayer } = usePawBurst();
 
-  const { data: pet, refetch } = useQuery({
+  const {
+    data: pet,
+    refetch,
+    isLoading: petLoading,
+    isError: petFailed,
+    error: petError,
+  } = useQuery({
     queryKey: ['pet', id],
     queryFn: () => getPet(id!),
     enabled: isEditing,
@@ -226,7 +236,7 @@ export default function PetEditorPage() {
           // like they never made it.
           toast(
             `Pet created. ${inReview === 1 ? 'Your photo is' : `${inReview} photos are`} being reviewed before going live.`,
-            { icon: '⏳' },
+            { icon: <BrandIcon name="clock" size={18} /> },
           );
         } else if (uploadFailures === 0) {
           toast.success(pendingPhotos.length > 0 ? 'Pet created with photos!' : 'Pet created!');
@@ -273,17 +283,33 @@ export default function PetEditorPage() {
     }
   };
 
+  // Editing needs the pet first. Say what happened rather than opening an
+  // empty form that looks like the pet's details were wiped.
+  if (isEditing && (petLoading || petFailed)) {
+    return (
+      <div className="p-4">
+        <PageHeader back backFallback="/app/pets" title="Edit pet" className="mb-5" />
+        {petLoading ? (
+          <div className="flex justify-center py-16">
+            <Spinner label="Loading your pet" />
+          </div>
+        ) : isNotFound(petError) ? (
+          <ErrorState message="Pet not found." hint={NOT_FOUND_HINT} />
+        ) : (
+          <ErrorState message="Couldn't load this pet." onRetry={() => refetch()} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
-      <BackButton fallback="/app/pets" />
-      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
-        {isEditing ? (
-          <Pencil size={20} aria-hidden className="text-brand-500" />
-        ) : (
-          <DogIcon size={20} aria-hidden className="text-brand-500" />
-        )}
-        {isEditing ? 'Edit Pet' : 'Add a Pet'}
-      </h1>
+      <PageHeader
+        back
+        backFallback="/app/pets"
+        title={isEditing ? 'Edit pet' : 'Add a pet'}
+        className="mb-5"
+      />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
@@ -294,47 +320,57 @@ export default function PetEditorPage() {
           required
         />
 
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Species</label>
-          <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1.5">
+          <span id="pet-editor-species-label" className="field-label">Species</span>
+          {/* One of two: the segmented control, picked in Ball Orange. */}
+          <div
+            className={`seg grid w-full grid-cols-2 ${isEditing ? 'opacity-60' : ''}`}
+            role="group"
+            aria-labelledby="pet-editor-species-label"
+          >
             {(['dog', 'cat'] as const).map((sp) => (
               <button
                 key={sp}
                 type="button"
                 disabled={isEditing}
+                aria-pressed={species === sp}
                 onClick={() => handleSpeciesChange(sp)}
-                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                  species === sp
-                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:border-brand-300'
-                } ${isEditing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`py-2 ${
+                  species === sp ? 'seg-on' : 'hover:bg-navy/5 dark:hover:bg-white/10'
+                } ${isEditing ? 'cursor-not-allowed' : ''}`}
               >
-                <span aria-hidden>{sp === 'cat' ? '🐈' : '🐕'}</span>
                 {sp === 'cat' ? 'Cat' : 'Dog'}
               </button>
             ))}
           </div>
           {isEditing && (
-            <p className="text-xs text-gray-400 dark:text-gray-500">Species can't be changed after creation.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Species can't be changed after creation.</p>
           )}
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Breed type</label>
-          <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1.5">
+          <span id="pet-editor-breed-type-label" className="field-label">Breed type</span>
+          <div className="grid grid-cols-2 gap-2" role="group" aria-labelledby="pet-editor-breed-type-label">
             {MIX_TYPES.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
+                aria-pressed={mixType === opt.value}
                 onClick={() => handleMixChange(opt.value)}
-                className={`flex flex-col items-start px-3 py-2 rounded-xl border text-left transition-colors ${
+                className={`flex flex-col items-start px-3 py-2.5 rounded-lg border-2 text-left text-navy transition-colors ${
                   mixType === opt.value
-                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:border-brand-300'
+                    ? 'border-navy bg-brand-500 dark:border-navy'
+                    : 'border-navy/20 bg-white hover:border-navy/50 dark:border-white/15 dark:bg-night-surface dark:text-biscuit dark:hover:border-white/35'
                 }`}
               >
-                <span className="text-sm font-medium">{opt.label}</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500">{opt.hint}</span>
+                <span className="text-sm font-extrabold">{opt.label}</span>
+                <span
+                  className={`text-xs ${
+                    mixType === opt.value ? 'text-navy' : 'text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  {opt.hint}
+                </span>
               </button>
             ))}
           </div>
@@ -363,20 +399,29 @@ export default function PetEditorPage() {
           max={new Date().toISOString().slice(0, 10)}
           onChange={(e) => setBirthday(e.target.value)}
         />
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="pet-editor-bio" className="field-label">Bio</label>
           <textarea
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
+            id="pet-editor-bio"
+            className="w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400 resize-none"
             rows={3}
             maxLength={500}
             placeholder="Tell us about your pet..."
             value={bio}
             onChange={(e) => setBio(e.target.value)}
           />
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-right">{bio.length}/500</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-right tabular-nums">{bio.length}/500</p>
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Personality traits</label>
+        <div className="flex flex-col gap-1.5" role="group" aria-labelledby="pet-editor-traits-label">
+          <div className="flex items-baseline justify-between gap-3">
+            <span id="pet-editor-traits-label" className="field-label">Personality traits</span>
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-300 tabular-nums">
+              {traits.length}/{MAX_TRAITS_PER_PET} picked
+            </span>
+          </div>
+          {/* Traits are collar-tag chips: picked ones fill with Ball Orange.
+              The owner's own (not yet a suggestion) keep a dashed line — the
+              brand's "held for review" mark. */}
           <div className="flex flex-wrap gap-2">
             {suggested.map((trait) => {
               const selected = traits.includes(trait);
@@ -386,27 +431,20 @@ export default function PetEditorPage() {
                   type="button"
                   aria-pressed={selected}
                   onClick={() => toggleTrait(trait)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
-                    selected
-                      ? 'bg-brand-500 text-white border-brand-500'
-                      : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-brand-300'
-                  }`}
+                  className={`chip ${selected ? 'chip-on' : 'hover:bg-brand-50 dark:hover:bg-night-surface'}`}
                 >
                   {trait}
                 </button>
               );
             })}
             {customTraits.map((trait) => (
-              <span
-                key={trait}
-                className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full text-sm font-medium border border-dashed border-brand-400 bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300"
-              >
+              <span key={trait} className="chip chip-on border-dashed gap-1 pr-1.5">
                 {trait}
                 <button
                   type="button"
                   onClick={() => toggleTrait(trait)}
                   aria-label={`Remove ${trait}`}
-                  className="rounded-full p-0.5 hover:bg-brand-500/20 transition-colors"
+                  className="rounded-full p-0.5 text-navy hover:bg-navy/10 transition-colors"
                 >
                   <X size={12} aria-hidden />
                 </button>
@@ -432,7 +470,7 @@ export default function PetEditorPage() {
                   addTrait();
                 }
               }}
-              className="flex-1 min-w-0 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3.5 py-1.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30"
+              className="chip chip-add flex-1 min-w-0 min-h-[36px] text-navy placeholder:font-semibold placeholder:text-gray-500 outline-none focus:border-solid focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:text-biscuit dark:placeholder:text-gray-400"
             />
             <Button
               type="button"
@@ -445,20 +483,19 @@ export default function PetEditorPage() {
             </Button>
           </div>
           {traitError ? (
-            <p className="text-xs text-danger-500 dark:text-danger-400">{traitError}</p>
+            <p className="text-xs font-semibold text-danger-700 dark:text-danger-300">{traitError}</p>
           ) : (
-            <p className="text-2xs text-gray-400 dark:text-gray-500">
-              {traits.length}/{MAX_TRAITS_PER_PET} picked. Can't find the right
-              one? Type it in — we'll review it and it may become a suggestion
-              for everyone.
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Can't find the right one? Type it in — we'll review it and it may
+              become a suggestion for everyone.
             </p>
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5">
+        <div className="surface flex items-center justify-between gap-4 px-3.5 py-3">
           <div>
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Public share page</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">
+            <p className="text-sm font-bold text-navy dark:text-biscuit">Public share page</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Lets anyone with the link see {name.trim() || 'this pet'}'s page, no account needed.
             </p>
           </div>
@@ -468,12 +505,15 @@ export default function PetEditorPage() {
             aria-checked={isPublic}
             aria-label="Public share page"
             onClick={() => setIsPublic((v) => !v)}
-            className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${
-              isPublic ? 'bg-brand-500' : 'bg-gray-200 dark:bg-gray-700'
+            // Toggle: Ball Orange when on, always on a navy line.
+            className={`relative flex-shrink-0 w-12 h-7 rounded-full border-2 transition-colors ${
+              isPublic
+                ? 'border-navy bg-brand-500'
+                : 'border-navy/40 bg-white dark:border-white/30 dark:bg-night-raised'
             }`}
           >
             <span
-              className={`absolute top-1 left-1 w-4 h-4 bg-white dark:bg-gray-900 rounded-full shadow transition-transform ${
+              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full border-2 border-navy bg-white transition-transform duration-150 ease-soft-out ${
                 isPublic ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
@@ -484,10 +524,10 @@ export default function PetEditorPage() {
             upload after the pet is created. On the edit page the existing
             section below handles photos against an existing pet id. */}
         {!isEditing && (
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Photos <span className="text-xs text-gray-400 dark:text-gray-500 font-normal ml-1">(optional)</span>
-            </label>
+          <div className="flex flex-col gap-2" role="group" aria-labelledby="pet-editor-photos-label">
+            <span id="pet-editor-photos-label" className="field-label">
+              Photos <span className="font-semibold normal-case tracking-normal text-gray-500 dark:text-gray-400 ml-1">(optional)</span>
+            </span>
 
             {pendingPhotos.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
@@ -499,15 +539,15 @@ export default function PetEditorPage() {
                       <img
                         src={p.previewUrl}
                         alt={`Pending photo ${idx + 1}`}
-                        className="h-full w-full object-cover rounded-lg"
+                        className="h-full w-full object-cover rounded-lg border-[1.5px] border-navy/20 dark:border-white/10"
                       />
                       {idx === 0 && (
-                        <span className="absolute bottom-1 left-1 bg-brand-500 text-white text-2xs font-semibold px-1.5 py-0.5 rounded">
+                        <Badge variant="brand" className="absolute bottom-1 left-1 dark:!bg-night/90">
                           Primary
-                        </span>
+                        </Badge>
                       )}
                       {(isUploading || isUploaded) && (
-                        <div className="absolute inset-0 rounded-lg bg-black/40 flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-lg bg-navy/50 flex items-center justify-center">
                           {isUploaded ? (
                             <Check size={18} aria-hidden className="text-white" />
                           ) : (
@@ -538,7 +578,7 @@ export default function PetEditorPage() {
               />
             )}
             {pendingPhotos.length === 0 && (
-              <p className="text-2xs text-gray-400 dark:text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Your first photo becomes the primary. You can add more any time from the profile.
               </p>
             )}
@@ -548,10 +588,10 @@ export default function PetEditorPage() {
         <span className="relative block">
           <Button type="submit" loading={saving} className="w-full">
             {isEditing
-              ? 'Save Changes'
+              ? 'Save changes'
               : pendingPhotos.length > 0
-              ? `Create Pet & Upload ${pendingPhotos.length} Photo${pendingPhotos.length > 1 ? 's' : ''}`
-              : 'Create Pet'}
+              ? `Create pet & upload ${pendingPhotos.length} photo${pendingPhotos.length > 1 ? 's' : ''}`
+              : 'Create pet'}
           </Button>
           <PawBurstLayer />
         </span>
@@ -560,7 +600,7 @@ export default function PetEditorPage() {
       {isEditing && pet && (
         <>
           <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-3">Photos</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-3">Photos</h2>
             <PhotoUploader petId={id!} onUploaded={() => refetch()} />
             {pet.photos.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mt-3">
@@ -569,7 +609,7 @@ export default function PetEditorPage() {
                     <PetPhoto
                       photo={photo}
                       alt=""
-                      className="w-full h-24 object-cover rounded-lg"
+                      className="w-full h-24 object-cover rounded-lg border-[1.5px] border-navy/20 dark:border-white/10"
                     />
                     {isInReview(photo) && (
                       <InReviewBadge className="absolute bottom-1 left-1" />
@@ -589,9 +629,9 @@ export default function PetEditorPage() {
 
           <PetTagSection petId={id!} />
 
-          <div className="mt-8 border-t pt-4">
+          <div className="mt-8 border-t border-gray-200 dark:border-white/10 pt-4">
             <Button variant="danger" onClick={handleDelete} className="w-full">
-              Remove Pet
+              Remove pet
             </Button>
           </div>
         </>
@@ -623,18 +663,19 @@ function PetTagSection({ petId }: { petId: string }) {
 
   return (
     <div className="mt-8">
-      <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-        <QrCode size={18} aria-hidden className="text-brand-500" /> QR tag
+      <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-1 flex items-center gap-2">
+        <BrandIcon name="qr" size={22} /> QR tag
       </h2>
-      <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+      <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
         Got a Fetchpawz tag? Enter its code to link it — scanning it will open this pet’s page.
       </p>
 
       {tags.length > 0 && (
         <div className="flex flex-col gap-2 mb-3">
           {tags.map((t) => (
-            <div key={t.code} className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-800/60 px-3 py-2">
-              <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{t.code}</span>
+            <div key={t.code} className="surface flex items-center gap-2 px-3 py-2">
+              <BrandIcon name="tag" size={20} />
+              <span className="font-mono text-sm text-navy dark:text-biscuit">{t.code}</span>
               <span className="flex-1" />
               <Button
                 size="sm"
@@ -659,7 +700,15 @@ function PetTagSection({ petId }: { petId: string }) {
             maxLength={16}
           />
         </div>
-        <Button size="sm" onClick={() => claim.mutate()} loading={claim.isPending} disabled={!code.trim()}>
+        {/* Secondary: the pet form's Save is this screen's primary. */}
+        <Button
+          size="sm"
+          variant="secondary"
+          className="mb-1.5"
+          onClick={() => claim.mutate()}
+          loading={claim.isPending}
+          disabled={!code.trim()}
+        >
           Link tag
         </Button>
       </div>

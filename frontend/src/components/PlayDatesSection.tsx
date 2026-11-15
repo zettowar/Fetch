@@ -14,6 +14,17 @@ import Button from './ui/Button';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../store/AuthContext';
 
+// Form controls drawn like <Input>: 2px navy line, orange focus.
+const FIELD =
+  'w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400';
+
+// A pet you can pick: a pill with a navy line; picked fills orange.
+const PET_PILL =
+  'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-1 text-xs font-bold transition-colors';
+const PET_PILL_OFF =
+  'border-navy/30 bg-white text-navy hover:border-navy dark:border-white/25 dark:bg-night-raised dark:text-biscuit dark:hover:border-biscuit';
+const PET_PILL_ON = 'border-navy bg-brand-500 text-navy';
+
 function formatWhen(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
@@ -61,13 +72,13 @@ function PlayDateCard({
   const myRsvp = playdate.rsvps.find((r) => myDogIds.has(r.pet_id));
 
   return (
-    <div className="p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl">
+    <div className="surface p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-sm">
+          <p className="text-base font-extrabold leading-tight text-navy dark:text-biscuit">
             {playdate.title || `${playdate.host_name || 'Someone'}'s meetup`}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatWhen(playdate.scheduled_for)}</p>
+          <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{formatWhen(playdate.scheduled_for)}</p>
           {playdate.notes && (
             <p className="text-xs text-gray-600 dark:text-gray-300 mt-1.5 whitespace-pre-wrap">{playdate.notes}</p>
           )}
@@ -75,7 +86,7 @@ function PlayDateCard({
         {isHost && (
           <button
             onClick={() => onCancel(playdate.id)}
-            className="text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 flex-shrink-0"
+            className="text-2xs font-bold text-gray-500 dark:text-gray-400 hover:text-danger-600 dark:hover:text-danger-400 flex-shrink-0"
             title="Cancel meetup"
           >
             Cancel
@@ -88,7 +99,7 @@ function PlayDateCard({
           {goingRsvps.map((r) => (
             <div
               key={r.id}
-              className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-gray-50 dark:bg-gray-800/50 rounded-full text-xs"
+              className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-biscuit border border-gray-200 dark:bg-night-raised dark:border-white/10 rounded-full text-xs font-bold text-navy dark:text-biscuit"
             >
               {r.pet_photo_url ? (
                 <img src={r.pet_photo_url} alt={r.pet_name ?? 'Attending pet'} className="w-5 h-5 rounded-full object-cover" />
@@ -102,20 +113,21 @@ function PlayDateCard({
       )}
 
       <div className="flex items-center gap-2 mt-3">
-        <span className="text-[11px] text-gray-400 dark:text-gray-500">
+        <span className="text-2xs font-bold text-gray-500 dark:text-gray-400">
           {playdate.going_count} going
         </span>
         {myRsvp ? (
           <button
             onClick={() => onRemoveRsvp(playdate.id, myRsvp.pet_id)}
-            className="ml-auto text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="btn btn-ghost btn-sm ml-auto"
           >
             Leave
           </button>
         ) : (
+          // Joining a meetup is a park action: green.
           <button
             onClick={onToggleDogPicker}
-            className="ml-auto text-xs px-2.5 py-1 bg-brand-500 text-white rounded-full hover:bg-brand-600"
+            className={`btn btn-sm ml-auto ${dogPickerOpen ? 'btn-ghost' : 'btn-park'}`}
           >
             {dogPickerOpen ? 'Cancel' : "I'm in"}
           </button>
@@ -123,16 +135,16 @@ function PlayDateCard({
       </div>
 
       {dogPickerOpen && !myRsvp && (
-        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10">
           {myDogsForPicker.length === 0 ? (
-            <p className="text-xs text-gray-400 dark:text-gray-500">Add a pet first to RSVP.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Add a pet first to RSVP.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {myDogsForPicker.map((pet) => (
                 <button
                   key={pet.id}
                   onClick={() => onRsvp(playdate.id, pet.id)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full text-xs hover:border-brand-400"
+                  className={`${PET_PILL} ${PET_PILL_OFF}`}
                 >
                   {pet.primary_photo_url && (
                     <img
@@ -164,7 +176,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
   const [notes, setNotes] = useState('');
   const [hostDogId, setHostDogId] = useState<string>('');
 
-  const { data: playdates = [], isLoading } = useQuery({
+  const { data: playdates = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['playdates', 'upcoming', parkId],
     queryFn: () => listUpcomingPlayDates({ parkId }),
   });
@@ -228,10 +240,10 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+        <h2 className="text-lg font-extrabold text-navy dark:text-biscuit">
           Upcoming meetups
           {playdates.length > 0 && (
-            <span className="text-brand-500 ml-1">({playdates.length})</span>
+            <span className="font-bold text-gray-500 dark:text-gray-400 ml-1">({playdates.length})</span>
           )}
         </h2>
         <Button
@@ -251,24 +263,24 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       </div>
 
       {showCreate && canCreate && (
-        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl flex flex-col gap-2 mb-3">
+        <div className="surface p-3 flex flex-col gap-2.5 mb-3">
           <input
             type="datetime-local"
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm"
+            className={`min-h-[48px] ${FIELD}`}
             value={when}
             min={minLocalIsoForInput()}
             onChange={(e) => setWhen(e.target.value)}
           />
           <input
             type="text"
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm"
+            className={`min-h-[48px] ${FIELD}`}
             placeholder="Title (optional, e.g. Puppy social)"
             value={title}
             maxLength={200}
             onChange={(e) => setTitle(e.target.value)}
           />
           <textarea
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30"
+            className={`resize-none ${FIELD}`}
             rows={2}
             placeholder="Notes (optional)"
             value={notes}
@@ -276,17 +288,14 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
             onChange={(e) => setNotes(e.target.value)}
           />
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Hosting pet:</p>
+            <p className="field-label mb-1.5">Hosting pet:</p>
             <div className="flex flex-wrap gap-1.5">
               {myDogs.map((pet) => (
                 <button
                   key={pet.id}
                   onClick={() => setHostDogId(pet.id)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                    hostDogId === pet.id
-                      ? 'bg-brand-500 text-white border-brand-500'
-                      : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-brand-400'
-                  }`}
+                  aria-pressed={hostDogId === pet.id}
+                  className={`${PET_PILL} ${hostDogId === pet.id ? PET_PILL_ON : PET_PILL_OFF}`}
                 >
                   {pet.primary_photo_url && (
                     <img
@@ -301,6 +310,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
             </div>
           </div>
           <Button
+            variant="park"
             onClick={() => createMutation.mutate()}
             loading={createMutation.isPending}
             disabled={!hostDogId || !when}
@@ -311,9 +321,16 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       )}
 
       {isLoading ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">Loading...</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Loading meetups…</p>
+      ) : isError ? (
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          Couldn't load meetups.{' '}
+          <button type="button" onClick={() => refetch()} className="link">
+            Try again
+          </button>
+        </p>
       ) : playdates.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           No upcoming meetups yet. {canCreate ? 'Be the first to host!' : 'Add a pet to host one.'}
         </p>
       ) : (

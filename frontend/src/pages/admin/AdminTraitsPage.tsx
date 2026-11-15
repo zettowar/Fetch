@@ -16,10 +16,13 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import Input from '../../components/ui/Input';
 import SearchInput from '../../components/ui/SearchInput';
+import PageHeader from '../../components/ui/PageHeader';
 import { apiErrorMessage } from '../../utils/apiError';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import { ROWS, ROW_HOVER, segItem } from './adminStyles';
 
 const SPECIES_LABEL: Record<TraitSpecies, string> = {
   both: 'Dogs & cats',
@@ -44,7 +47,7 @@ export default function AdminTraitsPage() {
   const [species, setSpecies] = useState<TraitSpecies>('both');
   const [sortOrder, setSortOrder] = useState('0');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-traits', search, filter],
     queryFn: () =>
       adminListTraits({
@@ -119,16 +122,19 @@ export default function AdminTraitsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-2xl font-bold">Personality traits</h1>
-        <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>Add Trait</Button>
-      </div>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        Owners can type their own trait on any pet. New ones land here as
-        <span className="font-medium"> Needs review</span> — approving one adds it
-        to the suggested chips in the pet editor. Renaming updates every pet
-        using it; rejecting or deleting removes it from them.
-      </p>
+      <PageHeader
+        title="Personality traits"
+        className="mb-5"
+        action={<Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>Add Trait</Button>}
+        subtitle={
+          <>
+            Owners can type their own trait on any pet. New ones land here as
+            <span className="font-bold text-navy dark:text-biscuit"> Needs review</span> — approving one adds it
+            to the suggested chips in the pet editor. Renaming updates every pet
+            using it; rejecting or deleting removes it from them.
+          </>
+        }
+      />
 
       <SearchInput
         placeholder="Search traits..."
@@ -137,17 +143,13 @@ export default function AdminTraitsPage() {
         className="mb-3"
       />
 
-      <div className="flex gap-2 mb-4 overflow-x-auto">
+      <div className="seg max-w-full overflow-x-auto scrollbar-none mb-4">
         {FILTERS.map((f) => (
           <button
             key={f.value}
             type="button"
             onClick={() => setFilter(f.value)}
-            className={`px-3 py-1 rounded-full text-sm font-medium border whitespace-nowrap transition-colors ${
-              filter === f.value
-                ? 'bg-brand-500 text-white border-brand-500'
-                : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-brand-300'
-            }`}
+            className={segItem(filter === f.value)}
           >
             {f.label}
           </button>
@@ -164,21 +166,18 @@ export default function AdminTraitsPage() {
             error={labelProblem ?? undefined}
             placeholder="e.g. Good with kids"
           />
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex flex-col gap-1.5">
+            <span id="admin-trait-species-label" className="field-label">
               Suggested for
-            </label>
-            <div className="flex gap-2">
+            </span>
+            <div className="seg self-start" role="group" aria-labelledby="admin-trait-species-label">
               {(['both', 'dog', 'cat'] as const).map((sp) => (
                 <button
                   key={sp}
                   type="button"
+                  aria-pressed={species === sp}
                   onClick={() => setSpecies(sp)}
-                  className={`px-3 py-1.5 rounded-xl border text-sm font-medium transition-colors ${
-                    species === sp
-                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300'
-                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-brand-300'
-                  }`}
+                  className={segItem(species === sp)}
                 >
                   {SPECIES_LABEL[sp]}
                 </button>
@@ -206,22 +205,24 @@ export default function AdminTraitsPage() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load traits." onRetry={() => refetch()} />
       ) : traits.length === 0 ? (
         <EmptyState
           className="py-6"
           title={filter === 'pending' ? 'Nothing to review' : 'No traits match'}
         />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {traits.map((t) => (
-            <div key={t.id} className="p-3 flex items-center gap-3">
+            <div key={t.id} className={`p-3 flex items-center gap-3 ${ROW_HOVER}`}>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm flex items-center gap-2 flex-wrap">
+                <p className="font-bold text-sm text-navy dark:text-biscuit flex items-center gap-2 flex-wrap">
                   {t.label}
                   {t.status === 'pending' && <Badge variant="warning">Needs review</Badge>}
                   {t.status === 'rejected' && <Badge variant="danger">Rejected</Badge>}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {SPECIES_LABEL[t.species]} · {t.pet_count} pet{t.pet_count === 1 ? '' : 's'}
                   {t.created_by_name ? ` · suggested by ${t.created_by_name}` : ''}
                 </p>
@@ -230,6 +231,7 @@ export default function AdminTraitsPage() {
                 {t.status !== 'approved' && (
                   <Button
                     size="sm"
+                    variant="secondary"
                     loading={statusMutation.isPending && statusMutation.variables?.id === t.id}
                     onClick={() => statusMutation.mutate({ id: t.id, status: 'approved' })}
                   >

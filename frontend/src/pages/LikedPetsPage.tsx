@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Heart } from 'lucide-react';
 import { getLikedPets } from '../api/votes';
 import { petHeroPhoto } from '../utils/time';
-import BackButton from '../components/ui/BackButton';
+import PageHeader from '../components/ui/PageHeader';
+import PetPortrait from '../components/brand/PetPortrait';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { ListSkeleton } from '../components/ui/Skeleton';
@@ -18,13 +18,13 @@ export default function LikedPetsPage() {
 
   return (
     <div className="p-4 pb-8">
-      <BackButton fallback="/app/home" />
-      <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
-        <Heart size={20} aria-hidden fill="currentColor" strokeWidth={0} className="text-danger-500" /> Pets you liked
-      </h1>
-      <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">
-        Every pet that earned your tap, newest first.
-      </p>
+      <PageHeader
+        back
+        backFallback="/app/home"
+        title="Pets you liked"
+        subtitle="Every pet that earned your tap, newest first."
+        className="mb-5"
+      />
 
       {isLoading ? (
         <ListSkeleton />
@@ -36,7 +36,10 @@ export default function LikedPetsPage() {
           title="No likes yet"
           body={
             <>
-              <Link to="/app/swipe" className="text-brand-600 dark:text-brand-400 font-medium hover:underline">
+              <Link
+                to="/app/swipe"
+                className="font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit"
+              >
                 Start swiping
               </Link>{' '}
               and they'll collect here.
@@ -51,18 +54,24 @@ export default function LikedPetsPage() {
               <Link
                 key={pet.id}
                 to={`/app/pets/${pet.id}`}
-                className="group rounded-2xl overflow-hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-soft-sm hover:-translate-y-0.5 hover:shadow-soft transition-all duration-200 ease-soft-out"
+                className="group rounded-2xl overflow-hidden bg-white dark:bg-night-surface border-2 border-navy dark:border-white/15 shadow-toy-sm transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px hover:shadow-toy active:translate-x-[2px] active:translate-y-[3px] active:shadow-none"
               >
-                <div className="aspect-square bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 relative">
+                <div className="aspect-square relative border-b-2 border-navy dark:border-white/15">
                   {photo ? (
                     <img src={photo} alt={pet.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
                   ) : (
-                    <span className="absolute inset-0 flex items-center justify-center text-4xl" aria-hidden>🐕</span>
+                    <PetPortrait
+                      species={pet.species}
+                      breed={pet.breed_display}
+                      seed={pet.id}
+                      background
+                      className="absolute inset-0 h-full w-full"
+                    />
                   )}
                 </div>
                 <div className="p-2.5">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{pet.name}</p>
-                  <p className="text-2xs text-gray-400 dark:text-gray-500 truncate">{pet.breed_display}</p>
+                  <p className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit truncate">{pet.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{pet.breed_display}</p>
                 </div>
               </Link>
             );

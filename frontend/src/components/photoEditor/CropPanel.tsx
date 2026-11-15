@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { Action, AspectKey, EditorState } from './editorState';
 import { ASPECT_RATIOS } from './editorState';
 
@@ -33,6 +34,8 @@ function flipActionForVisualAxis(
 }
 
 export default function CropPanel({ state, dispatch }: Props) {
+  const straightenId = useId();
+  const zoomId = useId();
   return (
     <div className="flex flex-col gap-3 px-4 py-3">
       {/* Aspect ratio chips */}
@@ -42,10 +45,10 @@ export default function CropPanel({ state, dispatch }: Props) {
             key={a.key}
             type="button"
             onClick={() => dispatch({ type: 'SET_ASPECT', aspect: a.key })}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full border-[1.5px] text-xs font-extrabold font-mono transition-colors ${
               state.aspect === a.key
-                ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'
-                : 'bg-white/10 text-white hover:bg-white/20'
+                ? 'border-navy bg-brand-500 text-navy'
+                : 'border-white/15 bg-white/10 text-biscuit hover:bg-white/20'
             }`}
             aria-pressed={state.aspect === a.key}
           >
@@ -55,7 +58,7 @@ export default function CropPanel({ state, dispatch }: Props) {
       </div>
 
       {/* Transform icon row */}
-      <div className="flex items-center justify-around rounded-xl bg-white/5 py-2">
+      <div className="flex items-center justify-around rounded-2xl border border-white/10 bg-night-surface py-2">
         <IconButton
           onClick={() => dispatch({ type: 'ROTATE_CCW' })}
           label="Rotate left"
@@ -115,15 +118,16 @@ export default function CropPanel({ state, dispatch }: Props) {
       {/* Straighten slider */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <label className="text-[11px] uppercase tracking-widest text-white/60">
+          <label htmlFor={straightenId} className="text-2xs font-extrabold uppercase tracking-[0.1em] text-biscuit/60">
             Straighten
           </label>
-          <span className="text-xs font-mono text-white/80">
+          <span className="text-xs font-mono text-biscuit/80">
             {state.straighten > 0 ? '+' : ''}
             {state.straighten.toFixed(0)}°
           </span>
         </div>
         <input
+          id={straightenId}
           type="range"
           min={-45}
           max={45}
@@ -133,21 +137,22 @@ export default function CropPanel({ state, dispatch }: Props) {
             dispatch({ type: 'SET_STRAIGHTEN', degrees: Number(e.target.value) })
           }
           onDoubleClick={() => dispatch({ type: 'SET_STRAIGHTEN', degrees: 0 })}
-          className="w-full accent-white"
+          className="w-full accent-brand-500"
         />
       </div>
 
       {/* Zoom slider (kept from the old modal — useful for framing) */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <label className="text-[11px] uppercase tracking-widest text-white/60">
+          <label htmlFor={zoomId} className="text-2xs font-extrabold uppercase tracking-[0.1em] text-biscuit/60">
             Zoom
           </label>
-          <span className="text-xs font-mono text-white/80">
+          <span className="text-xs font-mono text-biscuit/80">
             {state.zoom.toFixed(2)}×
           </span>
         </div>
         <input
+          id={zoomId}
           type="range"
           min={1}
           max={5}
@@ -156,11 +161,11 @@ export default function CropPanel({ state, dispatch }: Props) {
           onChange={(e) =>
             dispatch({ type: 'SET_ZOOM', zoom: Number(e.target.value) })
           }
-          className="w-full accent-white"
+          className="w-full accent-brand-500"
         />
       </div>
 
-      <p className="text-[10px] text-white/40 text-center">
+      <p className="text-2xs text-biscuit/50 text-center">
         Aspect: {state.aspect === 'free' ? 'Free' : state.aspect}
         {ASPECT_RATIOS[state.aspect] !== undefined && state.aspect !== 'free'
           ? ` · ${(ASPECT_RATIOS[state.aspect] as number).toFixed(2)}`
@@ -187,10 +192,10 @@ function IconButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+      className={`flex h-11 w-11 items-center justify-center rounded-full border-2 transition-colors ${
         active
-          ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'
-          : 'text-white hover:bg-white/10'
+          ? 'border-navy bg-brand-500 text-navy'
+          : 'border-transparent text-biscuit hover:bg-white/10'
       }`}
     >
       {children}

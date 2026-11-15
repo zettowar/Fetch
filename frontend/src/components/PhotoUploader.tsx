@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Camera, Image as ImageIcon } from 'lucide-react';
 import { uploadPhoto } from '../api/photos';
 import PhotoEditor from './photoEditor';
 import ImagePicker from './ImagePicker';
+import BrandIcon from './brand/BrandIcon';
 import { canDecodeImage } from '../utils/image';
 import toast from 'react-hot-toast';
 
@@ -76,7 +76,9 @@ export default function PhotoUploader({ petId, onUploaded, onSelect, compact }: 
       // A photo held by moderation still uploads fine — saying "uploaded!" and
       // then showing nothing publicly is what read as a failed upload.
       if (photo.moderation_status && photo.moderation_status !== 'approved') {
-        toast('Photo uploaded — it’s being reviewed before it goes live.', { icon: '⏳' });
+        toast('Photo uploaded — it’s being reviewed before it goes live.', {
+          icon: <BrandIcon name="clock" size={18} />,
+        });
       } else {
         toast.success('Photo uploaded!');
       }
@@ -113,14 +115,14 @@ export default function PhotoUploader({ petId, onUploaded, onSelect, compact }: 
 
   if (uploading) {
     return (
-      <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-4">
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+      <div className="surface p-4">
+        <div className="w-full h-2.5 mb-2 rounded-full border-[1.5px] border-navy/30 bg-white overflow-hidden dark:border-white/20 dark:bg-night-raised">
           <div
-            className="bg-brand-500 h-2 rounded-full transition-all duration-300"
+            className="h-full rounded-full bg-brand-500 transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Uploading... {progress}%</p>
+        <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 text-center tabular-nums">Uploading... {progress}%</p>
       </div>
     );
   }
@@ -129,19 +131,19 @@ export default function PhotoUploader({ petId, onUploaded, onSelect, compact }: 
     <ImagePicker onPick={handleFile}>
       {({ openGallery, openCamera }) => (
         <div
-          className={`rounded-xl transition-all ${
+          className={`rounded-2xl transition-colors ${
             dragOver
-              ? 'border-2 border-brand-500 bg-brand-50 dark:bg-brand-500/10'
+              ? 'border-2 border-navy bg-brand-100 dark:border-brand-400 dark:bg-brand-500/15'
               : compact
-              ? 'border border-dashed border-gray-300 dark:border-gray-700'
-              : 'border-2 border-dashed border-gray-300 dark:border-gray-700'
+              ? 'border-[1.5px] border-dashed border-navy/30 dark:border-white/25'
+              : 'border-2 border-dashed border-navy/30 bg-white/60 dark:border-white/25 dark:bg-night-surface/60'
           } ${compact ? 'p-2.5' : 'p-4'}`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
         >
           {!compact && (
-            <p className="text-center font-medium text-brand-600 mb-2.5">Add a photo</p>
+            <p className="text-center text-base font-extrabold tracking-tight text-navy dark:text-biscuit mb-2.5">Add a photo</p>
           )}
           <div className="flex items-center gap-2">
             {/* On a phone these are two distinct one-tap paths. On desktop
@@ -150,23 +152,23 @@ export default function PhotoUploader({ petId, onUploaded, onSelect, compact }: 
               <button
                 type="button"
                 onClick={openCamera}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                className="btn btn-secondary btn-sm flex-1"
               >
-                <Camera size={16} aria-hidden />
+                <BrandIcon name="camera" size={18} />
                 Take photo
               </button>
             )}
             <button
               type="button"
               onClick={openGallery}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-brand-400 hover:text-brand-600 transition-colors"
+              className="btn btn-secondary btn-sm flex-1"
             >
-              <ImageIcon size={16} aria-hidden />
+              <BrandIcon name="plus" size={18} />
               {openCamera ? 'Choose photo' : compact ? 'Add another photo' : 'Choose a photo'}
             </button>
           </div>
           {!compact && !openCamera && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
               Or drag &amp; drop one here.
             </p>
           )}

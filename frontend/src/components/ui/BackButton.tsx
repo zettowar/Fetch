@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import BrandIcon from '../brand/BrandIcon';
 
 interface BackButtonProps {
   fallback?: string;
@@ -17,9 +18,11 @@ export default function BackButton({ fallback = '/app/home', label = 'Back' }: B
           navigate(fallback);
         }
       }}
-      className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors mb-3"
+      className="group mb-3 inline-flex items-center gap-2 rounded-full text-sm font-bold text-gray-700 transition-colors hover:text-navy dark:text-gray-200 dark:hover:text-biscuit"
     >
-      <span className="text-lg leading-none">&lsaquo;</span>
+      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-[1.5px] border-navy/30 transition-colors group-hover:border-navy dark:border-white/30 dark:group-hover:border-biscuit">
+        <BrandIcon name="back" size={16} />
+      </span>
       {label}
     </button>
   );

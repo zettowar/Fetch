@@ -134,9 +134,9 @@ def unsubscribe_footer(user_id, list_name: str) -> str:
     token = create_unsubscribe_token(str(user_id), list_name)
     url = f"{settings.FRONTEND_BASE_URL}/unsubscribe/{token}"
     return (
-        '<p style="margin:24px 0 0;font-size:12px;line-height:18px;color:#9ca3af;">'
+        '<p style="margin:24px 0 0;font-size:12px;line-height:18px;color:#686b90;">'
         f'You are receiving this because you have a Fetchpawz account. '
-        f'<a href="{url}" style="color:#9ca3af;text-decoration:underline;">'
+        f'<a href="{url}" style="color:#686b90;text-decoration:underline;">'
         "Unsubscribe from these emails</a>.</p>"
     )
 
@@ -157,19 +157,23 @@ async def send_email(
     return accepted
 
 
-BRAND = "#ee7a10"
+# Brand book, Edition 2. Ball Orange is the button and the accent; text on it
+# is Leash Navy (white on orange fails contrast). Links use the text-safe deep
+# orange. Emails can't load web fonts reliably, so type stays system-native.
+BRAND = "#ff6a1f"
+NAVY = "#1c1f45"
 FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
 
 # Progressive enhancement only — every load-bearing style is also inlined below,
 # because Outlook drops most of this and Gmail's clipping is unforgiving.
 _HEAD_STYLES = """
-    body { margin:0 !important; padding:0 !important; width:100% !important; background:#f4f5f7; }
+    body { margin:0 !important; padding:0 !important; width:100% !important; background:#fff2e3; }
     table { border-collapse:collapse; }
     img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
     .content p { margin:0 0 16px; }
     .content p:last-child { margin:0; }
     .content ul { margin:0 0 16px; padding-left:20px; }
-    .content a { color:#ee7a10; }
+    .content a { color:#c94a0d; }
     @media only screen and (max-width:620px) {
       .pad { padding-left:24px !important; padding-right:24px !important; }
     }
@@ -186,9 +190,10 @@ def _layout(
     """Wrap body HTML in the branded email shell.
 
     Table-based and inline-styled on purpose: Outlook ignores most modern CSS
-    and collapses ``<div>`` layouts. The wordmark stays live text beside the
-    logo image, so a client with remote images blocked still shows "Fetchpawz"
-    rather than an empty box — which is also why the logo's alt is empty.
+    and collapses ``<div>`` layouts. The header is the drawn lockup (mark +
+    wordmark) as one image — the name is drawn, never typeset — and its alt
+    text is styled, so a client with remote images blocked still shows
+    "Fetchpawz" in navy rather than an empty box.
 
     ``preheader`` is the grey snippet mail apps show after the subject in the
     inbox list. Left unset, they scrape the opening body text instead.
@@ -211,14 +216,14 @@ def _layout(
         button = (
             '<table role="presentation" cellpadding="0" cellspacing="0" border="0" '
             'style="margin:26px 0 0;"><tr>'
-            f'<td align="center" bgcolor="{BRAND}" style="border-radius:12px;">'
+            f'<td align="center" bgcolor="{BRAND}" style="border-radius:999px;border:2px solid {NAVY};">'
             f'<a href="{cta_url}" style="display:inline-block;padding:13px 30px;'
-            f"font-family:{FONT};font-size:15px;font-weight:600;color:#ffffff;"
-            'text-decoration:none;border-radius:12px;">'
+            f"font-family:{FONT};font-size:15px;font-weight:800;color:{NAVY};"
+            'text-decoration:none;border-radius:999px;">'
             f"{html.escape(cta_label)}</a></td></tr></table>"
             '<p style="margin:14px 0 0;font-family:' + FONT + ';font-size:12px;'
-            'line-height:18px;color:#9ca3af;">Or paste this link into your browser:<br>'
-            f'<span style="color:#6b7280;word-break:break-all;">{cta_url}</span></p>'
+            'line-height:18px;color:#686b90;">Or paste this link into your browser:<br>'
+            f'<span style="color:#5d6085;word-break:break-all;">{cta_url}</span></p>'
         )
 
     return f"""<!DOCTYPE html>
@@ -232,20 +237,15 @@ def _layout(
 <title>{html.escape(heading)}</title>
 <style>{_HEAD_STYLES}</style>
 </head>
-<body style="margin:0;padding:0;background:#f4f5f7;">
+<body style="margin:0;padding:0;background:#fff2e3;">
 {preheader_block}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f5f7;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff2e3;">
 <tr><td align="center" style="padding:32px 12px;">
 <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="card" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e8eaed;border-radius:16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="card" style="width:100%;max-width:600px;background:#ffffff;border:2px solid {NAVY};border-radius:20px;">
 
 <tr><td class="pad" style="padding:30px 40px 0;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td style="padding-right:11px;vertical-align:middle;line-height:0;">
-      <img src="{base}/email-logo.png" width="36" height="36" alt="" style="display:block;width:36px;height:36px;">
-    </td>
-    <td style="vertical-align:middle;font-family:{FONT};font-size:19px;font-weight:800;color:{BRAND};letter-spacing:-0.4px;">Fetchpawz</td>
-  </tr></table>
+  <img src="{base}/email-lockup.png" width="170" height="38" alt="Fetchpawz" style="display:block;width:170px;height:38px;font-family:{FONT};font-size:20px;font-weight:800;color:{NAVY};">
 </td></tr>
 
 <tr><td class="pad" style="padding:22px 40px 0;line-height:0;">
@@ -254,15 +254,15 @@ def _layout(
   </tr></table>
 </td></tr>
 
-<tr><td class="pad content" style="padding:18px 40px 34px;font-family:{FONT};font-size:15px;line-height:23px;color:#374151;">
-  <h1 style="margin:0 0 14px;font-family:{FONT};font-size:22px;line-height:29px;font-weight:800;color:#111827;letter-spacing:-0.5px;">{html.escape(heading)}</h1>
+<tr><td class="pad content" style="padding:18px 40px 34px;font-family:{FONT};font-size:15px;line-height:23px;color:#44476b;">
+  <h1 style="margin:0 0 14px;font-family:{FONT};font-size:24px;line-height:30px;font-weight:800;color:{NAVY};letter-spacing:-0.5px;">{html.escape(heading)}</h1>
   {body}
   {button}
 </td></tr>
 
-<tr><td class="pad" style="padding:20px 40px 24px;border-top:1px solid #eef0f2;background:#fafbfc;border-radius:0 0 16px 16px;">
-  <p style="margin:0 0 5px;font-family:{FONT};font-size:12px;line-height:18px;color:#9ca3af;">Sent by <a href="{base}" style="color:#6b7280;text-decoration:none;font-weight:600;">Fetchpawz</a> — the pet app with a rescue mission.</p>
-  <p style="margin:0;font-family:{FONT};font-size:12px;line-height:18px;color:#9ca3af;">If you weren't expecting this email, you can safely ignore it.</p>
+<tr><td class="pad" style="padding:20px 40px 24px;border-top:1px solid #f1e4d4;background:#fff8f0;border-radius:0 0 18px 18px;">
+  <p style="margin:0 0 5px;font-family:{FONT};font-size:12px;line-height:18px;color:#686b90;">Sent by <a href="{base}" style="color:#5d6085;text-decoration:none;font-weight:600;">Fetchpawz</a> — the pet app with a rescue mission.</p>
+  <p style="margin:0;font-family:{FONT};font-size:12px;line-height:18px;color:#686b90;">If you weren't expecting this email, you can safely ignore it.</p>
 </td></tr>
 
 </table>
@@ -354,7 +354,7 @@ async def send_invite_email(to: str, code: str) -> bool:
             "You're in! 🐾",
             "<p>A spot opened up and we saved it for you. Tap below to create your "
             "account — your invite code is already applied.</p>"
-            f'<p style="color:#6b7280;font-size:13px;">Invite code: '
+            f'<p style="color:#5d6085;font-size:13px;">Invite code: '
             f"<strong>{html.escape(code)}</strong></p>",
             cta_url=url,
             cta_label="Accept your invite",
@@ -379,8 +379,8 @@ async def send_contact_relay_email(
             "A message about your report",
             f"<p><strong>{html.escape(sender_name)}</strong> sent you a message "
             f"about “{html.escape(report_title)}” through Fetchpawz:</p>"
-            '<blockquote style="border-left:3px solid #ee7a10;margin:16px 0;'
-            'padding:8px 16px;color:#374151;background:#fff7ed;border-radius:0 8px 8px 0;">'
+            '<blockquote style="border-left:4px solid #ff6a1f;margin:16px 0;'
+            'padding:8px 16px;color:#44476b;background:#fff2e3;border-radius:0 8px 8px 0;">'
             f"{html.escape(message)}</blockquote>"
             "<p>Reply to this email to answer them directly.</p>",
             preheader="Reply to this email to answer them directly.",
@@ -415,7 +415,7 @@ async def send_transfer_invite_email(
         url = f"{settings.FRONTEND_BASE_URL}/signup?invite={signup_code}"
         cta = "Create your account"
         extra = (
-            '<p style="color:#6b7280;font-size:13px;">Your invite code '
+            '<p style="color:#5d6085;font-size:13px;">Your invite code '
             f"<strong>{html.escape(signup_code)}</strong> is already applied — "
             "sign up with this email address and the transfer will be waiting.</p>"
         )
@@ -434,7 +434,7 @@ async def send_transfer_invite_email(
             f"<p><strong>{safe_rescue}</strong> has started transferring "
             f"{safe_pet}&rsquo;s profile to you on Fetchpawz. Once you accept, "
             f"{safe_pet} is yours to look after here.</p>" + extra +
-            f'<p style="color:#6b7280;font-size:13px;">This invitation expires '
+            f'<p style="color:#5d6085;font-size:13px;">This invitation expires '
             f"in {expires_days} days.</p>",
             cta_url=url,
             cta_label=cta,
@@ -463,13 +463,13 @@ async def send_weekly_recap_email(
     for p in pets:
         delta = p.get("delta")
         if delta is None:
-            movement = '<span style="color:#6b7280">new this week</span>'
+            movement = '<span style="color:#5d6085">new this week</span>'
         elif delta > 0:
-            movement = f'<span style="color:#2e7d5b">&#9650; up {delta}</span>'
+            movement = f'<span style="color:#127550">&#9650; up {delta}</span>'
         elif delta < 0:
-            movement = f'<span style="color:#9ca3af">&#9660; down {abs(delta)}</span>'
+            movement = f'<span style="color:#686b90">&#9660; down {abs(delta)}</span>'
         else:
-            movement = '<span style="color:#6b7280">holding steady</span>'
+            movement = '<span style="color:#5d6085">holding steady</span>'
 
         likes = p["likes"]
         # "joint #1" when the score is shared: RANK() gives every tied pet the
@@ -538,7 +538,7 @@ async def send_alert_email(to: str, *, payload: dict) -> bool:
                 + html.escape(str(labels.get("severity", "unknown")))
                 + ")<br>"
                 + html.escape(str(ann.get("summary", "")))
-                + "<br><span style=\'color:#6b7280;font-size:13px\'>"
+                + "<br><span style=\'color:#5d6085;font-size:13px\'>"
                 + html.escape(str(ann.get("description", "")))
                 + "</span></li>"
             )
@@ -609,10 +609,10 @@ async def send_ticket_reply_email(
         _layout(
             "Support replied",
             f"<p>About your message &ldquo;{html.escape(subject)}&rdquo;:</p>"
-            '<blockquote style="border-left:3px solid #ee7a10;margin:16px 0;'
-            'padding:8px 16px;color:#374151;background:#fff7ed;border-radius:0 8px 8px 0;">'
+            '<blockquote style="border-left:4px solid #ff6a1f;margin:16px 0;'
+            'padding:8px 16px;color:#44476b;background:#fff2e3;border-radius:0 8px 8px 0;">'
             f"{html.escape(reply_body).replace(chr(10), '<br>')}</blockquote>" + closing +
-            f'<p style="color:#6b7280;font-size:13px;">Reference '
+            f'<p style="color:#5d6085;font-size:13px;">Reference '
             f"<strong>{html.escape(ticket_number)}</strong></p>",
             cta_url=f"{base}/app/support/tickets/{ticket_id}",
             cta_label="View the conversation",
@@ -646,12 +646,12 @@ async def send_tag_found_email(
             f"Someone scanned {pet_name}'s tag",
             f"<p><strong>{html.escape(finder_name)}</strong> scanned "
             f"{safe_pet}'s Fetchpawz collar tag and left you a message:</p>"
-            '<blockquote style="border-left:3px solid #ee7a10;margin:16px 0;'
-            'padding:8px 16px;color:#374151;background:#fff7ed;border-radius:0 8px 8px 0;">'
+            '<blockquote style="border-left:4px solid #ff6a1f;margin:16px 0;'
+            'padding:8px 16px;color:#44476b;background:#fff2e3;border-radius:0 8px 8px 0;">'
             f"{html.escape(message)}</blockquote>"
             "<p><strong>Reach them at:</strong> "
             f"{html.escape(finder_contact)}</p>"
-            f'<p style="color:#6b7280;font-size:13px">Tag code '
+            f'<p style="color:#5d6085;font-size:13px">Tag code '
             f"{html.escape(tag_code)}. We could not verify who sent this — "
             "take the usual care when arranging to meet.</p>",
             preheader=f"{finder_name} may have found {pet_name}.",
@@ -673,7 +673,7 @@ async def send_test_email(to: str) -> tuple[bool, str]:
             "Email is working 🐾",
             "<p>An admin sent this from Admin → System to confirm that "
             "transactional email is configured correctly. Nothing to do.</p>"
-            f'<p style="color:#6b7280;font-size:13px;">Sender: '
+            f'<p style="color:#5d6085;font-size:13px;">Sender: '
             f"<strong>{html.escape(settings.EMAIL_FROM)}</strong><br>"
             f"Environment: <strong>{html.escape(settings.ENVIRONMENT)}</strong></p>",
             preheader="If this arrived, transactional email is working.",

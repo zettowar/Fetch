@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Camera, HandCoins, MapPin } from 'lucide-react';
+import { Camera, MapPin } from 'lucide-react';
 import {
   getMyRescueProfile,
   markDogAdopted,
@@ -21,6 +21,8 @@ import { getMyPets } from '../api/pets';
 import ImagePicker from '../components/ImagePicker';
 import { normalizeImageFile } from '../utils/image';
 import { listMyInquiries, updateInquiryStatus, type AdoptionInquiry } from '../api/adoption';
+import BrandIcon from '../components/brand/BrandIcon';
+import PetPortrait from '../components/brand/PetPortrait';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -28,6 +30,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Input from '../components/ui/Input';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
+import SectionHeader from '../components/ui/SectionHeader';
 import BackButton from '../components/ui/BackButton';
 import { useAuth } from '../store/AuthContext';
 import { apiErrorMessage } from '../utils/apiError';
@@ -38,6 +41,13 @@ import { useDocumentTitle } from '../utils/useDocumentTitle';
 // (with the map library behind it) is only needed once a rescue opens the
 // details editor.
 const LocationPicker = lazy(() => import('../components/LocationPicker'));
+
+// Same field treatment as <Input>, for the textarea it can't render.
+const FIELD =
+  'w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:hover:border-white/35 dark:focus:border-brand-400';
+const CARD_TITLE = 'text-base font-extrabold text-navy dark:text-biscuit';
+// Forever Pink is the rescue colour: the dashboard's pins are pink.
+const RESCUE_PIN_COLOR = '#FF5C93';
 
 export default function RescueDashboardPage() {
   useDocumentTitle('Rescue dashboard · Fetchpawz');
@@ -98,14 +108,15 @@ export default function RescueDashboardPage() {
   if (profile.status === 'pending') {
     return (
       <div className="p-6 max-w-md mx-auto">
-        <h1 className="text-2xl font-bold mb-2">Application pending</h1>
+        <h1 className="text-[28px] leading-none text-navy dark:text-biscuit mb-3">Application pending</h1>
         <p className="text-gray-600 dark:text-gray-300 mb-4">
-          Thanks for applying, <span className="font-semibold">{profile.org_name}</span>.
+          Thanks for applying, <span className="font-extrabold text-navy dark:text-biscuit">{profile.org_name}</span>.
           Our team is reviewing your application. Once approved, you'll be able to
           post adoptable pets here.
         </p>
-        <div className="rounded-xl bg-warning-50 border border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30 p-4 text-sm text-warning-800 dark:text-warning-200 mb-4">
-          Reviews typically take 1–3 business days. We'll email you at your signup address.
+        <div className="surface flex items-start gap-3 p-4 text-sm text-navy dark:text-biscuit mb-4">
+          <BrandIcon name="clock" size={20} className="mt-px" />
+          <span>Reviews typically take 1–3 business days. We'll email you at your signup address.</span>
         </div>
       </div>
     );
@@ -114,7 +125,7 @@ export default function RescueDashboardPage() {
   if (profile.status === 'rejected') {
     return (
       <div className="p-6 max-w-md mx-auto">
-        <h1 className="text-2xl font-bold mb-2">Application declined</h1>
+        <h1 className="font-plain text-[26px] leading-tight text-navy dark:text-biscuit mb-2">Application declined</h1>
         <p className="text-gray-600 dark:text-gray-300 mb-4">
           {profile.review_note || "We couldn't verify your application."} Please
           reach out to us with additional information if you think this is a mistake.
@@ -128,16 +139,13 @@ export default function RescueDashboardPage() {
 
   return (
     <div className="p-4 pb-8 max-w-xl mx-auto">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-2xl font-bold">{profile.org_name}</h1>
-        <Link
-          to="/app/pets/new"
-          className="text-sm font-medium text-brand-500 hover:text-brand-600"
-        >
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <h1 className="min-w-0 text-[28px] leading-none text-navy dark:text-biscuit text-balance">{profile.org_name}</h1>
+        <Link to="/app/pets/new" className="btn btn-rescue btn-sm shrink-0">
           + Post a pet
         </Link>
       </div>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
         Pets you post here appear in the swipe feed and the adoption directory.
       </p>
 
@@ -148,16 +156,17 @@ export default function RescueDashboardPage() {
       <ConnectDonationsCard externalDonationUrl={profile.donation_url} />
 
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-          Adoptable ({unadopted.length})
-        </h2>
+        <SectionHeader title={`Adoptable (${unadopted.length})`} />
         {unadopted.length === 0 ? (
           <EmptyState
             illustration="sleeping"
             title="No adoptable pets yet"
             body={
               <>
-                <Link to="/app/pets/new" className="text-brand-500 hover:underline">
+                <Link
+                  to="/app/pets/new"
+                  className="font-extrabold text-navy underline decoration-pink-500 decoration-2 underline-offset-2 dark:text-biscuit"
+                >
                   Post your first
                 </Link>{' '}
                 to get started.
@@ -182,9 +191,7 @@ export default function RescueDashboardPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-          Inquiries ({inquiries.length})
-        </h2>
+        <SectionHeader title={`Inquiries (${inquiries.length})`} />
         {inquiries.length === 0 ? (
           <EmptyState
             illustration="sleeping"
@@ -202,25 +209,32 @@ export default function RescueDashboardPage() {
 
       {adopted.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            Adopted ({adopted.length})
-          </h2>
+          <SectionHeader title={`Adopted (${adopted.length})`} />
           <div className="flex flex-col gap-2">
             {adopted.map((d) => (
               <div
                 key={d.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-xl"
+                className="surface flex items-center gap-3 p-3"
               >
-                {d.primary_photo_url && (
+                {d.primary_photo_url ? (
                   <img
                     src={d.primary_photo_url}
                     alt={d.name}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-navy dark:border-white/15"
+                  />
+                ) : (
+                  <PetPortrait
+                    species={d.species}
+                    breed={d.breed_display}
+                    seed={d.id}
+                    crop="face"
+                    background
+                    className="w-10 h-10 shrink-0 rounded-full border-2 border-navy dark:border-white/15"
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{d.name}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="font-extrabold text-navy dark:text-biscuit truncate">{d.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Adopted {d.adopted_at ? new Date(d.adopted_at).toLocaleDateString() : ''}
                   </p>
                 </div>
@@ -266,18 +280,27 @@ function AdoptableDogRow({
   return (
     <Card padding="sm">
       <div className="flex items-center gap-3">
-        {pet.primary_photo_url && (
+        {pet.primary_photo_url ? (
           <img
             src={pet.primary_photo_url}
             alt={pet.name}
-            className="w-12 h-12 rounded-full object-cover cursor-pointer"
+            className="w-12 h-12 rounded-full object-cover cursor-pointer border-2 border-navy dark:border-white/15"
             onClick={onView}
+          />
+        ) : (
+          <PetPortrait
+            species={pet.species}
+            breed={pet.breed_display}
+            seed={pet.id}
+            crop="face"
+            background
+            className="w-12 h-12 shrink-0 rounded-full border-2 border-navy dark:border-white/15"
           />
         )}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold truncate">{pet.name}</p>
+          <p className="font-extrabold text-navy dark:text-biscuit truncate">{pet.name}</p>
           {pet.breed_display && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{pet.breed_display}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{pet.breed_display}</p>
           )}
         </div>
         <Button size="sm" variant="ghost" onClick={onView}>
@@ -317,13 +340,14 @@ function AdoptableDogRow({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="adopter@example.com"
           />
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             They'll see a pending transfer next time they log in. If they don't
             have Fetchpawz yet, they'll see it when they sign up with this email.
           </p>
           <div className="flex gap-2">
             <Button
               size="sm"
+              variant="rescue"
               className="flex-1"
               onClick={() => transfer.mutate()}
               loading={transfer.isPending}
@@ -384,12 +408,12 @@ function InquiryRow({
     <Card padding="sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold truncate">{inquiry.name}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-            <a href={`mailto:${inquiry.email}`} className="hover:underline">{inquiry.email}</a>
+          <p className="font-extrabold text-navy dark:text-biscuit truncate">{inquiry.name}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
+            <a href={`mailto:${inquiry.email}`} className="font-semibold hover:underline">{inquiry.email}</a>
             {inquiry.phone && ` · ${inquiry.phone}`}
           </p>
-          <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
+          <p className="text-2xs text-gray-500 dark:text-gray-400 mt-0.5">
             {new Date(inquiry.created_at).toLocaleString()}
           </p>
         </div>
@@ -400,7 +424,7 @@ function InquiryRow({
       {aboutDog && (
         <Link
           to={`/app/pets/${aboutDog.id}`}
-          className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-300 text-2xs font-medium hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
+          className="mt-2 inline-flex items-center gap-1 rounded-full border-[1.5px] border-navy bg-pink-100 px-2 py-[3px] text-2xs font-extrabold text-navy hover:bg-pink-200 transition-colors dark:border-pink-300/50 dark:bg-pink-500/20 dark:text-pink-100 dark:hover:bg-pink-500/30"
         >
           About {aboutDog.name} ↗
         </Link>
@@ -454,25 +478,25 @@ function PublicPageCard({ profile }: { profile: RescueProfile }) {
   return (
     <Card padding="md" className="mb-8">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Your public page</h2>
-        <label className="inline-flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+        <h2 className={CARD_TITLE}>Your public page</h2>
+        <label className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
           <input
             type="checkbox"
             checked={profile.is_public}
             disabled={visibility.isPending}
             onChange={(e) => visibility.mutate(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-brand-500 focus:ring-brand-400"
+            className="h-4 w-4 accent-brand-500"
           />
           Visible
         </label>
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
         A free website for your rescue — logo, description, and adoptable pets.
       </p>
 
       {publicUrl && (
         <div className="mt-3 flex items-center gap-2">
-          <code className="flex-1 min-w-0 truncate rounded-lg bg-gray-50 dark:bg-gray-800/60 px-2 py-1.5 text-xs text-gray-600 dark:text-gray-300">
+          <code className="flex-1 min-w-0 truncate rounded-lg border border-gray-200 bg-biscuit px-2 py-1.5 font-mono text-xs text-gray-700 dark:border-white/10 dark:bg-night dark:text-gray-200">
             {publicUrl}
           </code>
           <Button size="sm" variant="secondary" onClick={() => {
@@ -481,8 +505,8 @@ function PublicPageCard({ profile }: { profile: RescueProfile }) {
           }}>
             Copy
           </Button>
-          <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="ghost">View ↗</Button>
+          <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">
+            View ↗
           </a>
         </div>
       )}
@@ -559,7 +583,7 @@ function ProfileDetailsCard({ profile }: { profile: RescueProfile }) {
     return (
       <Card padding="md" className="mb-8">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Your details</h2>
+          <h2 className={CARD_TITLE}>Your details</h2>
           <Button size="sm" variant="secondary" onClick={startEditing}>
             Edit
           </Button>
@@ -567,24 +591,24 @@ function ProfileDetailsCard({ profile }: { profile: RescueProfile }) {
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap line-clamp-4">
           {profile.description}
         </p>
-        <dl className="mt-3 space-y-1 text-xs text-gray-500 dark:text-gray-400">
+        <dl className="mt-3 space-y-1 text-xs text-gray-600 dark:text-gray-300">
           <div className="flex gap-2">
-            <dt className="w-24 shrink-0 font-medium">Location</dt>
+            <dt className="w-24 shrink-0 font-extrabold text-navy dark:text-biscuit">Location</dt>
             <dd className="min-w-0 truncate">{profile.location || 'Not set'}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-24 shrink-0 font-medium">Website</dt>
+            <dt className="w-24 shrink-0 font-extrabold text-navy dark:text-biscuit">Website</dt>
             <dd className="min-w-0 truncate">{profile.website || 'Not set'}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-24 shrink-0 font-medium">Donation link</dt>
+            <dt className="w-24 shrink-0 font-extrabold text-navy dark:text-biscuit">Donation link</dt>
             <dd className="min-w-0 truncate">{profile.donation_url || 'Not set'}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-24 shrink-0 font-medium">Rescue map</dt>
+            <dt className="w-24 shrink-0 font-extrabold text-navy dark:text-biscuit">Rescue map</dt>
             <dd className="min-w-0">
               {savedPin ? (
-                <span className="inline-flex items-center gap-1 text-success-600 dark:text-success-400">
+                <span className="inline-flex items-center gap-1 font-bold text-success-700 dark:text-success-300">
                   <MapPin size={12} aria-hidden /> You&rsquo;re on the map
                 </span>
               ) : (
@@ -599,7 +623,7 @@ function ProfileDetailsCard({ profile }: { profile: RescueProfile }) {
 
   return (
     <Card padding="md" className="mb-8">
-      <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Edit your details</h2>
+      <h2 className={`${CARD_TITLE} mb-3`}>Edit your details</h2>
       <form
         className="flex flex-col gap-3"
         onSubmit={(e) => {
@@ -607,16 +631,13 @@ function ProfileDetailsCard({ profile }: { profile: RescueProfile }) {
           save.mutate();
         }}
       >
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="rescue-description"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="rescue-description" className="field-label">
             Description
           </label>
           <textarea
             id="rescue-description"
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
+            className={`${FIELD} resize-none`}
             rows={5}
             maxLength={5000}
             required
@@ -647,19 +668,19 @@ function ProfileDetailsCard({ profile }: { profile: RescueProfile }) {
         />
 
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Pin on the rescue map</p>
-          <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+          <p className="field-label">Pin on the rescue map</p>
+          <p className="mt-1 mb-2 text-xs text-gray-600 dark:text-gray-300">
             Public — this is where you appear on the map adopters browse. Tap to place it
             somewhere you&rsquo;re happy to be found, such as your adoption centre.
           </p>
-          <Suspense fallback={<div className="h-56 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" aria-busy="true" />}>
-            <LocationPicker value={pin} onChange={setPin} heightClass="h-56" accentColor="#8b5cf6" />
+          <Suspense fallback={<div className="h-56 rounded-2xl border border-gray-200 bg-gray-100 dark:border-white/10 dark:bg-night-raised animate-pulse" aria-busy="true" />}>
+            <LocationPicker value={pin} onChange={setPin} heightClass="h-56" accentColor={RESCUE_PIN_COLOR} />
           </Suspense>
           {pin && (
             <button
               type="button"
               onClick={() => setPin(null)}
-              className="mt-1 text-xs text-gray-500 dark:text-gray-400 underline hover:text-danger-500"
+              className="mt-1 text-xs font-semibold text-gray-600 dark:text-gray-300 underline hover:text-danger-600 dark:hover:text-danger-300"
             >
               Remove the pin (stay off the map)
             </button>
@@ -706,16 +727,16 @@ function ImageUploadTile({
     <ImagePicker onPick={pick} disabled={pending}>
       {({ openGallery, openCamera }) => (
         <div
-          className={`relative overflow-hidden rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 flex items-center justify-center ${className}`}
+          className={`relative overflow-hidden rounded-lg border-2 border-dashed border-pink-400 bg-pink-50 dark:border-pink-400/40 dark:bg-pink-500/10 flex items-center justify-center ${className}`}
         >
           {url ? (
             <img src={url} alt={`${label} preview`} className="absolute inset-0 h-full w-full object-cover" />
           ) : (
-            <span className="text-xs text-gray-400 dark:text-gray-500">Add {label.toLowerCase()}</span>
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">Add {label.toLowerCase()}</span>
           )}
           <div className="absolute inset-x-1 bottom-1 flex items-center justify-end gap-1">
             {pending ? (
-              <span className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white">
+              <span className="rounded-full bg-navy/85 px-2 py-0.5 text-2xs font-bold text-biscuit">
                 Uploading…
               </span>
             ) : (
@@ -725,7 +746,7 @@ function ImageUploadTile({
                     type="button"
                     onClick={openCamera}
                     aria-label={`Take a ${label.toLowerCase()} photo`}
-                    className="rounded-md bg-black/50 p-1 text-white hover:bg-black/70 transition-colors"
+                    className="rounded-full bg-navy/85 p-1 text-biscuit hover:bg-navy transition-colors"
                   >
                     <Camera size={13} aria-hidden />
                   </button>
@@ -733,7 +754,7 @@ function ImageUploadTile({
                 <button
                   type="button"
                   onClick={openGallery}
-                  className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-black/70 transition-colors"
+                  className="rounded-full bg-navy/85 px-2 py-0.5 text-2xs font-bold text-biscuit hover:bg-navy transition-colors"
                 >
                   {url ? `Change ${label.toLowerCase()}` : label}
                 </button>
@@ -784,12 +805,12 @@ function ConnectDonationsCard({ externalDonationUrl }: { externalDonationUrl: st
   return (
     <Card padding="md" className="mb-8">
       <div className="flex items-start gap-3">
-        <span className="inline-flex w-9 h-9 shrink-0 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-500/15 text-brand-600 dark:text-brand-300" aria-hidden>
-          <HandCoins size={18} />
+        <span className="inline-flex w-10 h-10 shrink-0 items-center justify-center rounded-full border-2 border-navy bg-pink-100 text-navy dark:border-white/15 dark:bg-pink-500/20 dark:text-biscuit" aria-hidden>
+          <BrandIcon name="donate" size={20} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">In-app donations</h2>
+            <h2 className={CARD_TITLE}>In-app donations</h2>
             {status?.charges_enabled ? (
               <Badge variant="success">Active</Badge>
             ) : status?.has_account ? (
@@ -797,13 +818,13 @@ function ConnectDonationsCard({ externalDonationUrl }: { externalDonationUrl: st
             ) : null}
           </div>
           {status?.charges_enabled ? (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
               Supporters can donate to you right inside Fetchpawz. Payouts go to your
               Stripe account.
             </p>
           ) : status?.has_account ? (
             <>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                 {status.details_submitted
                   ? 'Stripe is reviewing your details — this usually clears quickly.'
                   : 'Finish Stripe onboarding to start receiving in-app donations.'}
@@ -811,6 +832,7 @@ function ConnectDonationsCard({ externalDonationUrl }: { externalDonationUrl: st
               {!status.details_submitted && (
                 <Button
                   size="sm"
+                  variant="rescue"
                   className="mt-2"
                   loading={onboard.isPending}
                   onClick={() => onboard.mutate()}
@@ -821,13 +843,14 @@ function ConnectDonationsCard({ externalDonationUrl }: { externalDonationUrl: st
             </>
           ) : (
             <>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                 Let supporters donate without leaving Fetchpawz. Stripe handles
                 identity checks and pays out straight to your bank (US accounts).
                 {externalDonationUrl ? ' Your external donation link keeps working either way.' : ''}
               </p>
               <Button
                 size="sm"
+                variant="rescue"
                 className="mt-2"
                 loading={onboard.isPending}
                 onClick={() => onboard.mutate()}

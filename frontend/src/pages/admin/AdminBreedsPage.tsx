@@ -9,14 +9,18 @@ import {
   type AdminBreed,
 } from '../../api/breeds';
 import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import Input from '../../components/ui/Input';
 import SearchInput from '../../components/ui/SearchInput';
 import { apiErrorMessage } from '../../utils/apiError';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import PaginationFooter from '../../components/ui/PaginationFooter';
+import PageHeader from '../../components/ui/PageHeader';
 import type { Species } from '../../types';
+import { CHECK, ROWS, ROW_HOVER } from './adminStyles';
 
 const PAGE_SIZE = 100;
 
@@ -36,7 +40,7 @@ export default function AdminBreedsPage() {
   // Paged. This used to ask for the first 200 and stop — with 243 breeds
   // seeded, everything alphabetically after the cut-off was missing from the
   // list and only turned up through search.
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-breeds', search, offset],
     queryFn: () => adminListBreeds({ q: search || undefined, offset, limit: PAGE_SIZE }),
   });
@@ -96,10 +100,11 @@ export default function AdminBreedsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Breeds</h1>
-        <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>Add Breed</Button>
-      </div>
+      <PageHeader
+        title="Breeds"
+        className="mb-5"
+        action={<Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>Add Breed</Button>}
+      />
 
       <SearchInput
         placeholder="Search breeds..."
@@ -116,23 +121,24 @@ export default function AdminBreedsPage() {
             // Without this every new breed was created as a dog breed — the
             // form never sent a species, and the API defaults to "dog" — so
             // there was no way to add a cat breed from the admin panel.
-            <fieldset className="flex items-center gap-4 text-sm">
-              <legend className="mb-1 font-medium text-gray-700 dark:text-gray-300">Species</legend>
+            <fieldset className="flex items-center gap-4 text-sm font-semibold">
+              <legend className="field-label mb-1.5">Species</legend>
               {(['dog', 'cat'] as const).map((s) => (
-                <label key={s} className="flex items-center gap-2 capitalize">
+                <label key={s} className="flex cursor-pointer items-center gap-2 capitalize">
                   <input
                     type="radio"
                     name="breed-species"
                     checked={species === s}
                     onChange={() => setSpecies(s)}
+                    className={CHECK}
                   />
                   {s}
                 </label>
               ))}
             </fieldset>
           )}
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className={CHECK} />
             Active (shown to users)
           </label>
           <div className="flex gap-2">
@@ -150,18 +156,20 @@ export default function AdminBreedsPage() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load breeds." onRetry={() => refetch()} />
       ) : breeds.length === 0 ? (
         <EmptyState className="py-6" title="No breeds match" />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {breeds.map((b) => (
-            <div key={b.id} className="p-3 flex items-center gap-3">
+            <div key={b.id} className={`p-3 flex items-center gap-3 ${ROW_HOVER}`}>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">
+                <p className="font-bold text-sm text-navy dark:text-biscuit">
                   {b.name}
-                  {!b.is_active && <span className="ml-2 text-xs text-danger-500 dark:text-danger-400">(inactive)</span>}
+                  {!b.is_active && <Badge variant="neutral" className="ml-2 align-middle">(inactive)</Badge>}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   <span className="capitalize">{b.species ?? 'dog'}</span>
                   {' · '}
                   {b.group ? `${b.group} · ` : ''}
@@ -188,13 +196,15 @@ export default function AdminBreedsPage() {
         </Card>
       )}
 
-      <PaginationFooter
-        offset={offset}
-        pageSize={PAGE_SIZE}
-        rendered={breeds.length}
-        total={total}
-        onChange={setOffset}
-      />
+      {!isError && (
+        <PaginationFooter
+          offset={offset}
+          pageSize={PAGE_SIZE}
+          rendered={breeds.length}
+          total={total}
+          onChange={setOffset}
+        />
+      )}
     </div>
   );
 }

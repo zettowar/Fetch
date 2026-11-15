@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { joinWaitlist } from '../api/waitlist';
+import BrandIcon from '../components/brand/BrandIcon';
 
 /**
  * Email capture for the pre-launch waitlist, used across the marketing site.
  *
- * Variants match the two surfaces it sits on:
- * - `onBrand` — white controls for the brand-gradient hero and closing CTA.
- * - `neutral` — bordered input + brand button for white/gray page sections.
+ * One pill field — the email input and a navy "Get an invite" button inside a
+ * white pill with a Leash Navy line. Variants match the two surfaces it sits on:
+ * - `onBrand` — on a Ball Orange band, which stays orange after dark, so the
+ *   pill stays white and navy in both themes; navy focus ring and messages.
+ * - `neutral` — on the Biscuit page or a white panel: orange focus ring, and
+ *   the pill turns Night Surface (with a Biscuit button) after dark.
  *
  * `source` tags the signup (hero / closing / news) so we can see which
  * placement converts.
@@ -25,6 +29,15 @@ export default function WaitlistForm({
   const [status, setStatus] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
 
   const onBrand = variant === 'onBrand';
+  // Dark partners only where the surface underneath goes dark too.
+  const dark = onBrand
+    ? { pill: '', text: '', button: '', check: '' }
+    : {
+        pill: 'dark:border-white/25 dark:bg-night-surface',
+        text: 'dark:text-biscuit dark:placeholder:text-gray-500',
+        button: 'dark:border-biscuit dark:bg-biscuit dark:text-navy dark:hover:bg-white',
+        check: 'dark:text-green-400',
+      };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -42,20 +55,21 @@ export default function WaitlistForm({
     return (
       <p
         role="status"
-        className={`rounded-xl px-4 py-3 text-sm font-semibold ${
-          onBrand
-            ? 'bg-white/15 text-white ring-1 ring-white/30'
-            : 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400 ring-1 ring-brand-200 dark:ring-brand-500/30'
-        } ${className}`}
+        className={`flex items-center justify-center gap-2 rounded-3xl border-[2.5px] border-navy bg-white px-5 py-3 text-sm font-bold text-navy ${dark.pill} ${dark.text} ${className}`}
       >
-        <span aria-hidden>🐾</span> You're on the list — watch your inbox for an invite.
+        <BrandIcon name="check" size={20} className={`text-green-600 ${dark.check}`} />
+        You're on the list — watch your inbox for an invite.
       </p>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className={className} noValidate={false}>
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div
+        className={`flex items-center gap-1.5 rounded-full border-[2.5px] border-navy bg-white p-1.5 pl-5 shadow-toy transition-shadow focus-within:ring-4 ${
+          onBrand ? 'focus-within:ring-navy/25' : 'focus-within:ring-brand-500/30'
+        } ${dark.pill}`}
+      >
         <label htmlFor={`waitlist-email-${source}`} className="sr-only">
           Email address
         </label>
@@ -67,20 +81,13 @@ export default function WaitlistForm({
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={`min-w-0 flex-1 rounded-xl px-4 py-3 text-base outline-none transition-shadow ${
-            onBrand
-              ? 'bg-white text-gray-900 placeholder:text-gray-400 ring-1 ring-white/40 focus:ring-2 focus:ring-white'
-              : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-brand-400'
-          }`}
+          // The pill shows focus with its ring, so the input drops its own.
+          className={`min-w-0 flex-1 bg-transparent py-2 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none focus-visible:outline-none ${dark.text}`}
         />
         <button
           type="submit"
           disabled={status === 'submitting'}
-          className={`flex-shrink-0 rounded-xl px-6 py-3 text-base font-semibold shadow-soft-lg transition-transform duration-200 ease-soft-out hover:scale-[1.02] active:scale-95 disabled:opacity-70 disabled:hover:scale-100 ${
-            onBrand
-              ? 'bg-white text-brand-700'
-              : 'bg-brand-500 text-white hover:bg-brand-600'
-          }`}
+          className={`btn shrink-0 border-navy bg-navy text-biscuit hover:bg-navy-600 ${dark.button}`}
         >
           {status === 'submitting' ? 'Joining…' : 'Get an invite'}
         </button>
@@ -88,7 +95,7 @@ export default function WaitlistForm({
       {status === 'error' && (
         <p
           role="alert"
-          className={`mt-2 text-sm font-medium ${onBrand ? 'text-white/90' : 'text-danger-500'}`}
+          className={`mt-2 text-sm font-bold ${onBrand ? 'text-navy' : 'text-danger-700 dark:text-danger-300'}`}
         >
           That didn't go through — check the address and try again.
         </p>

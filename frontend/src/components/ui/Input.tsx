@@ -13,22 +13,22 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={id} className="text-sm font-medium text-gray-700 dark:text-gray-300 tracking-tight">
+          <label htmlFor={id} className="text-2xs font-extrabold uppercase tracking-[0.1em] text-gray-600 dark:text-gray-300">
             {label}
           </label>
         )}
         <input
           ref={ref}
           id={id}
-          className={`w-full rounded-xl border bg-white dark:bg-gray-800 px-4 py-2.5 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none transition-all duration-200 ease-soft-out shadow-soft-sm ${
+          className={`w-full min-h-[48px] rounded-lg border-2 bg-white dark:bg-night-surface px-3.5 py-2.5 text-base font-semibold text-navy dark:text-biscuit placeholder:font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out disabled:cursor-not-allowed disabled:border-dashed disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-night ${
             error
-              ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200 dark:border-red-500/60 dark:focus:ring-red-500/30'
-              : 'border-gray-200 hover:border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:border-gray-700 dark:hover:border-gray-600 dark:focus:border-brand-400 dark:focus:ring-brand-500/30'
+              ? 'border-danger-500 focus:ring-4 focus:ring-danger-500/20 dark:border-danger-400'
+              : 'border-navy/25 hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:hover:border-white/35 dark:focus:border-brand-400'
           } ${className}`}
           {...props}
         />
         {error && (
-          <p className="text-sm text-red-500 dark:text-red-400 animate-fade-in-up">{error}</p>
+          <p className="text-sm font-semibold text-danger-700 dark:text-danger-300 animate-fade-in-up">{error}</p>
         )}
       </div>
     );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { X } from 'lucide-react';
 import { apiErrorMessage } from '../../utils/apiError';
 import client from '../../api/client';
 import {
@@ -34,6 +35,8 @@ import EmptyState from '../../components/ui/EmptyState';
 import ErrorState, { NOT_FOUND_HINT } from '../../components/ui/ErrorState';
 import { ListSkeleton, Spinner } from '../../components/ui/Skeleton';
 import TimeAgo from '../../components/TimeAgo';
+import BrandIcon from '../../components/brand/BrandIcon';
+import { FIELD, LINK, ROWS, segItem } from './adminStyles';
 
 function errDetail(e: unknown): string | undefined {
   return (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -189,7 +192,7 @@ export default function AdminUserDetailPage() {
         <Avatar name={user.display_name} size="lg" />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold">{user.display_name}</h1>
+            <h1 className="text-[28px] leading-none text-navy dark:text-biscuit">{user.display_name}</h1>
             {(user.role === 'admin' || user.role === 'moderator') && (
               <Badge variant="info" className="uppercase">{user.role}</Badge>
             )}
@@ -205,13 +208,13 @@ export default function AdminUserDetailPage() {
               <Badge variant="warning">{user.strike_count} strike{user.strike_count > 1 ? 's' : ''}</Badge>
             )}
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+          <p className="mt-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300">{user.email}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Joined <TimeAgo value={user.created_at} /> · {user.pet_count} pet{user.pet_count !== 1 ? 's' : ''}
             {user.location_rough ? ` · ${user.location_rough}` : ''}
           </p>
           <div className="mt-1">
-            <Link to={`/app/users/${user.id}`} target="_blank" className="text-xs text-brand-500 hover:underline">
+            <Link to={`/app/users/${user.id}`} target="_blank" className={`text-xs ${LINK}`}>
               View public profile ↗
             </Link>
           </div>
@@ -257,10 +260,10 @@ export default function AdminUserDetailPage() {
         </Button>
         {/* Role selector — admin only, and never on your own row. */}
         {isAdmin && user.id !== currentUser?.id && user.role !== 'rescue' && (
-          <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-            Role
+          <label className="flex items-center gap-2">
+            <span className="field-label">Role</span>
             <select
-              className="rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1 text-sm"
+              className={FIELD}
               value={user.role}
               disabled={roleMutation.isPending}
               onChange={(e) => {
@@ -289,7 +292,7 @@ export default function AdminUserDetailPage() {
       {/* Entitlement chips */}
       {entitlements.length > 0 && (
         <div className="mb-4 flex flex-wrap gap-1.5 items-center">
-          <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Entitlements:</span>
+          <span className="eyebrow">Entitlements:</span>
           {entitlements.map((e) => (
             <Badge key={e.id} variant="brand" size="md" className="gap-1.5">
               <span className="font-mono">{e.entitlement_key}</span>
@@ -301,9 +304,9 @@ export default function AdminUserDetailPage() {
                   }
                 }}
                 aria-label={`Revoke ${e.entitlement_key}`}
-                className="text-brand-500 hover:text-brand-700 dark:hover:text-brand-200"
+                className="-mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-navy/60 transition-colors hover:bg-navy hover:text-biscuit dark:text-brand-200/80 dark:hover:bg-brand-200 dark:hover:text-navy"
               >
-                ×
+                <X size={11} strokeWidth={3} aria-hidden />
               </button>
             </Badge>
           ))}
@@ -313,7 +316,7 @@ export default function AdminUserDetailPage() {
       {showGrant && (
         <div className="mb-4 flex items-center gap-2">
           <select
-            className="rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1 text-sm"
+            className={`${FIELD} font-mono`}
             value={grantKey}
             onChange={(e) => setGrantKey(e.target.value)}
           >
@@ -327,16 +330,12 @@ export default function AdminUserDetailPage() {
       )}
 
       {/* Tab bar */}
-      <div className="border-b border-gray-200 dark:border-gray-700 flex gap-4 mb-3">
+      <div className="seg max-w-full overflow-x-auto scrollbar-none mb-3">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`pb-2 text-sm font-medium transition-colors ${
-              tab === t.key
-                ? 'border-b-2 border-brand-500 text-brand-600'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            className={segItem(tab === t.key)}
           >
             {t.label}
           </button>
@@ -350,16 +349,16 @@ export default function AdminUserDetailPage() {
       {tab === 'audit' && <AuditTab userId={user.id} />}
 
       {/* Danger zone — permanent deletion, distinct from reversible suspend */}
-      <div className="mt-8 rounded-lg border border-danger-300 dark:border-danger-500/40 bg-danger-50/50 dark:bg-danger-500/5 p-4">
-        <h2 className="text-sm font-semibold text-danger-700 dark:text-danger-300">Danger zone</h2>
+      <div className="mt-8 rounded-2xl border-[1.5px] border-danger-300 dark:border-danger-500/40 bg-danger-50 dark:bg-danger-500/5 p-4">
+        <h2 className="text-base font-extrabold text-danger-700 dark:text-danger-300">Danger zone</h2>
         <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <p className="text-xs text-gray-600 dark:text-gray-400 max-w-md">
+          <p className="text-xs text-gray-700 dark:text-gray-300 max-w-md">
             Permanently delete this account and everything it owns — pets, photos, votes,
             posts, and comments. This <strong>cannot be undone</strong>. To temporarily
             disable access instead, use Suspend above.
           </p>
           {user.role === 'admin' ? (
-            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-300 shrink-0">
               Demote before deleting
             </span>
           ) : (
@@ -407,22 +406,24 @@ function EditUserForm({
   const dirty = name.trim() !== displayName || mail.trim().toLowerCase() !== email;
 
   return (
-    <div className="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800/40">
+    <div className="surface mb-4 p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <label className="text-xs text-gray-500 dark:text-gray-400">
-          Display name
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">Display name</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1.5 text-sm"
+            className={`w-full ${FIELD}`}
           />
         </label>
-        <label className="text-xs text-gray-500 dark:text-gray-400">
-          Email <span className="text-gray-400">(changing clears verified)</span>
+        <label className="flex flex-col gap-1.5">
+          <span className="field-label">
+            Email <span className="normal-case tracking-normal font-semibold text-gray-500 dark:text-gray-400">(changing clears verified)</span>
+          </span>
           <input
             value={mail}
             onChange={(e) => setMail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1.5 text-sm"
+            className={`w-full ${FIELD}`}
           />
         </label>
       </div>
@@ -466,16 +467,16 @@ function DeleteAccountModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-night/60 p-4"
       role="dialog"
       aria-modal="true"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-md rounded-xl bg-white dark:bg-gray-900 p-5 shadow-xl"
+        className="w-full max-w-md rounded-3xl border-[2.5px] border-navy bg-biscuit p-6 shadow-toy dark:border-white/15 dark:bg-night-surface"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-danger-700 dark:text-danger-300">
+        <h2 className="text-xl font-extrabold tracking-tight text-danger-700 dark:text-danger-300">
           Delete {displayName}?
         </h2>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
@@ -483,15 +484,16 @@ function DeleteAccountModal({
           their photos, plus every vote, post, comment, and report tied to this user. Donation
           records are kept (anonymized). This action is <strong>irreversible</strong>.
         </p>
-        <label className="mt-4 block text-xs font-medium text-gray-500 dark:text-gray-400">
-          Type <span className="font-mono text-gray-700 dark:text-gray-200">{email}</span> to confirm
+        <label htmlFor="admin-delete-user-confirm" className="mt-4 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+          Type <span className="font-mono text-navy dark:text-biscuit">{email}</span> to confirm
         </label>
         <input
+          id="admin-delete-user-confirm"
           autoFocus
           type="text"
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-sm focus:border-danger-500 focus:outline-none focus:ring-1 focus:ring-danger-500"
+          className="mt-1.5 w-full rounded-lg border-[1.5px] border-navy/25 bg-white px-3 py-2 font-mono text-sm text-navy placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out focus:border-danger-500 focus:ring-4 focus:ring-danger-500/20 dark:border-white/20 dark:bg-night dark:text-biscuit dark:placeholder:text-gray-500 dark:focus:border-danger-400"
           placeholder={email}
           autoComplete="off"
         />
@@ -522,12 +524,12 @@ function StrikesTab({ userId }: { userId: string }) {
   if (isLoading) return <ListSkeleton rows={3} />;
   if (!data.length) return <EmptyState className="py-6" title="No strikes on record" />;
   return (
-    <Card as="ul" padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+    <Card as="ul" padding="none" className={ROWS}>
       {data.map((s) => (
         <li key={s.id} className="p-3 text-sm flex items-center gap-3">
-          <span className="w-2 h-2 rounded-full bg-danger-400 shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-danger-500 shrink-0" />
           <span className="flex-1">{s.reason}</span>
-          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={s.created_at} /></span>
+          <span className="font-mono text-xs text-gray-500 dark:text-gray-400 shrink-0"><TimeAgo value={s.created_at} /></span>
         </li>
       ))}
     </Card>
@@ -556,7 +558,7 @@ function ReportsAgainstTab({ userId }: { userId: string }) {
 
 function ReportList({ items }: { items: Array<{ id: string; target_type: string; target_id: string; reason: string; status: string; created_at: string }> }) {
   return (
-    <Card as="ul" padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+    <Card as="ul" padding="none" className={ROWS}>
       {items.map((r) => (
         <li key={r.id} className="p-3 text-sm">
           <div className="flex items-center gap-2">
@@ -568,10 +570,10 @@ function ReportList({ items }: { items: Array<{ id: string; target_type: string;
                 'neutral'
               }
             >{r.status}</Badge>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{r.target_type}</span>
-            <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto"><TimeAgo value={r.created_at} /></span>
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{r.target_type}</span>
+            <span className="font-mono text-xs text-gray-500 dark:text-gray-400 ml-auto"><TimeAgo value={r.created_at} /></span>
           </div>
-          <p className="text-gray-700 dark:text-gray-300 mt-1 break-words">{r.reason}</p>
+          <p className="text-gray-700 dark:text-gray-200 mt-1 break-words">{r.reason}</p>
         </li>
       ))}
     </Card>
@@ -591,7 +593,8 @@ function RescueProfileTab({ userId }: { userId: string }) {
   return (
     <Card className="text-sm">
       <div className="flex items-center gap-2 mb-2">
-        <span className="font-semibold">{data.org_name}</span>
+        <BrandIcon name="rescue" size={20} className="text-navy dark:text-biscuit" />
+        <span className="font-extrabold">{data.org_name}</span>
         <Badge
           className="uppercase"
           variant={
@@ -602,15 +605,15 @@ function RescueProfileTab({ userId }: { userId: string }) {
         >
           {data.status}
         </Badge>
-        <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
+        <span className="font-mono text-xs text-gray-500 dark:text-gray-400 ml-auto">
           <TimeAgo value={data.created_at} />
         </span>
       </div>
       {data.location && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{data.location}</p>}
-      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{data.description}</p>
+      <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{data.description}</p>
       {data.review_note && (
-        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          <span className="font-medium">Review note: </span>
+        <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">
+          <span className="font-bold text-navy dark:text-biscuit">Review note: </span>
           {data.review_note}
         </p>
       )}
@@ -637,12 +640,12 @@ function AuditTab({ userId }: { userId: string }) {
   }
 
   return (
-    <Card as="ul" padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+    <Card as="ul" padding="none" className={ROWS}>
       {merged.map((e) => (
         <li key={e.id} className="p-3 text-xs flex items-center gap-2">
-          <span className="font-mono text-gray-700 dark:text-gray-300">{e.action}</span>
+          <span className="font-mono font-medium text-navy dark:text-biscuit">{e.action}</span>
           {e.target_type && <span className="text-gray-500 dark:text-gray-400">on {e.target_type}</span>}
-          <span className="text-gray-400 dark:text-gray-500 ml-auto"><TimeAgo value={e.created_at} /></span>
+          <span className="font-mono text-gray-500 dark:text-gray-400 ml-auto"><TimeAgo value={e.created_at} /></span>
         </li>
       ))}
     </Card>

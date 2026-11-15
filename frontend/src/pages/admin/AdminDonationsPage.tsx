@@ -6,9 +6,12 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import PaginationFooter from '../../components/ui/PaginationFooter';
+import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
+import { ROWS, ROW_HOVER, STAT_INK, STAT_NUMBER, segItem } from './adminStyles';
 
 const PAGE_SIZE = 50;
 
@@ -23,7 +26,7 @@ export default function AdminDonationsPage() {
   const [offset, setOffset] = useState(0);
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-donations', status, offset],
     queryFn: () => getDonations({ status: status === 'all' ? undefined : status, offset, limit: PAGE_SIZE }),
   });
@@ -44,34 +47,38 @@ export default function AdminDonationsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Donations</h1>
+      <PageHeader title="Donations" className="mb-5" />
 
-      {/* Succeeded totals */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <Card>
-          <p className="text-2xl font-bold text-success-600 dark:text-success-400">
-            {data ? money(data.succeeded_amount_cents) : '—'}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total raised</p>
-        </Card>
-        <Card>
-          <p className="text-2xl font-bold">{data?.succeeded_count ?? '—'}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Successful gifts</p>
-        </Card>
-        <Card>
-          <p className="text-2xl font-bold">{data ? money(data.succeeded_fee_cents) : '—'}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Platform fees</p>
-        </Card>
-      </div>
+      {/* Succeeded totals. The totals and the list come from one request, so
+          a failure shows a single error here and the list below stays empty
+          rather than claiming "No donations". */}
+      {isError ? (
+        <ErrorState message="Couldn't load donations." onRetry={() => refetch()} />
+      ) : (
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <Card>
+            <p className={`${STAT_NUMBER} text-success-700 dark:text-success-400`}>
+              {data ? money(data.succeeded_amount_cents) : '—'}
+            </p>
+            <p className="eyebrow mt-1.5">Total raised</p>
+          </Card>
+          <Card>
+            <p className={`${STAT_NUMBER} ${STAT_INK}`}>{data?.succeeded_count ?? '—'}</p>
+            <p className="eyebrow mt-1.5">Successful gifts</p>
+          </Card>
+          <Card>
+            <p className={`${STAT_NUMBER} ${STAT_INK}`}>{data ? money(data.succeeded_fee_cents) : '—'}</p>
+            <p className="eyebrow mt-1.5">Platform fees</p>
+          </Card>
+        </div>
+      )}
 
-      <div className="flex gap-2 mb-3">
+      <div className="seg max-w-full overflow-x-auto scrollbar-none mb-4">
         {STATUSES.map((s) => (
           <button
             key={s}
             onClick={() => { setStatus(s); setOffset(0); }}
-            className={`px-3 py-1 rounded-full text-sm capitalize ${
-              status === s ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
-            }`}
+            className={`capitalize ${segItem(status === s)}`}
           >
             {s}
           </button>
@@ -80,18 +87,18 @@ export default function AdminDonationsPage() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
-      ) : items.length === 0 ? (
+      ) : isError ? null : items.length === 0 ? (
         <EmptyState className="py-6" title="No donations" />
       ) : (
-        <Card as="ul" padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card as="ul" padding="none" className={ROWS}>
           {items.map((d) => (
-            <li key={d.id} className="p-3 flex items-center gap-3 text-sm">
+            <li key={d.id} className={`p-3 flex items-center gap-3 text-sm ${ROW_HOVER}`}>
               <div className="flex-1 min-w-0">
-                <p className="font-medium">
-                  {money(d.amount_cents)} · <span className="text-gray-500 dark:text-gray-400">{d.recipient_name}</span>
+                <p className="font-bold text-navy dark:text-biscuit">
+                  <span className="tabular-nums">{money(d.amount_cents)}</span> · <span className="font-semibold text-gray-600 dark:text-gray-300">{d.recipient_name}</span>
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  {d.recipient_type} · <TimeAgo value={d.created_at} />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {d.recipient_type} · <TimeAgo value={d.created_at} className="font-mono" />
                   {d.message ? ` · "${d.message}"` : ''}
                 </p>
               </div>
@@ -120,7 +127,9 @@ export default function AdminDonationsPage() {
         </Card>
       )}
 
-      <PaginationFooter offset={offset} pageSize={PAGE_SIZE} rendered={items.length} total={data?.total ?? 0} onChange={setOffset} />
+      {!isError && (
+        <PaginationFooter offset={offset} pageSize={PAGE_SIZE} rendered={items.length} total={data?.total ?? 0} onChange={setOffset} />
+      )}
     </div>
   );
 }

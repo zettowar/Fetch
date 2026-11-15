@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
+import type React from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePublicFlags } from '../hooks/usePublicFlags';
+import BrandIcon, { type BrandIconName } from './brand/BrandIcon';
 import type { PublicFlags } from '../api/publicSite';
 
 interface ExploreItem {
   label: string;
   description: string;
-  icon: string;
+  icon: BrandIconName;
   to?: string;
   disabled?: boolean;
   featured?: boolean;
@@ -18,44 +20,44 @@ interface ExploreItem {
 const ITEMS: ExploreItem[] = [
   {
     label: 'Parks',
-    description: 'Find pet-friendly parks around you.',
-    icon: '🌳',
+    description: 'Check in, meet up',
+    icon: 'park',
     to: '/app/parks',
     flagKey: 'explore_parks_enabled',
   },
   {
     label: 'The Pack',
-    description: 'Browse other Fetchpawz users and their pets.',
-    icon: '🐾',
+    description: 'Pack+ perks',
+    icon: 'lock',
     to: '/app/explore',
     featured: true,
     flagKey: 'explore_pack_enabled',
   },
   {
     label: 'Donate',
-    description: 'Support Fetchpawz and local rescues.',
-    icon: '💖',
+    description: 'Every bone counts',
+    icon: 'donate',
     to: '/app/donate',
     flagKey: 'explore_donate_enabled',
   },
   {
     label: 'Shop',
-    description: 'Branded gear for you and your pet.',
-    icon: '🛍️',
+    description: 'Gear for the walk',
+    icon: 'bag',
     to: '/app/shop',
     flagKey: 'explore_shop_enabled',
   },
   {
     label: 'Community',
-    description: 'Questions, tips and good news from other humans.',
-    icon: '💬',
+    description: 'Ask the pack',
+    icon: 'chat',
     to: '/app/community',
     flagKey: 'explore_community_enabled',
   },
   {
     label: 'Vets',
-    description: 'Find a vet near you.',
-    icon: '🩺',
+    description: 'Near you',
+    icon: 'vet',
     to: '/app/vets',
     flagKey: 'explore_vets_enabled',
   },
@@ -103,7 +105,7 @@ export default function ExploreSheet({ open, onClose }: Props) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
+          className="fixed inset-0 z-40 bg-night/50"
           aria-hidden
         />
       )}
@@ -127,7 +129,7 @@ export default function ExploreSheet({ open, onClose }: Props) {
           // Centered with mx-auto, not left-1/2 -translate-x-1/2: framer-motion
           // owns this element's inline transform for the slide-up, which would
           // clobber a class-based translateX and shove the sheet half offscreen.
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-app rounded-t-2xl bg-white dark:bg-gray-900 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 pb-[calc(env(safe-area-inset-bottom)+16px)]"
+          className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-app rounded-t-3xl border-t-[2.5px] border-navy bg-biscuit dark:border-white/15 dark:bg-night-surface pb-[calc(env(safe-area-inset-bottom)+18px)]"
         >
           {/* Drag handle */}
           <button
@@ -136,38 +138,29 @@ export default function ExploreSheet({ open, onClose }: Props) {
             aria-label="Close explore menu"
             className="w-full pt-3 pb-1 flex justify-center"
           >
-            <span className="block h-1.5 w-12 rounded-full bg-gray-300 dark:bg-gray-700" />
+            <span className="block h-1.5 w-12 rounded-full bg-navy/25 dark:bg-white/25" />
           </button>
 
-          <div className="px-4 pt-1 pb-2 flex items-baseline justify-between">
-            <h2 className="text-lg font-bold tracking-tight">Explore</h2>
-            <span className="text-xs text-gray-400 dark:text-gray-500">Tap to open</span>
+          <div className="px-4 pt-1 pb-3">
+            <h2 className="text-xl font-extrabold tracking-tight text-navy dark:text-biscuit">Explore</h2>
           </div>
 
-          <ul className="px-2 pb-2">
+          {/* Six doors, each with its icon and four words or fewer. */}
+          <ul className="grid grid-cols-3 gap-2.5 px-4 pb-2">
             {ITEMS.map((item) => {
-              const baseRow =
-                'flex items-center gap-3 px-3 py-3 rounded-xl transition-colors';
+              const tile =
+                'relative flex h-full flex-col items-start gap-1 rounded-2xl border-[1.5px] p-3 text-left';
               const disabled = item.disabled || !flags[item.flagKey];
               if (disabled || !item.to) {
                 return (
                   <li key={item.label}>
                     <div
                       aria-disabled
-                      className={`${baseRow} cursor-not-allowed opacity-60`}
+                      className={`${tile} cursor-not-allowed border-dashed border-navy/25 text-gray-500 dark:border-white/20 dark:text-gray-400`}
                     >
-                      <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl" aria-hidden>
-                        {item.icon}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                          {item.label}
-                          <span className="inline-flex items-center px-1.5 py-0 text-[10px] font-semibold tracking-wide uppercase bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full">
-                            Soon
-                          </span>
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{item.description}</p>
-                      </div>
+                      <BrandIcon name={item.icon} size={24} style={{ '--bean': 'currentColor' } as React.CSSProperties} />
+                      <p className="mt-1 text-sm font-extrabold leading-tight">{item.label}</p>
+                      <p className="text-2xs font-bold uppercase tracking-[0.08em]">Soon</p>
                     </div>
                   </li>
                 );
@@ -177,34 +170,13 @@ export default function ExploreSheet({ open, onClose }: Props) {
                   <Link
                     to={item.to}
                     onClick={onClose}
-                    className={`${baseRow} ${
-                      item.featured
-                        ? 'bg-gradient-to-r from-brand-50 to-amber-50 dark:from-brand-500/10 dark:to-amber-500/10 ring-1 ring-brand-200 dark:ring-brand-500/30 shadow-brand-glow hover:from-brand-100 hover:to-amber-100 dark:hover:from-brand-500/20 dark:hover:to-amber-500/20'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                    } active:scale-[0.99]`}
+                    className={`${tile} border-navy/15 bg-white text-navy transition-[transform,border-color] duration-150 ease-soft-out hover:border-navy active:translate-y-[2px] dark:border-white/10 dark:bg-night-raised dark:text-biscuit dark:hover:border-white/40`}
                   >
-                    <span
-                      className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
-                        item.featured
-                          ? 'bg-gradient-to-br from-brand-400 to-amber-500 text-white shadow-brand-glow'
-                          : 'bg-brand-50 dark:bg-brand-500/15'
-                      }`}
-                      aria-hidden
-                    >
-                      {item.icon}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                        {item.label}
-                        {item.featured && (
-                          <span className="inline-flex items-center px-1.5 py-0 text-[10px] font-bold tracking-wide uppercase bg-gradient-to-r from-brand-500 to-amber-500 text-white rounded-full shadow-brand-glow">
-                            Pack+
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{item.description}</p>
-                    </div>
-                    <span aria-hidden className="text-gray-300 dark:text-gray-600">›</span>
+                    <BrandIcon name={item.icon} size={24} />
+                    <p className="mt-1 flex items-center gap-1.5 text-sm font-extrabold leading-tight">
+                      {item.label}
+                    </p>
+                    <p className="text-xs leading-snug text-gray-600 dark:text-gray-300">{item.description}</p>
                   </Link>
                 </li>
               );

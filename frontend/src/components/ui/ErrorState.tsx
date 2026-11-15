@@ -34,16 +34,16 @@ export default function ErrorState({
       <PetIllustration
         name={illustration}
         species={species}
-        className="mb-4 h-28 w-auto text-gray-400 dark:text-gray-500"
+        className="mb-4 h-28 w-auto"
       />
-      <p className="text-gray-800 dark:text-gray-100 font-semibold text-base tracking-tight mb-1">{message}</p>
+      <p className="text-navy dark:text-biscuit font-extrabold text-lg tracking-tight mb-1 text-balance">{message}</p>
       {secondary && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-balance max-w-[18rem]">
+        <p className="text-sm text-gray-600 dark:text-gray-300 text-balance max-w-[18rem]">
           {secondary}
         </p>
       )}
       {onRetry && (
-        <Button variant="secondary" size="sm" onClick={onRetry} className="mt-5">
+        <Button size="sm" onClick={onRetry} className="mt-5">
           Try again
         </Button>
       )}

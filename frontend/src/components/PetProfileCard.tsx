@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import type { Pet } from '../types';
 import { petHeroPhoto } from '../utils/time';
-
-const RANK_EMOJI: Record<number, string> = { 1: '\ud83e\udd47', 2: '\ud83e\udd48', 3: '\ud83e\udd49' };
+import BrandIcon from './brand/BrandIcon';
+import PetPortrait from './brand/PetPortrait';
+import RankMedal from './brand/RankMedal';
 
 interface PetProfileCardProps {
   pet: Pet;
@@ -14,20 +15,20 @@ export default function PetProfileCard({ pet, showEdit, rank }: PetProfileCardPr
   const photoUrl = petHeroPhoto(pet);
   const photoCount = pet.photos.length;
   const hasPhotos = photoCount > 0;
-  const rankLabel = rank ? RANK_EMOJI[rank] || `#${rank}` : null;
 
   return (
     // Stretched-link card (same pattern as RescueCard): the link to the pet is
     // an overlay SIBLING of the Edit link, not its parent. The whole card used
     // to be one <a> with the Edit <a> inside it — invalid HTML that browsers
     // and screen readers each untangle differently.
-    <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-soft-sm border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-200 ease-soft-out hover:shadow-soft hover:-translate-y-0.5 active:scale-[0.99]">
+    // A pet card is a thing you touch: navy line, toy shadow, presses down.
+    <div className="relative bg-white dark:bg-night-surface rounded-2xl border-2 border-navy dark:border-white/15 shadow-toy-sm overflow-hidden transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px hover:shadow-toy active:translate-x-[2px] active:translate-y-[3px] active:shadow-none">
       <Link
         to={`/app/pets/${pet.id}`}
         aria-label={`View ${pet.name}`}
-        className="absolute inset-0 z-[1] rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-400"
+        className="absolute inset-0 z-[1] rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-brand-500"
       />
-      <div className="relative aspect-[4/3] bg-gray-100 dark:bg-gray-800">
+      <div className="relative aspect-[4/3] border-b-2 border-navy bg-gray-100 dark:border-white/15 dark:bg-night-raised">
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -36,67 +37,60 @@ export default function PetProfileCard({ pet, showEdit, rank }: PetProfileCardPr
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-50 to-brand-100 flex flex-col items-center justify-center">
-            <span className="text-4xl">{'\ud83d\udcf8'}</span>
-            {showEdit ? (
-              <span className="text-xs text-brand-500 font-medium mt-2">Tap to add a photo</span>
-            ) : (
-              <span className="text-xs text-brand-400 mt-1">No photo yet</span>
-            )}
+          <div className="absolute inset-0 flex items-end justify-center overflow-hidden">
+            <PetPortrait species={pet.species} breed={pet.breed_display} seed={pet.id} background className="absolute inset-0 h-full w-full" />
+            <span className="relative mb-2 rounded-full border-[1.5px] border-navy bg-white px-2 py-0.5 text-2xs font-extrabold text-navy">
+              {showEdit ? 'Tap to add a photo' : 'No photo yet'}
+            </span>
           </div>
         )}
-        {rankLabel && (
-          <span
-            className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-brand-600 text-xs font-semibold rounded-full shadow-sm"
-            title={`Current rank: ${rank}`}
-          >
-            <span>{rankLabel}</span>
-            {rank && rank > 3 && <span className="sr-only">Rank {rank}</span>}
+        {rank ? (
+          <span className="absolute top-2 left-2" title={`Current rank: ${rank}`}>
+            <RankMedal rank={rank} size="sm" />
           </span>
-        )}
+        ) : null}
         {photoCount > 1 && (
           <span
-            className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-gray-600 dark:text-gray-300 text-xs font-semibold rounded-full shadow-sm"
+            className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full border-[1.5px] border-navy bg-white px-2 py-0.5 text-xs font-extrabold text-navy"
             title={`${photoCount} photos`}
             aria-label={`${photoCount} photos`}
           >
-            <span aria-hidden>📷</span>
+            <BrandIcon name="camera" size={13} />
             {photoCount}
           </span>
         )}
         {pet.rescue_id && (
           <span
-            className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 bg-brand-500 text-white text-[11px] font-semibold rounded-full shadow-sm"
+            className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full border-[1.5px] border-navy bg-pink-500 px-2 py-0.5 text-2xs font-extrabold text-navy"
             title={pet.rescue_name ?? 'Rescue pet'}
           >
-            <span aria-hidden>🏠</span>
-            Rescue
+            Needs a home
           </span>
         )}
       </div>
       <div className="p-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold">{pet.name}</h3>
-            {pet.breed_display && <p className="text-xs text-gray-500 dark:text-gray-400">{pet.breed_display}</p>}
+            <h3 className="font-display text-2xl leading-none text-navy dark:text-biscuit">{pet.name}</h3>
+            {pet.breed_display && <p className="mt-1 text-xs font-semibold text-gray-600 dark:text-gray-300">{pet.breed_display}</p>}
           </div>
           <div className="flex items-center gap-2">
             {showEdit && !hasPhotos && (
-              <span className="text-[10px] bg-brand-100 dark:bg-brand-500/15 text-brand-600 dark:text-brand-300 px-2 py-0.5 rounded-full font-medium">
+              <span className="text-2xs bg-brand-100 dark:bg-brand-500/15 text-navy dark:text-brand-200 px-2 py-0.5 rounded-full font-extrabold">
                 Add photo
               </span>
             )}
             {showEdit && (
               <Link
                 to={`/app/pets/${pet.id}/edit`}
-                className="relative z-[2] text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                className="btn btn-secondary btn-sm relative z-[2] min-h-[32px] px-3 text-xs"
               >
                 Edit
               </Link>
             )}
           </div>
         </div>
-        {pet.bio && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{pet.bio}</p>}
+        {pet.bio && <p className="text-xs text-gray-600 dark:text-gray-300 mt-1.5 line-clamp-2">{pet.bio}</p>}
       </div>
     </div>
   );

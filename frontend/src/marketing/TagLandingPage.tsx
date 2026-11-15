@@ -4,8 +4,18 @@ import { getPublicTag } from '../api/tags';
 import { isNotFound } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { Spinner } from '../components/ui/Skeleton';
+import BrandIcon from '../components/brand/BrandIcon';
 import { useAuth } from '../store/AuthContext';
 import FoundPetForm from './FoundPetForm';
+
+/** The collar tag, drawn, on a soft Ball Orange disc. Plain, not playful. */
+function TagMark() {
+  return (
+    <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 text-navy dark:bg-brand-500/20 dark:text-biscuit">
+      <BrandIcon name="tag" size={32} />
+    </span>
+  );
+}
 
 export default function TagLandingPage() {
   const { code } = useParams();
@@ -40,11 +50,13 @@ export default function TagLandingPage() {
     return (
       <div className="mx-auto max-w-md px-4 py-16">
         <div className="text-center">
-          <span className="text-5xl" aria-hidden>🏷️</span>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight">
+          <TagMark />
+          {/* Someone is standing there holding a stranger's pet: the calm
+              register, plain type. */}
+          <h1 className="mt-5 font-plain text-2xl text-navy dark:text-biscuit text-balance">
             This pet&rsquo;s profile is private
           </h1>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">
+          <p className="mt-2 text-gray-600 dark:text-gray-300">
             The tag is registered. You can still let their owner know they&rsquo;re
             safe.
           </p>
@@ -73,35 +85,29 @@ export default function TagLandingPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center">
-      <span className="text-5xl" aria-hidden>🏷️</span>
-      <h1 className="mt-4 text-2xl font-bold tracking-tight">{title}</h1>
-      <p className="mt-2 text-gray-500 dark:text-gray-400">{body}</p>
+      <TagMark />
+      <h1 className="mt-5 font-plain text-2xl text-navy dark:text-biscuit text-balance">{title}</h1>
+      <p className="mt-2 text-gray-600 dark:text-gray-300">{body}</p>
       {code && (
-        <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
-          Tag code: <span className="font-mono">{code.toUpperCase()}</span>
+        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          Tag code:{' '}
+          <span className="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 font-mono text-navy dark:border-white/10 dark:bg-night-surface dark:text-biscuit">
+            {code.toUpperCase()}
+          </span>
         </p>
       )}
-      <div className="mt-6 flex justify-center gap-2">
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
         {!data?.assigned && !isAuthenticated && (
-          <Link
-            to="/login"
-            className="inline-flex items-center rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
-          >
+          <Link to="/login" className="btn btn-primary">
             Log in to link
           </Link>
         )}
         {!data?.assigned && isAuthenticated && (
-          <Link
-            to="/app/pets"
-            className="inline-flex items-center rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
-          >
+          <Link to="/app/pets" className="btn btn-primary">
             Go to my pets
           </Link>
         )}
-        <Link
-          to="/"
-          className="inline-flex items-center rounded-xl border border-gray-300 dark:border-gray-700 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        >
+        <Link to="/" className="btn btn-secondary">
           Meet Fetchpawz
         </Link>
       </div>

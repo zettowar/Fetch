@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { HousePlus } from 'lucide-react';
 import { listRescues, type RescuePublic } from '../api/rescues';
+import BrandIcon from '../components/brand/BrandIcon';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
@@ -21,27 +21,41 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
   // Donate/Website anchors rather than their parent — interactive elements
   // must never nest.
   return (
-    <Card className="relative hover:border-brand-200 dark:hover:border-brand-500/40 transition-colors">
+    <Card interactive className="relative">
       <Link
         to={`/app/rescues/${rescue.id}`}
         aria-label={`View ${rescue.org_name}`}
         className="absolute inset-0 rounded-2xl"
       />
-      <div className="flex items-center gap-2 flex-wrap mb-1">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{rescue.org_name}</h3>
-        <Badge variant="success">Verified</Badge>
+      <div className="flex items-start gap-3">
+        {/* The rescue's logo tile: Forever Pink leads on rescue surfaces. */}
+        <span
+          className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 border-navy bg-pink-500 text-navy dark:border-white/15"
+          aria-hidden
+        >
+          {rescue.logo_url ? (
+            <img src={rescue.logo_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <BrandIcon name="rescue" size={24} style={{ '--bean': 'var(--paper)' } as CSSProperties} />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h3 className="text-base font-extrabold text-navy dark:text-biscuit">{rescue.org_name}</h3>
+            <Badge variant="success" icon={<BrandIcon name="shield" size={12} />}>
+              Verified
+            </Badge>
+          </div>
+          {rescue.location && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{rescue.location}</p>
+          )}
+        </div>
       </div>
-      {rescue.location && (
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{rescue.location}</p>
-      )}
-      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{rescue.description}</p>
+      <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{rescue.description}</p>
       {(rescue.website || rescue.donation_url || inAppDonate) && (
         <div className="relative flex items-center gap-2 mt-3">
           {inAppDonate ? (
-            <Link
-              to={`/app/donate?rescue=${rescue.id}`}
-              className="text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 px-3 py-1.5 rounded-lg transition-colors"
-            >
+            <Link to={`/app/donate?rescue=${rescue.id}`} className="btn btn-rescue btn-sm">
               Donate
             </Link>
           ) : rescue.donation_url ? (
@@ -49,7 +63,7 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
               href={rescue.donation_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs font-medium text-white bg-brand-500 hover:bg-brand-600 px-3 py-1.5 rounded-lg transition-colors"
+              className="btn btn-rescue btn-sm"
             >
               Donate
             </a>
@@ -59,7 +73,7 @@ function RescueCard({ rescue }: { rescue: RescuePublic }) {
               href={rescue.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs font-medium text-brand-600 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 px-3 py-1.5 rounded-lg transition-colors"
+              className="btn btn-secondary btn-sm"
             >
               Website
             </a>
@@ -102,9 +116,9 @@ export default function RescuesPage() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* ── Compact header ──────────────────────────────────────────── */}
-      <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <HousePlus size={20} aria-hidden className="text-brand-500" /> Rescues
+      <div className="px-4 pt-3 pb-2 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+        <h1 className="text-[28px] leading-none text-navy dark:text-biscuit flex items-center gap-2">
+          <BrandIcon name="rescue" size={24} /> Rescues
         </h1>
 
         <SearchInput
@@ -119,11 +133,7 @@ export default function RescuesPage() {
             <button
               key={opt.key}
               onClick={() => setFilter(opt.key)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                filter === opt.key
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
+              className={`chip flex-shrink-0 ${filter === opt.key ? 'chip-on' : 'hover:bg-gray-50 dark:hover:bg-night-surface'}`}
             >
               {opt.label}
             </button>
@@ -132,8 +142,8 @@ export default function RescuesPage() {
       </div>
 
       {/* ── List pane ───────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-gray-50 dark:bg-gray-800/40">
-        <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-biscuit dark:bg-night">
+        <div className="px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 bg-biscuit dark:bg-night border-b border-gray-200 dark:border-white/10 sticky top-0 z-10">
           <span>
             {filtered.length} {filtered.length === 1 ? 'rescue' : 'rescues'}
             {search && rescues.length !== filtered.length && ` · ${rescues.length - filtered.length} filtered`}

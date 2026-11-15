@@ -9,7 +9,7 @@ function Mail() {
   return (
     <a
       href={`mailto:${CONTACT}`}
-      className="font-medium text-brand-600 dark:text-brand-400 hover:underline"
+      className="font-bold text-brand-700 dark:text-brand-400 hover:underline"
     >
       {CONTACT}
     </a>
@@ -22,7 +22,7 @@ function Ext({ href, children }: { href: string; children: React.ReactNode }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="font-medium text-brand-600 dark:text-brand-400 hover:underline"
+      className="font-bold text-brand-700 dark:text-brand-400 hover:underline"
     >
       {children}
     </a>
@@ -31,7 +31,7 @@ function Ext({ href, children }: { href: string; children: React.ReactNode }) {
 
 function Ref({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <a href={`#${id}`} className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
+    <a href={`#${id}`} className="font-bold text-brand-700 dark:text-brand-400 hover:underline">
       {children}
     </a>
   );
@@ -711,7 +711,7 @@ export default function PrivacyPage() {
           also the{' '}
           <Link
             to="/terms"
-            className="font-medium text-brand-600 dark:text-brand-400 hover:underline"
+            className="font-bold text-brand-700 dark:text-brand-400 hover:underline"
           >
             Terms of Service
           </Link>

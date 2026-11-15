@@ -1,11 +1,12 @@
+// Brand tints with navy ink. Gold (earned) and pink (rescue) are reserved,
+// so a person's initial never borrows them.
 const COLORS = [
-  'from-brand-300 to-brand-500 text-white',
-  'from-sky-300 to-sky-500 text-white',
-  'from-emerald-300 to-emerald-500 text-white',
-  'from-violet-300 to-violet-500 text-white',
-  'from-amber-300 to-amber-500 text-white',
-  'from-pink-300 to-pink-500 text-white',
-  'from-teal-300 to-teal-500 text-white',
+  'bg-brand-100 text-navy',
+  'bg-navy-100 text-navy',
+  'bg-green-100 text-navy',
+  'bg-brand-200 text-navy',
+  'bg-biscuit-deep text-navy',
+  'bg-navy-200 text-navy',
 ];
 
 function hashColor(name: string): string {
@@ -35,7 +36,7 @@ export default function Avatar({ name, size = 'sm' }: AvatarProps) {
 
   return (
     <div
-      className={`${sizes[size]} bg-gradient-to-br ${color} rounded-full flex items-center justify-center font-semibold shrink-0 shadow-soft-sm ring-1 ring-black/5`}
+      className={`${sizes[size]} ${color} rounded-full flex items-center justify-center font-extrabold shrink-0 ring-2 ring-navy dark:ring-white/25`}
     >
       {initial}
     </div>

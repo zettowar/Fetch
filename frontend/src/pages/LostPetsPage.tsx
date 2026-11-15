@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { PawPrint, Siren } from 'lucide-react';
 import { getNearbyReports, getMySubscription, type NearbyReport } from '../api/lost';
-import Map from '../components/Map';
+import Map, { MAP_PIN } from '../components/Map';
 import Badge from '../components/ui/Badge';
-import DogIllustration from '../components/flair/DogIllustration';
+import BrandIcon from '../components/brand/BrandIcon';
 import PawSpinner from '../components/flair/PawSpinner';
 import TimeAgo from '../components/TimeAgo';
 import ErrorState from '../components/ui/ErrorState';
@@ -91,7 +90,10 @@ export default function LostPetsPage() {
     id: r.id,
     lat: r.fuzzed_lat,
     lng: r.fuzzed_lng,
-    color: r.kind === 'missing' ? '#ef4444' : '#3b82f6',
+    // Missing = the navy pin with an orange dot (the missing badge, drawn
+    // on a map); found = Off-Leash Green. Never danger red.
+    color: r.kind === 'missing' ? MAP_PIN.ink : MAP_PIN.park,
+    dot: r.kind === 'missing' ? MAP_PIN.play : MAP_PIN.paper,
     label: `${r.kind === 'missing' ? 'Missing' : 'Found'}: ${r.pet_name || 'Unknown pet'}`,
     onClick: () => setSelectedReport(r),
     popup: (
@@ -111,53 +113,47 @@ export default function LostPetsPage() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* ── Compact header ──────────────────────────────────────────── */}
-      <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <Siren size={20} aria-hidden className="text-danger-500" /> Lost &amp; Found
+      {/* The calm register: plain Figtree title, flat surfaces, no red. */}
+      <div className="px-4 pt-3 pb-2.5 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+        <h1 className="font-plain text-xl leading-tight text-navy dark:text-biscuit flex items-center gap-2">
+          <BrandIcon name="lost" size={20} /> Lost &amp; Found
         </h1>
 
-        <div className="flex gap-1.5 mt-2.5 overflow-x-auto -mx-4 px-4 pb-0.5">
-          {(['all', 'missing', 'found'] as const).map((f) => {
-            const active = filter === f;
-            return (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-brand-500 text-white shadow-sm'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                {filterMeta[f].label}
-              </button>
-            );
-          })}
+        <div className="mt-2.5 overflow-x-auto -mx-4 px-4 pb-0.5">
+          <div className="seg">
+            {(['all', 'missing', 'found'] as const).map((f) => {
+              const active = filter === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  aria-pressed={active}
+                  className="flex-shrink-0"
+                >
+                  {filterMeta[f].label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <Link
-            to="/app/lost/report-missing"
-            className="flex items-center justify-center gap-1.5 rounded-full bg-danger-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-danger-600 active:scale-95 transition-all"
-          >
-            <Siren size={16} aria-hidden /> Report Missing
+        <div className="mt-2.5 grid grid-cols-2 gap-2">
+          <Link to="/app/lost/report-missing" className="btn btn-primary btn-sm">
+            <BrandIcon name="lost" size={18} className="[--bean:var(--ink)]" /> Report missing
           </Link>
-          <Link
-            to="/app/lost/report-found"
-            className="flex items-center justify-center gap-1.5 rounded-full bg-blue-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 active:scale-95 transition-all"
-          >
-            <PawPrint size={16} aria-hidden /> Report Found
+          <Link to="/app/lost/report-found" className="btn btn-park btn-sm">
+            <BrandIcon name="eye" size={18} className="[--bean:var(--ink)]" /> Report found
           </Link>
         </div>
 
         {newCount > 0 && !bannerDismissed && (
-          <div className="mt-2 flex items-center justify-between bg-warning-50 border border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30 rounded-lg px-3 py-2 text-sm">
-            <span className="text-warning-800 dark:text-warning-200 font-medium">
+          <div className="mt-2.5 flex items-center justify-between gap-2 rounded-lg border border-navy/15 bg-navy-50 px-3 py-2 text-sm dark:border-white/10 dark:bg-night-raised">
+            <span className="font-bold text-navy dark:text-biscuit">
               {newCount} new report{newCount !== 1 ? 's' : ''} since your last visit
             </span>
             <button
               onClick={() => setBannerDismissed(true)}
-              className="text-warning-500 dark:text-warning-400 hover:text-warning-700 dark:hover:text-warning-300 ml-2 text-xs"
+              className="ml-2 text-xs font-bold text-gray-600 underline underline-offset-2 hover:text-navy dark:text-gray-300 dark:hover:text-biscuit"
               aria-label="Dismiss"
             >
               Dismiss
@@ -181,7 +177,8 @@ export default function LostPetsPage() {
                     lat: selectedReport.fuzzed_lat,
                     lng: selectedReport.fuzzed_lng,
                     radiusMeters: selectedReport.location_fuzz_m ?? 500,
-                    color: selectedReport.kind === 'missing' ? '#ef4444' : '#3b82f6',
+                    // The search area: orange around a missing pet, green around a found one.
+                    color: selectedReport.kind === 'missing' ? MAP_PIN.play : MAP_PIN.park,
                     fillOpacity: 0.15,
                   },
                 ]
@@ -195,35 +192,34 @@ export default function LostPetsPage() {
         />
 
         {/* Legend */}
-        <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-200 shadow-soft ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
+        <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg border border-gray-200 bg-white/95 px-2.5 py-1.5 text-xs font-bold text-navy backdrop-blur dark:border-white/10 dark:bg-night-surface/95 dark:text-biscuit z-10">
           <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-danger-500" />
+            <MissingSwatch />
             Missing
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-500" />
+            <FoundSwatch />
             Found
           </span>
         </div>
 
         {/* Empty state — only when not loading and no results for the filter */}
         {!isLoading && reports.length === 0 && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-xl shadow-soft ring-1 ring-black/5 dark:ring-white/10 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 max-w-[90%] text-center z-10">
-            <DogIllustration name="digging" className="h-14 w-auto text-gray-400 dark:text-gray-500" />
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-2xl border border-gray-200 bg-white/95 px-4 py-3 text-center text-sm font-semibold text-gray-700 backdrop-blur dark:border-white/10 dark:bg-night-surface/95 dark:text-gray-200 max-w-[90%] z-10">
             {filterMeta[filter].emptyMsg}
           </div>
         )}
 
         {/* Loading indicator confined to the map area */}
         {isLoading && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 glass rounded-full px-4 py-2 shadow-soft-lg">
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 glass rounded-full border border-gray-200 px-4 py-2 dark:border-white/10">
             <PawSpinner size="sm" />
           </div>
         )}
         </div>
 
         {/* Recent reports strip — keeps the area below the (smaller) map useful */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-gray-50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-biscuit dark:bg-night border-t border-gray-200 dark:border-white/10">
           {isError ? (
             // Never fall through to "no missing pets reported here — good
             // news" when the query actually failed: on this screen a false
@@ -233,34 +229,30 @@ export default function LostPetsPage() {
               onRetry={() => refetch()}
             />
           ) : reports.length === 0 ? (
-            <p className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 text-center">
+            <p className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300 text-center">
               {filterMeta[filter].emptyMsg}
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+            <ul className="divide-y divide-gray-200 dark:divide-white/10">
               {reports.slice(0, 6).map((r) => {
                 const isMissing = r.kind === 'missing';
                 return (
                   <li key={r.id}>
                     <Link
                       to={`/app/lost/${r.id}`}
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-white dark:hover:bg-night-surface transition-colors"
                       onMouseEnter={() => setSelectedReport(r)}
                     >
-                      <span
-                        className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${
-                          isMissing ? 'bg-danger-500' : 'bg-blue-500'
-                        }`}
-                      />
+                      {isMissing ? <MissingSwatch /> : <FoundSwatch />}
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
+                        <p className="text-sm font-extrabold text-navy dark:text-biscuit truncate">
                           {r.pet_name || (isMissing ? 'Missing pet' : 'Found pet')}
                         </p>
                         <p className="text-2xs text-gray-500 dark:text-gray-400">
                           {isMissing ? 'Missing' : 'Found'} · <TimeAgo value={r.created_at} />
                         </p>
                       </div>
-                      <span className="text-xs text-brand-500">View</span>
+                      <span className="text-xs font-bold text-gray-600 dark:text-gray-300">View</span>
                     </Link>
                   </li>
                 );
@@ -270,18 +262,18 @@ export default function LostPetsPage() {
         </div>
       </div>
 
-      <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <div className="border-t border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
         <LostAlertSubscription center={viewCenter} />
         <div className="px-4 py-2 flex items-center justify-around text-xs text-gray-600 dark:text-gray-300">
           {/* A dash, not a zero: "0 missing" when the request failed reads as
               an all-clear we have not actually verified. */}
-          <span><span className="font-semibold text-gray-800 dark:text-gray-100">{countsFailed ? '—' : counts.all}</span> total</span>
-          <span aria-hidden className="text-gray-300 dark:text-gray-700">·</span>
-          <span><span className="font-semibold text-danger-500 dark:text-danger-400">{countsFailed ? '—' : counts.missing}</span> missing</span>
-          <span aria-hidden className="text-gray-300 dark:text-gray-700">·</span>
-          <span><span className="font-semibold text-blue-500 dark:text-blue-400">{countsFailed ? '—' : counts.found}</span> found</span>
+          <span><span className="font-extrabold text-navy dark:text-biscuit">{countsFailed ? '—' : counts.all}</span> total</span>
+          <span aria-hidden className="text-gray-300 dark:text-gray-600">·</span>
+          <span><span className="font-extrabold text-navy dark:text-biscuit">{countsFailed ? '—' : counts.missing}</span> missing</span>
+          <span aria-hidden className="text-gray-300 dark:text-gray-600">·</span>
+          <span><span className="font-extrabold text-green-700 dark:text-green-400">{countsFailed ? '—' : counts.found}</span> found</span>
         </div>
-        <p className="px-4 pb-2 text-2xs text-center text-gray-400 dark:text-gray-500">
+        <p className="px-4 pb-2 text-2xs text-center text-gray-500 dark:text-gray-400">
           A community tool — please also contact your local animal control.
         </p>
       </div>
@@ -310,22 +302,20 @@ function ReportPopup({
           <img
             src={report.pet_photo_url}
             alt={report.pet_name ?? 'Pet'}
-            className="h-14 w-14 flex-shrink-0 rounded-lg object-cover"
+            className="h-14 w-14 flex-shrink-0 rounded-lg border border-gray-200 object-cover dark:border-white/10"
           />
         ) : (
-          <div className="h-14 w-14 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl">
-            🐕
+          <div className="h-14 w-14 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-night-raised flex items-center justify-center text-gray-500 dark:text-gray-400">
+            <BrandIcon name="lost" size={26} className="[--bean:currentColor]" />
           </div>
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span
-              className={`text-2xs font-bold uppercase tracking-wide ${
-                isMissing ? 'text-danger-500 dark:text-danger-400' : 'text-blue-500 dark:text-blue-400'
-              }`}
-            >
-              {report.kind}
-            </span>
+            {isMissing ? (
+              <Badge variant="missing">Missing</Badge>
+            ) : (
+              <Badge variant="success">Found</Badge>
+            )}
             {isFresh && (
               <Badge
                 variant="warning"
@@ -340,29 +330,51 @@ function ReportPopup({
               </Badge>
             )}
           </div>
-          <p className="font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">
+          <p className="mt-1 text-base font-extrabold text-navy dark:text-biscuit truncate leading-tight">
             {report.pet_name || 'Unknown pet'}
           </p>
           {report.pet_breed && (
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{report.pet_breed}</p>
           )}
-          <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
+          <p className="text-2xs text-gray-500 dark:text-gray-400 mt-0.5">
             <TimeAgo value={report.created_at} />
           </p>
         </div>
       </div>
 
       {report.description && (
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{report.description}</p>
+        <p className="mt-2 text-sm text-gray-700 dark:text-gray-200 line-clamp-2">{report.description}</p>
       )}
 
       <button
         type="button"
         onClick={onView}
-        className="mt-3 w-full rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium py-2 transition-colors"
+        className="btn btn-secondary btn-sm mt-3 w-full"
       >
         View details
       </button>
     </div>
+  );
+}
+
+// ── Legend / list swatches — the pins in miniature ───────────────────
+
+function MissingSwatch() {
+  return (
+    <span
+      aria-hidden
+      className="inline-flex h-3 w-3 flex-shrink-0 items-center justify-center rounded-full border border-navy bg-navy dark:border-biscuit/60"
+    >
+      <span className="h-1 w-1 rounded-full bg-brand-500" />
+    </span>
+  );
+}
+
+function FoundSwatch() {
+  return (
+    <span
+      aria-hidden
+      className="inline-block h-3 w-3 flex-shrink-0 rounded-full border border-navy bg-green-500 dark:border-biscuit/60"
+    />
   );
 }

@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { Map as MapIcon } from 'lucide-react';
 import { getNearbyRescues, type RescuePublic } from '../api/rescues';
 import Map from '../components/Map';
+import BrandIcon from '../components/brand/BrandIcon';
+import Button from '../components/ui/Button';
 import ErrorState from '../components/ui/ErrorState';
 import PawSpinner from '../components/flair/PawSpinner';
 import { DEFAULT_MAP_CENTER, useUserLocation } from '../utils/useUserLocation';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
-const RESCUE_PIN_COLOR = '#8b5cf6'; // violet to match the Rescues theme
+const RESCUE_PIN_COLOR = '#FF5C93'; // Forever Pink: the rescue colour
+const PINK_BEAN = { '--bean': 'var(--pink)' } as CSSProperties;
 
 export default function RescuesMapPage() {
   useDocumentTitle('Rescue map · Fetchpawz');
@@ -62,19 +64,16 @@ export default function RescuesMapPage() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Compact header */}
-      <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="flex items-baseline justify-between gap-3">
-          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <MapIcon size={20} aria-hidden className="text-brand-500" /> Rescue map
+      <div className="px-4 pt-3 pb-2 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-[28px] leading-none text-navy dark:text-biscuit flex items-center gap-2">
+            <BrandIcon name="explore" size={24} style={PINK_BEAN} /> Rescue map
           </h1>
-          <Link
-            to="/app/rescues/browse"
-            className="text-xs font-medium text-brand-500 hover:text-brand-600 whitespace-nowrap"
-          >
+          <Link to="/app/rescues/browse" className="btn btn-ghost btn-sm whitespace-nowrap">
             Browse list →
           </Link>
         </div>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
           Verified rescues plotted near you.
         </p>
       </div>
@@ -94,19 +93,19 @@ export default function RescuesMapPage() {
           />
 
           {!isLoading && !isError && markers.length === 0 && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-xl shadow-soft ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 max-w-[90%] text-center z-10">
+            <div className="surface absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 text-sm font-semibold text-navy dark:text-biscuit max-w-[90%] text-center z-10">
               No mapped rescues in this area yet.
             </div>
           )}
 
           {isLoading && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 glass rounded-full px-4 py-2 shadow-soft-lg">
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 glass rounded-full border border-gray-200 dark:border-white/10 px-4 py-2">
               <PawSpinner size="sm" />
             </div>
           )}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-gray-50 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-biscuit dark:bg-night border-t border-gray-200 dark:border-white/10">
           {isError ? (
             <ErrorState message="Couldn't load nearby rescues." onRetry={() => refetch()} />
           ) : rescues.length === 0 ? (
@@ -114,20 +113,20 @@ export default function RescuesMapPage() {
               No rescues to show.
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+            <ul className="divide-y divide-gray-200 dark:divide-white/10">
               {rescues.slice(0, 10).map((r) => (
                 <li key={r.id}>
                   <Link
                     to={`/app/rescues/${r.id}`}
-                    className="flex items-center gap-3 px-4 py-2 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                    className="flex items-center gap-3 px-4 py-2 hover:bg-white dark:hover:bg-night-surface transition-colors"
                     onMouseEnter={() => setSelected(r)}
                   >
                     <span
-                      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                      className="inline-block w-2.5 h-2.5 rounded-full border-[1.5px] border-navy flex-shrink-0 dark:border-biscuit/60"
                       style={{ backgroundColor: RESCUE_PIN_COLOR }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
+                      <p className="text-sm font-extrabold text-navy dark:text-biscuit truncate">
                         {r.org_name}
                       </p>
                       {r.location && (
@@ -136,7 +135,7 @@ export default function RescuesMapPage() {
                         </p>
                       )}
                     </div>
-                    <span className="text-xs text-brand-500">View</span>
+                    <span className="text-xs font-extrabold text-navy underline decoration-pink-500 decoration-2 underline-offset-2 dark:text-biscuit">View</span>
                   </Link>
                 </li>
               ))}
@@ -157,7 +156,7 @@ function RescuePopup({
 }) {
   return (
     <div className="flex flex-col">
-      <p className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+      <p className="text-base font-extrabold text-navy dark:text-biscuit leading-tight">
         {rescue.org_name}
       </p>
       {rescue.location && (
@@ -168,13 +167,9 @@ function RescuePopup({
       <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
         {rescue.description}
       </p>
-      <button
-        type="button"
-        onClick={onView}
-        className="mt-3 w-full rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium py-2 transition-colors"
-      >
+      <Button type="button" variant="rescue" size="sm" onClick={onView} className="mt-3 w-full">
         View details
-      </button>
+      </Button>
     </div>
   );
 }

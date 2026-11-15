@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingBag } from 'lucide-react';
 import { getProducts, priceLabel, shopConfigured, type ShopProduct } from '../api/shop';
+import BrandIcon from '../components/brand/BrandIcon';
 import Badge from '../components/ui/Badge';
+import PageHeader from '../components/ui/PageHeader';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
@@ -20,9 +21,12 @@ function ProductCard({ product, index }: { product: ShopProduct; index: number }
         ease: [0.22, 1, 0.36, 1],
         delay: Math.min(index * 0.03, 0.25),
       }}
-      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-soft-sm overflow-hidden flex flex-col"
+      className="bg-white dark:bg-night-surface rounded-2xl border-2 border-navy dark:border-white/15 shadow-toy-sm overflow-hidden flex flex-col"
     >
-      <Link to={`/app/shop/${product.handle}`} className="block relative group">
+      <Link
+        to={`/app/shop/${product.handle}`}
+        className="block relative group border-b-2 border-navy dark:border-white/15"
+      >
         {img ? (
           <img
             src={img.url}
@@ -31,24 +35,24 @@ function ProductCard({ product, index }: { product: ShopProduct; index: number }
             className="w-full aspect-square object-cover transition-transform duration-300 ease-soft-out group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="w-full aspect-square bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 flex items-center justify-center">
-            <span className="text-5xl opacity-40">🛍️</span>
+          <div className="w-full aspect-square bg-brand-50 dark:bg-night-raised flex items-center justify-center text-navy/40 dark:text-biscuit/40">
+            <BrandIcon name="bag" size={56} />
           </div>
         )}
         {!product.available && (
-          <span className="absolute top-2 left-2 inline-flex items-center px-2 py-0.5 text-2xs font-bold uppercase tracking-wide bg-gray-900/80 text-white rounded-full">
+          <Badge variant="neutral" className="absolute top-2 left-2">
             Sold out
-          </span>
+          </Badge>
         )}
       </Link>
       <div className="p-3 flex flex-col gap-1 flex-1">
         <Link
           to={`/app/shop/${product.handle}`}
-          className="font-semibold text-gray-900 dark:text-gray-100 leading-tight hover:text-brand-600 transition-colors line-clamp-2"
+          className="text-base font-extrabold text-navy dark:text-biscuit leading-tight hover:underline line-clamp-2"
         >
           {product.title}
         </Link>
-        <p className="mt-auto pt-1 text-sm font-semibold text-brand-600 dark:text-brand-400">
+        <p className="mt-auto pt-1 text-sm font-extrabold tabular-nums text-gray-700 dark:text-gray-200">
           {priceLabel(product)}
         </p>
       </div>
@@ -68,23 +72,21 @@ export default function ShopPage() {
 
   return (
     <div className="p-4 pb-8">
-      <div className="flex items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <ShoppingBag size={20} aria-hidden className="text-brand-500" /> Shop
-        </h1>
-        {!shopConfigured && (
-          <Badge
-            variant="warning"
-            className="uppercase tracking-wide"
-            title="Sample catalog — connect a Shopify store to go live."
-          >
-            Demo
-          </Badge>
-        )}
-      </div>
-      <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">
-        Branded gear for you and your pet. Every order ships carbon-neutral.
-      </p>
+      <PageHeader
+        title="Shop"
+        subtitle="Branded gear for you and your pet. Every order ships carbon-neutral."
+        className="mb-5"
+        action={
+          !shopConfigured && (
+            <Badge
+              variant="info"
+              title="Sample catalog — connect a Shopify store to go live."
+            >
+              Demo
+            </Badge>
+          )
+        }
+      />
 
       {isLoading && (
         <div className="grid grid-cols-2 gap-3">

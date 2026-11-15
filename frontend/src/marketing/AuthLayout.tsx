@@ -1,28 +1,26 @@
 import { Link, Outlet } from 'react-router-dom';
-import PawMark from '../components/ui/PawMark';
+import Lockup from '../components/brand/Lockup';
 
 /**
  * Centered, responsive shell for the auth screens (login / signup / password
  * reset / email verify). Keeps them off the 420px app column so they read well
  * on desktop, while the individual pages keep their own hero + form card.
+ * Biscuit page (Night Walk after dark) with the drawn lockup at the top.
  */
 export default function AuthLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      <header className="border-b border-gray-200/60 dark:border-gray-800">
+    <div className="min-h-screen flex flex-col bg-biscuit dark:bg-night text-navy dark:text-biscuit">
+      <header className="border-b border-navy/10 dark:border-white/10">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link
             to="/"
-            className="flex items-center gap-2 text-lg font-bold tracking-tight text-brand-600 transition-colors hover:text-brand-700 active:scale-[0.98]"
+            className="flex items-center text-[22px] text-navy dark:text-biscuit transition-transform duration-150 ease-soft-out active:scale-[0.98]"
           >
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
-              <PawMark className="h-[24px] w-[24px]" />
-            </span>
-            <span>Fetchpawz</span>
+            <Lockup />
           </Link>
           <Link
             to="/"
-            className="text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors hover:text-brand-600 dark:hover:text-brand-400"
+            className="text-sm font-bold text-gray-600 dark:text-gray-300 transition-colors hover:text-navy dark:hover:text-biscuit"
           >
             ← Back to site
           </Link>

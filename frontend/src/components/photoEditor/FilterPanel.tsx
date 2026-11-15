@@ -60,8 +60,8 @@ export default function FilterPanel({ state, dispatch, imageSrc }: Props) {
               aria-pressed={selected}
             >
               <div
-                className={`relative h-20 w-20 rounded-lg overflow-hidden ring-2 transition-all ${
-                  selected ? 'ring-white' : 'ring-transparent'
+                className={`relative h-20 w-20 rounded-lg overflow-hidden ring-[3px] transition-all ${
+                  selected ? 'ring-brand-500' : 'ring-transparent'
                 }`}
               >
                 {it.thumb ? (
@@ -77,8 +77,8 @@ export default function FilterPanel({ state, dispatch, imageSrc }: Props) {
                 )}
               </div>
               <span
-                className={`text-[11px] font-medium ${
-                  selected ? 'text-white' : 'text-white/60'
+                className={`text-2xs font-extrabold ${
+                  selected ? 'text-biscuit' : 'text-biscuit/60'
                 }`}
               >
                 {it.label}

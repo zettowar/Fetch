@@ -1,20 +1,61 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Trophy } from 'lucide-react';
 import { getCurrentRankings, getWinnerHistory } from '../api/rankings';
 import { getMyPets } from '../api/pets';
 import SpeciesTabs from '../components/SpeciesTabs';
 import { useSpeciesFilter, filterToSpecies } from '../hooks/useSpeciesFilter';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import Card from '../components/ui/Card';
+import PageHeader from '../components/ui/PageHeader';
+import BrandIcon from '../components/brand/BrandIcon';
+import PetPortrait from '../components/brand/PetPortrait';
+import RankMedal, { Crown } from '../components/brand/RankMedal';
+import type { LeaderboardEntry } from '../types';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { useAuth } from '../store/AuthContext';
 import { useWeeklyResetCountdown } from '../utils/weeklyReset';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
-const RANK_EMOJI: Record<number, string> = { 1: '\ud83e\udd47', 2: '\ud83e\udd48', 3: '\ud83e\udd49' };
+/**
+ * One step of the podium. Only first place gets gold — a Crown Gold block and
+ * the crown — everyone else stands on plain white (Brand Book, The app →
+ * Rankings).
+ */
+function PodiumStep({ entry, mine }: { entry: LeaderboardEntry; mine: boolean }) {
+  const first = entry.rank === 1;
+  const height = first ? 'h-16' : entry.rank === 2 ? 'h-11' : 'h-8';
+  return (
+    <Link to={`/app/pets/${entry.pet_id}`} className="group flex min-w-0 flex-col items-center text-center">
+      <span className="relative inline-flex">
+        <span
+          className={`block overflow-hidden rounded-full border-2 border-navy dark:border-white/30 ${
+            first ? 'h-16 w-16 ring-4 ring-gold-500' : 'h-12 w-12'
+          }`}
+        >
+          <PetPortrait species={entry.species} breed={entry.breed} seed={entry.pet_id} crop="face" background className="h-full w-full" />
+        </span>
+        {first && <Crown className="absolute -top-6 left-1/2 w-9 -translate-x-1/2 -rotate-6" />}
+      </span>
+      <p className="mt-1.5 w-full truncate text-sm font-extrabold text-navy dark:text-biscuit">
+        {entry.pet_name}
+        {mine && <span className="sr-only"> (yours)</span>}
+      </p>
+      <p className="text-xs text-gray-600 dark:text-gray-300">
+        {entry.score} {first ? (entry.score === 1 ? 'like' : 'likes') : ''}
+      </p>
+      <span
+        className={`mt-1.5 flex w-full items-center justify-center rounded-t-xl border-2 border-b-0 border-navy font-display text-2xl leading-none text-navy dark:border-white/20 ${height} ${
+          first ? 'bg-gold-500 text-[28px]' : 'bg-white dark:bg-night-raised dark:text-biscuit'
+        }`}
+        aria-label={`Rank ${entry.rank}`}
+      >
+        {entry.rank}
+      </span>
+    </Link>
+  );
+}
 
 export default function RankingsPage() {
   useDocumentTitle('Rankings · Fetchpawz');
@@ -49,19 +90,25 @@ export default function RankingsPage() {
 
   const resetsIn = useWeeklyResetCountdown();
 
+  const podium = (leaderboard ?? []).filter((e) => e.rank <= 3);
+  const showPodium = podium.length === 3;
+  const rows = showPodium ? (leaderboard ?? []).filter((e) => e.rank > 3) : (leaderboard ?? []);
+  const byRank = (r: number) => podium.find((e) => e.rank === r)!;
+
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold tracking-tight mb-4 flex items-center gap-2">
-        <Trophy size={22} aria-hidden className="text-warning-500" /> Rankings
-      </h1>
+      <PageHeader
+        title="Rankings"
+        subtitle={
+          <span className="inline-flex items-center gap-1.5">
+            <BrandIcon name="clock" size={15} /> This week resets in {resetsIn}
+          </span>
+        }
+        className="mb-4"
+      />
 
-      <div className="flex justify-center mb-4">
+      <div className="flex justify-center mb-5">
         <SpeciesTabs />
-      </div>
-
-      <div className="flex items-baseline justify-between mb-2">
-        <h2 className="text-lg font-semibold">This Week</h2>
-        <span className="text-xs text-gray-400 dark:text-gray-500">Resets in {resetsIn}</span>
       </div>
 
       {isLoading ? (
@@ -69,76 +116,87 @@ export default function RankingsPage() {
       ) : isError ? (
         <ErrorState message="Couldn't load the rankings." onRetry={() => refetch()} />
       ) : leaderboard && leaderboard.length > 0 ? (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
-          {leaderboard.map((entry) => {
-            const isMine = myDogIds.has(entry.pet_id.toString());
-            return (
-            <Link
-              key={entry.pet_id}
-              to={`/app/pets/${entry.pet_id}`}
-              className={`flex items-center gap-3 p-3 transition-colors ${
-                isMine
-                  ? 'bg-brand-50 dark:bg-brand-500/10 ring-1 ring-inset ring-brand-200 dark:ring-brand-500/40 hover:bg-brand-100 dark:hover:bg-brand-500/20'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800/60'
-              }`}
+        <>
+          {showPodium && (
+            <div className="grid grid-cols-[1fr_1.15fr_1fr] items-end gap-2 px-1 pt-6">
+              <PodiumStep entry={byRank(2)} mine={myDogIds.has(byRank(2).pet_id.toString())} />
+              <PodiumStep entry={byRank(1)} mine={myDogIds.has(byRank(1).pet_id.toString())} />
+              <PodiumStep entry={byRank(3)} mine={myDogIds.has(byRank(3).pet_id.toString())} />
+            </div>
+          )}
+          {rows.length > 0 && (
+            <Card
+              padding="none"
+              className={`divide-y divide-gray-200 dark:divide-white/10 ${showPodium ? '!rounded-t-xl border-2 !border-navy dark:!border-white/20' : ''}`}
             >
-              <span
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  entry.rank <= 3
-                    ? 'bg-brand-100 dark:bg-brand-500/15 text-brand-600 dark:text-brand-300'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                }`}
-              >
-                {RANK_EMOJI[entry.rank] || entry.rank}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-medium truncate">{entry.pet_name}</p>
-                  {isMine && (
-                    <span className="flex-shrink-0 text-2xs font-semibold uppercase tracking-wide bg-brand-500 text-white px-1.5 py-0.5 rounded-full">
-                      You
-                    </span>
-                  )}
-                </div>
-                {entry.breed && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{entry.breed}</p>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-brand-600">{entry.score}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">{entry.total_votes} votes</p>
-              </div>
-            </Link>
-            );
-          })}
-        </Card>
+              {rows.map((entry) => {
+                const isMine = myDogIds.has(entry.pet_id.toString());
+                return (
+                  <Link
+                    key={entry.pet_id}
+                    to={`/app/pets/${entry.pet_id}`}
+                    className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
+                      isMine
+                        ? 'bg-brand-100 hover:bg-brand-200 dark:bg-brand-500/15 dark:hover:bg-brand-500/25'
+                        : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    <RankMedal rank={entry.rank} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-extrabold text-navy dark:text-biscuit truncate">{entry.pet_name}</p>
+                        {isMine && (
+                          <span className="flex-shrink-0 rounded-full border-[1.5px] border-navy bg-brand-500 px-1.5 py-0.5 text-2xs font-extrabold uppercase tracking-wide text-navy">
+                            You
+                          </span>
+                        )}
+                      </div>
+                      {entry.breed && (
+                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate">{entry.breed}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-extrabold text-navy dark:text-biscuit">{entry.score}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{entry.total_votes} votes</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </Card>
+          )}
+        </>
       ) : (
         <EmptyState
           illustration="sleeping"
           species={species}
           title="No votes yet this week"
-          body="The leaderboard is still napping — be the first to swipe!"
+          body="The leaderboard is still napping. Be the first to swipe."
+          action={
+            <Link to="/app/swipe" className="btn btn-primary btn-sm">
+              Rate pets
+            </Link>
+          }
         />
       )}
 
       {history && history.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-lg font-semibold mb-2">Past Winners</h2>
-          <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+          <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">Past winners</h2>
+          <Card padding="none" className="divide-y divide-gray-200 dark:divide-white/10">
             {history.map((winner) => (
               <Link
                 key={winner.id}
                 to={`/app/pets/${winner.pet_id}`}
-                className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+                className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
               >
-                <Trophy size={18} aria-hidden className="text-warning-500" />
+                <Crown className="w-6 shrink-0" />
                 <div className="flex-1">
-                  <p className="font-medium">{winner.pet_name || 'Unknown'}</p>
+                  <p className="font-extrabold text-navy dark:text-biscuit">{winner.pet_name || 'Unknown'}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     Week of {winner.week_bucket}
                   </p>
                 </div>
-                <p className="font-semibold text-brand-600">{winner.score}</p>
+                <p className="font-extrabold text-navy dark:text-biscuit">{winner.score}</p>
               </Link>
             ))}
           </Card>

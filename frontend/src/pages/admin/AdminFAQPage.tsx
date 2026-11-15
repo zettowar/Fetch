@@ -5,8 +5,11 @@ import { createFAQ, updateFAQ, deleteFAQ, type FAQEntry } from '../../api/admin'
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import Input from '../../components/ui/Input';
+import PageHeader from '../../components/ui/PageHeader';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import { FIELD, ROWS } from './adminStyles';
 
 // Fetchpawz FAQ via support endpoint (public, but admin can manage)
 import client from '../../api/client';
@@ -20,7 +23,7 @@ export default function AdminFAQPage() {
   const [answer, setAnswer] = useState('');
   const [category, setCategory] = useState('general');
 
-  const { data: faqs = [], isLoading } = useQuery({
+  const { data: faqs = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-faq'],
     queryFn: getFAQ,
   });
@@ -72,20 +75,24 @@ export default function AdminFAQPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">FAQ Management</h1>
-        <Button size="sm" onClick={() => { resetForm(); setShowForm(!showForm); }}>
-          {showForm ? 'Cancel' : 'Add Entry'}
-        </Button>
-      </div>
+      <PageHeader
+        title="FAQ Management"
+        className="mb-5"
+        action={
+          <Button size="sm" variant={showForm ? 'secondary' : 'primary'} onClick={() => { resetForm(); setShowForm(!showForm); }}>
+            {showForm ? 'Cancel' : 'Add Entry'}
+          </Button>
+        }
+      />
 
       {showForm && (
         <Card className="mb-4 flex flex-col gap-3">
           <Input label="Question" value={question} onChange={(e) => setQuestion(e.target.value)} />
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Answer</label>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="admin-faq-answer" className="field-label">Answer</label>
             <textarea
-              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 resize-none"
+              id="admin-faq-answer"
+              className={`${FIELD} resize-none`}
               rows={3}
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
@@ -104,17 +111,19 @@ export default function AdminFAQPage() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load FAQ entries." onRetry={() => refetch()} />
       ) : faqs.length === 0 ? (
         <EmptyState className="py-6" title="No FAQ entries" />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {faqs.map((faq) => (
             <div key={faq.id} className="p-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-medium text-sm">{faq.question}</p>
+                  <p className="font-bold text-sm text-navy dark:text-biscuit">{faq.question}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{faq.answer}</p>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">{faq.category}</span>
+                  <span className="mt-1.5 inline-block font-mono text-2xs text-gray-500 dark:text-gray-400">{faq.category}</span>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <Button size="sm" variant="ghost" onClick={() => startEdit(faq)}>Edit</Button>

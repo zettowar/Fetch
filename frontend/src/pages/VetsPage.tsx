@@ -1,19 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { Stethoscope } from 'lucide-react';
 import { getNearbyVets } from '../api/vets';
-import Map from '../components/Map';
+import Map, { MAP_PIN } from '../components/Map';
 import Badge from '../components/ui/Badge';
+import BrandIcon from '../components/brand/BrandIcon';
 import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
 import SearchInput from '../components/ui/SearchInput';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import PawSpinner from '../components/flair/PawSpinner';
 import { DEFAULT_MAP_CENTER, useUserLocation } from '../utils/useUserLocation';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
-const VET_PIN_COLOR = '#0ea5e9'; // sky-500 — distinct from parks (orange/green) and rescues (violet)
-const VET_PIN_EMERGENCY = '#ef4444'; // red — emergency clinics stand out
+// Vets are neutral: Leash Navy pins. Emergency clinics take the default
+// Ball Orange pin so they stand out without borrowing danger red (an error
+// colour) or park green.
+const VET_PIN_COLOR = MAP_PIN.ink;
+const VET_PIN_EMERGENCY = MAP_PIN.play;
+
+// Inline text link: navy ink on an orange underline.
+const LINK =
+  'font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit';
 
 type Filter = 'all' | 'emergency' | 'open_24_7';
 
@@ -31,7 +39,7 @@ export default function VetsPage() {
     setViewCenter(initialCenter);
   }, [initialCenter]);
 
-  const { data: vets = [], isLoading, isError } = useQuery({
+  const { data: vets = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['vets-nearby', viewCenter[1], viewCenter[0]],
     queryFn: () => getNearbyVets(viewCenter[1], viewCenter[0], 30),
     // Keep the last result on screen while the next centre loads. The key is
@@ -69,17 +77,17 @@ export default function VetsPage() {
     onClick: () => setSelectedVetId(v.id),
     popup: (
       <div className="flex flex-col gap-1">
-        <p className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">{v.name}</p>
-        {v.address && <p className="text-xs text-gray-500 dark:text-gray-400">{v.address}</p>}
+        <p className="text-base font-extrabold text-navy dark:text-biscuit leading-tight">{v.name}</p>
+        {v.address && <p className="text-xs text-gray-600 dark:text-gray-300">{v.address}</p>}
         <div className="flex flex-wrap items-center gap-1.5 mt-1">
-          {v.attributes?.emergency && <Badge variant="danger">Emergency</Badge>}
-          {v.attributes?.open_24_7 && <Badge variant="warning">24/7</Badge>}
+          {v.attributes?.emergency && <Badge variant="brand">Emergency</Badge>}
+          {v.attributes?.open_24_7 && <Badge variant="info">24/7</Badge>}
           {v.attributes?.house_calls && <Badge variant="info">House calls</Badge>}
         </div>
         <button
           type="button"
           onClick={() => navigate(`/app/vets/${v.id}`)}
-          className="mt-2 w-full rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium py-1.5 transition-colors"
+          className="btn btn-secondary btn-sm mt-2 w-full"
         >
           View clinic
         </button>
@@ -101,9 +109,9 @@ export default function VetsPage() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <Stethoscope size={20} aria-hidden className="text-brand-500" /> Vets
+      <div className="px-4 pt-3 pb-2.5 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+        <h1 className="text-2xl leading-none text-navy dark:text-biscuit flex items-center gap-2">
+          <BrandIcon name="vet" size={24} /> Vets
         </h1>
 
         <SearchInput
@@ -113,20 +121,19 @@ export default function VetsPage() {
           placeholder="Search vets by name or address..."
         />
 
-        <div className="flex gap-1.5 mt-2 overflow-x-auto -mx-4 px-4 pb-0.5">
-          {filterOptions.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setFilter(opt.key)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                filter === opt.key
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="mt-2.5 overflow-x-auto -mx-4 px-4 pb-0.5">
+          <div className="seg">
+            {filterOptions.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setFilter(opt.key)}
+                aria-pressed={filter === opt.key}
+                className="flex-shrink-0"
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -143,24 +150,24 @@ export default function VetsPage() {
             className="h-full w-full"
           />
           {isLoading && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 glass rounded-full px-4 py-2 shadow-soft-lg">
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 glass rounded-full border border-gray-200 px-4 py-2 dark:border-white/10">
               <PawSpinner size="sm" />
             </div>
           )}
-          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-2xs text-gray-700 dark:text-gray-200 shadow-soft ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
+          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg border border-gray-200 bg-white/95 px-2.5 py-1.5 text-2xs font-bold text-navy backdrop-blur dark:border-white/10 dark:bg-night-surface/95 dark:text-biscuit z-10">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: VET_PIN_COLOR }} />
+              <span aria-hidden className="inline-block h-3 w-3 rounded-full border border-navy dark:border-biscuit/60" style={{ backgroundColor: VET_PIN_COLOR }} />
               Clinic
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: VET_PIN_EMERGENCY }} />
+              <span aria-hidden className="inline-block h-3 w-3 rounded-full border border-navy dark:border-biscuit/60" style={{ backgroundColor: VET_PIN_EMERGENCY }} />
               Emergency
             </span>
           </div>
         </div>
 
-        <div className="overflow-y-auto overscroll-contain flex-1 bg-gray-50 dark:bg-gray-800/50">
-          <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
+        <div className="overflow-y-auto overscroll-contain flex-1 bg-biscuit dark:bg-night">
+          <div className="px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-night-surface border-b border-gray-200 dark:border-white/10 sticky top-0 z-10">
             <span>
               {filteredVets.length} {filteredVets.length === 1 ? 'vet' : 'vets'}
               {search && vets.length !== filteredVets.length && ` · ${vets.length - filteredVets.length} filtered`}
@@ -168,7 +175,7 @@ export default function VetsPage() {
             {selectedVetId && (
               <button
                 onClick={() => setSelectedVetId(null)}
-                className="text-brand-500 hover:underline"
+                className={LINK}
               >
                 Clear selection
               </button>
@@ -179,9 +186,7 @@ export default function VetsPage() {
             {isLoading ? (
               <ListSkeleton rows={4} />
             ) : isError ? (
-              <p className="text-danger-500 dark:text-danger-400 text-sm text-center py-6">
-                Failed to load vets. Check your connection.
-              </p>
+              <ErrorState message="Couldn't load vets." onRetry={() => refetch()} />
             ) : filteredVets.length === 0 ? (
               <EmptyState
                 illustration="sniffing"
@@ -195,7 +200,7 @@ export default function VetsPage() {
                     <>
                       We are still expanding coverage here. Know a clinic we should
                       list?{' '}
-                      <Link to="/app/support" className="text-brand-500 hover:underline">
+                      <Link to="/app/support" className={LINK}>
                         Tell us
                       </Link>
                       .
@@ -204,7 +209,7 @@ export default function VetsPage() {
                 }
               />
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5">
                 {filteredVets.map((vet) => {
                   const isSelected = selectedVetId === vet.id;
                   return (
@@ -218,26 +223,27 @@ export default function VetsPage() {
                           setSelectedVetId(vet.id);
                         }
                       }}
-                      className={`block p-3 rounded-xl border transition-all ${
+                      // A thing you touch: navy line + toy shadow. Picked = orange tint.
+                      className={`block p-3 rounded-2xl border-2 border-navy dark:border-white/15 transition-[transform,box-shadow,background-color] duration-150 ease-soft-out active:translate-x-[1px] active:translate-y-[2px] active:shadow-none ${
                         isSelected
-                          ? 'bg-white dark:bg-gray-900 border-brand-300 dark:border-brand-500/50 ring-2 ring-brand-200 dark:ring-brand-500/30 shadow-sm'
-                          : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-brand-200'
+                          ? 'bg-brand-50 dark:bg-brand-500/15 shadow-toy'
+                          : 'bg-white dark:bg-night-surface shadow-toy-sm hover:-translate-y-px hover:shadow-toy'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
+                            <h3 className="text-base font-extrabold text-navy dark:text-biscuit leading-tight truncate">
                               {vet.name}
                             </h3>
-                            {vet.attributes?.emergency && <Badge variant="danger">Emergency</Badge>}
-                            {vet.attributes?.open_24_7 && <Badge variant="warning">24/7</Badge>}
+                            {vet.attributes?.emergency && <Badge variant="brand">Emergency</Badge>}
+                            {vet.attributes?.open_24_7 && <Badge variant="info">24/7</Badge>}
                           </div>
                           {vet.address && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{vet.address}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 truncate">{vet.address}</p>
                           )}
                           {vet.hours && (
-                            <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{vet.hours}</p>
+                            <p className="text-2xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{vet.hours}</p>
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
@@ -251,7 +257,7 @@ export default function VetsPage() {
                                 e.stopPropagation();
                                 window.location.href = `tel:${vet.phone}`;
                               }}
-                              className="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline"
+                              className="btn btn-secondary btn-sm"
                             >
                               Call
                             </button>
@@ -259,7 +265,7 @@ export default function VetsPage() {
                         </div>
                       </div>
                       {isSelected && (
-                        <p className="text-2xs text-brand-600 mt-2 font-medium">
+                        <p className="text-2xs text-navy dark:text-biscuit mt-2 font-extrabold">
                           Tap again to open →
                         </p>
                       )}

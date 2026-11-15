@@ -6,15 +6,18 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
+import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import { FIELD, ROWS, ROW_HOVER, segItem } from './adminStyles';
 
 export default function AdminInvitesPage() {
   const [count, setCount] = useState(10);
   const [filter, setFilter] = useState<'all' | 'unused' | 'used'>('unused');
   const queryClient = useQueryClient();
 
-  const { data: allInvites = [], isLoading } = useQuery({
+  const { data: allInvites = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-invites'],
     queryFn: getInvites,
   });
@@ -57,19 +60,20 @@ export default function AdminInvitesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Invite Codes</h1>
+      <PageHeader title="Invite Codes" className="mb-5" />
 
       {/* Generate section */}
       <Card className="mb-4">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 shrink-0">Generate</label>
+          <label htmlFor="admin-invites-generate-count" className="field-label shrink-0">Generate</label>
           <input
+            id="admin-invites-generate-count"
             type="number"
             min={1}
             max={100}
             value={count}
             onChange={(e) => setCount(Number(e.target.value))}
-            className="w-20 rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1 text-sm"
+            className={`${FIELD} w-20 font-mono`}
           />
           <Button size="sm" onClick={() => genMutation.mutate()} loading={genMutation.isPending}>
             Generate
@@ -80,20 +84,22 @@ export default function AdminInvitesPage() {
             </Button>
           )}
         </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-          {unusedCount} unused / {usedCount} used / {allInvites.length} total
-        </p>
+        {/* A failed load would read "0 unused / 0 used / 0 total"; the error
+            itself is shown once, in the list below. */}
+        {!isError && (
+          <p className="font-mono text-xs text-gray-500 dark:text-gray-400 mt-2">
+            {unusedCount} unused / {usedCount} used / {allInvites.length} total
+          </p>
+        )}
       </Card>
 
       {/* Filter */}
-      <div className="flex gap-1 mb-4">
+      <div className="seg mb-4">
         {(['unused', 'used', 'all'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-              filter === f ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`capitalize ${segItem(filter === f)}`}
           >
             {f}
           </button>
@@ -102,15 +108,17 @@ export default function AdminInvitesPage() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load invite codes." onRetry={() => refetch()} />
       ) : invites.length === 0 ? (
         <EmptyState className="py-6" title={`No ${filter} invite codes`} />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {invites.map((inv) => (
-            <div key={inv.id} className="flex items-center gap-3 p-3">
+            <div key={inv.id} className={`flex items-center gap-3 p-3 ${ROW_HOVER}`}>
               <button
                 onClick={() => copyCode(inv.code)}
-                className="font-mono text-sm text-gray-700 dark:text-gray-300 hover:text-brand-600 transition-colors cursor-pointer"
+                className="font-mono text-sm font-medium tracking-wide text-navy dark:text-biscuit hover:text-brand-700 dark:hover:text-brand-300 hover:underline underline-offset-2 transition-colors cursor-pointer"
                 title="Click to copy"
               >
                 {inv.code}
@@ -121,7 +129,7 @@ export default function AdminInvitesPage() {
               ) : (
                 <Badge variant="success">Available</Badge>
               )}
-              <span className="text-xs text-gray-400 dark:text-gray-500"><TimeAgo value={inv.created_at} /></span>
+              <span className="font-mono text-xs text-gray-500 dark:text-gray-400"><TimeAgo value={inv.created_at} /></span>
             </div>
           ))}
         </Card>
@@ -135,7 +143,7 @@ export default function AdminInvitesPage() {
 /** Invite requests from the marketing site — the other half of this funnel. */
 function WaitlistSection() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-waitlist'],
     queryFn: getWaitlist,
   });
@@ -176,9 +184,9 @@ function WaitlistSection() {
   return (
     <section className="mt-8">
       <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-xl font-bold">Waitlist</h2>
-        {data && (
-          <span className="text-sm text-gray-400 dark:text-gray-500">{data.total} waiting</span>
+        <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit">Waitlist</h2>
+        {data && !isError && (
+          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">{data.total} waiting</span>
         )}
         <span className="flex-1" />
         {entries.length > 0 && (
@@ -190,13 +198,15 @@ function WaitlistSection() {
 
       {isLoading ? (
         <ListSkeleton rows={3} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load the waitlist." onRetry={() => refetch()} />
       ) : entries.length === 0 ? (
         <EmptyState className="py-6" title="No waitlist signups yet" />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {entries.map((entry) => (
-            <div key={entry.id} className="flex items-center gap-3 p-3">
-              <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{entry.email}</span>
+            <div key={entry.id} className={`flex items-center gap-3 p-3 ${ROW_HOVER}`}>
+              <span className="text-sm font-semibold text-navy dark:text-biscuit truncate">{entry.email}</span>
               {entry.source && <Badge variant="neutral">{entry.source}</Badge>}
               {entry.invited_at && (
                 <Badge variant="success" title={`Invited ${entry.invite_code ?? ''}`}>
@@ -204,7 +214,7 @@ function WaitlistSection() {
                 </Badge>
               )}
               <span className="flex-1" />
-              <span className="text-xs text-gray-400 dark:text-gray-500"><TimeAgo value={entry.created_at} /></span>
+              <span className="font-mono text-xs text-gray-500 dark:text-gray-400"><TimeAgo value={entry.created_at} /></span>
               <Button
                 size="sm"
                 variant={entry.invited_at ? 'ghost' : 'secondary'}

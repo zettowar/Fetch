@@ -18,10 +18,13 @@ import Avatar from '../../components/ui/Avatar';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import PaginationFooter from '../../components/ui/PaginationFooter';
+import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { exportCsv } from '../../utils/exportCsv';
+import { CHECK, FIELD, LINK, LIST_HEAD, ROWS, ROW_HOVER, TRAY } from './adminStyles';
 
 const PAGE_SIZE = 50;
 
@@ -35,14 +38,18 @@ export default function AdminUsersPage() {
   const [grantKey, setGrantKey] = useState('ads_removed');
   const queryClient = useQueryClient();
 
-  const { data: page, isLoading } = useQuery({
+  const { data: page, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-users', searchTerm, offset],
     queryFn: () => searchUsers({ q: searchTerm, offset, limit: PAGE_SIZE }),
   });
   const users = page?.items ?? [];
   const total = page?.total ?? 0;
 
-  const { data: strikes = [] } = useQuery({
+  const {
+    data: strikes = [],
+    isError: strikesError,
+    refetch: refetchStrikes,
+  } = useQuery({
     queryKey: ['admin-strikes', selectedUser],
     queryFn: () => getUserStrikes(selectedUser!),
     enabled: !!selectedUser,
@@ -190,12 +197,15 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Users</h1>
-        <Button size="sm" variant="secondary" onClick={exportPage} disabled={!users.length}>
-          Export page CSV
-        </Button>
-      </div>
+      <PageHeader
+        title="Users"
+        className="mb-5"
+        action={
+          <Button size="sm" variant="secondary" onClick={exportPage} disabled={!users.length}>
+            Export page CSV
+          </Button>
+        }
+      />
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-4">
         <SearchInput
@@ -204,13 +214,13 @@ export default function AdminUsersPage() {
           value={query}
           onChange={setQuery}
         />
-        <Button type="submit" size="sm">Search</Button>
+        <Button type="submit" size="sm" variant="secondary">Search</Button>
       </form>
 
       {/* Bulk action bar (visible when any row is selected) */}
       {selectedCount > 0 ? (
-        <div className="flex items-center gap-2 mb-3 p-2 bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 rounded-lg text-sm">
-          <span className="font-medium text-brand-700">{selectedCount} selected</span>
+        <div className="flex flex-wrap items-center gap-2 mb-3 p-2 pl-3 bg-brand-50 dark:bg-brand-500/10 border-[1.5px] border-brand-300 dark:border-brand-500/40 rounded-2xl text-sm">
+          <span className="font-extrabold text-brand-800 dark:text-brand-200">{selectedCount} selected</span>
           <div className="flex-1" />
           <Button size="sm" variant="danger" onClick={handleBulkSuspend}>Suspend</Button>
           <Button size="sm" onClick={handleBulkReinstate}>Reinstate</Button>
@@ -218,19 +228,19 @@ export default function AdminUsersPage() {
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Clear</Button>
         </div>
       ) : (
-        users.length > 0 && (
-          <div className="flex gap-2 mb-3 text-xs">
-            <span className="text-gray-400 dark:text-gray-500">
+        !isError && users.length > 0 && (
+          <div className="flex gap-3 mb-3 text-xs font-semibold">
+            <span className="font-mono font-normal text-gray-500 dark:text-gray-400">
               {total > 0 ? `${rangeStart}–${rangeEnd} of ${total}` : `${users.length} results`}
             </span>
             {suspended.length > 0 && (
-              <span className="text-danger-500 dark:text-danger-400">{suspended.length} suspended</span>
+              <span className="text-danger-600 dark:text-danger-400">{suspended.length} suspended</span>
             )}
             {withStrikes.length > 0 && (
-              <span className="text-warning-500 dark:text-warning-400">{withStrikes.length} with strikes</span>
+              <span className="text-warning-800 dark:text-warning-300">{withStrikes.length} with strikes</span>
             )}
             {admins.length > 0 && (
-              <span className="text-info-500">{admins.length} admin{admins.length > 1 ? 's' : ''}</span>
+              <span className="text-navy dark:text-gray-200">{admins.length} admin{admins.length > 1 ? 's' : ''}</span>
             )}
           </div>
         )
@@ -238,6 +248,8 @@ export default function AdminUsersPage() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load users." onRetry={() => refetch()} />
       ) : users.length === 0 ? (
         <EmptyState
           className="py-6"
@@ -245,27 +257,27 @@ export default function AdminUsersPage() {
           body={searchTerm ? `Nothing matches "${searchTerm}".` : undefined}
         />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
-          <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+        <Card padding="none" className={ROWS}>
+          <div className={`flex items-center gap-3 px-3 py-2 ${LIST_HEAD}`}>
             <input
               type="checkbox"
               checked={allOnPageSelected}
               onChange={toggleAll}
               aria-label="Select all on this page"
-              className="accent-brand-500"
+              className={CHECK}
             />
             <span>User</span>
           </div>
           {users.map((u) => (
             <div key={u.id}>
-              <div className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60">
+              <div className={`flex items-center gap-3 p-3 ${ROW_HOVER}`}>
                 <input
                   type="checkbox"
                   checked={selectedIds.has(u.id)}
                   onChange={() => toggleOne(u.id)}
                   onClick={(e) => e.stopPropagation()}
                   aria-label={`Select ${u.display_name}`}
-                  className="accent-brand-500"
+                  className={CHECK}
                 />
                 <button
                   onClick={() => setSelectedUser(selectedUser === u.id ? null : u.id)}
@@ -273,33 +285,33 @@ export default function AdminUsersPage() {
                 >
                   <Avatar name={u.display_name} size="md" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{u.display_name}</p>
+                    <p className="font-bold text-sm text-navy dark:text-biscuit">{u.display_name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
                     {u.role === 'admin' && <Badge variant="info">admin</Badge>}
                     {!u.is_active && <Badge variant="danger">suspended</Badge>}
                     {u.strike_count > 0 && <Badge variant="warning">{u.strike_count} strike{u.strike_count > 1 ? 's' : ''}</Badge>}
-                    <span className="text-2xs text-gray-400 dark:text-gray-500">{u.pet_count} pet{u.pet_count !== 1 ? 's' : ''}</span>
+                    <span className="text-2xs font-semibold text-gray-500 dark:text-gray-400">{u.pet_count} pet{u.pet_count !== 1 ? 's' : ''}</span>
                   </div>
                 </button>
               </div>
 
               {selectedUser === u.id && (
-                <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
-                  <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-gray-600 dark:text-gray-300">
-                    <p><span className="font-medium">Joined:</span> <TimeAgo value={u.created_at} /></p>
-                    <p><span className="font-medium">Location:</span> {u.location_rough || 'Not set'}</p>
-                    <p><span className="font-medium">Verified:</span> {u.is_verified ? 'Yes' : 'No'}</p>
+                <div className={`px-4 pb-4 ${TRAY}`}>
+                  <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-gray-600 dark:text-gray-300">
+                    <p><span className="font-bold text-navy dark:text-biscuit">Joined:</span> <TimeAgo value={u.created_at} className="font-mono" /></p>
+                    <p><span className="font-bold text-navy dark:text-biscuit">Location:</span> {u.location_rough || 'Not set'}</p>
+                    <p><span className="font-bold text-navy dark:text-biscuit">Verified:</span> {u.is_verified ? 'Yes' : 'No'}</p>
                     <p>
-                      <span className="font-medium">Profile:</span>{' '}
-                      <Link to={`/app/users/${u.id}`} className="text-brand-500 hover:underline" target="_blank">View</Link>
+                      <span className="font-bold text-navy dark:text-biscuit">Profile:</span>{' '}
+                      <Link to={`/app/users/${u.id}`} className={LINK} target="_blank">View</Link>
                     </p>
                   </div>
 
                   <div className="flex flex-wrap gap-2 mt-3">
-                    <Link to={`/admin/users/${u.id}`}>
-                      <Button size="sm" variant="secondary">Full details →</Button>
+                    <Link to={`/admin/users/${u.id}`} className="btn btn-secondary btn-sm">
+                      Full details →
                     </Link>
                     {u.is_active ? (
                       <Button size="sm" variant="danger" loading={suspendMutation.isPending} onClick={() => {
@@ -346,7 +358,7 @@ export default function AdminUsersPage() {
                   {showGrant && (
                     <div className="mt-2 flex items-center gap-2">
                       <select
-                        className="rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1 text-sm"
+                        className={`${FIELD} font-mono`}
                         value={grantKey}
                         onChange={(e) => setGrantKey(e.target.value)}
                       >
@@ -360,15 +372,21 @@ export default function AdminUsersPage() {
                     </div>
                   )}
 
-                  {strikes.length > 0 && (
+                  {/* An empty list here reads as "no strikes", so a failed
+                      load has to say so rather than leave the section out. */}
+                  {strikesError ? (
                     <div className="mt-3">
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Strike History ({strikes.length})</p>
+                      <ErrorState message="Couldn't load strike history." onRetry={() => refetchStrikes()} />
+                    </div>
+                  ) : strikes.length > 0 && (
+                    <div className="mt-3">
+                      <p className="eyebrow mb-1">Strike History ({strikes.length})</p>
                       <div className="space-y-1">
                         {strikes.map((s) => (
-                          <div key={s.id} className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                            <span className="w-2 h-2 rounded-full bg-danger-400 shrink-0" />
+                          <div key={s.id} className="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2 py-1 border-b border-gray-200 dark:border-white/10 last:border-0">
+                            <span className="w-2 h-2 rounded-full bg-danger-500 shrink-0" />
                             <span className="flex-1">{s.reason}</span>
-                            <span className="text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={s.created_at} /></span>
+                            <span className="font-mono text-gray-500 dark:text-gray-400 shrink-0"><TimeAgo value={s.created_at} /></span>
                           </div>
                         ))}
                       </div>
@@ -381,13 +399,15 @@ export default function AdminUsersPage() {
         </Card>
       )}
 
-      <PaginationFooter
-        offset={offset}
-        pageSize={PAGE_SIZE}
-        rendered={users.length}
-        total={total}
-        onChange={setOffset}
-      />
+      {!isError && (
+        <PaginationFooter
+          offset={offset}
+          pageSize={PAGE_SIZE}
+          rendered={users.length}
+          total={total}
+          onChange={setOffset}
+        />
+      )}
     </div>
   );
 }

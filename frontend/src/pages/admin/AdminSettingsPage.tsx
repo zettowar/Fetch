@@ -6,11 +6,14 @@ import { getSettings, putSetting, type AppSetting } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
+import PageHeader from '../../components/ui/PageHeader';
+import ErrorState from '../../components/ui/ErrorState';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import { FIELD, LINK } from './adminStyles';
 
 export default function AdminSettingsPage() {
   const queryClient = useQueryClient();
-  const { data: settings = [], isLoading } = useQuery({
+  const { data: settings = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: getSettings,
   });
@@ -26,13 +29,16 @@ export default function AdminSettingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-1">Settings</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        Runtime feature flags. Changes take effect within ~30 seconds across all servers.
-      </p>
+      <PageHeader
+        title="Settings"
+        subtitle="Runtime feature flags. Changes take effect within ~30 seconds across all servers."
+        className="mb-5"
+      />
 
       {isLoading ? (
         <ListSkeleton rows={3} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load settings." onRetry={() => refetch()} />
       ) : (
         <div className="space-y-3">
           {settings.map((s) => (
@@ -44,14 +50,14 @@ export default function AdminSettingsPage() {
       <Card className="mt-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-medium text-sm">Your account</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-base font-extrabold text-navy dark:text-biscuit">Your account</p>
+            <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
               Password and two-factor auth are managed in your account security settings.
             </p>
           </div>
           <Link
             to="/app/security"
-            className="shrink-0 text-sm font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+            className={`shrink-0 text-sm ${LINK}`}
           >
             Open security <span aria-hidden>→</span>
           </Link>
@@ -67,22 +73,35 @@ function SettingRow({ setting, pending, onSave }: { setting: AppSetting; pending
 
   return (
     <Card>
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
+      {/* Wraps under a narrow width so a long description keeps a readable
+          measure instead of being squeezed beside the control. */}
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="min-w-[14rem] flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-sm font-medium">{setting.key}</span>
+            <span className="font-mono text-sm font-medium text-navy dark:text-biscuit">{setting.key}</span>
             {setting.overridden && <Badge variant="warning" size="md">overridden</Badge>}
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{setting.description}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{setting.description}</p>
         </div>
 
         {isBool ? (
+          // Switching a flag is not destructive, so no danger red: the state
+          // reads from the dot (green on, hollow off) and the label.
           <Button
             size="sm"
-            variant={setting.value ? 'danger' : 'secondary'}
+            variant="secondary"
+            className="shrink-0"
             loading={pending}
             onClick={() => onSave(!setting.value)}
           >
+            <span
+              aria-hidden
+              className={`h-2.5 w-2.5 rounded-full border-[1.5px] ${
+                setting.value
+                  ? 'border-navy bg-success-500 dark:border-success-300'
+                  : 'border-gray-400 bg-transparent dark:border-gray-500'
+              }`}
+            />
             {setting.value ? 'On — turn off' : 'Off — turn on'}
           </Button>
         ) : (
@@ -90,7 +109,7 @@ function SettingRow({ setting, pending, onSave }: { setting: AppSetting; pending
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              className="rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-2 py-1 text-sm w-48"
+              className={`${FIELD} w-48 font-mono`}
               placeholder="(empty)"
             />
             <Button size="sm" loading={pending} onClick={() => onSave(text || null)}>Save</Button>

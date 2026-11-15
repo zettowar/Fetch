@@ -135,7 +135,7 @@ export default function Modal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-night/60 p-0 sm:p-4"
           onMouseDown={(e) => {
             if (dismissible && e.target === e.currentTarget) onClose();
           }}
@@ -150,16 +150,16 @@ export default function Modal({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 24, opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className={`w-full ${maxWidthClass} max-h-[90vh] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-3xl bg-white p-6 shadow-soft-lg outline-none dark:bg-gray-900 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6`}
+            className={`w-full ${maxWidthClass} max-h-[90vh] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-3xl border-t-[2.5px] sm:border-[2.5px] border-navy bg-biscuit p-6 shadow-soft-lg outline-none dark:border-white/15 dark:bg-night-surface pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 sm:shadow-toy`}
           >
             <div className="flex items-start justify-between gap-4">
-              <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+              <h2 className="text-xl font-extrabold tracking-tight text-navy dark:text-biscuit">{title}</h2>
               {dismissible && (
                 <button
                   type="button"
                   onClick={onClose}
                   aria-label="Close"
-                  className="-mr-1 -mt-1 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                  className="-mr-1 -mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[1.5px] border-navy/30 text-navy transition-colors hover:border-navy hover:bg-white dark:border-white/30 dark:text-biscuit dark:hover:bg-night-raised"
                 >
                   <X size={18} aria-hidden />
                 </button>

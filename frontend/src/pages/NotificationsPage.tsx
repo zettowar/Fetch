@@ -12,19 +12,8 @@ import {
   type InboxNotification,
   type NotificationPrefs,
 } from '../api/notifications';
-import {
-  ArrowLeftRight,
-  Bell,
-  Camera,
-  Eye,
-  HousePlus,
-  Mail,
-  MessageCircle,
-  PawPrint,
-  Trophy,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import BackButton from '../components/ui/BackButton';
+import BrandIcon, { type BrandIconName } from '../components/brand/BrandIcon';
+import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
@@ -32,16 +21,19 @@ import Skeleton, { ListSkeleton } from '../components/ui/Skeleton';
 import TimeAgo from '../components/TimeAgo';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
-const TYPE_ICONS: Record<string, LucideIcon> = {
-  follow: PawPrint,
-  comment: MessageCircle,
-  sighting: Eye,
-  transfer_received: ArrowLeftRight,
-  transfer_resolved: ArrowLeftRight,
-  inquiry_received: HousePlus,
-  inquiry_status: HousePlus,
-  weekly_winner: Trophy,
-  photo_moderated: Camera,
+// One drawn icon per kind, always in the same white tile: the icon's own
+// bean carries the feature colour (gold for a crown, pink for an adoption
+// inquiry), so the rows themselves are never colour-coded.
+const TYPE_ICONS: Record<string, BrandIconName> = {
+  follow: 'follow',
+  comment: 'comment',
+  sighting: 'eye',
+  transfer_received: 'share',
+  transfer_resolved: 'share',
+  inquiry_received: 'rescue',
+  inquiry_status: 'rescue',
+  weekly_winner: 'crown',
+  photo_moderated: 'camera',
 };
 
 function InboxTab() {
@@ -91,44 +83,48 @@ function InboxTab() {
         <div className="flex justify-end mb-2">
           <button
             onClick={() => readAllMutation.mutate()}
-            className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+            className="btn btn-ghost btn-sm"
           >
             Mark all read
           </button>
         </div>
       )}
-      <Card as="ul" padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+      <Card as="ul" padding="none" className="divide-y divide-gray-200 dark:divide-white/10">
         {items.map((n) => {
-          const Icon = TYPE_ICONS[n.type] ?? Bell;
+          const icon = TYPE_ICONS[n.type] ?? 'bell';
           return (
           <li key={n.id}>
             <button
               onClick={() => open(n)}
-              className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors ${
-                n.read_at ? 'opacity-70' : ''
-              }`}
+              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-navy/5 dark:hover:bg-white/5 transition-colors"
             >
               <span
-                className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-500"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-[1.5px] border-navy/25 bg-white text-navy dark:border-white/20 dark:bg-night-raised dark:text-biscuit"
                 aria-hidden
               >
-                <Icon size={16} />
+                <BrandIcon name={icon} size={22} />
               </span>
-              <span className="flex-1 min-w-0">
-                <span className={`block text-sm ${n.read_at ? 'font-normal' : 'font-semibold'} text-gray-900 dark:text-gray-100`}>
+              <span className="flex-1 min-w-0 pt-0.5">
+                <span
+                  className={`block text-sm ${
+                    n.read_at
+                      ? 'font-semibold text-gray-700 dark:text-gray-200'
+                      : 'font-extrabold text-navy dark:text-biscuit'
+                  }`}
+                >
                   {n.title}
                 </span>
                 {n.body && (
-                  <span className="block text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                  <span className="block text-xs text-gray-600 dark:text-gray-300 truncate mt-0.5">
                     {n.body}
                   </span>
                 )}
-                <span className="block text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
+                <span className="block text-2xs text-gray-500 dark:text-gray-400 mt-0.5">
                   <TimeAgo value={n.created_at} />
                 </span>
               </span>
               {!n.read_at && (
-                <span aria-hidden className="mt-2 w-2 h-2 rounded-full bg-brand-500 shrink-0" />
+                <span aria-hidden className="mt-2 h-2.5 w-2.5 rounded-full bg-brand-500 shrink-0" />
               )}
             </button>
           </li>
@@ -148,21 +144,24 @@ interface ToggleRowProps {
 
 function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-white/10 last:border-0">
       <div className="mr-4">
-        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{description}</p>
+        <p className="text-sm font-bold text-navy dark:text-biscuit">{label}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
       </div>
+      {/* Toggle: Ball Orange when on, always on a navy line. */}
       <button
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${
-          checked ? 'bg-brand-500' : 'bg-gray-200 dark:bg-gray-700'
+        className={`relative flex-shrink-0 w-12 h-7 rounded-full border-2 transition-colors ${
+          checked
+            ? 'border-navy bg-brand-500'
+            : 'border-navy/40 bg-white dark:border-white/30 dark:bg-night-raised'
         }`}
       >
         <span
-          className={`absolute top-1 left-1 w-4 h-4 bg-white dark:bg-gray-900 rounded-full shadow transition-transform ${
+          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full border-2 border-navy bg-white transition-transform duration-150 ease-soft-out ${
             checked ? 'translate-x-5' : 'translate-x-0'
           }`}
         />
@@ -181,26 +180,23 @@ export default function NotificationsPage() {
 
   return (
     <div className="p-4 pb-8">
-      <BackButton fallback="/app/home" />
-      <h1 className="text-xl font-bold mb-4 flex items-center gap-2">
-        <Bell size={20} aria-hidden className="text-brand-500" /> Notifications
-      </h1>
+      <PageHeader back backFallback="/app/home" title="Notifications" className="mb-4" />
 
-      <div className="flex gap-1 mb-4">
+      <div className="seg mb-4">
         {(['inbox', 'settings'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-              tab === t
-                ? 'bg-brand-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            className={`px-4 capitalize inline-flex items-center ${
+              tab === t ? 'seg-on' : 'hover:bg-navy/5 dark:hover:bg-white/10'
             }`}
           >
             {t}
             {t === 'inbox' && unread > 0 && (
-              <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-2xs font-bold ${
-                tab === 'inbox' ? 'bg-white text-brand-600' : 'bg-brand-500 text-white'
+              <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-2xs font-extrabold ${
+                tab === 'inbox'
+                  ? 'bg-navy text-biscuit'
+                  : 'border-[1.5px] border-navy bg-brand-500 text-navy'
               }`}>
                 {unread > 99 ? '99+' : unread}
               </span>
@@ -242,14 +238,14 @@ function SettingsTab() {
   if (isLoading || !prefs) {
     return (
       <div>
-        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full mb-2 rounded-xl" />)}
+        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full mb-2 rounded-2xl" />)}
       </div>
     );
   }
 
   return (
     <div>
-      <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">Choose what you want to hear about.</p>
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Choose what you want to hear about.</p>
 
       <Card padding="none" className="px-4 mb-5">
         <ToggleRow
@@ -281,8 +277,8 @@ function SettingsTab() {
       {/* Email-only consents. These are what the one-click unsubscribe links
           write, so they have to be reversible from here. */}
       <Card padding="none" className="px-4 mb-5">
-        <p className="pt-3 text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-          <Mail size={16} aria-hidden className="text-brand-500" /> Emails
+        <p className="pt-3 text-base font-extrabold tracking-tight text-navy dark:text-biscuit flex items-center gap-2">
+          <BrandIcon name="mail" size={20} /> Emails
         </p>
         <ToggleRow
           label="Weekly recap"
@@ -299,19 +295,17 @@ function SettingsTab() {
       </Card>
 
       <Card padding="none" className="px-4 py-3">
-        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1 flex items-center gap-1.5">
-          <Mail size={16} aria-hidden className="text-brand-500" /> Digest emails
+        <p className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit mb-1 flex items-center gap-2">
+          <BrandIcon name="mail" size={20} /> Digest emails
         </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Get a summary instead of individual emails</p>
-        <div className="flex gap-2">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Get a summary instead of individual emails</p>
+        <div className="seg flex w-full">
           {(['off', 'daily', 'weekly'] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => update({ digest_mode: mode })}
-              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-                prefs.digest_mode === mode
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              className={`flex-1 ${
+                prefs.digest_mode === mode ? 'seg-on' : 'hover:bg-navy/5 dark:hover:bg-white/10'
               }`}
             >
               {mode.charAt(0).toUpperCase() + mode.slice(1)}

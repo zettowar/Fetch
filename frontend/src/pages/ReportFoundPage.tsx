@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { PawPrint } from 'lucide-react';
-import BackButton from '../components/ui/BackButton';
+import PageHeader from '../components/ui/PageHeader';
 import { createLostReport } from '../api/lost';
 import Button from '../components/ui/Button';
 import LocationPicker from '../components/LocationPicker';
+import { MAP_PIN } from '../components/Map';
 import { apiErrorMessage } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+
+// Form controls drawn like <Input>: 2px navy line, orange focus.
+const FIELD =
+  'w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400';
 
 export default function ReportFoundPage() {
   useDocumentTitle('Report a found pet · Fetchpawz');
@@ -46,19 +50,22 @@ export default function ReportFoundPage() {
 
   return (
     <div className="p-4">
-      <BackButton fallback="/app/lost" />
-      <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
-        <PawPrint size={22} aria-hidden className="text-brand-500" /> Report Found Pet
-      </h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Help reunite a lost pet with their owner. Your account must be at least 7 days old.
-      </p>
+      {/* The calm register: plain title, flat form. */}
+      <PageHeader
+        plain
+        back
+        backFallback="/app/lost"
+        title="Report a found pet"
+        subtitle="Help reunite a lost pet with their owner. Your account must be at least 7 days old."
+        className="mb-6"
+      />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="report-found-description" className="field-label">Description</label>
           <textarea
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
+            id="report-found-description"
+            className={`resize-none ${FIELD}`}
             rows={4}
             placeholder="Describe the pet, breed, color, size, any collar or tags, where you found them..."
             value={description}
@@ -67,13 +74,14 @@ export default function ReportFoundPage() {
           />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Where you found them</label>
-          <LocationPicker value={location} onChange={setLocation} />
+        <div className="flex flex-col gap-2" role="group" aria-labelledby="report-found-location-label">
+          <span id="report-found-location-label" className="field-label">Where you found them</span>
+          <LocationPicker value={location} onChange={setLocation} accentColor={MAP_PIN.park} />
         </div>
 
-        <Button type="submit" loading={saving} className="w-full">
-          Report Found Pet
+        {/* Found is green — the "I can help" colour. */}
+        <Button type="submit" loading={saving} className="w-full" variant="park">
+          Report found pet
         </Button>
       </form>
     </div>

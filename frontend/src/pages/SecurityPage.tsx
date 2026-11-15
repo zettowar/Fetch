@@ -7,7 +7,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import BackButton from '../components/ui/BackButton';
+import PageHeader from '../components/ui/PageHeader';
 import DeleteAccountCard from '../components/DeleteAccountCard';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
@@ -57,84 +57,92 @@ export default function SecurityPage() {
 
   return (
     <div className="max-w-md mx-auto p-4">
-      <BackButton fallback="/app/home" />
-      <h1 className="text-2xl font-bold mt-2 mb-1">Security</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        Two-factor authentication adds a one-time code from an authenticator app to your login.
-      </p>
+      {/* The calm register: plain type, flat panels, red only on the one
+          destructive control (closing the account). */}
+      <PageHeader
+        plain
+        back
+        backFallback="/app/home"
+        title="Security"
+        subtitle="Two-factor authentication adds a one-time code from an authenticator app to your login."
+        className="mb-4"
+      />
 
-      <Card>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="font-semibold">Two-factor authentication</span>
-          <Badge variant={enabled ? 'success' : 'neutral'} className="uppercase">
-            {enabled ? 'On' : 'Off'}
-          </Badge>
-        </div>
-
-        {enabled ? (
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              2FA is protecting your account. To turn it off, confirm with a current
-              code from your authenticator app, or your password.
-            </p>
-            <Input
-              label="Code from app"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="6-digit code"
-              value={disableCode}
-              onChange={(e) => setDisableCode(e.target.value.trim())}
-            />
-            <Input
-              label="Or your password"
-              type="password"
-              value={disablePwd}
-              onChange={(e) => setDisablePwd(e.target.value)}
-              autoComplete="current-password"
-            />
-            <Button
-              size="sm"
-              variant="danger"
-              loading={disable.isPending}
-              disabled={disableCode.length < 6 && !disablePwd}
-              onClick={() => disable.mutate()}
-            >
-              Disable 2FA
-            </Button>
+      <div className="flex flex-col gap-4">
+        <Card>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit">Two-factor authentication</span>
+            <Badge variant={enabled ? 'success' : 'neutral'} className="uppercase">
+              {enabled ? 'On' : 'Off'}
+            </Badge>
           </div>
-        ) : secret ? (
-          <div className="space-y-3">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Add this secret to your authenticator app (or open the setup link), then enter the current code.
-            </p>
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800/60 p-3 text-sm">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Secret</p>
-              <p className="font-mono break-all">{secret}</p>
-              {uri && (
-                <a href={uri} className="text-xs text-brand-500 hover:underline break-all block mt-1">
-                  Open in authenticator app
-                </a>
-              )}
+
+          {enabled ? (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                2FA is protecting your account. To turn it off, confirm with a current
+                code from your authenticator app, or your password.
+              </p>
+              <Input
+                label="Code from app"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="6-digit code"
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value.trim())}
+              />
+              <Input
+                label="Or your password"
+                type="password"
+                value={disablePwd}
+                onChange={(e) => setDisablePwd(e.target.value)}
+                autoComplete="current-password"
+              />
+              {/* Reversible, so not red: danger is kept for closing the account. */}
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={disable.isPending}
+                disabled={disableCode.length < 6 && !disablePwd}
+                onClick={() => disable.mutate()}
+              >
+                Disable 2FA
+              </Button>
             </div>
-            <Input
-              label="Code from app"
-              inputMode="numeric"
-              placeholder="6-digit code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-            <Button size="sm" loading={enable.isPending} disabled={code.length < 6} onClick={() => enable.mutate()}>
-              Turn on 2FA
+          ) : secret ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Add this secret to your authenticator app (or open the setup link), then enter the current code.
+              </p>
+              <div className="rounded-lg border border-gray-200 bg-biscuit p-3 text-sm text-navy dark:border-white/10 dark:bg-night-raised dark:text-biscuit">
+                <p className="field-label">Secret</p>
+                <p className="mt-1 font-mono break-all">{secret}</p>
+                {uri && (
+                  <a href={uri} className="text-xs break-all inline-block mt-2 font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit">
+                    Open in authenticator app
+                  </a>
+                )}
+              </div>
+              <Input
+                label="Code from app"
+                inputMode="numeric"
+                placeholder="6-digit code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+              <Button size="sm" loading={enable.isPending} disabled={code.length < 6} onClick={() => enable.mutate()}>
+                Turn on 2FA
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" loading={setup.isPending} onClick={() => setup.mutate()}>
+              Set up 2FA
             </Button>
-          </div>
-        ) : (
-          <Button size="sm" loading={setup.isPending} onClick={() => setup.mutate()}>
-            Set up 2FA
-          </Button>
-        )}
-      </Card>
+          )}
+        </Card>
 
-      <DeleteAccountCard />
+        <DeleteAccountCard />
+      </div>
     </div>
   );
 }

@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { HousePlus } from 'lucide-react';
 import { signupRescue } from '../api/rescues';
 import { useAuth } from '../store/AuthContext';
 import AuthHero from '../components/AuthHero';
+import BrandIcon from '../components/brand/BrandIcon';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
 import { apiErrorMessage } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+
+// Same field treatment as <Input>, for the textareas it can't render.
+const FIELD =
+  'w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 resize-none dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400';
+// A text link: navy ink with an orange underline.
+const TEXT_LINK =
+  'font-extrabold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit';
 
 export default function RescueSignupPage() {
   useDocumentTitle('Rescue sign-up · Fetchpawz');
@@ -59,13 +66,13 @@ export default function RescueSignupPage() {
         tone="purple"
         title="Rescue / Shelter Account"
         subtitle="Create a verified account so your adoptable pets can appear in Fetchpawz — with inquiry tools, a public page, and optional in-app donations. Applications are reviewed by our team; we'll reach out if we need more info."
-        icon={<HousePlus size={32} aria-hidden />}
+        icon={<BrandIcon name="rescue" size={32} />}
       />
 
       <div className="px-5 mt-8">
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-sm mx-auto bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-soft-lg flex flex-col gap-4"
+          className="surface w-full max-w-sm mx-auto p-5 flex flex-col gap-4"
         >
           <Input
             label="Organization email"
@@ -89,10 +96,11 @@ export default function RescueSignupPage() {
             onChange={(e) => setOrgName(e.target.value)}
             required
           />
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">About your organization</label>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="rescue-signup-description" className="field-label">About your organization</label>
             <textarea
-              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
+              id="rescue-signup-description"
+              className={FIELD}
               rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -120,31 +128,32 @@ export default function RescueSignupPage() {
             onChange={(e) => setDonationUrl(e.target.value)}
             placeholder="https://your-rescue.org/donate"
           />
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Proof of status (optional)</label>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="rescue-signup-proof" className="field-label">Proof of status (optional)</label>
             <textarea
-              className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30 resize-none"
+              id="rescue-signup-proof"
+              className={FIELD}
               rows={2}
               value={proof}
               onChange={(e) => setProof(e.target.value)}
               placeholder="EIN / 501(c)(3), registration number, or a link to your verification"
             />
-            <p className="text-xs text-gray-400 dark:text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Helps us verify your application faster. You can add this later if needed.
             </p>
           </div>
-          <Button type="submit" loading={loading} size="lg" className="w-full">
+          <Button type="submit" variant="rescue" loading={loading} size="lg" className="w-full">
             Submit application
           </Button>
         </form>
 
-        <p className="mt-5 text-sm text-gray-500 dark:text-gray-400 text-center">
+        <p className="mt-5 text-sm text-gray-600 dark:text-gray-300 text-center">
           Already have an account?{' '}
-          <Link to="/login" className="text-brand-600 font-semibold hover:text-brand-700 hover:underline">Log in</Link>
+          <Link to="/login" className={TEXT_LINK}>Log in</Link>
         </p>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center">
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 text-center">
           Not a rescue?{' '}
-          <Link to="/signup" className="text-brand-600 font-semibold hover:text-brand-700 hover:underline">Regular signup</Link>
+          <Link to="/signup" className={TEXT_LINK}>Regular signup</Link>
         </p>
       </div>
     </div>

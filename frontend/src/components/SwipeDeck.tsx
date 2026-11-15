@@ -1,16 +1,16 @@
 import { useState, useCallback, useRef } from 'react';
+import type React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Lock, Undo2 } from 'lucide-react';
 import { getFeed } from '../api/feed';
 import { castVote, takeBackVote } from '../api/votes';
 import SwipeCard from './SwipeCard';
 import AdoptionPrompt from './AdoptionPrompt';
 import RewardedAdModal from './RewardedAdModal';
 import Button from './ui/Button';
-import PawMark from './ui/PawMark';
+import BrandIcon from './brand/BrandIcon';
 import { CardSkeleton } from './ui/Skeleton';
 import ErrorState from './ui/ErrorState';
 import BoneProgress from './flair/BoneProgress';
@@ -205,7 +205,7 @@ export default function SwipeDeck() {
     }
     setCurrentIndex(target.index);
     setPrompt(null);
-    toast('Swipe undone', { icon: '\u21a9\ufe0f' });
+    toast('Swipe undone.');
   };
 
   const handleReward = () => {
@@ -268,24 +268,24 @@ export default function SwipeDeck() {
             visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 260, damping: 16 } },
           }}
         >
-          <PetIllustration species={filterToSpecies(speciesFilter) ?? 'dog'} name="ball" className="h-32 w-auto text-gray-400 dark:text-gray-500" />
+          <PetIllustration species={filterToSpecies(speciesFilter) ?? 'dog'} name="sleeping" className="h-32 w-auto" />
         </motion.span>
         <motion.p
-          className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2"
+          className="text-xl font-extrabold tracking-tight text-navy dark:text-biscuit mb-2 text-balance"
           variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
         >
           {endTitle}
         </motion.p>
         {ratedCount > 0 && (
           <motion.p
-            className="text-gray-500 dark:text-gray-400 mb-1"
+            className="text-gray-600 dark:text-gray-300 mb-1"
             variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
           >
             {`You rated ${ratedCount} pet${ratedCount > 1 ? 's' : ''} this session.`}
           </motion.p>
         )}
         <motion.p
-          className="text-gray-400 dark:text-gray-500 text-sm mb-6 text-balance max-w-xs"
+          className="text-gray-600 dark:text-gray-300 text-sm mb-6 text-balance max-w-xs"
           variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
         >
           {endBody}
@@ -296,8 +296,8 @@ export default function SwipeDeck() {
             // one tap widens it rather than sending them away.
             <Button onClick={() => setSpeciesFilter('all')}>See all pets</Button>
           ) : (
-            <Link to="/app/home">
-              <Button>Back to Home</Button>
+            <Link to="/app/home" className="btn btn-secondary">
+              Back to Home
             </Link>
           )}
         </motion.div>
@@ -324,11 +324,12 @@ export default function SwipeDeck() {
         {!isSubscriber && user ? (
           <>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500 dark:text-gray-400">
-                🐾 {remaining} {remaining === 1 ? 'swipe' : 'swipes'} left today
+              <span className="text-gray-600 dark:text-gray-300">
+                <b className="font-extrabold text-navy dark:text-biscuit">{remaining}</b>{' '}
+                {remaining === 1 ? 'swipe' : 'swipes'} left today
               </span>
               {ratedCount > 0 && (
-                <span className="text-gray-400 dark:text-gray-500">{ratedCount} rated</span>
+                <span className="text-gray-500 dark:text-gray-400">{ratedCount} rated</span>
               )}
             </div>
             <BoneProgress
@@ -340,14 +341,15 @@ export default function SwipeDeck() {
           </>
         ) : (
           ratedCount > 0 && (
-            <span className="text-xs text-gray-400 dark:text-gray-500 text-center">
+            <span className="text-xs text-gray-500 dark:text-gray-400 text-center">
               {ratedCount} rated this session
             </span>
           )
         )}
       </div>
 
-      <div className="relative w-full h-[480px]">
+      <div className="relative w-full max-w-sm px-4 h-[480px]">
+        <div className="relative h-full w-full">
         {visibleDogs.map((pet, i) => (
           <SwipeCard
             key={pet.id}
@@ -358,14 +360,16 @@ export default function SwipeDeck() {
         ))}
 
         {quotaBlocked && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center px-4">
-            <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-soft-lg ring-1 ring-gray-200 dark:ring-gray-800 p-5 text-center">
+          <div className="absolute inset-0 z-20 flex items-center justify-center">
+            {/* The ball doodle is waiting to play. The offer is honest: an
+                ad for more swipes, or Pack+. */}
+            <div className="w-full rounded-3xl border-[2.5px] border-navy bg-white p-5 text-center shadow-toy dark:border-white/15 dark:bg-night-surface">
               <PetIllustration
                 species={filterToSpecies(speciesFilter) ?? 'dog'}
-                name="sleeping"
-                className="mx-auto mb-2 h-24 w-auto text-gray-400 dark:text-gray-500"
+                name="ball"
+                className="mx-auto mb-2 h-24 w-auto"
               />
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+              <h3 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit text-balance">
                 You've used today's free swipes
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
@@ -379,26 +383,28 @@ export default function SwipeDeck() {
                 ) : (
                   <p className="text-xs text-gray-500 dark:text-gray-400">Daily cap reached. Come back tomorrow.</p>
                 )}
-                <Link to="/app/billing" className="text-sm text-brand-500 hover:underline">
+                <Link to="/app/billing" className="text-sm font-extrabold text-brand-700 hover:underline dark:text-brand-400">
                   Subscribe to Pack+ →
                 </Link>
               </div>
             </div>
           </div>
         )}
+        </div>
       </div>
 
-      {/* Button controls */}
+      {/* Button controls: Pass is white, Like is orange, Undo is the small
+          one in between. All round, all on a navy ledge. */}
       <div className="flex items-center gap-4 mt-4">
         <motion.button
           onClick={() => handleSwipe('left')}
           whileTap={{ scale: 0.88 }}
           whileHover={{ scale: 1.06 }}
           transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-          className="w-[84px] h-[84px] rounded-full bg-danger-100 text-danger-500 dark:bg-danger-500/15 dark:text-danger-400 flex items-center justify-center shadow-soft-sm hover:bg-danger-200 dark:hover:bg-danger-500/25 transition-colors"
+          className="w-16 h-16 rounded-full border-[2.5px] border-navy bg-white text-navy flex items-center justify-center shadow-ledge transition-colors hover:bg-gray-50"
           aria-label="Pass"
         >
-          <PawMark className="h-[42px] w-[42px] rotate-180" decorative />
+          <BrandIcon name="pass" size={30} />
         </motion.button>
 
         <AnimatePresence initial={false}>
@@ -412,15 +418,15 @@ export default function SwipeDeck() {
               whileTap={{ scale: 0.9 }}
               whileHover={{ scale: 1.06 }}
               transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-              className={`h-11 rounded-full text-sm flex items-center justify-center shadow-soft-sm transition-colors overflow-hidden ${
+              className={`h-11 rounded-full border-2 text-sm flex items-center justify-center transition-colors overflow-hidden ${
                 isSubscriber
-                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  : 'bg-gray-50 dark:bg-gray-800/50 text-gray-300 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                  ? 'border-navy bg-white text-navy shadow-ledge-sm hover:bg-gray-50'
+                  : 'border-dashed border-navy/40 bg-white/60 text-gray-500 dark:border-white/30 dark:bg-night-surface dark:text-gray-400'
               }`}
               title={isSubscriber ? 'Undo last swipe' : 'Rewind is a Pack+ perk'}
               aria-label={isSubscriber ? 'Undo last swipe' : 'Rewind (Pack+ only)'}
             >
-              {isSubscriber ? <Undo2 size={18} aria-hidden /> : <Lock size={16} aria-hidden />}
+              {isSubscriber ? <BrandIcon name="undo" size={20} /> : <BrandIcon name="lock" size={18} />}
             </motion.button>
           )}
         </AnimatePresence>
@@ -430,10 +436,10 @@ export default function SwipeDeck() {
           whileTap={{ scale: 0.88 }}
           whileHover={{ scale: 1.06 }}
           transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-          className="relative w-[84px] h-[84px] rounded-full bg-success-100 text-success-500 dark:bg-success-500/15 dark:text-success-400 flex items-center justify-center shadow-soft-sm hover:bg-success-200 dark:hover:bg-success-500/25 transition-colors"
+          className="relative w-16 h-16 rounded-full border-[2.5px] border-navy bg-brand-500 text-navy flex items-center justify-center shadow-ledge transition-colors hover:bg-brand-400"
           aria-label="Like"
         >
-          <Heart size={40} fill="currentColor" strokeWidth={0} aria-hidden />
+          <BrandIcon name="like" size={30} style={{ '--bean': '#FFFFFF' } as React.CSSProperties} />
           <PawBurstLayer />
         </motion.button>
       </div>
@@ -456,18 +462,18 @@ export default function SwipeDeck() {
         <div className="w-full max-w-sm mt-4 px-4">
           <Link
             to="/app/billing"
-            className="block rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="block rounded-2xl bg-white dark:bg-night-surface border border-dashed border-navy/25 dark:border-white/20 px-3.5 py-2.5 hover:border-navy/50 transition-colors"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-2xs uppercase tracking-wide text-gray-400 dark:text-gray-500 leading-none">
+                <p className="eyebrow leading-none">
                   Ad
                 </p>
                 <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 truncate">
                   Go ad-free with Pack+
                 </p>
               </div>
-              <span className="text-xs font-semibold text-brand-500 flex-shrink-0">Upgrade →</span>
+              <span className="text-xs font-extrabold text-brand-700 dark:text-brand-400 flex-shrink-0">Upgrade →</span>
             </div>
           </Link>
         </div>

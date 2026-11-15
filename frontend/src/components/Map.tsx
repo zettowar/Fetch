@@ -50,11 +50,26 @@ function circlePolygon(
   };
 }
 
+/**
+ * Brand pin colours (Brand Book, Color). Map paint and SVG fills take hex,
+ * not Tailwind classes, so the jobs are spelled out here once:
+ * play = the default pin and a search area, park = parks and found pets,
+ * ink = Leash Navy (a missing pet, with a `play` dot), paper = an outline pin.
+ */
+export const MAP_PIN = {
+  play: '#FF6A1F',
+  park: '#22B07A',
+  ink: '#1C1F45',
+  paper: '#FFFFFF',
+} as const;
+
 export interface MapMarker {
   id: string;
   lat: number;
   lng: number;
   color: string;
+  /** Centre dot colour. Defaults to white; a missing pet's navy pin takes Ball Orange. */
+  dot?: string;
   label?: string;
   onClick?: () => void;
   /** Optional ReactNode to render inside a popup when this marker is selected. */
@@ -116,23 +131,25 @@ const MAP_STYLE: StyleSpecification = {
   ],
 };
 
-/** Teardrop pin. Taller than wide so it reads as a map marker at a glance. */
-function PinIcon({ color, selected }: { color: string; selected: boolean }) {
+/** Teardrop pin. Taller than wide so it reads as a map marker at a glance.
+ * Drawn in the brand pen: a Leash Navy line round a flat fill, no glow. */
+function PinIcon({ color, dot, selected }: { color: string; dot: string; selected: boolean }) {
   return (
     <svg
       width={selected ? 34 : 28}
       height={selected ? 46 : 38}
       viewBox="0 0 24 32"
-      className="drop-shadow-md transition-[width,height] duration-150"
+      className="overflow-visible transition-[width,height] duration-150"
       aria-hidden
     >
       <path
         d="M12 32 C 12 32 22 19 22 12 A 10 10 0 1 0 2 12 C 2 19 12 32 12 32 Z"
         fill={color}
-        stroke="white"
+        stroke={MAP_PIN.ink}
         strokeWidth={2}
+        strokeLinejoin="round"
       />
-      <circle cx={12} cy={12} r={3.5} fill="white" />
+      <circle cx={12} cy={12} r={3.75} fill={dot} stroke={MAP_PIN.ink} strokeWidth={1.5} />
     </svg>
   );
 }
@@ -295,7 +312,11 @@ export default function Map({
               title={m.label}
               aria-label={m.label}
             >
-              <PinIcon color={m.color} selected={selectedMarkerId === m.id} />
+              <PinIcon
+                color={m.color}
+                dot={m.dot ?? MAP_PIN.paper}
+                selected={selectedMarkerId === m.id}
+              />
             </button>
           </Marker>
         ))}
@@ -313,7 +334,7 @@ export default function Map({
           >
             <div className="p-3 min-w-[240px]">
               {selectedMarker.popup ?? (
-                <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                <div className="text-sm font-extrabold text-navy dark:text-biscuit">
                   {selectedMarker.label ?? ''}
                 </div>
               )}

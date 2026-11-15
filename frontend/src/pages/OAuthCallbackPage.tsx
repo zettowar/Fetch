@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
 import { oauthExchange } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
-import AuthHero from '../components/AuthHero';
+import AuthHero, { AUTH_CARD, AUTH_LINK } from '../components/AuthHero';
+import BrandIcon from '../components/brand/BrandIcon';
 import DogIllustration from '../components/flair/DogIllustration';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -83,14 +83,14 @@ export default function OAuthCallbackPage() {
       <AuthHero
         title="Signing you in"
         subtitle="Hang tight — finishing up with your provider."
-        icon={<LogIn size={32} aria-hidden />}
+        icon={<BrandIcon name="user" size={32} />}
       />
-      <div className="px-5 mt-8">
-        <div className="w-full max-w-sm mx-auto bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-soft-lg flex flex-col items-center text-center">
+      <div className="px-1 sm:px-5 mt-7">
+        <div className={`${AUTH_CARD} flex flex-col items-center text-center`}>
           {status === 'working' && (
             <>
-              <Spinner className="h-8 w-8 my-4" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">Completing sign-in…</p>
+              <Spinner size="lg" className="my-4" />
+              <p className="text-sm text-gray-600 dark:text-gray-300">Completing sign-in…</p>
             </>
           )}
           {status === 'needs-otp' && (
@@ -103,8 +103,8 @@ export default function OAuthCallbackPage() {
                 }
               }}
             >
-              <h2 className="text-xl font-bold mb-1">Two-factor code</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              <h2 className="mb-1 text-xl font-extrabold text-navy dark:text-biscuit">Two-factor code</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                 Your account has 2FA on. Enter the current code from your
                 authenticator app to finish signing in.
               </p>
@@ -127,18 +127,18 @@ export default function OAuthCallbackPage() {
               >
                 Verify and continue
               </Button>
-              <Link to="/login" className="block mt-3 text-sm text-brand-500 hover:underline">
+              <Link to="/login" className={`mt-4 inline-block text-sm ${AUTH_LINK}`}>
                 Use a different sign-in
               </Link>
             </form>
           )}
           {status === 'error' && (
             <>
-              <DogIllustration name="howling" className="mb-4 h-28 w-auto text-gray-400 dark:text-gray-500" />
-              <h2 className="text-2xl font-bold mb-2">Sign-in failed</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-sm">{message}</p>
-              <Link to="/login">
-                <Button variant="secondary">Back to login</Button>
+              <DogIllustration name="howling" className="mb-4 h-28 w-auto" />
+              <h2 className="mb-1.5 text-xl font-extrabold text-navy dark:text-biscuit">Sign-in failed</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 max-w-sm">{message}</p>
+              <Link to="/login" className="btn btn-secondary">
+                Back to login
               </Link>
             </>
           )}

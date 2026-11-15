@@ -169,6 +169,23 @@ adding a sighting and uploading a rescue logo never worked. Refresh reads the
 token from `localStorage` (shared by every tab), not from this tab's memory:
 refresh tokens are single-use and each tab rotates the shared one at boot.
 
+**Brand (Edition 2) — read `src/components/ui/README.md` before styling.**
+The stock Tailwind palettes are re-pointed at the brand in
+`tailwind.config.js` (`gray` is the navy ink scale, `red`→danger,
+`amber`→Crown Gold, `purple`/`blue`→Leash Navy …), so old classes land on
+brand colours. Fonts: Figtree (sans), Bagel Fat One (`font-display`, every
+`h1`), DM Mono (`font-mono`). Shared classes in `index.css`: `.btn` +
+`btn-primary|secondary|ghost|danger|rescue|park|paper`, `.chip`/`chip-on`,
+`.seg`, `.surface`, `.field`, `.field-label`, `.link`, `.toy`, `.font-plain`.
+Brand art lives in `src/components/brand/` (`Lockup`, `Wordmark`, `BrandIcon`
+— 36 drawn icons, `PetPortrait` — 39 breed portraits, `RankMedal`/`Crown`);
+`PawMark` is the Crown Paw; the doodles are in `flair/doodles.ts`. Rules that
+are easy to break: navy text on any colour fill (never white on orange), no
+gradients, no emoji in UI, gold only for earned things, pink only for
+rescue/adoption, and Lost & Found in the calm register (`<PageHeader plain>`,
+never red). The icon/portrait/doodle data files are generated from the brand
+book — edit the book, not the data.
+
 **Shared components:**
 - `Button` — variants: primary, secondary, danger, ghost. Sizes: sm, md, lg. Has `loading` prop.
 - `Input` — auto-generates `id`/`htmlFor` linkage. Has `label` and `error` props.

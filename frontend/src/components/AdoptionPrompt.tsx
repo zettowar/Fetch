@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import BrandIcon from './brand/BrandIcon';
+import Badge from './ui/Badge';
 
 interface Props {
   petId: string;
@@ -9,14 +11,19 @@ interface Props {
 
 export default function AdoptionPrompt({ petId, dogName, rescueName, onDismiss }: Props) {
   return (
-    <div className="mt-3 w-full animate-fade-in-up rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-gradient-to-br from-brand-50 to-white dark:from-brand-500/10 dark:to-gray-900 p-4 shadow-sm">
+    // Pink marks the rescue, never the pet's sadness. Same dignity as any
+    // other card; the actions change to the two things you can do.
+    <div className="mt-3 w-full animate-fade-in-up rounded-2xl border-2 border-navy bg-pink-100 p-4 text-navy dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-biscuit">
       <div className="flex items-start gap-3">
-        <span className="text-2xl leading-none" aria-hidden>🐾</span>
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-navy bg-white text-navy" aria-hidden>
+          <BrandIcon name="rescue" size={22} />
+        </span>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 dark:text-gray-100">
+          <Badge variant="rescue" className="mb-1.5">Needs a home</Badge>
+          <p className="font-extrabold text-navy dark:text-biscuit">
             {dogName} is looking for a home
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
+          <p className="text-sm text-navy dark:text-biscuit/85 mt-0.5">
             {rescueName
               ? `${rescueName} has ${dogName} available for adoption.`
               : `${dogName} is available for adoption.`}
@@ -25,16 +32,16 @@ export default function AdoptionPrompt({ petId, dogName, rescueName, onDismiss }
             <Link
               to={`/app/pets/${petId}`}
               onClick={onDismiss}
-              className="text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 px-3 py-1.5 rounded-lg transition-colors"
+              className="btn btn-rescue btn-sm"
             >
-              Learn more
+              Meet {dogName}
             </Link>
             <button
               type="button"
               onClick={onDismiss}
-              className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="btn btn-ghost btn-sm"
             >
-              Dismiss
+              Keep rating
             </button>
           </div>
         </div>

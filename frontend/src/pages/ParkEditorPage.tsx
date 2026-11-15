@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import BackButton from '../components/ui/BackButton';
+import PageHeader from '../components/ui/PageHeader';
+import PawSpinner from '../components/flair/PawSpinner';
 import { createPark, getPark, updatePark } from '../api/parks';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { useAuth } from '../store/AuthContext';
+
+// Inline text link: navy ink on an orange underline.
+const LINK =
+  'font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit';
 
 const PARK_ATTRIBUTES = [
   'fenced', 'off_leash_legal', 'water', 'shade',
@@ -98,43 +103,54 @@ export default function ParkEditorPage() {
   if (user && user.role !== 'admin') {
     return (
       <div className="p-4">
-        <BackButton fallback={isEditing ? `/app/parks/${parkId}` : '/app/parks'} />
-        <h1 className="text-2xl font-bold mb-2">Parks are added by our team</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Spotted a park we&rsquo;re missing, or a detail that&rsquo;s wrong?{' '}
-          <Link to="/app/support" className="text-brand-500 hover:underline">
-            Tell us
-          </Link>{' '}
-          and we&rsquo;ll update it for everyone.
-        </p>
+        <PageHeader
+          back
+          backFallback={isEditing ? `/app/parks/${parkId}` : '/app/parks'}
+          title="Parks are added by our team"
+          subtitle={
+            <>
+              Spotted a park we&rsquo;re missing, or a detail that&rsquo;s wrong?{' '}
+              <Link to="/app/support" className={LINK}>
+                Tell us
+              </Link>{' '}
+              and we&rsquo;ll update it for everyone.
+            </>
+          }
+        />
       </div>
     );
   }
 
   if (loading) {
-    return <div className="p-4 text-center text-gray-400 dark:text-gray-500">Loading…</div>;
+    return (
+      <div className="p-4 flex justify-center">
+        <PawSpinner label="Loading…" />
+      </div>
+    );
   }
 
   return (
     <div className="p-4">
-      <BackButton fallback={isEditing ? `/app/parks/${parkId}` : '/app/parks'} />
-      <h1 className="text-2xl font-bold mb-4">
-        {isEditing ? 'Edit Park' : 'Add a Pet Park'}
-      </h1>
-      {!isEditing && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Parks you add here are marked verified and appear for everyone right away.
-        </p>
-      )}
+      <PageHeader
+        back
+        backFallback={isEditing ? `/app/parks/${parkId}` : '/app/parks'}
+        title={isEditing ? 'Edit park' : 'Add a pet park'}
+        subtitle={
+          isEditing
+            ? undefined
+            : 'Parks you add here are marked verified and appear for everyone right away.'
+        }
+        className="mb-6"
+      />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input label="Park Name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <Input label="Park name" value={name} onChange={(e) => setName(e.target.value)} required />
         <Input label="Address" value={address} onChange={(e) => setAddress(e.target.value)} />
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
+        <div className="flex flex-col gap-2" role="group" aria-labelledby="park-editor-location-label">
+          <span id="park-editor-location-label" className="field-label">Location</span>
           <Button type="button" variant="secondary" size="sm" onClick={handleGetLocation}>
-            Use My Location
+            Use my location
           </Button>
           <div className="grid grid-cols-2 gap-2">
             <Input label="Latitude" type="number" step="any" value={lat} onChange={(e) => setLat(e.target.value)} required />
@@ -143,18 +159,15 @@ export default function ParkEditorPage() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Amenities</label>
-          <div className="flex flex-wrap gap-2">
+          <span id="park-editor-amenities-label" className="field-label mb-1">Amenities</span>
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="park-editor-amenities-label">
             {PARK_ATTRIBUTES.map((attr) => (
               <button
                 key={attr}
                 type="button"
                 onClick={() => toggleAttr(attr)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  attrs[attr]
-                    ? 'bg-brand-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
+                aria-pressed={!!attrs[attr]}
+                className={`chip ${attrs[attr] ? 'chip-on' : 'hover:bg-gray-50 dark:hover:bg-night-surface'}`}
               >
                 {attr.replace(/_/g, ' ')}
               </button>
@@ -163,7 +176,7 @@ export default function ParkEditorPage() {
         </div>
 
         <Button type="submit" loading={saving} className="w-full">
-          {isEditing ? 'Save Changes' : 'Submit Park'}
+          {isEditing ? 'Save changes' : 'Submit park'}
         </Button>
       </form>
     </div>

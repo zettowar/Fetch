@@ -14,7 +14,7 @@ interface SectionHeaderProps {
 export default function SectionHeader({ title, icon, action, className = '' }: SectionHeaderProps) {
   return (
     <div className={`flex items-center justify-between mb-3 ${className}`}>
-      <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
+      <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-navy dark:text-biscuit">
         {icon && (
           <span className="shrink-0 leading-none text-brand-500" aria-hidden>
             {icon}

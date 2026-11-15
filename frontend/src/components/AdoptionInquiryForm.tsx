@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import BrandIcon from './brand/BrandIcon';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import { submitAdoptionInquiry } from '../api/adoption';
 import { useAuth } from '../store/AuthContext';
 import type { Pet } from '../types';
+
+// Same field treatment as <Input>, for the select and textarea it can't render.
+const FIELD =
+  'w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:hover:border-white/35 dark:focus:border-brand-400';
 
 interface Props {
   rescueId: string;
@@ -63,29 +68,39 @@ export default function AdoptionInquiryForm({
 
   return (
     <form
-      className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4"
+      className="surface p-4"
       onSubmit={(e) => {
         e.preventDefault();
         if (canSubmit) mutation.mutate();
       }}
     >
-      <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-        Ask about adoption
-      </h3>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-        {rescueName} will reach out with next steps.
-      </p>
+      <div className="flex items-start gap-3 mb-4">
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-navy bg-pink-100 text-navy dark:border-white/15 dark:bg-pink-500/20 dark:text-biscuit"
+          aria-hidden
+        >
+          <BrandIcon name="rescue" size={20} />
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-base font-extrabold text-navy dark:text-biscuit">
+            Ask about adoption
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            {rescueName} will reach out with next steps.
+          </p>
+        </div>
+      </div>
 
       <div className="space-y-3">
         {pets.length > 0 && (
           <label className="block">
-            <span className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            <span className="field-label block mb-1.5">
               Which pet?
             </span>
             <select
               value={selectedDogId}
               onChange={(e) => setSelectedDogId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              className={`${FIELD} min-h-[48px]`}
             >
               <option value="">Any pet / general question</option>
               {pets.map((d) => (
@@ -114,7 +129,7 @@ export default function AdoptionInquiryForm({
           onChange={(e) => setPhone(e.target.value)}
         />
         <label className="block">
-          <span className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+          <span className="field-label block mb-1.5">
             Message
           </span>
           <textarea
@@ -123,9 +138,9 @@ export default function AdoptionInquiryForm({
             rows={4}
             maxLength={2000}
             required
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            className={`${FIELD} resize-none`}
           />
-          <span className="block text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 text-right">
+          <span className="block text-2xs text-gray-500 dark:text-gray-400 mt-0.5 text-right tabular-nums">
             {message.length}/2000
           </span>
         </label>
@@ -133,6 +148,7 @@ export default function AdoptionInquiryForm({
 
       <Button
         type="submit"
+        variant="rescue"
         loading={mutation.isPending}
         disabled={!canSubmit}
         className="mt-4 w-full"

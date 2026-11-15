@@ -20,32 +20,32 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <App />
+        {/* Brand toast: Navy (Biscuit after dark), bottom of the screen
+            above the tab bar, four seconds. What happened first, what it
+            means second. */}
         <Toaster
-          position="top-center"
+          position="bottom-center"
           gutter={8}
-          containerStyle={{ top: 'calc(env(safe-area-inset-top) + 12px)' }}
+          containerStyle={{ bottom: 'calc(var(--tab-bar-h, 0px) + 14px)' }}
           toastOptions={{
-            duration: 2400,
+            duration: 4000,
             style: {
               background: 'var(--toast-bg)',
-              color: '#fff',
-              backdropFilter: 'blur(12px) saturate(150%)',
-              WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+              color: 'var(--toast-fg)',
               border: '1px solid var(--toast-border)',
-              borderRadius: '14px',
-              padding: '10px 14px',
-              fontSize: '14px',
+              borderRadius: '20px',
+              padding: '12px 16px',
+              fontSize: '14.5px',
               fontWeight: 500,
-              boxShadow:
-                '0 10px 30px -8px rgba(17, 24, 39, 0.35), 0 4px 12px -4px rgba(17, 24, 39, 0.2)',
+              lineHeight: 1.4,
+              boxShadow: '0 12px 28px -12px rgba(17, 19, 46, 0.55)',
               maxWidth: '380px',
             },
             success: {
-              duration: 2000,
-              iconTheme: { primary: 'rgb(var(--brand))', secondary: '#fff' },
+              iconTheme: { primary: '#22b07a', secondary: '#fff' },
             },
             error: {
-              duration: 4000,
+              duration: 5000,
               iconTheme: { primary: 'rgb(var(--danger))', secondary: '#fff' },
             },
           }}

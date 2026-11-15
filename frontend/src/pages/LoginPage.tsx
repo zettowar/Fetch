@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { login } from '../api/auth';
 import { useAuth } from '../store/AuthContext';
-import AuthHero from '../components/AuthHero';
+import AuthHero, { AUTH_CARD, AUTH_LINK } from '../components/AuthHero';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import PasswordInput from '../components/ui/PasswordInput';
@@ -73,11 +73,8 @@ export default function LoginPage() {
       />
 
       {/* Form card */}
-      <div className="px-5 mt-8">
-        <form
-          onSubmit={handleSubmit}
-          className="w-full max-w-sm mx-auto bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-soft-lg flex flex-col gap-4"
-        >
+      <div className="px-1 sm:px-5 mt-7">
+        <form onSubmit={handleSubmit} className={`${AUTH_CARD} flex flex-col gap-4`}>
           <Input
             label="Email"
             type="email"
@@ -96,10 +93,7 @@ export default function LoginPage() {
               required
               autoComplete="current-password"
             />
-            <Link
-              to="/forgot-password"
-              className="self-end text-xs font-medium text-brand-600 hover:text-brand-700"
-            >
+            <Link to="/forgot-password" className={`self-end text-xs ${AUTH_LINK}`}>
               Forgot password?
             </Link>
           </div>
@@ -118,18 +112,15 @@ export default function LoginPage() {
           )}
 
           <Button type="submit" loading={loading} size="lg" className="w-full">
-            {needsOtp ? 'Verify' : 'Log In'}
+            {needsOtp ? 'Verify' : 'Log in'}
           </Button>
         </form>
 
         <SSOButtons />
 
-        <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-300">
           New to Fetchpawz?{' '}
-          <Link
-            to="/signup"
-            className="text-brand-600 font-semibold hover:text-brand-700 hover:underline"
-          >
+          <Link to="/signup" className={AUTH_LINK}>
             Create an account
           </Link>
         </p>

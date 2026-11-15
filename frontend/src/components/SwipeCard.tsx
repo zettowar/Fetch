@@ -1,10 +1,10 @@
+import type React from 'react';
 import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { HousePlus } from 'lucide-react';
 import type { Pet } from '../types';
 import { petAge, petHeroPhoto } from '../utils/time';
-import Badge from './ui/Badge';
-import PetIllustration from './flair/PetIllustration';
+import BrandIcon from './brand/BrandIcon';
+import PetPortrait, { portraitFor, portraitTint } from './brand/PetPortrait';
 
 interface SwipeCardProps {
   pet: Pet;
@@ -37,9 +37,14 @@ export default function SwipeCard({ pet, onSwipe, isTop }: SwipeCardProps) {
     }
   };
 
+  const portrait = portraitFor(pet.species, pet.breed_display, pet.id);
+
+  // The trading card (Brand Book, The app → Swipe): white, a 2.5px Leash Navy
+  // line and the toy shadow, the photo on top over a navy rule, the name in
+  // Bagel Fat One. Pass is white, Like is orange — the card never shows red.
   return (
     <motion.div
-      className="absolute inset-0 bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden cursor-grab active:cursor-grabbing"
+      className="absolute inset-0 flex flex-col overflow-hidden rounded-3xl border-[2.5px] border-navy bg-white shadow-toy cursor-grab active:cursor-grabbing dark:border-white/15 dark:bg-night-surface"
       style={{ x, rotate, zIndex: isTop ? 10 : 1 }}
       drag={isTop ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
@@ -50,73 +55,84 @@ export default function SwipeCard({ pet, onSwipe, isTop }: SwipeCardProps) {
       animate={{ scale: isTop ? 1 : 0.95, y: isTop ? 0 : 8, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
     >
-      {photoUrl ? (
-        <img src={photoUrl} alt={pet.name} className="w-full h-[70%] object-cover" />
-      ) : (
-        <div className="w-full h-[70%] bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 flex flex-col items-center justify-center gap-2">
-          <PetIllustration species={pet.species} name="sleeping" className="h-24 w-auto text-brand-300 dark:text-brand-400/60" />
-          <p className="text-sm text-brand-300 dark:text-brand-400/80 font-medium">No photo yet</p>
-        </div>
-      )}
-
-      {/* Rescue badge — links to the rescue's profile, on top of the photo */}
-      {pet.rescue_id && (
-        <Link
-          to={`/app/rescues/${pet.rescue_id}`}
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-          className="absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-2xs font-semibold px-2.5 py-1 shadow-soft-sm hover:bg-brand-600 transition-colors"
-          aria-label={`Rescue · ${pet.rescue_name ?? 'View rescue profile'}`}
-        >
-          <HousePlus size={12} aria-hidden />
-          <span className="max-w-[140px] truncate">
-            {pet.rescue_name ?? 'Rescue'}
-          </span>
-        </Link>
-      )}
-
-      {/* Species chip */}
-      <span
-        className="absolute top-3 right-3 z-20 inline-flex items-center justify-center rounded-full bg-black/45 text-white text-base w-7 h-7 shadow-soft-sm"
-        aria-label={pet.species === 'cat' ? 'Cat' : 'Dog'}
-        title={pet.species === 'cat' ? 'Cat' : 'Dog'}
-      >
-        {pet.species === 'cat' ? '🐈' : '🐕'}
-      </span>
-
-      {/* Like/Pass overlays */}
-      <motion.div
-        className="absolute top-6 right-6 bg-success-500 text-white px-4 py-2 rounded-xl text-xl font-bold rotate-12 border-4 border-success-500"
-        style={{ opacity: likeOpacity }}
-      >
-        LIKE
-      </motion.div>
-      <motion.div
-        className="absolute top-6 left-6 bg-danger-400 text-white px-4 py-2 rounded-xl text-xl font-bold -rotate-12 border-4 border-danger-400"
-        style={{ opacity: passOpacity }}
-      >
-        PASS
-      </motion.div>
-
-      <div className="p-4">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-xl font-bold">{pet.name}</h2>
-          {pet.birthday && (
-            <span className="text-sm text-gray-400 dark:text-gray-500">{petAge(pet.birthday, pet.species)}</span>
-          )}
-        </div>
-        {pet.breed_display && <p className="text-gray-500 dark:text-gray-400">{pet.breed_display}</p>}
-        {pet.traits && pet.traits.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {pet.traits.slice(0, 3).map((t) => (
-              <Badge key={t} variant="brand">
-                {t}
-              </Badge>
-            ))}
-            {pet.traits.length > 3 && <Badge variant="neutral">+{pet.traits.length - 3}</Badge>}
+      <div className="relative h-[62%] shrink-0 border-b-[2.5px] border-navy dark:border-white/15">
+        {photoUrl ? (
+          <img src={photoUrl} alt={pet.name} className="h-full w-full object-cover" draggable={false} />
+        ) : (
+          <div
+            className="flex h-full w-full items-end justify-center"
+            style={{ background: portraitTint(portrait) }}
+          >
+            <PetPortrait id={portrait} className="h-[96%] w-auto" title={`${pet.name}, no photo yet`} />
           </div>
         )}
-        {pet.bio && <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{pet.bio}</p>}
+
+        {/* Rescue pill — Forever Pink means a pet who needs a home. Links to
+            the rescue's profile, on top of the photo. */}
+        {pet.rescue_id && (
+          <Link
+            to={`/app/rescues/${pet.rescue_id}`}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full border-2 border-navy bg-pink-500 px-2.5 py-1 text-2xs font-extrabold text-navy transition-transform hover:-translate-y-px"
+            aria-label={`Rescue · ${pet.rescue_name ?? 'View rescue profile'}`}
+          >
+            <BrandIcon name="rescue" size={14} style={{ '--bean': '#FFFFFF' } as React.CSSProperties} />
+            <span className="max-w-[140px] truncate">{pet.rescue_name ?? 'Needs a home'}</span>
+          </Link>
+        )}
+
+        {/* Species tag */}
+        <span
+          className="absolute top-3 right-3 z-20 inline-flex items-center rounded-full border-2 border-navy bg-white px-2.5 py-1 text-2xs font-extrabold text-navy"
+          aria-label={pet.species === 'cat' ? 'Cat' : 'Dog'}
+          title={pet.species === 'cat' ? 'Cat' : 'Dog'}
+        >
+          {pet.species === 'cat' ? 'Cat' : 'Dog'}
+        </span>
+
+        {/* Like / Pass stamps */}
+        <motion.div
+          className="absolute top-14 right-5 z-20 rotate-12 rounded-xl border-[3px] border-navy bg-brand-500 px-4 py-1.5 font-display text-2xl text-navy shadow-toy-sm"
+          style={{ opacity: likeOpacity }}
+        >
+          Like
+        </motion.div>
+        <motion.div
+          className="absolute top-14 left-5 z-20 -rotate-12 rounded-xl border-[3px] border-navy bg-white px-4 py-1.5 font-display text-2xl text-navy shadow-toy-sm"
+          style={{ opacity: passOpacity }}
+        >
+          Pass
+        </motion.div>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5 px-4 pt-3 pb-4">
+        <div className="flex items-baseline gap-2">
+          <h2 className="truncate font-display text-[30px] leading-none text-navy dark:text-biscuit">{pet.name}</h2>
+          {pet.birthday && (
+            <span className="shrink-0 text-sm font-bold text-gray-500 dark:text-gray-400">
+              {petAge(pet.birthday, pet.species)}
+            </span>
+          )}
+        </div>
+        {pet.breed_display && (
+          <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">{pet.breed_display}</p>
+        )}
+        {pet.traits && pet.traits.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {pet.traits.slice(0, 3).map((t) => (
+              <span key={t} className="chip px-2 py-0.5 text-xs">
+                {t}
+              </span>
+            ))}
+            {pet.traits.length > 3 && (
+              <span className="chip chip-add px-2 py-0.5 text-xs">+{pet.traits.length - 3}</span>
+            )}
+          </div>
+        )}
+        {pet.bio && (
+          <p className="line-clamp-2 text-sm leading-snug text-navy/80 dark:text-biscuit/80">{pet.bio}</p>
+        )}
       </div>
     </motion.div>
   );

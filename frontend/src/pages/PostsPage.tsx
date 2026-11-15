@@ -9,6 +9,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { useDebounced } from '../utils/useDebounced';
 import Avatar from '../components/ui/Avatar';
+import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
@@ -26,16 +27,14 @@ const KIND_FILTERS: { label: string; value: PostKind | 'all' }[] = [
   { label: 'Spotlights', value: 'rescue_spotlight' },
 ];
 
-export const KIND_BADGE: Record<PostKind, { label: string; className: string } | null> = {
+type BadgeVariant = NonNullable<React.ComponentProps<typeof Badge>['variant']>;
+
+// Pink is the rescue colour, so a spotlight wears the rescue badge; a
+// sponsored post is plainly neutral (never gold — nothing was earned).
+export const KIND_BADGE: Record<PostKind, { label: string; variant: BadgeVariant } | null> = {
   community: null,
-  sponsor: {
-    label: 'Sponsored',
-    className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
-  },
-  rescue_spotlight: {
-    label: 'Rescue spotlight',
-    className: 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300',
-  },
+  sponsor: { label: 'Sponsored', variant: 'neutral' },
+  rescue_spotlight: { label: 'Rescue spotlight', variant: 'rescue' },
 };
 
 export default function PostsPage() {
@@ -69,6 +68,7 @@ export default function PostsPage() {
       <PageHeader
         title="Community"
         subtitle="Questions, tips and good news from other Fetchpawz humans."
+        className="px-4 pt-4 mb-4"
         action={
           <Button size="sm" onClick={() => setComposerOpen(true)}>
             <Plus size={16} aria-hidden /> Post
@@ -84,18 +84,15 @@ export default function PostsPage() {
           aria-label="Search posts"
         />
 
-        <div className="flex gap-1.5" role="group" aria-label="Filter by kind">
+        {/* One-of-a-few: the segmented control (aria-pressed paints it). */}
+        <div className="seg self-start" role="group" aria-label="Filter by kind">
           {KIND_FILTERS.map((f) => (
             <button
               key={f.value}
               type="button"
               onClick={() => setKind(f.value)}
               aria-pressed={kind === f.value}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                kind === f.value
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-              }`}
+              className={kind === f.value ? 'seg-on' : 'hover:bg-navy/5 dark:hover:bg-white/10'}
             >
               {f.label}
             </button>
@@ -119,7 +116,8 @@ export default function PostsPage() {
             }
             action={
               !search.trim() ? (
-                <Button size="sm" onClick={() => setComposerOpen(true)}>
+                // The header's Post button is this screen's primary.
+                <Button size="sm" variant="secondary" onClick={() => setComposerOpen(true)}>
                   Write the first post
                 </Button>
               ) : undefined
@@ -155,12 +153,12 @@ function PostCard({ post }: { post: Post }) {
     <Card as={Link} to={`/app/community/${post.id}`} interactive>
       <div className="flex items-center gap-2 mb-1.5">
         <Avatar name={post.author_name || 'U'} size="sm" />
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+        <span className="text-sm font-bold text-navy dark:text-biscuit truncate">
           {post.author_name || 'Unknown'}
         </span>
         <TimeAgo
           value={post.created_at}
-          className="text-xs text-gray-400 dark:text-gray-500"
+          className="text-xs text-gray-500 dark:text-gray-400"
         />
         {post.pinned && (
           <Pin
@@ -171,27 +169,18 @@ function PostCard({ post }: { post: Post }) {
         )}
       </div>
 
-      <h2 className="font-semibold tracking-tight text-balance">{post.title}</h2>
+      <h2 className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit text-balance">{post.title}</h2>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2 whitespace-pre-wrap">
         {post.body}
       </p>
 
       {(badge || (post.tags && post.tags.length > 0)) && (
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-          {badge && (
-            <span
-              className={`rounded-full px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide ${badge.className}`}
-            >
-              {badge.label}
-            </span>
-          )}
+          {badge && <Badge variant={badge.variant}>{badge.label}</Badge>}
           {post.tags?.map((t) => (
-            <span
-              key={t}
-              className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"
-            >
+            <Badge key={t} variant="neutral">
               #{t}
-            </span>
+            </Badge>
           ))}
         </div>
       )}
@@ -257,10 +246,7 @@ function Composer({
         />
 
         <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="post-body"
-            className="text-sm font-medium text-gray-700 dark:text-gray-200"
-          >
+          <label htmlFor="post-body" className="field-label">
             Post
           </label>
           <textarea
@@ -270,7 +256,7 @@ function Composer({
             rows={6}
             maxLength={10000}
             required
-            className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            className="w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400"
           />
         </div>
 
@@ -283,17 +269,14 @@ function Composer({
 
         {canPickKind && (
           <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="post-kind"
-              className="text-sm font-medium text-gray-700 dark:text-gray-200"
-            >
+            <label htmlFor="post-kind" className="field-label">
               Kind
             </label>
             <select
               id="post-kind"
               value={kind}
               onChange={(e) => setKind(e.target.value as PostKind)}
-              className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              className="w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400 min-h-[48px]"
             >
               <option value="community">Community</option>
               <option value="rescue_spotlight">Rescue spotlight</option>

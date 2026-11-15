@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getOwnPhotoBlob } from '../api/photos';
 import { photoUrl } from '../utils/time';
 import type { Photo } from '../types';
+import Badge from './ui/Badge';
 
 /**
  * Renders a pet photo, including the owner's own photos still in moderation.
@@ -41,19 +42,23 @@ export default function PetPhoto({ photo, alt, className = '', ...imgProps }: Pe
   if (!src) {
     // In-review blob still loading — hold the layout rather than flash a broken
     // image (the public URL for this photo would 404).
-    return <div className={`${className} bg-gray-100 dark:bg-gray-800 animate-pulse`} />;
+    return <div className={`${className} shimmer`} />;
   }
   return <img src={src} alt={alt} className={className} {...imgProps} />;
 }
 
-/** Corner badge marking a photo as awaiting moderation. */
+/**
+ * Corner badge marking a photo as awaiting moderation: the dashed `review`
+ * badge, on a solid backing so it still reads over any photo.
+ */
 export function InReviewBadge({ className = '' }: { className?: string }) {
   return (
-    <span
+    <Badge
+      variant="review"
       title="Only you can see this until it's reviewed"
-      className={`pointer-events-none rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white ${className}`}
+      className={`pointer-events-none !bg-white/95 dark:!bg-night/90 ${className}`}
     >
       In review
-    </span>
+    </Badge>
   );
 }

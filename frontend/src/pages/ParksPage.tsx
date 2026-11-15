@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Trees } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { getNearbyParks } from '../api/parks';
-import Map from '../components/Map';
+import Map, { MAP_PIN } from '../components/Map';
 import Badge from '../components/ui/Badge';
+import BrandIcon from '../components/brand/BrandIcon';
 import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
 import SearchInput from '../components/ui/SearchInput';
 import { ListSkeleton } from '../components/ui/Skeleton';
 import PawSpinner from '../components/flair/PawSpinner';
@@ -13,6 +15,9 @@ import { DEFAULT_MAP_CENTER, useUserLocation } from '../utils/useUserLocation';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { useAuth } from '../store/AuthContext';
 
+// Inline text link: navy ink on an orange underline.
+const LINK =
+  'font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit';
 
 type Filter = 'all' | 'active' | 'verified';
 
@@ -33,7 +38,7 @@ export default function ParksPage() {
     setViewCenter(initialCenter);
   }, [initialCenter]);
 
-  const { data: parks = [], isLoading, isError } = useQuery({
+  const { data: parks = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['parks-nearby', viewCenter[1], viewCenter[0]],
     queryFn: () => getNearbyParks(viewCenter[1], viewCenter[0], 25),
     // Keep the last result on screen while the next centre loads. The key is
@@ -67,13 +72,16 @@ export default function ParksPage() {
     id: p.id,
     lat: p.lat,
     lng: p.lng,
-    color: p.active_pets_count > 0 ? '#f97316' : p.verified ? '#22c55e' : '#9ca3af',
+    // Green is the park colour. Pets here now = an orange dot on the green
+    // pin; unverified = an outline pin (white, green dot).
+    color: p.active_pets_count > 0 || p.verified ? MAP_PIN.park : MAP_PIN.paper,
+    dot: p.active_pets_count > 0 ? MAP_PIN.play : p.verified ? MAP_PIN.paper : MAP_PIN.park,
     label: p.name,
     onClick: () => setSelectedParkId(p.id),
     popup: (
       <div className="flex flex-col gap-1">
-        <p className="font-semibold text-gray-900 dark:text-gray-100 leading-tight">{p.name}</p>
-        {p.address && <p className="text-xs text-gray-500 dark:text-gray-400">{p.address}</p>}
+        <p className="text-base font-extrabold text-navy dark:text-biscuit leading-tight">{p.name}</p>
+        {p.address && <p className="text-xs text-gray-600 dark:text-gray-300">{p.address}</p>}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
           {p.active_pets_count > 0 && (
             <Badge
@@ -90,15 +98,15 @@ export default function ParksPage() {
           )}
           {p.verified && p.active_pets_count === 0 && <Badge variant="success">Verified</Badge>}
           {p.avg_rating != null && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {p.avg_rating.toFixed(1)} ★ · {p.review_count} {p.review_count === 1 ? 'review' : 'reviews'}
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+              {p.avg_rating.toFixed(1)} <span className="text-navy dark:text-biscuit">★</span> · {p.review_count} {p.review_count === 1 ? 'review' : 'reviews'}
             </span>
           )}
         </div>
         <button
           type="button"
           onClick={() => navigate(`/app/parks/${p.id}`)}
-          className="mt-2 w-full rounded-md bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium py-1.5 transition-colors"
+          className="btn btn-secondary btn-sm mt-2 w-full"
         >
           View park
         </button>
@@ -123,9 +131,9 @@ export default function ParksPage() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* ── Compact header ──────────────────────────────────────────── */}
-      <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-          <Trees size={20} aria-hidden className="text-brand-500" /> Pet Parks
+      <div className="px-4 pt-3 pb-2.5 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-night-surface">
+        <h1 className="text-2xl leading-none text-navy dark:text-biscuit flex items-center gap-2">
+          <BrandIcon name="park" size={24} /> Pet parks
         </h1>
 
         <SearchInput
@@ -135,20 +143,19 @@ export default function ParksPage() {
           placeholder="Search parks by name or address..."
         />
 
-        <div className="flex gap-1.5 mt-2 overflow-x-auto -mx-4 px-4 pb-0.5">
-          {filterOptions.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setFilter(opt.key)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                filter === opt.key
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="mt-2.5 overflow-x-auto -mx-4 px-4 pb-0.5">
+          <div className="seg">
+            {filterOptions.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setFilter(opt.key)}
+                aria-pressed={filter === opt.key}
+                className="flex-shrink-0"
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -166,30 +173,35 @@ export default function ParksPage() {
             className="h-full w-full"
           />
           {isLoading && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 glass rounded-full px-4 py-2 shadow-soft-lg">
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 glass rounded-full border border-gray-200 px-4 py-2 dark:border-white/10">
               <PawSpinner size="sm" />
             </div>
           )}
           {/* Map legend */}
-          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg bg-white/95 dark:bg-gray-900/90 px-2.5 py-1.5 text-2xs text-gray-700 dark:text-gray-200 shadow-soft ring-1 ring-black/5 dark:ring-white/10 backdrop-blur z-10">
+          <div className="absolute bottom-3 left-3 flex gap-3 rounded-lg border border-gray-200 bg-white/95 px-2.5 py-1.5 text-2xs font-bold text-navy backdrop-blur dark:border-white/10 dark:bg-night-surface/95 dark:text-biscuit z-10">
+            {/* The pins in miniature. */}
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-500" />
+              <span aria-hidden className="inline-flex h-3 w-3 items-center justify-center rounded-full border border-navy bg-green-500 dark:border-biscuit/60">
+                <span className="h-1 w-1 rounded-full bg-brand-500" />
+              </span>
               Active
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-success-500" />
+              <span aria-hidden className="inline-block h-3 w-3 rounded-full border border-navy bg-green-500 dark:border-biscuit/60" />
               Verified
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-gray-400" />
+              <span aria-hidden className="inline-flex h-3 w-3 items-center justify-center rounded-full border border-navy bg-white dark:border-biscuit/60">
+                <span className="h-1 w-1 rounded-full bg-green-500" />
+              </span>
               Unverified
             </span>
           </div>
         </div>
 
         {/* ── List pane ───────────────────────────────────────────── */}
-        <div className="overflow-y-auto overscroll-contain flex-1 bg-gray-50 dark:bg-gray-800/50">
-          <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10">
+        <div className="overflow-y-auto overscroll-contain flex-1 bg-biscuit dark:bg-night">
+          <div className="px-4 py-2 flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-night-surface border-b border-gray-200 dark:border-white/10 sticky top-0 z-10">
             <span>
               {filteredParks.length} {filteredParks.length === 1 ? 'park' : 'parks'}
               {search && parks.length !== filteredParks.length && ` · ${parks.length - filteredParks.length} filtered`}
@@ -197,7 +209,7 @@ export default function ParksPage() {
             {selectedParkId && (
               <button
                 onClick={() => setSelectedParkId(null)}
-                className="text-brand-500 hover:underline"
+                className={LINK}
               >
                 Clear selection
               </button>
@@ -208,9 +220,7 @@ export default function ParksPage() {
             {isLoading ? (
               <ListSkeleton rows={4} />
             ) : isError ? (
-              <p className="text-danger-500 dark:text-danger-400 text-sm text-center py-6">
-                Failed to load parks. Check your connection.
-              </p>
+              <ErrorState message="Couldn't load parks." onRetry={() => refetch()} />
             ) : filteredParks.length === 0 ? (
               <EmptyState
                 illustration="sniffing"
@@ -228,7 +238,7 @@ export default function ParksPage() {
                     isAdmin ? (
                       <>
                         Know one we&rsquo;re missing?{' '}
-                        <Link to="/app/parks/new" className="text-brand-500 hover:underline">
+                        <Link to="/app/parks/new" className={LINK}>
                           Add a park
                         </Link>{' '}
                         and it will show up for everyone nearby.
@@ -236,7 +246,7 @@ export default function ParksPage() {
                     ) : (
                       <>
                         Know one we&rsquo;re missing?{' '}
-                        <Link to="/app/support" className="text-brand-500 hover:underline">
+                        <Link to="/app/support" className={LINK}>
                           Tell us
                         </Link>{' '}
                         and we&rsquo;ll add it for everyone nearby.
@@ -246,7 +256,7 @@ export default function ParksPage() {
                 }
               />
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5">
                 {filteredParks.map((park) => {
                   const isSelected = selectedParkId === park.id;
                   return (
@@ -261,16 +271,17 @@ export default function ParksPage() {
                           setSelectedParkId(park.id);
                         }
                       }}
-                      className={`block p-3 rounded-xl border transition-all ${
+                      // A thing you touch: navy line + toy shadow. Picked = orange tint.
+                      className={`block p-3 rounded-2xl border-2 border-navy dark:border-white/15 transition-[transform,box-shadow,background-color] duration-150 ease-soft-out active:translate-x-[1px] active:translate-y-[2px] active:shadow-none ${
                         isSelected
-                          ? 'bg-white dark:bg-gray-900 border-brand-300 dark:border-brand-500/50 ring-2 ring-brand-200 dark:ring-brand-500/30 shadow-sm'
-                          : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-brand-200'
+                          ? 'bg-brand-50 dark:bg-brand-500/15 shadow-toy'
+                          : 'bg-white dark:bg-night-surface shadow-toy-sm hover:-translate-y-px hover:shadow-toy'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
+                            <h3 className="text-base font-extrabold text-navy dark:text-biscuit leading-tight truncate">
                               {park.name}
                             </h3>
                             {park.verified && (
@@ -293,29 +304,30 @@ export default function ParksPage() {
                             )}
                           </div>
                           {park.address && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{park.address}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 truncate">{park.address}</p>
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
                           {park.avg_rating ? (
                             <>
-                              <p className="text-sm text-yellow-400 tracking-tight leading-none">
+                              {/* Navy ink, not gold: gold is earned only. */}
+                              <p className="text-sm text-navy dark:text-biscuit tracking-tight leading-none">
                                 {'★'.repeat(Math.round(park.avg_rating))}
-                                <span className="text-gray-200">
+                                <span className="text-gray-300 dark:text-white/20">
                                   {'★'.repeat(5 - Math.round(park.avg_rating))}
                                 </span>
                               </p>
-                              <p className="text-2xs text-gray-400 dark:text-gray-500 mt-0.5">
+                              <p className="text-2xs text-gray-500 dark:text-gray-400 mt-0.5">
                                 {park.avg_rating.toFixed(1)} · {park.review_count}
                               </p>
                             </>
                           ) : (
-                            <p className="text-2xs text-gray-400 dark:text-gray-500">No reviews</p>
+                            <p className="text-2xs text-gray-500 dark:text-gray-400">No reviews</p>
                           )}
                         </div>
                       </div>
                       {isSelected && (
-                        <p className="text-2xs text-brand-600 mt-2 font-medium">
+                        <p className="text-2xs text-navy dark:text-biscuit mt-2 font-extrabold">
                           Tap again to open →
                         </p>
                       )}

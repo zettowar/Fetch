@@ -30,7 +30,7 @@ export default function PawTrail({ steps = 5, direction = -30, size = 16, classN
             opacity: Math.max(0.15, 1 - i * 0.12),
           }}
         >
-          <PawMark decorative className="rotate-90" style={{ width: size, height: size }} />
+          <PawMark decorative simple className="rotate-90" style={{ width: size, height: size }} />
         </span>
       ))}
     </div>

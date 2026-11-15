@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Flag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createReport, type ReportTargetType } from '../api/reports';
 import { apiErrorMessage, isConflict } from '../utils/apiError';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
+import BrandIcon from './brand/BrandIcon';
 
 /** Preset categories, kept short and non-overlapping so the admin queue is
  *  sortable. The chosen label is prefixed onto the free-text detail. */
@@ -90,7 +90,7 @@ export default function ReportDialog({
           {REASONS.map((r) => (
             <label
               key={r}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm transition-colors hover:bg-gray-50 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 dark:border-gray-700 dark:hover:bg-gray-800 dark:has-[:checked]:bg-brand-500/10"
+              className="flex cursor-pointer items-center gap-3 rounded-lg border-[1.5px] border-gray-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-navy transition-colors hover:border-navy/40 has-[:checked]:border-navy has-[:checked]:bg-brand-100 dark:border-white/15 dark:bg-night-raised dark:text-biscuit dark:hover:border-white/35 dark:has-[:checked]:border-brand-400 dark:has-[:checked]:bg-brand-500/20"
             >
               <input
                 type="radio"
@@ -108,9 +108,9 @@ export default function ReportDialog({
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="report-detail"
-            className="text-sm font-medium text-gray-700 dark:text-gray-200"
+            className="field-label"
           >
-            Anything else? <span className="font-normal text-gray-400">(optional)</span>
+            Anything else? <span className="font-semibold normal-case tracking-normal text-gray-500 dark:text-gray-400">(optional)</span>
           </label>
           <textarea
             id="report-detail"
@@ -118,7 +118,7 @@ export default function ReportDialog({
             onChange={(e) => setDetail(e.target.value)}
             rows={3}
             maxLength={400}
-            className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+            className="w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400"
           />
         </div>
 
@@ -132,9 +132,10 @@ export default function ReportDialog({
           >
             Cancel
           </Button>
+          {/* Reporting is not destructive, so it is the screen's primary, not red. */}
           <Button
             type="submit"
-            variant="danger"
+            variant="primary"
             loading={mutation.isPending}
             className="flex-1"
           >
@@ -160,9 +161,9 @@ export function ReportButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 transition-colors hover:text-danger-600 dark:text-gray-500 dark:hover:text-danger-400 ${className}`}
+        className={`inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 transition-colors hover:text-navy dark:text-gray-400 dark:hover:text-biscuit ${className}`}
       >
-        <Flag size={13} aria-hidden />
+        <BrandIcon name="flag" size={15} />
         Report
       </button>
       <ReportDialog

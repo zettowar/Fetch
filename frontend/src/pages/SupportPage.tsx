@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { ChevronDown, ChevronRight, LifeBuoy } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { createTicket, getFAQ, getMyTickets } from '../api/support';
 import { apiErrorMessage } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
@@ -26,6 +26,7 @@ export default function SupportPage() {
         title="Help & support"
         subtitle="Answers to the common questions — and a way to reach a human."
         back
+        className="px-4 pt-4 mb-5"
       />
       <div className="px-4 flex flex-col gap-6">
         <FAQSection />
@@ -50,7 +51,7 @@ function FAQSection() {
 
   return (
     <section>
-      <h2 className="text-base font-bold tracking-tight mb-2">
+      <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">
         Frequently asked
       </h2>
 
@@ -59,7 +60,7 @@ function FAQSection() {
       ) : isError ? (
         <ErrorState message="Couldn't load the FAQ." onRetry={() => refetch()} />
       ) : faq.length === 0 ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           No articles yet — send us a message below and we&rsquo;ll help
           directly.
         </p>
@@ -67,21 +68,21 @@ function FAQSection() {
         <div className="flex flex-col gap-4">
           {Object.entries(byCategory).map(([category, entries]) => (
             <div key={category}>
-              <h3 className="text-2xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1.5">
+              <h3 className="eyebrow mb-1.5">
                 {category}
               </h3>
               <div className="flex flex-col gap-1.5">
                 {entries.map((e) => (
                   <details
                     key={e.id}
-                    className="group rounded-xl border border-gray-100 bg-white px-3.5 py-2.5 dark:border-gray-800 dark:bg-gray-900"
+                    className="surface group px-3.5 py-3"
                   >
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-navy dark:text-biscuit">
                       {e.question}
                       <ChevronDown
                         size={16}
                         aria-hidden
-                        className="flex-shrink-0 text-gray-400 transition-transform group-open:rotate-180"
+                        className="flex-shrink-0 text-navy/50 dark:text-white/40 transition-transform group-open:rotate-180"
                       />
                     </summary>
                     <div className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
@@ -124,7 +125,7 @@ function ContactSection() {
 
   return (
     <section>
-      <h2 className="text-base font-bold tracking-tight mb-2">
+      <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">
         Still stuck? Message us
       </h2>
       <Card>
@@ -143,10 +144,7 @@ function ContactSection() {
             required
           />
           <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="ticket-body"
-              className="text-sm font-medium text-gray-700 dark:text-gray-200"
-            >
+            <label htmlFor="ticket-body" className="field-label">
               What&rsquo;s happening?
             </label>
             <textarea
@@ -157,7 +155,7 @@ function ContactSection() {
               maxLength={4000}
               required
               placeholder="The more detail the better — what you expected, and what happened instead."
-              className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              className="w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400"
             />
           </div>
           <Button type="submit" disabled={!canSubmit} loading={mutation.isPending}>
@@ -177,7 +175,7 @@ function MyTicketsSection() {
 
   return (
     <section>
-      <h2 className="text-base font-bold tracking-tight mb-2">Your messages</h2>
+      <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">Your messages</h2>
 
       {isLoading ? (
         <ListSkeleton rows={2} />
@@ -185,7 +183,7 @@ function MyTicketsSection() {
         <ErrorState message="Couldn't load your messages." onRetry={() => refetch()} />
       ) : tickets.length === 0 ? (
         <EmptyState
-          icon={<LifeBuoy size={28} aria-hidden />}
+          illustration="sleeping"
           title="Nothing yet"
           body="Messages you send us show up here, along with our replies."
         />
@@ -193,37 +191,35 @@ function MyTicketsSection() {
         <ul className="flex flex-col gap-2">
           {tickets.map((t) => (
             <li key={t.id}>
-              <Link to={`/app/support/tickets/${t.id}`} className="block">
-                <Card className="transition-colors hover:border-brand-200 dark:hover:border-brand-500/40">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{t.subject}</p>
-                      <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-                        <span className="font-mono">{t.ticket_number}</span>
-                        {' · '}
-                        <TimeAgo value={t.last_message_at ?? t.created_at} />
-                        {t.reply_count > 0 && ` · ${t.reply_count} ${t.reply_count === 1 ? 'reply' : 'replies'}`}
-                      </p>
-                    </div>
-                    <div className="flex flex-shrink-0 items-center gap-1.5">
-                      {t.unread_count > 0 && (
-                        <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-2xs font-bold text-white">
-                          {t.unread_count} new
-                        </span>
-                      )}
-                      <TicketStatusBadge status={t.status} />
-                      <ChevronRight
-                        size={16}
-                        aria-hidden
-                        className="text-gray-300 dark:text-gray-600"
-                      />
-                    </div>
+              <Card as={Link} to={`/app/support/tickets/${t.id}`} interactive>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit truncate">{t.subject}</p>
+                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="font-mono">{t.ticket_number}</span>
+                      {' · '}
+                      <TimeAgo value={t.last_message_at ?? t.created_at} />
+                      {t.reply_count > 0 && ` · ${t.reply_count} ${t.reply_count === 1 ? 'reply' : 'replies'}`}
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 line-clamp-2 whitespace-pre-wrap">
-                    {t.body}
-                  </p>
-                </Card>
-              </Link>
+                  <div className="flex flex-shrink-0 items-center gap-1.5">
+                    {t.unread_count > 0 && (
+                      <span className="rounded-full border-[1.5px] border-navy bg-brand-500 px-1.5 py-0.5 text-2xs font-extrabold leading-none text-navy">
+                        {t.unread_count} new
+                      </span>
+                    )}
+                    <TicketStatusBadge status={t.status} />
+                    <ChevronRight
+                      size={16}
+                      aria-hidden
+                      className="text-navy/40 dark:text-white/30"
+                    />
+                  </div>
+                </div>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 line-clamp-2 whitespace-pre-wrap">
+                  {t.body}
+                </p>
+              </Card>
             </li>
           ))}
         </ul>

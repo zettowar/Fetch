@@ -1,50 +1,79 @@
-import type { CSSProperties } from 'react';
+import { useId, type CSSProperties } from 'react';
 
 /**
- * Fetchpawz brand mark: a paw print inside a ringed circle.
- * Paw and ring render in `currentColor`; the circle interior is transparent
- * so the mark shows against any surface (including the brand gradient).
+ * The Crown Paw — Fetchpawz's mark (Brand Book, Logo chapter).
+ *
+ * Four toe beans are the points of a crown, the pad is the crown's band, and
+ * a heart is cut out of the middle: a pet, a winner and the rescue mission in
+ * one shape that still reads at 16px. Renders in `currentColor`, so it is
+ * Ball Orange on Biscuit or white, and Leash Navy on any colour fill.
+ *
+ * `simple` drops the heart and plumps the beans — use it below 24px (tab
+ * icons, favicons, the loader), where the cut-out closes up.
  */
 export default function PawMark({
   className = '',
   title = 'Fetchpawz',
   decorative = false,
+  simple = false,
   style,
 }: {
   className?: string;
   title?: string;
   decorative?: boolean;
+  simple?: boolean;
   style?: CSSProperties;
 }) {
+  const maskId = `heart-cut-${useId().replace(/:/g, '')}`;
   const a11y = decorative
     ? ({ 'aria-hidden': true, focusable: false } as const)
     : ({ role: 'img', 'aria-label': title } as const);
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="4 7.75 112 112"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       style={style}
       {...a11y}
     >
       {!decorative && <title>{title}</title>}
-      {/* Outer toes — pushed to the edges */}
-      <ellipse cx="12" cy="42" rx="10" ry="14" transform="rotate(-22 12 42)" fill="currentColor" />
-      <ellipse cx="88" cy="42" rx="10" ry="14" transform="rotate(22 88 42)" fill="currentColor" />
-      {/* Inner toes — larger, top of mark */}
-      <ellipse cx="34" cy="20" rx="12" ry="16" fill="currentColor" />
-      <ellipse cx="66" cy="20" rx="12" ry="16" fill="currentColor" />
-      {/* Heel pad — fills the bottom half with a soft double-notch */}
-      <path
-        d="M50 44
-           C 22 44, 10 64, 16 80
-           C 22 94, 38 98, 44 90
-           C 47 86, 49 86, 50 88
-           C 51 86, 53 86, 56 90
-           C 62 98, 78 94, 84 80
-           C 90 64, 78 44, 50 44 Z"
-        fill="currentColor"
-      />
+      {simple ? (
+        <g fill="currentColor">
+          <circle cx="19" cy="47" r="12" />
+          <circle cx="44" cy="25" r="13.5" />
+          <circle cx="76" cy="25" r="13.5" />
+          <circle cx="101" cy="47" r="12" />
+          <path
+            d="M21 68 36 77 45 48 60 66 75 48 84 77 99 68C100 84 98 94 92 100 82 109 70 111 60 111S38 109 28 100C22 94 20 84 21 68Z"
+            stroke="currentColor"
+            strokeWidth="10"
+            strokeLinejoin="round"
+          />
+        </g>
+      ) : (
+        <>
+          <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120">
+            <rect x="0" y="0" width="120" height="120" fill="#fff" />
+            <path
+              d="M60 99C52 93 47 89 47 83.5 47 79.5 50 77 53.5 77c3 0 5.1 1.8 6.5 4 1.4-2.2 3.5-4 6.5-4 3.5 0 6.5 2.5 6.5 6.5C73 89 68 93 60 99Z"
+              fill="#000"
+              transform="translate(60 91) scale(1.08) translate(-60 -88)"
+            />
+          </mask>
+          <g fill="currentColor" mask={`url(#${maskId})`}>
+            <circle cx="19" cy="47" r="11" />
+            <circle cx="44" cy="25" r="12.5" />
+            <circle cx="76" cy="25" r="12.5" />
+            <circle cx="101" cy="47" r="11" />
+            <path
+              d="M21 68 36 77 45 48 60 66 75 48 84 77 99 68C100 84 98 94 92 100 82 109 70 111 60 111S38 109 28 100C22 94 20 84 21 68Z"
+              stroke="currentColor"
+              strokeWidth="8"
+              strokeLinejoin="round"
+            />
+          </g>
+        </>
+      )}
     </svg>
   );
 }

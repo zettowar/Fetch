@@ -43,11 +43,9 @@ export default function SSOButtons({ returnTo = '/app/home' }: { returnTo?: stri
   return (
     <div className="mt-6">
       <div className="relative flex items-center">
-        <div className="flex-1 border-t border-gray-200 dark:border-gray-700" />
-        <span className="px-3 text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">
-          or continue with
-        </span>
-        <div className="flex-1 border-t border-gray-200 dark:border-gray-700" />
+        <div className="flex-1 border-t border-gray-200 dark:border-white/10" />
+        <span className="eyebrow px-3">or continue with</span>
+        <div className="flex-1 border-t border-gray-200 dark:border-white/10" />
       </div>
       <div className="mt-4 flex flex-col gap-2">
         {providers.map((p) => (
@@ -57,7 +55,7 @@ export default function SSOButtons({ returnTo = '/app/home' }: { returnTo?: stri
             onClick={() => {
               window.location.href = oauthStartUrl(p, returnTo);
             }}
-            className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="btn btn-secondary w-full"
           >
             <ProviderIcon provider={p} />
             Continue with {LABELS[p] ?? p}

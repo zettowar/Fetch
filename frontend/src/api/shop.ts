@@ -10,6 +10,8 @@
 // This mirrors the codebase convention of "empty key = graceful stub" used for
 // image moderation (Sightengine) and billing.
 
+import { DEMO_MERCH_ART } from './shopDemoArt';
+
 const DOMAIN = (import.meta.env.VITE_SHOPIFY_DOMAIN ?? '').trim();
 const TOKEN = (import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN ?? '').trim();
 // Shopify supports Storefront API versions for ~12 months — bump quarterly.
@@ -376,12 +378,15 @@ async function sfUpdateLine(lineId: string, quantity: number): Promise<ShopCart>
 
 const MOCK_CURRENCY = 'USD';
 
-function mockImage(emoji: string, label: string): ShopImage {
-  // Inline SVG so the demo catalog has no external image dependency.
+function mockImage(art: keyof typeof DEMO_MERCH_ART, label: string): ShopImage {
+  // Inline SVG so the demo catalog has no external image dependency: the
+  // brand book's drawn merch on its tint (no emoji — they can't take our
+  // colours and look different on every phone).
+  const { tint, art: inner } = DEMO_MERCH_ART[art];
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">` +
-    `<rect width="600" height="600" fill="#fff7ed"/>` +
-    `<text x="300" y="310" font-size="300" text-anchor="middle" dominant-baseline="central">${emoji}</text>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">` +
+    `<rect width="600" height="600" fill="${tint}"/>` +
+    `<svg x="45" y="75" width="510" height="425" viewBox="0 0 240 200" overflow="visible">${inner}</svg>` +
     `</svg>`;
   return { url: `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`, altText: label };
 }
@@ -390,14 +395,14 @@ function buildMock(def: {
   handle: string;
   title: string;
   description: string;
-  emoji: string;
+  art: keyof typeof DEMO_MERCH_ART;
   price: number;
   tags: string[];
   sizes?: string[];
   soldOutSizes?: string[];
 }): ShopProduct {
   const price: ShopMoney = { amount: def.price, currencyCode: MOCK_CURRENCY };
-  const img = mockImage(def.emoji, def.title);
+  const img = mockImage(def.art, def.title);
   let options: ShopProductOption[];
   let variants: ShopVariant[];
   if (def.sizes && def.sizes.length) {
@@ -442,7 +447,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     title: 'Fetchpawz classic tee',
     description:
       'Soft 100% cotton tee with the Fetchpawz paw mark on the chest. Your everyday pet-park uniform.',
-    emoji: '👕',
+    art: 'tee',
     price: 26,
     tags: ['apparel', 'branded'],
     sizes: ['S', 'M', 'L', 'XL', 'XXL'],
@@ -453,7 +458,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     title: 'Top Pet hoodie',
     description:
       'Cozy fleece-lined hoodie for cold morning walks. Embroidered "Top Pet" crest on the front.',
-    emoji: '🧥',
+    art: 'hoodie',
     price: 48,
     tags: ['apparel', 'branded'],
     sizes: ['S', 'M', 'L', 'XL'],
@@ -463,7 +468,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     title: 'Fetchpawz bandana',
     description:
       'Reversible cotton bandana that snaps onto any collar. Because your pet deserves merch too.',
-    emoji: '🧣',
+    art: 'bandana',
     price: 16,
     tags: ['pet', 'accessory'],
     sizes: ['Small', 'Large'],
@@ -472,7 +477,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     handle: 'good-pet-mug',
     title: 'Good Pet ceramic mug',
     description: '12oz stoneware mug for your coffee and their treats. Dishwasher safe.',
-    emoji: '☕',
+    art: 'mug',
     price: 18,
     tags: ['home', 'branded'],
   }),
@@ -480,7 +485,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     handle: 'paw-enamel-pin',
     title: 'Paw enamel pin',
     description: 'Hard-enamel Fetchpawz paw pin with a rubber clutch back. Perfect for bags and jackets.',
-    emoji: '📌',
+    art: 'pin',
     price: 9,
     tags: ['accessory', 'branded'],
   }),
@@ -489,7 +494,7 @@ const MOCK_PRODUCTS: ShopProduct[] = [
     title: 'Adventure water bottle',
     description:
       'Insulated 24oz bottle with a fold-out pet bowl lid. Keep you both hydrated on the trail.',
-    emoji: '🍶',
+    art: 'bottle',
     price: 22,
     tags: ['gear', 'pet'],
   }),

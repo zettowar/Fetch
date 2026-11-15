@@ -8,8 +8,11 @@ import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import SearchInput from '../../components/ui/SearchInput';
+import PageHeader from '../../components/ui/PageHeader';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import { FIELD, ROWS, segItem } from './adminStyles';
 
 type Filter = 'all' | 'unassigned' | 'assigned';
 
@@ -27,7 +30,7 @@ export default function AdminTagsPage() {
 
   const assignedParam = filter === 'all' ? undefined : filter === 'assigned';
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-tags', filter, search],
     queryFn: () => listAdminTags({ assigned: assignedParam, q: search || undefined, limit: 200 }),
   });
@@ -49,18 +52,19 @@ export default function AdminTagsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">QR Tags</h1>
+      <PageHeader title="QR Tags" className="mb-5" />
 
       <Card className="mb-4">
         <div className="flex flex-wrap items-center gap-3">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 shrink-0">Generate</label>
+          <label htmlFor="admin-tags-generate-count" className="field-label shrink-0">Generate</label>
           <input
+            id="admin-tags-generate-count"
             type="number"
             min={1}
             max={500}
             value={count}
             onChange={(e) => setCount(Number(e.target.value))}
-            className="w-20 rounded-lg border border-gray-300 dark:border-gray-700 px-2 py-1 text-sm"
+            className={`${FIELD} w-20 font-mono`}
           />
           <Button size="sm" onClick={() => genMutation.mutate()} loading={genMutation.isPending}>
             Generate batch
@@ -70,30 +74,26 @@ export default function AdminTagsPage() {
             Print QR sheet ({tags.length})
           </Button>
         </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+        <p className="text-xs text-gray-600 dark:text-gray-300 mt-2">
           Mint a batch, print the sheet, and stick the codes on physical tags. Owners
           scan to link a tag to their pet; you can also assign one below.
         </p>
       </Card>
 
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex gap-1">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="seg shrink-0">
           {(['unassigned', 'assigned', 'all'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-                filter === f
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
+              className={`capitalize ${segItem(filter === f)}`}
             >
               {f}
             </button>
           ))}
         </div>
         <form
-          className="flex-1"
+          className="min-w-[12rem] flex-1"
           onSubmit={(e) => {
             e.preventDefault();
             setSearch(query.trim());
@@ -105,12 +105,14 @@ export default function AdminTagsPage() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load tags." onRetry={() => refetch()} />
       ) : tags.length === 0 ? (
         <EmptyState className="py-6" title={`No ${filter} tags`} />
       ) : (
         <>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">{total} total</p>
-          <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+          <p className="font-mono text-xs text-gray-500 dark:text-gray-400 mb-2">{total} total</p>
+          <Card padding="none" className={ROWS}>
             {tags.map((t) => (
               <TagRow key={t.code} tag={t} />
             ))}
@@ -151,14 +153,14 @@ function TagRow({ tag }: { tag: AdminTag }) {
       <div className="flex items-center gap-3">
         <button
           onClick={copy}
-          className="font-mono text-sm text-gray-700 dark:text-gray-300 hover:text-brand-600 transition-colors"
+          className="font-mono text-sm font-medium tracking-wide text-navy dark:text-biscuit hover:text-brand-700 dark:hover:text-brand-300 hover:underline underline-offset-2 transition-colors"
           title="Copy scan link"
         >
           {tag.code}
         </button>
         <span className="flex-1 min-w-0">
           {tag.pet_id ? (
-            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <span className="block text-xs text-gray-600 dark:text-gray-300 truncate">
               {tag.pet_name}{tag.owner_email ? ` · ${tag.owner_email}` : ''}
             </span>
           ) : null}
@@ -195,9 +197,11 @@ function TagRow({ tag }: { tag: AdminTag }) {
 
 function PrintSheet({ tags, onClose }: { tags: AdminTag[]; onClose: () => void }) {
   return (
-    <div className="bg-white text-black">
+    // The sheet is a print preview: plain white paper and black ink in both
+    // themes, on purpose, so what you see is what the printer gets.
+    <div className="rounded-2xl bg-white p-4 text-black print:rounded-none print:p-0">
       <div className="flex items-center justify-between gap-2 mb-4 print:hidden">
-        <h1 className="text-xl font-bold">QR sheet — {tags.length} tags</h1>
+        <h1 className="font-plain text-xl text-navy">QR sheet — {tags.length} tags</h1>
         <div className="flex gap-2">
           <Button size="sm" onClick={() => window.print()}>Print</Button>
           <Button size="sm" variant="ghost" onClick={onClose}>Close</Button>
@@ -205,9 +209,9 @@ function PrintSheet({ tags, onClose }: { tags: AdminTag[]; onClose: () => void }
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
         {tags.map((t) => (
-          <div key={t.code} className="flex flex-col items-center gap-1 break-inside-avoid p-2 border border-gray-200 rounded">
+          <div key={t.code} className="flex flex-col items-center gap-1 break-inside-avoid p-2 border border-gray-300 rounded-lg">
             <QRCodeSVG value={tagUrl(t.code)} size={104} level="M" />
-            <span className="font-mono text-[11px] tracking-wide">{t.code}</span>
+            <span className="font-mono text-2xs tracking-wide">{t.code}</span>
           </div>
         ))}
       </div>

@@ -1,15 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -4 112 112">
-  <g fill="#ee7a10">
-    <ellipse cx="12" cy="42" rx="10" ry="14" transform="rotate(-22 12 42)" />
-    <ellipse cx="88" cy="42" rx="10" ry="14" transform="rotate(22 88 42)" />
-    <ellipse cx="34" cy="20" rx="12" ry="16" />
-    <ellipse cx="66" cy="20" rx="12" ry="16" />
-    <path d="M50 44
-             C 22 44, 10 64, 16 80
-             C 22 94, 38 98, 44 90
-             C 47 86, 49 86, 50 88
-             C 51 86, 53 86, 56 90
-             C 62 98, 78 94, 84 80
-             C 90 64, 78 44, 50 44 Z" />
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#FF6A1F"/><svg x="9" y="8" width="46" height="46" viewBox="4 7.75 112 112" style="color:#1C1F45" color="#1C1F45"><g fill="#1C1F45"><circle cx="19" cy="47" r="12"/><circle cx="44" cy="25" r="13.5"/><circle cx="76" cy="25" r="13.5"/><circle cx="101" cy="47" r="12"/><path d="M21 68 36 77 45 48 60 66 75 48 84 77 99 68C100 84 98 94 92 100 82 109 70 111 60 111S38 109 28 100C22 94 20 84 21 68Z" stroke="#1C1F45" stroke-width="10" stroke-linejoin="round"/></g></svg></svg>

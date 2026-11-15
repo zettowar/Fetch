@@ -5,11 +5,12 @@ import BackButton from '../components/ui/BackButton';
 import Badge from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Skeleton';
 import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
-import Map from '../components/Map';
+import Map, { MAP_PIN } from '../components/Map';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
-const VET_PIN_COLOR = '#0ea5e9';
-const VET_PIN_EMERGENCY = '#ef4444';
+// Same pins as the Vets map: neutral navy, Ball Orange for emergency.
+const VET_PIN_COLOR = MAP_PIN.ink;
+const VET_PIN_EMERGENCY = MAP_PIN.play;
 
 const ATTRIBUTE_LABELS: Record<string, string> = {
   emergency: 'Emergency services',
@@ -58,7 +59,7 @@ export default function VetDetailPage() {
     <div className="p-4 pb-8 max-w-xl mx-auto">
       <BackButton fallback="/app/vets" />
 
-      <div className="mt-3 h-48 rounded-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 shadow-soft-sm">
+      <div className="mt-3 h-48 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10">
         <Map
           center={[vet.lng, vet.lat]}
           zoom={13}
@@ -76,14 +77,14 @@ export default function VetDetailPage() {
         />
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap mt-3 mb-1">
-        <h1 className="text-2xl font-bold">{vet.name}</h1>
+      <div className="flex items-center gap-2 flex-wrap mt-4 mb-1.5">
+        <h1 className="text-[28px] leading-none text-navy dark:text-biscuit text-balance">{vet.name}</h1>
         {vet.verified && <Badge variant="success">Verified</Badge>}
-        {isEmergency && <Badge variant="danger">Emergency</Badge>}
+        {isEmergency && <Badge variant="brand">Emergency</Badge>}
       </div>
 
       {vet.address && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{vet.address}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{vet.address}</p>
       )}
 
       {/* Contact actions */}
@@ -91,7 +92,7 @@ export default function VetDetailPage() {
         {vet.phone && (
           <a
             href={`tel:${vet.phone}`}
-            className="text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 px-4 py-2 rounded-xl transition-colors"
+            className="btn btn-primary btn-sm"
           >
             Call {vet.phone}
           </a>
@@ -100,7 +101,7 @@ export default function VetDetailPage() {
           href={mapsHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 px-4 py-2 rounded-xl transition-colors"
+          className="btn btn-secondary btn-sm"
         >
           Open in Maps
         </a>
@@ -109,7 +110,7 @@ export default function VetDetailPage() {
             href={vet.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 px-4 py-2 rounded-xl transition-colors"
+            className="btn btn-secondary btn-sm"
           >
             Website
           </a>
@@ -118,10 +119,10 @@ export default function VetDetailPage() {
 
       {vet.hours && (
         <section className="mt-6">
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+          <h2 className="eyebrow mb-2">
             Hours
           </h2>
-          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+          <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
             {vet.hours}
           </p>
         </section>
@@ -129,12 +130,12 @@ export default function VetDetailPage() {
 
       {activeAttributes.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+          <h2 className="eyebrow mb-2">
             Services
           </h2>
           <div className="flex flex-wrap gap-1.5">
             {activeAttributes.map(([key]) => (
-              <Badge key={key} variant="brand" size="md">
+              <Badge key={key} variant="info" size="md">
                 {ATTRIBUTE_LABELS[key] || key}
               </Badge>
             ))}
@@ -142,7 +143,7 @@ export default function VetDetailPage() {
         </section>
       )}
 
-      <p className="mt-8 text-2xs text-center text-gray-400 dark:text-gray-500">
+      <p className="mt-8 text-2xs text-center text-gray-500 dark:text-gray-400">
         Vet listings come from OpenStreetMap. Verify hours and emergency
         availability with the clinic before relying on them.
       </p>

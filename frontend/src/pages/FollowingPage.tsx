@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ChevronRight, PawPrint } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { getMyFollows } from '../api/social';
 import { petAge, petHeroPhoto } from '../utils/time';
 import { ListSkeleton } from '../components/ui/Skeleton';
-import Button from '../components/ui/Button';
+import PageHeader from '../components/ui/PageHeader';
+import PetPortrait from '../components/brand/PetPortrait';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import type { Pet } from '../types';
@@ -15,23 +16,31 @@ function FollowedDogCard({ pet }: { pet: Pet }) {
   const age = petAge(pet.birthday, pet.species);
 
   return (
-    <Link to={`/app/pets/${pet.id}`} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-soft-sm hover:border-brand-200 hover:bg-brand-50/30 transition-colors">
+    // A pet card is a thing you touch: navy line and the small toy shadow.
+    <Link
+      to={`/app/pets/${pet.id}`}
+      className="flex items-center gap-3 p-3 bg-white dark:bg-night-surface rounded-2xl border-2 border-navy dark:border-white/15 shadow-toy-sm transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px hover:shadow-toy active:translate-x-[2px] active:translate-y-[3px] active:shadow-none"
+    >
       {hero ? (
-        <img src={hero} alt={pet.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+        <img src={hero} alt={pet.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0 border-[1.5px] border-navy/20 dark:border-white/10" />
       ) : (
-        <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center flex-shrink-0">
-          <span className="text-2xl">🐶</span>
-        </div>
+        <PetPortrait
+          species={pet.species}
+          breed={pet.breed_display}
+          seed={pet.id}
+          background
+          className="w-16 h-16 rounded-lg flex-shrink-0"
+        />
       )}
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{pet.name}</h3>
-          {age && <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{age}</span>}
+          <h3 className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit truncate">{pet.name}</h3>
+          {age && <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">{age}</span>}
         </div>
-        {pet.breed_display && <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{pet.breed_display}</p>}
-        {pet.bio && <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{pet.bio}</p>}
+        {pet.breed_display && <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{pet.breed_display}</p>}
+        {pet.bio && <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{pet.bio}</p>}
       </div>
-      <ChevronRight size={18} aria-hidden className="text-gray-300 dark:text-gray-600 ml-auto flex-shrink-0" />
+      <ChevronRight size={18} aria-hidden className="text-navy/40 dark:text-white/30 ml-auto flex-shrink-0" />
     </Link>
   );
 }
@@ -47,14 +56,15 @@ export default function FollowingPage() {
 
   return (
     <div className="p-4 pb-8">
-      <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
-        <PawPrint size={20} aria-hidden className="text-brand-500" /> Following
-      </h1>
-      <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">
-        {followedDogs.length > 0
-          ? `${followedDogs.length} pet${followedDogs.length !== 1 ? 's' : ''} you follow`
-          : 'Pets you follow will appear here'}
-      </p>
+      <PageHeader
+        title="Following"
+        className="mb-5"
+        subtitle={
+          followedDogs.length > 0
+            ? `${followedDogs.length} pet${followedDogs.length !== 1 ? 's' : ''} you follow`
+            : 'Pets you follow will appear here'
+        }
+      />
 
       {isLoading && <ListSkeleton rows={4} />}
 
@@ -69,11 +79,11 @@ export default function FollowingPage() {
           body="Follow pets from their profile to keep up with their photos and posts."
           action={
             <>
-              <Link to="/app/swipe">
-                <Button size="sm">Start swiping</Button>
+              <Link to="/app/swipe" className="btn btn-primary btn-sm">
+                Start swiping
               </Link>
-              <Link to="/app/rankings">
-                <Button size="sm" variant="secondary">Browse top pets</Button>
+              <Link to="/app/rankings" className="btn btn-secondary btn-sm">
+                Browse top pets
               </Link>
             </>
           }

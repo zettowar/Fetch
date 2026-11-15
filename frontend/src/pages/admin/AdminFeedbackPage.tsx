@@ -10,6 +10,8 @@ import SearchInput from '../../components/ui/SearchInput';
 import PaginationFooter from '../../components/ui/PaginationFooter';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import ErrorState from '../../components/ui/ErrorState';
+import PageHeader from '../../components/ui/PageHeader';
+import { LINK, ROWS } from './adminStyles';
 
 const PAGE_SIZE = 100;
 
@@ -28,9 +30,7 @@ export default function AdminFeedbackPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Feedback ({total})</h1>
-      </div>
+      <PageHeader title={isError || isLoading ? 'Feedback' : `Feedback (${total})`} className="mb-5" />
 
       <form
         onSubmit={(e) => { e.preventDefault(); setSearch(query); setOffset(0); }}
@@ -54,18 +54,18 @@ export default function AdminFeedbackPage() {
           title={search ? 'No feedback matching your search' : 'No feedback yet'}
         />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {feedback.map((f) => (
             <div key={f.id} className="p-3">
-              <p className="text-sm text-gray-700 dark:text-gray-300">{f.body}</p>
-              <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-sm text-navy dark:text-biscuit">{f.body}</p>
+              <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                 {f.screen_name && (
-                  <Badge variant="neutral">{f.screen_name}</Badge>
+                  <Badge variant="neutral" className="font-mono">{f.screen_name}</Badge>
                 )}
-                <Link to={`/app/users/${f.user_id}`} className="text-brand-500 hover:underline" target="_blank">
+                <Link to={`/app/users/${f.user_id}`} className={LINK} target="_blank">
                   User
                 </Link>
-                <TimeAgo value={f.created_at} />
+                <TimeAgo value={f.created_at} className="font-mono" />
               </div>
             </div>
           ))}

@@ -1,23 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import type React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import {
-  Bell,
-  Bone,
-  CirclePlus,
-  Compass,
-  Heart,
-  HousePlus,
-  LayoutDashboard,
-  LogOut,
-  Moon,
-  ShieldCheck,
-  ShoppingBag,
-  Siren,
-  Sun,
-  UserRound,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { LogOut, Sun } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { useTheme } from '../store/ThemeContext';
@@ -25,7 +10,9 @@ import { logout as apiLogout } from '../api/auth';
 import { exitImpersonation, getRefreshToken, impersonationToken } from '../api/client';
 import { getUnreadCount } from '../api/notifications';
 import { useCart } from '../utils/useCart';
+import Lockup from './brand/Lockup';
 import PawMark from './ui/PawMark';
+import BrandIcon, { type BrandIconName } from './brand/BrandIcon';
 import ExploreSheet from './ExploreSheet';
 import { usePublicFlags } from '../hooks/usePublicFlags';
 
@@ -36,18 +23,17 @@ const EXPLORE_PATHS = ['/app/explore', '/app/parks', '/app/vets'] as const;
 type NavItem = {
   path: string;
   label: string;
-  icon: LucideIcon;
-  /** Fill the glyph when active — only for shapes that read well solid. */
-  fillActive?: boolean;
+  /** A drawn brand icon (Brand Book, Icons → Tab bar). */
+  icon: BrandIconName;
   isSheet?: boolean;
 };
 
 const CONSUMER_NAV_ITEMS: readonly NavItem[] = [
-  { path: '/app/home', label: 'Home', icon: Bone, fillActive: true },
-  { path: '/app/swipe', label: 'Swipe', icon: Heart, fillActive: true },
-  { path: '/app/rescues', label: 'Rescues', icon: HousePlus },
-  { path: '/app/lost', label: 'Lost', icon: Siren },
-  { path: '__explore__', label: 'Explore', icon: Compass, isSheet: true },
+  { path: '/app/home', label: 'Home', icon: 'home' },
+  { path: '/app/swipe', label: 'Swipe', icon: 'like' },
+  { path: '/app/rescues', label: 'Rescues', icon: 'rescue' },
+  { path: '/app/lost', label: 'Lost', icon: 'lost' },
+  { path: '__explore__', label: 'Explore', icon: 'explore', isSheet: true },
 ];
 
 /**
@@ -56,7 +42,11 @@ const CONSUMER_NAV_ITEMS: readonly NavItem[] = [
  * it flexbox squeezed them to 28px and still pushed the last one off-screen.
  */
 const TOP_BAR_BUTTON =
-  'shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-soft-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-95';
+  'shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-full border-[1.5px] border-navy/25 text-navy hover:border-navy hover:bg-white dark:border-white/25 dark:text-biscuit dark:hover:border-biscuit dark:hover:bg-night-raised transition-colors active:scale-95';
+
+/** The orange count on the bell and the bag: navy on color, ringed in paper. */
+const COUNT_BADGE =
+  'absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 inline-flex items-center justify-center text-2xs font-extrabold leading-none text-navy bg-brand-500 rounded-full ring-2 ring-biscuit dark:ring-night-surface';
 
 /** Sun/moon with a little sunrise rotation on toggle. */
 function ThemeGlyph({ theme }: { theme: string }) {
@@ -68,11 +58,7 @@ function ThemeGlyph({ theme }: { theme: string }) {
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className="inline-flex"
     >
-      {theme === 'dark' ? (
-        <Sun size={18} aria-hidden className="text-warning-500" />
-      ) : (
-        <Moon size={18} aria-hidden className="text-gray-500 dark:text-gray-300" />
-      )}
+      {theme === 'dark' ? <Sun size={17} aria-hidden /> : <BrandIcon name="moon" size={18} />}
     </motion.span>
   );
 }
@@ -136,10 +122,10 @@ export default function NavBar() {
   const navItems: readonly NavItem[] =
     user?.role === 'rescue'
       ? [
-          { path: '/app/rescue/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { path: '/app/pets/new', label: 'Post', icon: CirclePlus },
-          { path: '/app/lost', label: 'Lost', icon: Siren },
-          { path: `/app/users/${user.id}`, label: 'Profile', icon: UserRound },
+          { path: '/app/rescue/dashboard', label: 'Dashboard', icon: 'rescue' },
+          { path: '/app/pets/new', label: 'Post', icon: 'plus' },
+          { path: '/app/lost', label: 'Lost', icon: 'lost' },
+          { path: `/app/users/${user.id}`, label: 'Profile', icon: 'user' },
         ]
       : CONSUMER_NAV_ITEMS;
 
@@ -179,7 +165,7 @@ export default function NavBar() {
   return (
     <>
       {/* Top bar */}
-      <nav className="sticky top-0 z-40 flex items-center justify-between gap-2 px-4 py-2.5 glass border-b border-gray-200/60 dark:border-gray-800">
+      <nav className="sticky top-0 z-40 flex h-14 items-center justify-between gap-2 px-4 glass border-b border-navy/10 dark:border-white/10">
         <Link
           to={
             isAuthenticated
@@ -189,16 +175,18 @@ export default function NavBar() {
               : '/'
           }
           aria-label="Fetchpawz home"
-          className="flex min-w-0 items-center gap-1.5 text-lg font-bold tracking-tight text-brand-600 transition-colors duration-200 ease-soft-out hover:text-brand-700 active:scale-[0.98]"
+          className="flex min-w-0 items-center text-[22px] text-navy dark:text-biscuit transition-transform duration-150 ease-soft-out active:scale-[0.98]"
         >
-          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow">
-            <PawMark className="h-[22px] w-[22px]" />
-          </span>
           {/* Admins carry a sixth control; below the 420px app column there
               is no room for it and the wordmark, so the mark stands alone. */}
-          <span className={user?.role === 'admin' ? 'hidden min-[420px]:inline' : 'truncate'}>
-            Fetchpawz
-          </span>
+          {user?.role === 'admin' ? (
+            <>
+              <PawMark decorative className="h-[26px] w-[26px] text-brand-500 min-[420px]:hidden" />
+              <Lockup className="hidden min-[420px]:inline-flex" />
+            </>
+          ) : (
+            <Lockup />
+          )}
         </Link>
         {isAuthenticated ? (
           <div className="flex shrink-0 items-center gap-2">
@@ -207,9 +195,9 @@ export default function NavBar() {
                 to="/admin"
                 aria-label="Admin"
                 title="Admin"
-                className={`${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300`}
+                className={TOP_BAR_BUTTON}
               >
-                <ShieldCheck size={18} aria-hidden />
+                <BrandIcon name="shield" size={18} />
               </Link>
             )}
             {/* Rescues used to have a small "Rescue" top-bar link here;
@@ -219,20 +207,20 @@ export default function NavBar() {
                 to={`/app/users/${user?.id}`}
                 aria-label="Profile"
                 title="Profile"
-                className={`${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300`}
+                className={TOP_BAR_BUTTON}
               >
-                <UserRound size={18} aria-hidden />
+                <BrandIcon name="user" size={18} />
               </Link>
             )}
             <Link
               to="/app/notifications"
               aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
               title="Notifications"
-              className={`relative ${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300`}
+              className={`relative ${TOP_BAR_BUTTON}`}
             >
-              <Bell size={18} aria-hidden />
+              <BrandIcon name="bell" size={18} style={{ '--bean': unreadCount > 0 ? 'transparent' : undefined } as React.CSSProperties} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 inline-flex items-center justify-center text-2xs font-bold leading-none text-white bg-brand-500 rounded-full">
+                <span className={COUNT_BADGE}>
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -242,11 +230,11 @@ export default function NavBar() {
                 to="/app/cart"
                 aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : 'Cart'}
                 title="Cart"
-                className={`relative ${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300`}
+                className={`relative ${TOP_BAR_BUTTON}`}
               >
-                <ShoppingBag size={18} aria-hidden />
+                <BrandIcon name="bag" size={18} />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 inline-flex items-center justify-center text-2xs font-bold leading-none text-white bg-brand-500 rounded-full">
+                  <span className={COUNT_BADGE}>
                     {cartCount > 9 ? '9+' : cartCount}
                   </span>
                 )}
@@ -266,7 +254,7 @@ export default function NavBar() {
               onClick={handleLogout}
               aria-label="Log out"
               title="Log out"
-              className={`${TOP_BAR_BUTTON} text-gray-600 dark:text-gray-300 hover:text-danger-500 dark:hover:text-danger-400`}
+              className={TOP_BAR_BUTTON}
             >
               <LogOut size={17} aria-hidden />
             </button>
@@ -287,7 +275,7 @@ export default function NavBar() {
                 sign-up is intentionally not surfaced on the marketing shell. */}
             <Link
               to="/login"
-              className="rounded-lg bg-brand-500 px-3 py-1.5 text-white shadow-soft-sm transition-all duration-200 ease-soft-out hover:bg-brand-600 hover:shadow-brand-glow active:scale-95"
+              className="inline-flex min-h-[36px] items-center rounded-full border-2 border-navy bg-brand-500 px-4 font-extrabold text-navy shadow-ledge-sm transition-transform duration-150 ease-soft-out hover:-translate-y-px active:translate-y-[2px] active:shadow-none"
             >
               Log in
             </Link>
@@ -297,14 +285,17 @@ export default function NavBar() {
 
       {/* Email verification banner */}
       {showVerifyBanner && (
-        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-warning-50 dark:bg-warning-500/10 border-b border-warning-200 dark:border-warning-500/30 text-sm text-warning-800 dark:text-warning-200 animate-fade-in-up">
-          <span>Please verify your email address to unlock all features.</span>
+        <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-navy-100 dark:bg-night-raised border-b border-navy/10 dark:border-white/10 text-sm font-semibold text-navy dark:text-biscuit animate-fade-in-up">
+          <span className="flex items-center gap-2">
+            <BrandIcon name="mail" size={18} />
+            Verify your email to unlock everything.
+          </span>
           <button
             onClick={() => setBannerDismissed(true)}
-            className="text-warning-600 dark:text-warning-400 hover:text-warning-800 dark:hover:text-warning-200 font-bold leading-none flex-shrink-0"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full hover:bg-navy/10 dark:hover:bg-white/10"
             aria-label="Dismiss"
           >
-            ×
+            <BrandIcon name="close" size={16} />
           </button>
         </div>
       )}
@@ -313,50 +304,53 @@ export default function NavBar() {
       {isAuthenticated && (
         <div
           ref={tabBarRef}
-          className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-gray-200/60 dark:border-gray-800 safe-bottom"
+          className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-navy/10 dark:bg-night-surface/95 dark:border-white/10 safe-bottom"
         >
-          <div className="mx-auto max-w-app flex py-2">
+          <div className="mx-auto max-w-app flex px-1 pt-1.5 pb-1.5">
             {navItems.map((item) => {
-              const { path, label, icon: Icon } = item;
+              const { path, label } = item;
               const isActive = activePath === path;
               const isSheet = 'isSheet' in item && item.isSheet;
               // Explore fully off (admin flag) => greyed, non-opening "Soon" tab.
               const exploreDisabled = isSheet && !flags.explore_enabled;
               const displayLabel = exploreDisabled ? 'Soon' : label;
-              const itemClasses = `relative flex flex-1 flex-col items-center gap-1 px-2 pt-2.5 pb-2 min-h-[53px] transition-colors duration-200 ease-soft-out ${
+              // Labels always on. The current tab gets an orange pill behind its
+              // icon (navy ink, white bean); the rest are muted navy with the
+              // bean in the same ink.
+              const itemClasses = `relative flex flex-1 flex-col items-center gap-1 px-1 pt-1 pb-1 min-h-[54px] transition-colors duration-200 ease-soft-out ${
                 exploreDisabled
                   ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                   : isActive
-                    ? 'text-brand-600 dark:text-brand-400'
-                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                    ? 'text-navy dark:text-biscuit'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-navy dark:hover:text-biscuit'
               }`;
               const content = (
                 <>
-                  {isActive && (
+                  <span className="relative inline-flex h-8 w-14 items-center justify-center">
+                    {isActive && (
+                      <motion.span
+                        layoutId="tab-indicator"
+                        className="absolute inset-0 rounded-full border-2 border-navy bg-brand-500 dark:border-transparent"
+                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    {/* the wag when the tab becomes active */}
                     <motion.span
-                      layoutId="tab-indicator"
-                      className="absolute -top-px inset-x-3 h-0.5 rounded-full bg-brand-500"
-                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                    />
-                  )}
-                  {/* tail-wag wiggle when the tab becomes active */}
-                  <motion.span
-                    className="leading-none"
-                    animate={
-                      isActive && !reduceMotion
-                        ? { rotate: [0, -10, 8, -4, 0], scale: [1, 1.15, 1.08, 1.12, 1.1] }
-                        : { rotate: 0, scale: isActive ? 1.1 : 1 }
-                    }
-                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      className={`relative leading-none ${isActive ? 'text-navy' : ''}`}
+                      style={
+                        { '--bean': isActive ? '#FFFFFF' : 'currentColor' } as React.CSSProperties
+                      }
+                      animate={
+                        isActive && !reduceMotion ? { rotate: [0, -12, 9, -3, 0] } : { rotate: 0 }
+                      }
+                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <BrandIcon name={item.icon} size={24} />
+                    </motion.span>
+                  </span>
+                  <span
+                    className={`text-[11px] leading-none tracking-tight ${isActive ? 'font-extrabold' : 'font-bold'}`}
                   >
-                    <Icon
-                      size={26}
-                      strokeWidth={isActive ? 2.5 : 2}
-                      fill={isActive && item.fillActive ? 'currentColor' : 'none'}
-                      aria-hidden
-                    />
-                  </motion.span>
-                  <span className="text-xs font-semibold leading-none tracking-tight">
                     {displayLabel}
                   </span>
                 </>

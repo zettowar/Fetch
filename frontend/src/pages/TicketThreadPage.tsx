@@ -51,7 +51,7 @@ export default function TicketThreadPage() {
   if (isLoading) {
     return (
       <div className="pb-8">
-        <PageHeader title="Conversation" back backFallback="/app/support" />
+        <PageHeader title="Conversation" back backFallback="/app/support" className="px-4 pt-4 mb-4" />
         <div className="px-4">
           <ListSkeleton rows={3} />
         </div>
@@ -62,7 +62,7 @@ export default function TicketThreadPage() {
   if (isError || !ticket) {
     return (
       <div className="pb-8">
-        <PageHeader title="Conversation" back backFallback="/app/support" />
+        <PageHeader title="Conversation" back backFallback="/app/support" className="px-4 pt-4 mb-4" />
         <div className="px-4">
           <ErrorState
             message="We couldn't load this conversation."
@@ -78,10 +78,10 @@ export default function TicketThreadPage() {
 
   return (
     <div className="pb-8">
-      <PageHeader title={ticket.subject} back backFallback="/app/support" />
+      <PageHeader title={ticket.subject} back backFallback="/app/support" className="px-4 pt-4 mb-3" />
 
       <div className="px-4 flex flex-col gap-4">
-        <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           <span className="font-mono">{ticket.ticket_number}</span>
           <TicketStatusBadge status={ticket.status} />
         </div>
@@ -109,9 +109,9 @@ export default function TicketThreadPage() {
 
         {isClosed ? (
           <Card>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               This conversation is closed. If you still need help,{' '}
-              <Link to="/app/support" className="text-brand-500 font-medium hover:underline">
+              <Link to="/app/support" className="font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit">
                 start a new message
               </Link>
               .
@@ -126,7 +126,7 @@ export default function TicketThreadPage() {
                 if (canSend) mutation.mutate();
               }}
             >
-              <label htmlFor="ticket-reply" className="text-sm font-medium">
+              <label htmlFor="ticket-reply" className="field-label">
                 Reply
               </label>
               <textarea
@@ -140,7 +140,7 @@ export default function TicketThreadPage() {
                     ? "If this isn't sorted, tell us here and we'll pick it back up."
                     : 'Add anything else that might help.'
                 }
-                className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                className="w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400"
               />
               {ticket.status === 'resolved' && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -172,19 +172,21 @@ function Bubble({
   const fromStaff = side === 'staff';
   return (
     <li className={`flex flex-col ${fromStaff ? 'items-start' : 'items-end'}`}>
-      <span className="mb-1 px-1 text-2xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+      <span className="eyebrow mb-1 px-1">
         {label}
       </span>
+      {/* Support answers on a white panel; the person's own words sit on a
+          Ball Orange tint with navy ink (never white on orange). */}
       <div
-        className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+        className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-navy dark:text-biscuit ${
           fromStaff
-            ? 'rounded-tl-sm bg-white border border-gray-100 text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200'
-            : 'rounded-tr-sm bg-brand-500 text-white'
+            ? 'rounded-tl-md bg-white border border-gray-200 dark:border-white/10 dark:bg-night-surface'
+            : 'rounded-tr-md bg-brand-100 border border-brand-300 dark:border-brand-500/30 dark:bg-brand-500/15'
         }`}
       >
         <Linkify>{body}</Linkify>
       </div>
-      <span className="mt-1 px-1 text-2xs text-gray-400 dark:text-gray-500">
+      <span className="mt-1 px-1 text-2xs text-gray-500 dark:text-gray-400">
         <TimeAgo value={at} />
       </span>
     </li>

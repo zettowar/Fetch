@@ -48,34 +48,36 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
 
   return (
     <div className="mt-4">
-      <h3 className="font-semibold mb-2">Comments{isError ? '' : ` (${comments.length})`}</h3>
+      <h3 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">
+        Comments{isError ? '' : ` (${comments.length})`}
+      </h3>
 
       {isError ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
           Couldn't load comments.{' '}
-          <button onClick={() => refetch()} className="text-brand-500 hover:underline">
+          <button onClick={() => refetch()} className="font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit">
             Retry
           </button>
         </p>
       ) : comments.length > 0 ? (
         <div className="flex flex-col gap-2 mb-3">
           {visibleComments.map((c) => (
-            <div key={c.id} className="flex gap-2.5 p-2.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+            <div key={c.id} className="surface flex gap-2.5 p-3">
               <Avatar name={c.author_name || 'U'} size="sm" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="text-sm font-extrabold text-navy dark:text-biscuit">
                       {c.author_name || 'Unknown'}
                     </span>
-                    <TimeAgo value={c.created_at} className="text-xs text-gray-400 dark:text-gray-500" />
+                    <TimeAgo value={c.created_at} className="text-xs text-gray-500 dark:text-gray-400" />
                   </div>
                   {user?.id === c.author_id ? (
                     <button
                       onClick={() => {
                         if (confirm('Delete this comment?')) deleteMutation.mutate(c.id);
                       }}
-                      className="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors px-1"
+                      className="text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-danger-600 dark:hover:text-danger-300 transition-colors px-1"
                     >
                       Delete
                     </button>
@@ -90,7 +92,7 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
                     )
                   )}
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5 whitespace-pre-wrap break-words">
+                <p className="text-sm text-gray-700 dark:text-gray-200 mt-0.5 whitespace-pre-wrap break-words">
                   <Linkify>{c.body}</Linkify>
                 </p>
               </div>
@@ -99,20 +101,20 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
           {hasMore && (
             <button
               onClick={() => setShowAll(true)}
-              className="text-sm text-brand-500 hover:underline text-center py-1"
+              className="text-sm font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit text-center py-1"
             >
               View all {comments.length} comments
             </button>
           )}
         </div>
       ) : (
-        <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">No comments yet.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No comments yet.</p>
       )}
 
       {/* Post comment */}
       <div className="flex gap-2">
         <input
-          className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30"
+          className="flex-1 min-w-0 min-h-[40px] rounded-full border-2 border-navy/25 bg-white px-4 py-2 text-sm font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400"
           placeholder="Add a comment..."
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -121,8 +123,11 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
           }}
           maxLength={1000}
         />
+        {/* Secondary: the comment box sits under a pet or post that owns the
+            screen's one primary. */}
         <Button
           size="sm"
+          variant="secondary"
           onClick={() => createMutation.mutate()}
           disabled={!body.trim()}
           loading={createMutation.isPending}

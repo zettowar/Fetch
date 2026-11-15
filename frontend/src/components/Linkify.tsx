@@ -38,7 +38,7 @@ export default function Linkify({ children, className }: LinkifyProps) {
             href={part.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-brand-500 hover:underline break-all"
+            className="link break-all"
             onClick={(e) => e.stopPropagation()}
           >
             {part.display}

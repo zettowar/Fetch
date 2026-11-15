@@ -169,8 +169,11 @@ def _week_bucket() -> date:
     return today - timedelta(days=today.weekday())
 
 
-# Flat tints for the placeholder photos, cycled per pet.
-_TILE_COLORS = ["#ee7a10", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#0ea5e9", "#f59e0b"]
+# Brand tints for the placeholder photos, cycled per pet (Brand Book, Edition 2:
+# Orange 100, Navy 100, Green 100, Biscuit deep). Gold and pink are reserved —
+# gold is earned and pink means a rescue — so a seeded photo never borrows them.
+_TILE_COLORS = ["#ffe4d1", "#e3e4f0", "#d6f3e6", "#f1d9bc", "#ffc9a6", "#c6c8de"]
+_TILE_INK = "#1c1f45"  # Leash Navy: navy on colour
 
 
 def _placeholder_photo(name: str, index: int) -> bytes:
@@ -183,7 +186,7 @@ def _placeholder_photo(name: str, index: int) -> bytes:
     left, top, right, bottom = draw.textbbox((0, 0), letter, font=font)
     draw.text(
         ((size - (right - left)) / 2 - left, (size - (bottom - top)) / 2 - top),
-        letter, fill="#ffffff", font=font,
+        letter, fill=_TILE_INK, font=font,
     )
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=85)

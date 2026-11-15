@@ -2,25 +2,14 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import {
-  ArrowLeftRight,
-  Bell,
-  ChevronRight,
-  Heart,
-  HeartHandshake,
-  LifeBuoy,
-  PawPrint,
-  Pencil,
-  Share2,
-  ShieldCheck,
-  Ticket,
-} from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ChevronRight } from 'lucide-react';
 import BackButton from '../components/ui/BackButton';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Avatar from '../components/ui/Avatar';
+import Badge from '../components/ui/Badge';
+import BrandIcon, { type BrandIconName } from '../components/brand/BrandIcon';
 import TimeAgo from '../components/TimeAgo';
 import { Spinner } from '../components/ui/Skeleton';
 import PetProfileCard from '../components/PetProfileCard';
@@ -82,7 +71,7 @@ export default function UserProfilePage() {
   if (isError && !isNotFound(error)) {
     return <ErrorState message="Couldn't load this profile." onRetry={() => refetch()} />;
   }
-  if (!profile) return <div className="p-4 text-gray-500 dark:text-gray-400">User not found</div>;
+  if (!profile) return <div className="p-4 text-gray-600 dark:text-gray-300">User not found</div>;
 
   const isMe = currentUser?.id === profile.id;
 
@@ -99,41 +88,40 @@ export default function UserProfilePage() {
         <button
           type="button"
           onClick={handleShare}
-          className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-brand-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+          className="btn btn-ghost btn-sm"
           aria-label="Share profile"
         >
-          <Share2 size={16} aria-hidden />
+          <BrandIcon name="share" size={18} />
           Share
         </button>
       </div>
 
       {/* Header */}
       <section className="flex flex-col items-center text-center px-6 pt-2 pb-6">
-        <div className="rounded-full p-1 bg-gradient-to-br from-brand-300 via-brand-400 to-brand-600 shadow-soft">
-          <div className="rounded-full bg-white dark:bg-gray-900 p-1">
-            <Avatar name={profile.display_name} size="2xl" />
-          </div>
+        {/* Flat ring, no gradient: the avatar's own navy line does the work. */}
+        <div className="rounded-full bg-white p-1.5 border border-gray-200 dark:bg-night-surface dark:border-white/10">
+          <Avatar name={profile.display_name} size="2xl" />
         </div>
-        <h1 className="mt-4 text-2xl font-bold tracking-tight">{profile.display_name}</h1>
+        <h1 className="mt-4 text-[28px] leading-tight text-navy dark:text-biscuit text-balance">{profile.display_name}</h1>
         {profile.location_rough && (
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{profile.location_rough}</p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{profile.location_rough}</p>
         )}
-        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Joined <TimeAgo value={profile.created_at} />
         </p>
       </section>
 
       {/* Stats strip */}
-      <section className="mx-4 mb-5 grid grid-cols-2 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 divide-x divide-gray-100 dark:divide-gray-800 overflow-hidden">
+      <section className="surface mx-4 mb-5 grid grid-cols-2 divide-x divide-gray-200 dark:divide-white/10 overflow-hidden">
         <div className="py-3 text-center">
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{profile.pet_count}</p>
-          <p className="text-2xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">
+          <p className="font-display text-[28px] leading-none text-navy dark:text-biscuit tabular-nums">{profile.pet_count}</p>
+          <p className="eyebrow mt-1.5">
             {profile.pet_count === 1 ? 'Pet' : 'Pets'}
           </p>
         </div>
         <div className="py-3 text-center">
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{profile.follower_count}</p>
-          <p className="text-2xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-medium">
+          <p className="font-display text-[28px] leading-none text-navy dark:text-biscuit tabular-nums">{profile.follower_count}</p>
+          <p className="eyebrow mt-1.5">
             {profile.follower_count === 1 ? 'Follower' : 'Followers'}
           </p>
         </div>
@@ -141,13 +129,16 @@ export default function UserProfilePage() {
 
       {/* Subscription card (self only) */}
       {isMe && (
-        <section className="mx-4 mb-4 rounded-2xl border border-brand-200/60 dark:border-brand-500/30 bg-gradient-to-br from-brand-50 to-white dark:from-brand-500/10 dark:to-gray-900 p-4">
+        // Premium surfaces are Leash Navy (no gradient, never gold — a
+        // subscription is bought, not earned).
+        <section className="mx-4 mb-4 rounded-2xl bg-navy p-4 text-biscuit dark:bg-night-raised dark:border dark:border-white/10">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {subscription.isSubscriber ? '🐾 Pack+ active' : 'Upgrade to Pack+'}
+              <p className="flex items-center gap-1.5 text-base font-extrabold tracking-tight">
+                {subscription.isSubscriber && <BrandIcon name="check" size={18} />}
+                {subscription.isSubscriber ? 'Pack+ active' : 'Upgrade to Pack+'}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+              <p className="text-xs text-biscuit/80 mt-0.5">
                 {subscription.isSubscriber
                   ? 'Ad-free swipes · unlimited rewinds · no daily limit.'
                   : 'Rewind swipes, ditch ads, and skip the daily limit.'}
@@ -155,10 +146,8 @@ export default function UserProfilePage() {
             </div>
             <Link
               to="/app/billing"
-              className={`flex-shrink-0 inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
-                subscription.isSubscriber
-                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  : 'bg-brand-500 text-white hover:bg-brand-600'
+              className={`btn btn-sm flex-shrink-0 ${
+                subscription.isSubscriber ? 'btn-secondary' : 'btn-primary'
               }`}
             >
               {subscription.isSubscriber ? 'Manage' : 'Upgrade'}
@@ -169,11 +158,12 @@ export default function UserProfilePage() {
 
       {/* Verify banner (self only) */}
       {isMe && currentUser && !currentUser.is_verified && (
-        <section className="mx-4 mb-4 p-3 bg-warning-50 border border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30 rounded-xl text-sm">
+        // Pending, not an error: the warning tint with navy ink.
+        <section className="mx-4 mb-4 p-3.5 bg-warning-50 border border-warning-300 dark:bg-warning-500/10 dark:border-warning-500/30 rounded-2xl text-sm text-navy dark:text-biscuit">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-medium text-warning-800 dark:text-warning-200">Email not verified</p>
-              <p className="text-xs text-warning-700 dark:text-warning-300 mt-0.5 break-words">
+              <p className="font-extrabold">Email not verified</p>
+              <p className="text-xs text-gray-700 dark:text-gray-200 mt-0.5 break-words">
                 Verify <span className="font-mono">{currentUser.email}</span> so we can reach you about account and safety updates.
               </p>
             </div>
@@ -187,13 +177,13 @@ export default function UserProfilePage() {
             </Button>
           </div>
           {debugToken && (
-            <div className="mt-2 p-2 bg-white dark:bg-gray-900 border border-warning-200 dark:border-warning-500/30 rounded-lg">
-              <p className="text-2xs text-warning-700 dark:text-warning-300 mb-1">
+            <div className="mt-2 p-2 bg-white dark:bg-night-surface border border-warning-300 dark:border-warning-500/30 rounded-lg">
+              <p className="text-2xs text-gray-600 dark:text-gray-300 mb-1">
                 Dev mode: no SMTP configured. Use this link to verify:
               </p>
               <Link
                 to={`/verify-email/${debugToken}`}
-                className="text-xs text-brand-500 break-all hover:underline"
+                className="text-xs font-mono break-all font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit"
               >
                 {window.location.origin}/verify-email/{debugToken}
               </Link>
@@ -204,15 +194,16 @@ export default function UserProfilePage() {
 
       {/* Account menu (self only) */}
       {isMe && (
-        <section className="mx-4 mb-6 flex flex-col gap-2">
-          <MenuLink to="/app/profile/edit" label="Edit profile" icon={<Pencil size={18} />} />
-          <MenuLink to="/app/following" label="Pets I follow" icon={<PawPrint size={18} />} />
-          <MenuLink to="/app/liked" label="Pets you liked" icon={<Heart size={18} />} />
-          <MenuLink to="/app/transfers" label="Pet transfers" icon={<ArrowLeftRight size={18} />} />
-          <MenuLink to="/app/donations" label="My donations" icon={<HeartHandshake size={18} />} />
-          <MenuLink to="/app/notifications" label="Notifications" icon={<Bell size={18} />} />
+        // One flat panel of rows, not a stack of floating cards.
+        <section className="surface mx-4 mb-6 flex flex-col divide-y divide-gray-200 dark:divide-white/10 overflow-hidden">
+          <MenuLink to="/app/profile/edit" label="Edit profile" icon="user" />
+          <MenuLink to="/app/following" label="Pets I follow" icon="follow" />
+          <MenuLink to="/app/liked" label="Pets you liked" icon="like" />
+          <MenuLink to="/app/transfers" label="Pet transfers" icon="share" />
+          <MenuLink to="/app/donations" label="My donations" icon="donate" />
+          <MenuLink to="/app/notifications" label="Notifications" icon="bell" />
           {/* The only route to two-factor setup and "Close your account". */}
-          <MenuLink to="/app/security" label="Security" icon={<ShieldCheck size={18} />} />
+          <MenuLink to="/app/security" label="Security" icon="shield" />
           <SupportMenuLink />
         </section>
       )}
@@ -237,15 +228,13 @@ export default function UserProfilePage() {
       {/* Pets grid */}
       <section className="mx-4">
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-base font-bold tracking-tight">
+          <h2 className="text-lg font-extrabold tracking-tight text-navy dark:text-biscuit">
             {isMe ? 'My pets' : `${profile.display_name.split(' ')[0]}'s pets`}
           </h2>
           {isMe && (
-            <Link
-              to="/app/pets/new"
-              className="text-xs font-medium text-brand-600 hover:text-brand-700"
-            >
-              + Add pet
+            <Link to="/app/pets/new" className="btn btn-ghost btn-sm">
+              <BrandIcon name="plus" size={18} />
+              Add pet
             </Link>
           )}
         </div>
@@ -260,11 +249,8 @@ export default function UserProfilePage() {
             title={isMe ? 'No pets yet' : "Hasn't added any pets yet"}
             action={
               isMe ? (
-                <Link
-                  to="/app/pets/new"
-                  className="inline-block text-sm font-medium text-brand-600 hover:text-brand-700"
-                >
-                  Add your first pet →
+                <Link to="/app/pets/new" className="btn btn-secondary btn-sm">
+                  Add your first pet
                 </Link>
               ) : undefined
             }
@@ -281,23 +267,23 @@ export default function UserProfilePage() {
   );
 }
 
-function MenuLink({ to, label, icon, badge }: { to: string; label: string; icon: ReactNode; badge?: number }) {
+function MenuLink({ to, label, icon, badge }: { to: string; label: string; icon: BrandIconName; badge?: number }) {
   return (
     <Link
       to={to}
-      className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl text-sm shadow-soft-sm hover:border-gray-200 dark:border-gray-700 hover:shadow-soft transition-all duration-150"
+      className="flex items-center gap-3 px-3.5 py-3 text-sm text-navy transition-colors hover:bg-navy/5 dark:text-biscuit dark:hover:bg-white/5"
     >
-      <span className="leading-none text-brand-500" aria-hidden>{icon}</span>
-      <span className="flex-1 font-medium text-gray-700 dark:text-gray-300">{label}</span>
+      <BrandIcon name={icon} size={22} />
+      <span className="flex-1 font-bold">{label}</span>
       {badge ? (
         <span
-          className="rounded-full bg-brand-500 px-1.5 py-0.5 text-2xs font-bold text-white"
+          className="min-w-[22px] rounded-full border-[1.5px] border-navy bg-brand-500 px-1.5 py-0.5 text-center text-2xs font-extrabold leading-none text-navy"
           aria-label={`${badge} unread`}
         >
           {badge}
         </span>
       ) : null}
-      <ChevronRight size={18} aria-hidden className="text-gray-300 dark:text-gray-600" />
+      <ChevronRight size={18} aria-hidden className="text-navy/40 dark:text-white/30" />
     </Link>
   );
 }
@@ -314,7 +300,7 @@ function SupportMenuLink() {
     <MenuLink
       to="/app/support"
       label="Help & support"
-      icon={<LifeBuoy size={18} />}
+      icon="help"
       badge={unread}
     />
   );
@@ -348,15 +334,16 @@ function InviteSection() {
 
   return (
     <Card as="section" className="mx-4 mb-6">
-      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
-        <Ticket size={16} aria-hidden className="text-brand-500" /> Invite friends
+      <p className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit flex items-center gap-2">
+        <BrandIcon name="mail" size={20} /> Invite friends
       </p>
-      <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
+      <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-300">
         Fetchpawz is invite-only for now. Your codes let a friend in.
       </p>
       {invites.length === 0 ? (
         <Button
           size="sm"
+          variant="secondary"
           className="mt-3"
           loading={generateMutation.isPending}
           onClick={() => generateMutation.mutate()}
@@ -367,15 +354,15 @@ function InviteSection() {
         <ul className="mt-3 space-y-1.5">
           {invites.map((inv) => (
             <li key={inv.id} className="flex items-center gap-2">
-              <code className={`flex-1 text-sm font-mono px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-800 ${inv.is_used ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-200'}`}>
+              <code className={`flex-1 text-sm font-mono px-2.5 py-1.5 rounded-lg border border-gray-200 bg-biscuit dark:border-white/10 dark:bg-night-raised ${inv.is_used ? 'line-through text-gray-500 dark:text-gray-400' : 'text-navy dark:text-biscuit'}`}>
                 {inv.code}
               </code>
               {inv.is_used ? (
-                <span className="text-2xs font-medium text-success-600 dark:text-success-400">Used 🎉</span>
+                <Badge variant="success">Used</Badge>
               ) : (
                 <button
                   onClick={() => copy(inv.code)}
-                  className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+                  className="btn btn-secondary btn-sm"
                 >
                   Copy
                 </button>
@@ -418,7 +405,7 @@ function BlockControl({ userId, displayName }: { userId: string; displayName: st
       {isBlocked ? (
         <button
           onClick={() => unblockMutation.mutate()}
-          className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+          className="text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-biscuit transition-colors"
         >
           You've blocked {displayName} · Unblock
         </button>
@@ -429,7 +416,7 @@ function BlockControl({ userId, displayName }: { userId: string; displayName: st
               blockMutation.mutate();
             }
           }}
-          className="text-xs font-medium text-gray-400 dark:text-gray-500 hover:text-danger-500 dark:hover:text-danger-400 transition-colors"
+          className="text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-danger-600 dark:hover:text-danger-300 transition-colors"
         >
           Block {displayName}
         </button>

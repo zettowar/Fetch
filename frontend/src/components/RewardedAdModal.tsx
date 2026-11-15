@@ -48,7 +48,7 @@ export default function RewardedAdModal({ open, onReward, onClose, rewardAmount 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-night/70 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Rewarded ad"
@@ -58,10 +58,10 @@ export default function RewardedAdModal({ open, onReward, onClose, rewardAmount 
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.92, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-            className="w-full max-w-sm rounded-2xl bg-gray-900 text-white p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-3xl border-[2.5px] border-navy bg-navy text-biscuit p-6 shadow-toy dark:border-white/15"
           >
-            <p className="text-xs uppercase tracking-wide text-gray-400">Bonus swipes</p>
-            <h2 className="text-xl font-bold mt-1">
+            <p className="eyebrow !text-gray-300">Bonus swipes</p>
+            <h2 className="text-xl font-extrabold tracking-tight mt-1">
               {completed ? 'All set!' : 'Fetching more swipes…'}
             </h2>
             <p className="text-sm text-gray-300 mt-2">
@@ -70,14 +70,14 @@ export default function RewardedAdModal({ open, onReward, onClose, rewardAmount 
                 : 'No video to sit through during the beta — just a short wait.'}
             </p>
 
-            <div className="mt-5 h-2 rounded-full bg-gray-700 overflow-hidden">
+            <div className="mt-5 h-2.5 rounded-full bg-white/10 overflow-hidden">
               <motion.div
-                className="h-full bg-brand-400"
+                className="h-full bg-brand-500"
                 animate={{ width: `${progress * 100}%` }}
                 transition={{ ease: 'linear', duration: 0.25 }}
               />
             </div>
-            <p className="text-[11px] text-gray-400 mt-2 text-center tabular-nums">
+            <p className="text-2xs text-gray-300 mt-2 text-center tabular-nums">
               {completed ? 'Complete' : `${secondsLeft}s remaining`}
             </p>
 
@@ -93,7 +93,7 @@ export default function RewardedAdModal({ open, onReward, onClose, rewardAmount 
                   Claim +{rewardAmount}
                 </Button>
               ) : (
-                <Button variant="ghost" onClick={onClose} className="flex-1">
+                <Button variant="ghost" onClick={onClose} className="flex-1 !text-biscuit hover:!bg-white/10">
                   Skip (no reward)
                 </Button>
               )}

@@ -47,16 +47,16 @@ export default function AdjustPanel({ state, dispatch }: Props) {
               onClick={() =>
                 dispatch({ type: 'SET_ACTIVE_CHANNEL', channel: c.key })
               }
-              className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
+              className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full border-[1.5px] text-xs font-extrabold transition-colors ${
                 isActive
-                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'
-                  : 'bg-white/10 text-white/80 hover:bg-white/20'
+                  ? 'border-navy bg-brand-500 text-navy'
+                  : 'border-white/15 bg-white/10 text-biscuit hover:bg-white/20'
               }`}
             >
               {c.label}
               {dirty && !isActive && (
                 <span
-                  className="h-1.5 w-1.5 rounded-full bg-white dark:bg-gray-900"
+                  className="h-1.5 w-1.5 rounded-full bg-brand-500"
                   aria-hidden
                 />
               )}
@@ -66,12 +66,12 @@ export default function AdjustPanel({ state, dispatch }: Props) {
       </div>
 
       {/* Active slider */}
-      <div className="flex flex-col gap-1.5 rounded-xl bg-white/5 px-3 py-3">
+      <div className="flex flex-col gap-1.5 rounded-2xl border border-white/10 bg-night-surface px-3 py-3">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] uppercase tracking-widest text-white/60">
+          <span className="text-2xs font-extrabold uppercase tracking-[0.1em] text-biscuit/60">
             {activeMeta.label}
           </span>
-          <span className="text-xs font-mono text-white/80">
+          <span className="text-xs font-mono text-biscuit/80">
             {value > 0 ? '+' : ''}
             {value.toFixed(0)}
           </span>
@@ -90,9 +90,9 @@ export default function AdjustPanel({ state, dispatch }: Props) {
             })
           }
           onDoubleClick={() => dispatch({ type: 'RESET_ADJ', key: active })}
-          className="w-full accent-white"
+          className="w-full accent-brand-500"
         />
-        <p className="text-[10px] text-white/40 text-center">
+        <p className="text-2xs text-biscuit/50 text-center">
           {isPixelPass
             ? 'Preview is approximate — final result applied on Done.'
             : 'Double-tap the slider to reset just this channel'}

@@ -1,43 +1,47 @@
 import { Link, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Heart, HousePlus } from 'lucide-react';
+import type React from 'react';
 import { useAuth } from '../store/AuthContext';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import WaitlistForm from './WaitlistForm';
-import PawMark from '../components/ui/PawMark';
-import Badge from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Skeleton';
-import DogIllustration from '../components/flair/DogIllustration';
-import PawTrail from '../components/flair/PawTrail';
+import BrandIcon, { type BrandIconName } from '../components/brand/BrandIcon';
+import PetPortrait, { portraitTint } from '../components/brand/PetPortrait';
+import { Crown } from '../components/brand/RankMedal';
 
-const OWNER_FEATURES = [
-  { icon: '❤️', title: 'Swipe & rate', body: 'A swipe feed of neighborhood cats and dogs. One tap, one vote.' },
-  { icon: '🏆', title: 'Weekly top pet', body: 'Votes reset every Monday, so every pet gets a fresh shot at the crown.' },
-  { icon: '🐾', title: 'Follow your faves', body: 'Some pets you just need to see again. Follow them and you will.' },
-  { icon: '🔖', title: 'Your likes, kept', body: 'Every pet you like lands in a list you can wander back through anytime.' },
+type Feature = { icon: BrandIconName; title: string; body: string };
+
+const OWNER_FEATURES: Feature[] = [
+  { icon: 'like', title: 'Swipe & rate', body: 'A swipe feed of neighborhood cats and dogs. One tap, one vote.' },
+  { icon: 'crown', title: 'Weekly top pet', body: 'Votes reset every Monday, so every pet gets a fresh shot at the crown.' },
+  { icon: 'follow', title: 'Follow your faves', body: 'Some pets you just need to see again. Follow them and you will.' },
+  { icon: 'star', title: 'Your likes, kept', body: 'Every pet you like lands in a list you can wander back through anytime.' },
 ];
 
-const NEIGHBORHOOD_FEATURES = [
-  { icon: '🌳', title: 'Parks & playdates', body: 'Find nearby dog parks, check in, read reviews, and set up playdates with pets from the feed.' },
-  { icon: '🏷️', title: 'QR pet tags', body: "A tag on the collar links to your pet's page — whoever finds them scans it and knows exactly who they belong to." },
-  { icon: '🚨', title: 'Lost & Found', body: 'If a pet goes missing nearby, neighbors get the alert and sightings go straight to the owner.' },
-  { icon: '🗺️', title: 'Rescues near you', body: 'Browse rescues on the map, meet their adoptable pets, and donate in a couple of taps.' },
+const NEIGHBORHOOD_FEATURES: Feature[] = [
+  { icon: 'park', title: 'Parks & playdates', body: 'Find nearby dog parks, check in, read reviews, and set up playdates with pets from the feed.' },
+  { icon: 'qr', title: 'QR pet tags', body: "A tag on the collar links to your pet's page — whoever finds them scans it and knows exactly who they belong to." },
+  { icon: 'lost', title: 'Lost & Found', body: 'If a pet goes missing nearby, neighbors get the alert and sightings go straight to the owner.' },
+  { icon: 'rescue', title: 'Rescues near you', body: 'Browse rescues on the map, meet their adoptable pets, and donate in a couple of taps.' },
 ];
 
-const RESCUE_FEATURES = [
-  { icon: '🏠', title: 'List adoptables', body: 'Give each pet photos, traits, and a story. They appear in the same feed as everyone else.' },
-  { icon: '💬', title: 'Manage inquiries', body: 'Inbound interest, organized. Status, notes, and history in one place.' },
-  { icon: '🗺️', title: 'Map presence', body: 'Your organization shows up on the rescue map, so nearby adopters can find you.' },
-  { icon: '🤝', title: 'Smooth handoff', body: 'Mark adoptions complete or transfer a pet to its new family on Fetchpawz.' },
-  { icon: '💛', title: 'Accept donations', body: 'Take donations right on your profile via Stripe — or keep sending supporters to your own donation page.' },
-  { icon: '🔗', title: 'A page to share', body: 'Every rescue gets a public page — your story and your adoptables — to link from anywhere.' },
+const RESCUE_FEATURES: Feature[] = [
+  { icon: 'rescue', title: 'List adoptables', body: 'Give each pet photos, traits, and a story. They appear in the same feed as everyone else.' },
+  { icon: 'chat', title: 'Manage inquiries', body: 'Inbound interest, organized. Status, notes, and history in one place.' },
+  { icon: 'lost', title: 'Map presence', body: 'Your organization shows up on the rescue map, so nearby adopters can find you.' },
+  { icon: 'check', title: 'Smooth handoff', body: 'Mark adoptions complete or transfer a pet to its new family on Fetchpawz.' },
+  { icon: 'donate', title: 'Accept donations', body: 'Take donations right on your profile via Stripe — or keep sending supporters to your own donation page.' },
+  { icon: 'share', title: 'A page to share', body: 'Every rescue gets a public page — your story and your adoptables — to link from anywhere.' },
 ];
 
-const SITE_TEASERS = [
-  { to: '/about', emoji: '🐾', eyebrow: 'About us', title: 'The people behind Fetchpawz', body: "Who we are, and why this started in a group chat full of shelter listings." },
-  { to: '/mission', emoji: '🎯', eyebrow: 'Our mission', title: 'Why Fetchpawz exists', body: "Shelter pets wait too long for homes. Here's what we're doing about it." },
-  { to: '/news', emoji: '📰', eyebrow: 'News', title: 'Latest updates', body: 'Short notes from the team as we get Fetchpawz ready.' },
+const SITE_TEASERS: { to: string; icon: BrandIconName; eyebrow: string; title: string; body: string }[] = [
+  { to: '/about', icon: 'user', eyebrow: 'About us', title: 'The people behind Fetchpawz', body: "Who we are, and why this started in a group chat full of shelter listings." },
+  { to: '/mission', icon: 'rescue', eyebrow: 'Our mission', title: 'Why Fetchpawz exists', body: "Shelter pets wait too long for homes. Here's what we're doing about it." },
+  { to: '/news', icon: 'bell', eyebrow: 'News', title: 'Latest updates', body: 'Short notes from the team as we get Fetchpawz ready.' },
 ];
+
+/** The cast strip: every pet is somebody's whole world. */
+const CAST = ['corgi', 'tuxedo', 'pittie', 'calico', 'husky', 'ginger', 'dachshund', 'siamese', 'scruff', 'black', 'golden', 'bengal'];
 
 export default function MarketingHome() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -57,33 +61,25 @@ export default function MarketingHome() {
 
   return (
     <div className="animate-fade-in">
-      {/* ── Hero ───────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-400 via-brand-500 to-brand-700 text-white">
-        <div aria-hidden className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/15 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 w-[28rem] h-[28rem] rounded-full bg-brand-800/40 blur-3xl" />
-        <PawMark decorative className="pointer-events-none absolute top-10 left-[8%] h-10 w-10 text-white/10 -rotate-12" />
-        <PawMark decorative className="pointer-events-none absolute bottom-16 right-[12%] h-14 w-14 text-white/[0.08] rotate-6" />
-        <PawTrail steps={5} size={20} className="absolute bottom-8 left-8 text-white/10" />
-
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+      {/* ── Hero: one loud orange page, navy ink (navy on colour) ───── */}
+      <section className="relative overflow-hidden bg-brand-500 text-navy">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             {/* Copy — lead with the status; the product pitch is the flavor. */}
             <div className="text-center lg:text-left">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur-sm px-4 py-1.5 text-xs sm:text-sm font-semibold tracking-widest uppercase ring-1 ring-white/25">
-                <span aria-hidden>🚧</span> In development
+              <span className="inline-flex items-center gap-2 rounded-full border-2 border-navy px-4 py-1.5 text-xs sm:text-sm font-extrabold tracking-[0.1em] uppercase">
+                <BrandIcon name="clock" size={16} style={{ '--bean': '#FFFFFF' } as React.CSSProperties} /> In development
               </span>
 
-              <h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.02] tracking-tight text-balance">
-                The pet app with
-                <br />
-                a rescue mission.
+              <h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl leading-[0.98] tracking-tight text-balance">
+                The pet app with a rescue mission.
               </h1>
 
-              <p className="mt-5 text-xl sm:text-2xl font-bold text-white/85 text-balance">
+              <p className="mt-5 text-xl sm:text-2xl font-extrabold text-balance">
                 Rate good cats and dogs. Crown the weekly top pet.
               </p>
 
-              <p className="mt-4 mx-auto lg:mx-0 max-w-xl text-base sm:text-lg text-white/85 leading-relaxed text-balance">
+              <p className="mt-4 mx-auto lg:mx-0 max-w-xl text-base sm:text-lg font-medium leading-relaxed text-balance">
                 Swipe through the neighborhood's cats and dogs, meet up at the
                 dog park, and bring lost pets home — with adoptable rescue pets
                 right in the deck. We're putting the final touches on it now.
@@ -91,30 +87,39 @@ export default function MarketingHome() {
 
               <WaitlistForm source="hero" className="mt-8 mx-auto lg:mx-0 max-w-xl" />
 
-              <p className="mt-4 text-sm text-white/75">
-                <span aria-hidden>📣</span> Launching soon — sign-ups are
-                invite-only until then.{' '}
-                <Link to="/about" className="font-semibold underline underline-offset-2 hover:text-white">
+              <p className="mt-4 text-sm font-medium">
+                Launching soon. Sign-ups are invite-only until then.{' '}
+                <Link to="/about" className="font-extrabold underline underline-offset-2">
                   Learn about Fetchpawz
                 </Link>
               </p>
-              <p className="mt-2 text-sm text-white/75">
+              <p className="mt-2 text-sm font-medium">
                 Beta tester or team member?{' '}
-                <Link to="/login" className="font-semibold underline underline-offset-2 hover:text-white">
+                <Link to="/login" className="font-extrabold underline underline-offset-2">
                   Log in
                 </Link>
               </p>
             </div>
 
-            {/* Visual — a decorative "app preview" that hints at the swipe UI */}
+            {/* Visual — the real swipe screen in a phone */}
             <div className="hidden lg:flex justify-center">
               <AppPreview />
             </div>
           </div>
         </div>
+      </section>
 
-        {/* soft fade into the page */}
-        <div aria-hidden className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-gray-50 dark:from-gray-950 to-transparent" />
+      {/* ── The cast: every pet is somebody's whole world ──────────── */}
+      <section aria-label="Cats and dogs of Fetchpawz" className="border-b-[2.5px] border-navy bg-navy dark:border-white/10">
+        <div className="mx-auto flex max-w-7xl items-end justify-center gap-0 overflow-hidden px-4 pt-6">
+          {CAST.map((id, i) => (
+            <PetPortrait
+              key={id}
+              id={id}
+              className={`-mx-1.5 h-24 w-24 shrink-0 sm:h-28 sm:w-28 ${i > 7 ? 'hidden lg:block' : i > 5 ? 'hidden sm:block' : ''}`}
+            />
+          ))}
+        </div>
       </section>
 
       {/* ── Audience split ─────────────────────────────────────── */}
@@ -124,15 +129,15 @@ export default function MarketingHome() {
           <AudienceCard
             accent="brand"
             eyebrow="Pet owners"
-            iconEmoji="🐾"
+            icon="like"
             title="Rate, follow, find."
             body="Swipe the feed, crown a weekly top pet, and meet up at the dog park. Lost & Found is built in for the days you hope never come."
             tag="Coming soon"
           />
           <AudienceCard
-            accent="purple"
+            accent="rescue"
             eyebrow="Rescues & partners"
-            iconEmoji="🏠"
+            icon="rescue"
             title="Reach adopters where they swipe."
             body="List adoptable pets in the feed people actually open, and keep every inquiry out of your spreadsheet."
             tag="Applications open"
@@ -142,27 +147,27 @@ export default function MarketingHome() {
       </section>
 
       {/* ── Owner features ─────────────────────────────────────── */}
-      <section className="bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
+      <section className="bg-white dark:bg-night-surface border-y border-navy/10 dark:border-white/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-          <SectionHeading accent="brand" eyebrow="For pet owners" title="Your daily pet fix, with a purpose" />
+          <SectionHeading eyebrow="For pet owners" title="Your daily pet fix, with a purpose" />
           <FeatureGrid features={OWNER_FEATURES} />
         </div>
       </section>
 
       {/* ── Neighborhood features ──────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        <SectionHeading accent="brand" eyebrow="Beyond the feed" title="Made for the real world" />
+        <SectionHeading eyebrow="Beyond the feed" title="Made for the real world" />
         <FeatureGrid features={NEIGHBORHOOD_FEATURES} />
       </section>
 
       {/* ── Rescue features ────────────────────────────────────── */}
-      <section className="bg-white dark:bg-gray-900 border-y border-gray-100 dark:border-gray-800">
+      <section className="bg-white dark:bg-night-surface border-y border-navy/10 dark:border-white/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-          <SectionHeading accent="purple" eyebrow="For rescues" title="Adoption tools, without the busywork" />
-          <FeatureGrid features={RESCUE_FEATURES} cols={3} />
-          <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+          <SectionHeading accent="rescue" eyebrow="For rescues" title="Adoption tools, without the busywork" />
+          <FeatureGrid features={RESCUE_FEATURES} cols={3} tone="rescue" />
+          <p className="mt-10 text-center text-sm text-gray-600 dark:text-gray-300">
             Run a rescue? Applications are open ahead of launch.{' '}
-            <Link to="/signup-rescue" className="font-semibold text-purple-600 dark:text-purple-400 hover:underline">
+            <Link to="/signup-rescue" className="btn btn-rescue btn-sm ml-2 align-middle">
               Apply as a rescue <span aria-hidden>→</span>
             </Link>
           </p>
@@ -180,20 +185,20 @@ export default function MarketingHome() {
       </section>
 
       {/* ── Explore the site ───────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16 lg:pb-20">
         <SectionHeading eyebrow="More about us" title="Get to know Fetchpawz" />
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {SITE_TEASERS.map((t) => (
             <Link
               key={t.to}
               to={t.to}
-              className="group rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-soft-sm transition-all duration-200 ease-soft-out hover:-translate-y-1 hover:shadow-soft-lg hover:border-brand-200 dark:hover:border-brand-500/40"
+              className="group rounded-3xl border-[2.5px] border-navy bg-white p-6 text-navy shadow-toy transition-[transform,box-shadow] duration-150 ease-soft-out hover:-translate-y-px active:translate-x-[2px] active:translate-y-[3px] active:shadow-none dark:border-white/15 dark:bg-night-surface dark:text-biscuit"
             >
-              <span className="text-3xl leading-none" aria-hidden>{t.emoji}</span>
-              <p className="mt-4 text-2xs uppercase tracking-widest font-semibold text-brand-600 dark:text-brand-400">{t.eyebrow}</p>
-              <h3 className="mt-1 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">{t.title}</h3>
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-snug">{t.body}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 dark:text-brand-400">
+              <BrandIcon name={t.icon} size={32} />
+              <p className="mt-4 eyebrow">{t.eyebrow}</p>
+              <h3 className="mt-1 text-lg font-extrabold tracking-tight">{t.title}</h3>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-snug">{t.body}</p>
+              <span className="mt-4 inline-flex items-center gap-1 text-sm font-extrabold">
                 Read more
                 <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
               </span>
@@ -204,21 +209,24 @@ export default function MarketingHome() {
 
       {/* ── Closing CTA ────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-brand-700 px-6 py-14 text-center text-white shadow-soft-lg">
-          <PawMark decorative className="pointer-events-none absolute -top-6 -left-6 h-24 w-24 text-white/10 -rotate-12" />
-          <PawMark decorative className="pointer-events-none absolute -bottom-8 -right-4 h-28 w-28 text-white/[0.08] rotate-12" />
-          <h2 className="relative text-3xl sm:text-4xl font-extrabold tracking-tight text-balance">We're not open yet.</h2>
-          <p className="relative mt-3 mx-auto max-w-xl text-white/90 text-balance">
+        <div className="relative overflow-hidden rounded-3xl border-[2.5px] border-navy bg-brand-500 px-6 pt-14 text-center text-navy shadow-toy dark:border-brand-500">
+          <h2 className="relative font-display text-4xl sm:text-5xl leading-none tracking-tight text-balance">We're not open yet.</h2>
+          <p className="relative mt-4 mx-auto max-w-xl font-medium text-balance">
             Fetchpawz is still in active development. Leave your email and
             we'll send an invite when testing expands.
           </p>
           <WaitlistForm source="closing" className="relative mt-6 mx-auto max-w-md" />
-          <p className="relative mt-6 text-sm text-white/80">
+          <p className="relative mt-6 text-sm font-medium">
             Beta tester or team member?{' '}
-            <Link to="/login" className="font-semibold underline underline-offset-2 hover:text-white">
+            <Link to="/login" className="font-extrabold underline underline-offset-2">
               Log in
             </Link>
           </p>
+          <div aria-hidden className="mt-8 flex items-end justify-center">
+            {['beagle', 'tabby', 'frenchie', 'ragdoll', 'pom'].map((id) => (
+              <PetPortrait key={id} id={id} className="-mx-2 h-24 w-24 sm:h-28 sm:w-28" />
+            ))}
+          </div>
         </div>
       </section>
     </div>
@@ -227,77 +235,72 @@ export default function MarketingHome() {
 
 /* ── Pieces ───────────────────────────────────────────────────── */
 
-type Accent = 'brand' | 'purple';
+type Accent = 'brand' | 'rescue';
 
 function SectionHeading({ eyebrow, title, accent }: { eyebrow: string; title: string; accent?: Accent }) {
-  const color =
-    accent === 'purple'
-      ? 'text-purple-600 dark:text-purple-400'
-      : 'text-brand-600 dark:text-brand-400';
   return (
     <div className="text-center">
-      <p className={`text-2xs uppercase tracking-widest font-semibold ${color}`}>{eyebrow}</p>
-      <h2 className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-balance">{title}</h2>
+      <p className={`eyebrow ${accent === 'rescue' ? '!text-pink-700 dark:!text-pink-300' : ''}`}>{eyebrow}</p>
+      <h2 className="mt-2 font-display text-3xl sm:text-4xl lg:text-5xl leading-none tracking-tight text-balance text-navy dark:text-biscuit">
+        {title}
+      </h2>
     </div>
   );
 }
 
-function FeatureGrid({ features, cols = 4 }: { features: { icon: string; title: string; body: string }[]; cols?: 3 | 4 }) {
+function FeatureGrid({
+  features,
+  cols = 4,
+  tone = 'brand',
+}: {
+  features: Feature[];
+  cols?: 3 | 4;
+  tone?: Accent;
+}) {
   return (
     <div className={`mt-10 grid gap-5 sm:grid-cols-2 ${cols === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
       {features.map((f) => (
-        <div
-          key={f.title}
-          className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-6 shadow-soft-sm transition-transform duration-200 ease-soft-out hover:-translate-y-1"
-        >
-          <span className="text-3xl leading-none" aria-hidden>{f.icon}</span>
-          <p className="mt-4 text-base font-bold text-gray-900 dark:text-gray-100">{f.title}</p>
-          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-snug">{f.body}</p>
+        <div key={f.title} className="surface p-6">
+          <span
+            aria-hidden
+            className={`inline-flex h-12 w-12 items-center justify-center rounded-full text-navy ${
+              tone === 'rescue' ? 'bg-pink-100' : 'bg-brand-100'
+            }`}
+          >
+            <BrandIcon name={f.icon} size={26} />
+          </span>
+          <p className="mt-4 text-base font-extrabold text-navy dark:text-biscuit">{f.title}</p>
+          <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-300 leading-snug">{f.body}</p>
         </div>
       ))}
     </div>
   );
 }
 
-function AudienceCard({ accent, eyebrow, iconEmoji, title, body, tag, tagTo }: {
-  accent: Accent; eyebrow: string; iconEmoji: string; title: string; body: string;
+function AudienceCard({ accent, eyebrow, icon, title, body, tag, tagTo }: {
+  accent: Accent; eyebrow: string; icon: BrandIconName; title: string; body: string;
   tag: string; tagTo?: string;
 }) {
-  const a =
-    accent === 'brand'
-      ? {
-          card: 'ring-1 ring-brand-200 dark:ring-brand-500/30 shadow-brand-glow',
-          iconRing: 'bg-gradient-to-br from-brand-400 to-brand-600 shadow-brand-glow',
-          eyebrow: 'text-brand-600 dark:text-brand-400',
-          tag: 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400',
-        }
-      : {
-          card: 'ring-1 ring-purple-200 dark:ring-purple-500/30 shadow-[0_8px_24px_-8px_rgba(147,51,234,0.35)]',
-          iconRing: 'bg-gradient-to-br from-purple-500 to-purple-700 shadow-[0_8px_24px_-8px_rgba(147,51,234,0.45)]',
-          eyebrow: 'text-purple-600 dark:text-purple-400',
-          tag: 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400',
-        };
+  // Owners get Ball Orange; rescues get Forever Pink — the rescue's colour.
+  const fill = accent === 'brand' ? 'bg-brand-500' : 'bg-pink-500';
   return (
-    <article className={`relative overflow-hidden rounded-3xl bg-white dark:bg-gray-900 p-7 ${a.card}`}>
+    <article className="relative overflow-hidden rounded-3xl border-[2.5px] border-navy bg-white p-7 text-navy shadow-toy dark:border-white/15 dark:bg-night-surface dark:text-biscuit">
       <div className="flex items-start gap-4">
-        <span aria-hidden className={`flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-3xl leading-none text-white ${a.iconRing}`}>
-          {iconEmoji}
+        <span aria-hidden className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-navy text-navy ${fill}`}>
+          <BrandIcon name={icon} size={30} style={{ '--bean': '#FFFFFF' } as React.CSSProperties} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className={`text-2xs uppercase tracking-widest font-semibold ${a.eyebrow}`}>{eyebrow}</p>
-          <h3 className="mt-0.5 text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">{title}</h3>
+          <p className="eyebrow">{eyebrow}</p>
+          <h3 className="mt-1 font-display text-2xl leading-none tracking-tight">{title}</h3>
         </div>
       </div>
-      <p className="mt-4 text-base text-gray-600 dark:text-gray-400 leading-relaxed">{body}</p>
+      <p className="mt-4 text-base text-gray-600 dark:text-gray-300 leading-relaxed">{body}</p>
       {tagTo ? (
-        <Link
-          to={tagTo}
-          className={`mt-5 inline-flex items-center gap-1 rounded-full px-3 py-1 text-2xs font-semibold hover:underline ${a.tag}`}
-        >
+        <Link to={tagTo} className={`btn btn-sm mt-5 ${accent === 'brand' ? 'btn-primary' : 'btn-rescue'}`}>
           {tag} <span aria-hidden>→</span>
         </Link>
       ) : (
-        <span className={`mt-5 inline-flex items-center rounded-full px-3 py-1 text-2xs font-semibold ${a.tag}`}>
+        <span className="mt-5 inline-flex items-center rounded-full border-[1.5px] border-navy/40 px-3 py-1 text-2xs font-extrabold uppercase tracking-[0.1em] dark:border-white/30">
           {tag}
         </span>
       )}
@@ -307,119 +310,115 @@ function AudienceCard({ accent, eyebrow, iconEmoji, title, body, tag, tagTo }: {
 
 function Step({ n, title, body }: { n: number; title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-6 shadow-soft-sm transition-transform duration-200 ease-soft-out hover:-translate-y-1">
-      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-glow font-bold flex items-center justify-center text-base tabular-nums">
+    <div className="surface p-6">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-navy bg-brand-500 font-display text-2xl leading-none text-navy">
         {n}
       </span>
-      <p className="mt-4 text-base font-semibold text-gray-900 dark:text-gray-100">{title}</p>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-snug">{body}</p>
+      <p className="mt-4 text-base font-extrabold text-navy dark:text-biscuit">{title}</p>
+      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 leading-snug">{body}</p>
     </div>
   );
 }
 
 /**
- * Faithful static preview of the real "Rate My Pet" swipe screen, shown inside
- * a phone frame so the whole screen — card AND controls — is contained, the way
- * it is in the app. Mirrors SwipeCard + the SwipeDeck controls verbatim: Pass is
- * a downward-rotated paw, Like is a heart. There is deliberately no thumbs-down
- * — you never vote a pet down. Non-interactive; a mockup of what's coming.
+ * Faithful static preview of the real swipe screen, inside a phone frame:
+ * the trading card (white, navy line, toy shadow, name in Bagel), a pink
+ * rescue pill, and the controls — Pass is white, Like is orange. There is
+ * deliberately no thumbs-down; you never vote a pet down. Non-interactive.
  */
 function AppPreview() {
   const reduceMotion = useReducedMotion();
-  // One shared 5s timeline: the card sits still, tilts right with a LIKE
+  // One shared 5s timeline: the card sits still, tilts right with a Like
   // stamp, then springs back — the fake swipe every visitor came to see.
   const swipeTimes = [0, 0.55, 0.68, 0.82, 0.93, 1];
   return (
     <div className="relative">
       {/* Signals this is a mockup of what's coming, not a live app. */}
-      <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-1 rounded-full bg-brand-700 px-3 py-1 text-2xs font-bold uppercase tracking-widest text-white shadow-soft-lg ring-1 ring-white/40">
-        <span aria-hidden>🚧</span> Sneak peek
+      <span className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-1 rounded-full border-2 border-navy bg-white px-3 py-1 text-2xs font-extrabold uppercase tracking-[0.1em] text-navy">
+        Sneak peek
       </span>
+      <Crown className="absolute -right-6 -top-8 z-30 w-16 rotate-12" />
 
       {/* Phone frame — the app viewport (mobile-portrait). */}
       <motion.div
-        className="w-[320px] rounded-[2.75rem] bg-gray-900 p-2.5 shadow-soft-lg ring-1 ring-black/10"
+        className="w-[320px] rounded-[2.75rem] border-[2.5px] border-navy bg-navy p-2.5 shadow-toy"
         animate={reduceMotion ? undefined : { y: [0, -6, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       >
-        {/* Screen — the app surface; everything below lives on it. */}
-        <div className="rounded-[2.25rem] bg-white dark:bg-gray-900 overflow-hidden">
+        <div className="rounded-[2.25rem] bg-biscuit overflow-hidden">
           <div className="px-4 pt-6 pb-5">
-            {/* SwipePage heading */}
-            <h4 className="text-center text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Rate My Pet
-            </h4>
+            <div className="mb-4 flex items-center justify-between">
+              <p className="font-display text-[26px] leading-none text-navy">Rate</p>
+              {/* Explicit light classes: the mockup is a light screen even
+                  when the site is dark. */}
+              <span className="inline-flex gap-1 rounded-full border-[1.5px] border-navy/25 bg-white p-1 text-xs font-extrabold text-navy">
+                <span className="rounded-full bg-brand-500 px-2.5 py-1">All</span>
+                <span className="px-2.5 py-1">Dogs</span>
+                <span className="px-2.5 py-1">Cats</span>
+              </span>
+            </div>
 
-            {/* Card — mirrors SwipeCard */}
-            <div className="relative w-full h-[290px]">
-              <div aria-hidden className="absolute inset-x-4 top-3 -bottom-1 rounded-2xl bg-black/5 dark:bg-white/5" />
+            <div className="relative w-full h-[300px]">
               <motion.div
-                className="relative h-full w-full rounded-2xl bg-white dark:bg-gray-900 shadow-soft-lg ring-1 ring-black/5 overflow-hidden"
+                className="relative h-full w-full overflow-hidden rounded-3xl border-[2.5px] border-navy bg-white shadow-toy"
                 animate={
                   reduceMotion
                     ? undefined
                     : { rotate: [0, 0, 8, 8, 0, 0], x: [0, 0, 20, 20, 0, 0] }
                 }
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  times: swipeTimes,
-                  ease: 'easeInOut',
-                }}
+                transition={{ duration: 5, repeat: Infinity, times: swipeTimes, ease: 'easeInOut' }}
               >
-                <div className="w-full h-[66%] bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center">
-                  <DogIllustration name="ball" className="h-32 w-auto text-brand-300" />
+                <div
+                  className="flex h-[62%] w-full items-end justify-center border-b-[2.5px] border-navy"
+                  style={{ background: portraitTint('golden') }}
+                >
+                  <PetPortrait id="golden" className="h-[96%] w-auto" />
                 </div>
 
-                {/* Rescue badge — a real SwipeCard element; ties into adoption. */}
-                <span className="absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1 rounded-full bg-brand-500 text-white text-2xs font-semibold px-2.5 py-1 shadow-soft-sm">
-                  <HousePlus size={12} aria-hidden /> Happy Tails Rescue
+                <span className="absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1 rounded-full border-2 border-navy bg-pink-500 px-2.5 py-1 text-2xs font-extrabold text-navy">
+                  Happy Tails Rescue
                 </span>
 
-                {/* LIKE stamp — fades in as the fake swipe tilts the card. */}
                 {!reduceMotion && (
                   <motion.span
                     aria-hidden
-                    className="absolute top-4 right-4 z-20 bg-success-500 text-white px-3 py-1.5 rounded-xl text-base font-bold rotate-12 border-4 border-success-500"
+                    className="absolute top-12 right-4 z-20 rotate-12 rounded-xl border-[3px] border-navy bg-brand-500 px-3 py-1 font-display text-xl text-navy"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 0, 1, 1, 0, 0] }}
                     transition={{ duration: 5, repeat: Infinity, times: swipeTimes }}
                   >
-                    LIKE
+                    Like
                   </motion.span>
                 )}
 
-                <div className="p-3">
+                <div className="px-3 pt-2.5">
                   <div className="flex items-baseline gap-2">
-                    <h5 className="text-lg font-bold text-gray-900 dark:text-gray-100">Biscuit</h5>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">3 yrs</span>
+                    <p className="font-display text-[26px] leading-none text-navy">Biscuit</p>
+                    <span className="text-xs font-bold text-gray-500">3 yrs</span>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Golden Retriever</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {['Playful', 'Gentle', 'Good boy'].map((t) => (
-                      <Badge key={t} variant="brand">
+                  <p className="text-xs font-semibold text-gray-600">Golden Retriever</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {['Zoomies', 'Gentle'].map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-navy bg-white px-2 py-0.5 text-2xs font-bold text-navy"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full border-[1.5px] border-navy" aria-hidden />
                         {t}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 </div>
               </motion.div>
             </div>
 
-            {/* Controls — mirror SwipeDeck: Pass (downward paw) + Like (heart). */}
-            <div className="mt-4 flex items-center justify-center gap-4">
-              <div
-                aria-hidden
-                className="w-16 h-16 rounded-full bg-danger-100 text-danger-500 dark:bg-danger-500/15 dark:text-danger-400 flex items-center justify-center shadow-soft-sm"
-              >
-                <PawMark className="h-8 w-8 rotate-180" decorative />
-              </div>
-              <div
-                aria-hidden
-                className="w-16 h-16 rounded-full bg-success-100 text-success-500 dark:bg-success-500/15 dark:text-success-400 flex items-center justify-center shadow-soft-sm"
-              >
-                <Heart size={30} fill="currentColor" strokeWidth={0} aria-hidden />
-              </div>
+            <div className="mt-5 flex items-center justify-center gap-4" aria-hidden>
+              <span className="flex h-14 w-14 items-center justify-center rounded-full border-[2.5px] border-navy bg-white text-navy shadow-ledge">
+                <BrandIcon name="pass" size={26} />
+              </span>
+              <span className="flex h-14 w-14 items-center justify-center rounded-full border-[2.5px] border-navy bg-brand-500 text-navy shadow-ledge">
+                <BrandIcon name="like" size={26} style={{ '--bean': '#FFFFFF' } as React.CSSProperties} />
+              </span>
             </div>
           </div>
         </div>

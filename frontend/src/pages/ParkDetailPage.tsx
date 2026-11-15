@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { MapPin, X } from 'lucide-react';
-import BackButton from '../components/ui/BackButton';
+import PageHeader from '../components/ui/PageHeader';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
@@ -29,6 +29,14 @@ import Linkify from '../components/Linkify';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
 import { useAuth } from '../store/AuthContext';
+import BrandIcon from '../components/brand/BrandIcon';
+
+// Inline text link: navy ink on an orange underline.
+const LINK =
+  'font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy dark:text-biscuit dark:hover:decoration-biscuit';
+// Form controls drawn like <Input>: 2px navy line, orange focus.
+const FIELD =
+  'w-full rounded-lg border-2 border-navy/25 bg-white px-3.5 py-2.5 text-base font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400';
 
 export default function ParkDetailPage() {
   const { id } = useParams();
@@ -132,31 +140,37 @@ export default function ParkDetailPage() {
 
   return (
     <div className="p-4 pb-8">
-      <BackButton fallback="/app/parks" />
-      <div className="flex items-start justify-between gap-2">
-        <h1 className="text-2xl font-bold">{park.name}</h1>
-        <button
-          onClick={() => shareLink(`${window.location.origin}/app/parks/${id}`, `${park.name} · Fetchpawz`)}
-          className="text-xs text-gray-400 dark:text-gray-500 hover:text-brand-500 px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors flex-shrink-0"
-          title="Share park"
+      <PageHeader
+        back
+        backFallback="/app/parks"
+        title={park.name}
+        action={
+          <button
+            onClick={() => shareLink(`${window.location.origin}/app/parks/${id}`, `${park.name} · Fetchpawz`)}
+            className="btn btn-ghost btn-sm"
+            title="Share park"
+          >
+            <BrandIcon name="share" size={18} />
+            Share
+          </button>
+        }
+      />
+      {park.address && <p className="mt-1.5 text-gray-600 dark:text-gray-300">{park.address}</p>}
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${park.lat},${park.lng}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center gap-1 text-sm ${LINK}`}
         >
-          Share
-        </button>
+          <MapPin size={16} aria-hidden /> Open in Maps
+        </a>
+        {park.verified && (
+          <Badge variant="success" size="md">
+            Verified
+          </Badge>
+        )}
       </div>
-      {park.address && <p className="text-gray-500 dark:text-gray-400">{park.address}</p>}
-      <a
-        href={`https://www.google.com/maps/search/?api=1&query=${park.lat},${park.lng}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 mt-1 text-sm text-brand-500 hover:text-brand-600 hover:underline"
-      >
-        <MapPin size={16} aria-hidden /> Open in Maps
-      </a>
-      {park.verified && (
-        <Badge variant="success" size="md" className="mt-1">
-          Verified
-        </Badge>
-      )}
 
       {/* Attributes */}
       {Object.keys(attrs).length > 0 && (
@@ -172,30 +186,34 @@ export default function ParkDetailPage() {
       )}
 
       {/* Stats */}
-      <div className="flex gap-4 mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+      <div className="surface flex gap-6 mt-4 px-4 py-3">
         <div className="text-center">
-          <p className="text-xl font-bold text-brand-600">
+          <p className="font-display text-2xl leading-none text-navy dark:text-biscuit">
             {park.avg_rating ? park.avg_rating.toFixed(1) : '--'}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Rating</p>
+          <p className="eyebrow mt-1.5">Rating</p>
         </div>
         <div className="text-center">
-          <p className="text-xl font-bold">{park.review_count}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Reviews</p>
+          <p className="font-display text-2xl leading-none text-navy dark:text-biscuit">{park.review_count}</p>
+          <p className="eyebrow mt-1.5">Reviews</p>
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex gap-2 mt-4 flex-wrap">
-        <Button size="sm" onClick={() => setShowReviewForm(!showReviewForm)}>
-          Write Review
-        </Button>
+        {/* Check in is the park's own action (green); the orange primary is
+            saved for Submit review, so a screen never shows two. */}
         <Button
           size="sm"
-          variant="secondary"
+          variant="park"
           onClick={() => setShowCheckinPicker(!showCheckinPicker)}
         >
-          Check In
+          <BrandIcon name="park" size={18} className="[--bean:var(--ink)]" />
+          Check in
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => setShowReviewForm(!showReviewForm)}>
+          <BrandIcon name="star" size={18} />
+          Write review
         </Button>
         {/* Editing a park is a staff action on the server; showing the button
             to everyone led to a form whose Save could only fail. */}
@@ -212,11 +230,11 @@ export default function ParkDetailPage() {
 
       {/* Pet picker for check-in */}
       {showCheckinPicker && (
-        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Which pet is with you?</p>
+        <div className="surface mt-3 p-3">
+          <p className="field-label mb-2">Which pet is with you?</p>
           {myDogs.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              <Link to="/app/pets/new" className="text-brand-500 hover:underline">Add a pet</Link> first
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              <Link to="/app/pets/new" className={LINK}>Add a pet</Link> first
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -225,10 +243,10 @@ export default function ParkDetailPage() {
                   key={pet.id}
                   onClick={() => checkinMutation.mutate(pet.id)}
                   disabled={checkinMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full text-sm hover:border-brand-400 transition-colors"
+                  className="btn btn-secondary btn-sm"
                 >
                   {pet.primary_photo_url && (
-                    <img src={pet.primary_photo_url} alt={pet.name} className="w-5 h-5 rounded-full object-cover" />
+                    <img src={pet.primary_photo_url} alt={pet.name} className="w-5 h-5 rounded-full border border-navy/20 object-cover" />
                   )}
                   {pet.name}
                 </button>
@@ -241,8 +259,8 @@ export default function ParkDetailPage() {
       {/* Who's here */}
       {checkins.length > 0 && (
         <div className="mt-5">
-          <h2 className="font-semibold mb-2 text-sm text-gray-700 dark:text-gray-300">
-            Pets here now <span className="text-brand-500">({checkins.length})</span>
+          <h2 className="text-lg font-extrabold text-navy dark:text-biscuit mb-2">
+            Pets here now <span className="font-bold text-green-700 dark:text-green-400">({checkins.length})</span>
           </h2>
           <div className="flex flex-wrap gap-2">
             {checkins.map((ci) => {
@@ -250,21 +268,21 @@ export default function ParkDetailPage() {
               return (
                 <div
                   key={ci.id}
-                  className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl"
+                  className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-night-surface border border-gray-200 dark:border-white/10 rounded-2xl"
                 >
                   {ci.pet_photo_url ? (
-                    <img src={ci.pet_photo_url} alt={ci.pet_name ?? 'Checked-in pet'} className="w-8 h-8 rounded-full object-cover" />
+                    <img src={ci.pet_photo_url} alt={ci.pet_name ?? 'Checked-in pet'} className="w-8 h-8 rounded-full border border-navy/20 object-cover" />
                   ) : (
                     <Avatar name={ci.pet_name ?? '?'} size="md" />
                   )}
                   <div>
-                    <p className="text-sm font-medium leading-none">{ci.pet_name ?? 'Unknown'}</p>
-                    {ci.pet_breed && <p className="text-2xs text-gray-400 dark:text-gray-500">{ci.pet_breed}</p>}
+                    <p className="text-sm font-extrabold leading-none text-navy dark:text-biscuit">{ci.pet_name ?? 'Unknown'}</p>
+                    {ci.pet_breed && <p className="mt-0.5 text-2xs text-gray-500 dark:text-gray-400">{ci.pet_breed}</p>}
                   </div>
                   {isMyDog && ci.pet_id && (
                     <button
                       onClick={() => checkoutMutation.mutate(ci.pet_id!)}
-                      className="ml-1 text-2xs text-gray-400 dark:text-gray-500 hover:text-danger-500 dark:hover:text-danger-400"
+                      className="ml-1 rounded-full p-1 text-gray-500 transition-colors hover:bg-navy/5 hover:text-navy dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-biscuit"
                       title="Check out"
                       aria-label="Check out of this park"
                     >
@@ -282,15 +300,16 @@ export default function ParkDetailPage() {
       {showReviewForm && (
         <fieldset
           disabled={reviewMutation.isPending}
-          className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl flex flex-col gap-3 disabled:opacity-70 disabled:cursor-wait"
+          className="surface mt-4 p-4 flex flex-col gap-3 disabled:opacity-70 disabled:cursor-wait"
         >
+          {/* Rating stars are navy ink — gold is earned only. */}
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
                 type="button"
                 onClick={() => setRating(n)}
-                className={`text-2xl transition-colors hover:scale-110 active:scale-95 ${n <= rating ? 'text-yellow-400' : 'text-gray-200'}`}
+                className={`text-2xl transition-[color,transform] hover:scale-110 active:scale-95 ${n <= rating ? 'text-navy dark:text-biscuit' : 'text-gray-300 dark:text-white/20'}`}
                 aria-label={`Rate ${n} star${n === 1 ? '' : 's'}`}
               >
                 ★
@@ -298,7 +317,7 @@ export default function ParkDetailPage() {
             ))}
           </div>
           <select
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm"
+            className={`min-h-[48px] ${FIELD}`}
             value={crowdLevel}
             onChange={(e) => setCrowdLevel(e.target.value)}
           >
@@ -310,14 +329,14 @@ export default function ParkDetailPage() {
             <option value="packed">Packed</option>
           </select>
           <textarea
-            className="rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-500/30"
+            className={`resize-none ${FIELD}`}
             rows={3}
             placeholder="Your review..."
             value={reviewBody}
             onChange={(e) => setReviewBody(e.target.value)}
           />
           <Button onClick={() => reviewMutation.mutate()} loading={reviewMutation.isPending}>
-            Submit Review
+            Submit review
           </Button>
         </fieldset>
       )}
@@ -330,23 +349,27 @@ export default function ParkDetailPage() {
           all. Now it always shows, with the control that fills it. */}
       <div className="mt-6">
         <div className="flex items-center justify-between gap-3 mb-2">
-          <h2 className="font-semibold text-danger-600 dark:text-danger-400">
+          <h2 className="text-lg font-extrabold text-navy dark:text-biscuit">
             Active warnings
           </h2>
           <IncidentReporter parkId={id!} />
         </div>
         {incidents.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Nothing reported here in the last two weeks.
           </p>
         ) : (
+          // A warning is the gold tint with navy text and a flag — never red.
           incidents.map((inc) => (
-            <div key={inc.id} className="p-3 bg-danger-50 border border-danger-100 dark:bg-danger-500/10 dark:border-danger-500/30 rounded-xl mb-2">
-              <p className="text-sm font-medium text-danger-700 dark:text-danger-300">{inc.kind.replace(/_/g, ' ')}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{inc.description}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                Expires {timeUntil(inc.expires_at)}
-              </p>
+            <div key={inc.id} className="flex gap-2.5 p-3 bg-warning-100 border border-navy/15 text-navy dark:bg-warning-500/15 dark:border-warning-400/30 dark:text-biscuit rounded-2xl mb-2">
+              <BrandIcon name="flag" size={20} className="mt-px [--bean:var(--ink)] dark:[--bean:var(--paper)]" />
+              <div className="min-w-0">
+                <p className="text-sm font-extrabold first-letter:uppercase">{inc.kind.replace(/_/g, ' ')}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-200">{inc.description}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                  Expires {timeUntil(inc.expires_at)}
+                </p>
+              </div>
             </div>
           ))
         )}
@@ -354,13 +377,13 @@ export default function ParkDetailPage() {
 
       {/* Reviews */}
       <div className="mt-6">
-        <h2 className="font-semibold mb-2">Reviews</h2>
+        <h2 className="text-lg font-extrabold text-navy dark:text-biscuit mb-2">Reviews</h2>
         {reviews.length > 0 ? (
           reviews.map((r) => (
             <Card key={r.id} padding="sm" className="mb-2">
               <div className="flex justify-between">
-                <p className="font-medium text-sm">{r.author_name || 'Anonymous'}</p>
-                <p className="text-sm text-yellow-400 tracking-tight">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</p>
+                <p className="text-sm font-extrabold text-navy dark:text-biscuit">{r.author_name || 'Anonymous'}</p>
+                <p className="text-sm text-navy dark:text-biscuit tracking-tight">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</p>
               </div>
               {r.body && (
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap">
@@ -368,7 +391,7 @@ export default function ParkDetailPage() {
                 </p>
               )}
               {r.crowd_level && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Crowd: {r.crowd_level}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Crowd: {r.crowd_level}</p>
               )}
             </Card>
           ))

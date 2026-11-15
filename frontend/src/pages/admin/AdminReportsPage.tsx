@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Lock } from 'lucide-react';
 import { getReports, reviewReport } from '../../api/admin';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import PaginationFooter from '../../components/ui/PaginationFooter';
+import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ListSkeleton } from '../../components/ui/Skeleton';
+import { CHECK, FIELD, LINK, ROWS, ROW_HOVER, TRAY, segItem } from './adminStyles';
 
 const TABS = ['pending', 'reviewed', 'dismissed', 'all'] as const;
 const PAGE_SIZE = 50;
@@ -23,7 +27,7 @@ export default function AdminReportsPage() {
   const [applyStrike, setApplyStrike] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: page, isLoading } = useQuery({
+  const { data: page, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-reports', tab, offset],
     queryFn: () => getReports({ status: tab, offset, limit: PAGE_SIZE }),
   });
@@ -62,16 +66,14 @@ export default function AdminReportsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Reports</h1>
+      <PageHeader title="Reports" className="mb-5" />
 
-      <div className="flex gap-1 mb-4 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="seg max-w-full overflow-x-auto scrollbar-none mb-4">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => { setTab(t); openRow(null); setOffset(0); }}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize whitespace-nowrap transition-colors ${
-              tab === t ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`capitalize ${segItem(tab === t)}`}
           >
             {t}
           </button>
@@ -80,6 +82,8 @@ export default function AdminReportsPage() {
 
       {isLoading ? (
         <ListSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load reports." onRetry={() => refetch()} />
       ) : reports.length === 0 ? (
         <EmptyState
           className="py-6"
@@ -87,45 +91,40 @@ export default function AdminReportsPage() {
           body={tab === 'pending' ? 'All reports have been reviewed.' : undefined}
         />
       ) : (
-        <Card padding="none" className="divide-y divide-gray-100 dark:divide-gray-800">
+        <Card padding="none" className={ROWS}>
           {reports.map((r) => (
             <div key={r.id}>
               <button
                 onClick={() => openRow(expanded === r.id ? null : r.id)}
-                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 text-left"
+                className={`w-full flex items-center gap-3 p-3 text-left ${ROW_HOVER}`}
               >
-                <Badge
-                  className="shrink-0"
-                  variant={
-                    r.target_type === 'user' ? 'danger' :
-                    r.target_type === 'photo' ? 'info' :
-                    r.target_type === 'pet' ? 'warning' :
-                    'neutral'
-                  }
-                >{r.target_type}</Badge>
-                <span className="flex-1 text-sm truncate">{r.reason}</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0"><TimeAgo value={r.created_at} /></span>
+                {/* The target type is a fact, not a status: one quiet tone. */}
+                <Badge className="shrink-0" variant={r.target_type === 'user' ? 'info' : 'neutral'}>
+                  {r.target_type}
+                </Badge>
+                <span className="flex-1 text-sm font-semibold text-navy dark:text-biscuit truncate">{r.reason}</span>
+                <span className="font-mono text-xs text-gray-500 dark:text-gray-400 shrink-0"><TimeAgo value={r.created_at} /></span>
               </button>
 
               {expanded === r.id && (
-                <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-gray-600 dark:text-gray-300">
-                    <p><span className="font-medium">Reason:</span> {r.reason}</p>
-                    <p><span className="font-medium">Reported:</span> <TimeAgo value={r.created_at} /></p>
+                <div className={`px-4 pb-4 ${TRAY}`}>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-xs text-gray-600 dark:text-gray-300">
+                    <p><span className="font-bold text-navy dark:text-biscuit">Reason:</span> {r.reason}</p>
+                    <p><span className="font-bold text-navy dark:text-biscuit">Reported:</span> <TimeAgo value={r.created_at} className="font-mono" /></p>
                     <p>
-                      <span className="font-medium">Reporter:</span>{' '}
-                      <Link to={`/app/users/${r.reporter_id}`} className="text-brand-500 hover:underline" target="_blank">
+                      <span className="font-bold text-navy dark:text-biscuit">Reporter:</span>{' '}
+                      <Link to={`/app/users/${r.reporter_id}`} className={`font-mono ${LINK}`} target="_blank">
                         {r.reporter_id.slice(0, 8)}...
                       </Link>
                     </p>
                     <p>
-                      <span className="font-medium">Target:</span>{' '}
+                      <span className="font-bold text-navy dark:text-biscuit">Target:</span>{' '}
                       {r.target_path ? (
-                        <Link to={r.target_path} className="text-brand-500 hover:underline" target="_blank">
+                        <Link to={r.target_path} className={LINK} target="_blank">
                           View {r.target_type}
                         </Link>
                       ) : (
-                        <span className="text-gray-400 dark:text-gray-500">
+                        <span className="text-gray-500 dark:text-gray-400">
                           {r.target_type} no longer exists
                         </span>
                       )}
@@ -133,38 +132,41 @@ export default function AdminReportsPage() {
                   </div>
 
                   {r.target_excerpt && (
-                    <blockquote className="mt-2 border-l-2 border-gray-300 dark:border-gray-600 pl-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words">
+                    <blockquote className="mt-3 border-l-[3px] border-navy/20 dark:border-white/20 pl-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words">
                       {r.target_excerpt}
                     </blockquote>
                   )}
 
                   {r.admin_notes && (
-                    <div className="mt-2 p-2 bg-info-50 dark:bg-info-500/10 rounded-lg text-xs text-info-800 dark:text-info-200">
-                      <span className="font-medium">Admin notes:</span> {r.admin_notes}
+                    // Staff-only triage, so it wears the same gold, dashed
+                    // "internal" look as the notes box on a support ticket.
+                    <div className="mt-3 flex items-start gap-1.5 rounded-lg border-[1.5px] border-dashed border-warning-500 bg-warning-100 p-2 text-xs text-navy dark:border-warning-400/60 dark:bg-warning-500/10 dark:text-warning-100">
+                      <Lock size={12} className="mt-px shrink-0" aria-hidden />
+                      <span><span className="font-bold">Admin notes:</span> {r.admin_notes}</span>
                     </div>
                   )}
 
                   {r.status === 'pending' && (
                     <div className="flex flex-col gap-2 mt-3">
                       <textarea
-                        className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm resize-none"
+                        className={`${FIELD} resize-none`}
                         rows={2}
                         placeholder="Admin notes (optional)..."
                         value={adminNotes}
                         onChange={(e) => setAdminNotes(e.target.value)}
                       />
-                      <label className="flex items-center gap-2 text-sm">
+                      <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
                         <input
                           type="checkbox"
                           checked={applyStrike}
                           onChange={(e) => setApplyStrike(e.target.checked)}
-                          className="rounded"
+                          className={CHECK}
                         />
                         Apply strike to content owner
                       </label>
                       {applyStrike && (
                         <input
-                          className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm"
+                          className={FIELD}
                           placeholder="Strike reason..."
                           value={strikeReason}
                           onChange={(e) => setStrikeReason(e.target.value)}
@@ -197,13 +199,15 @@ export default function AdminReportsPage() {
         </Card>
       )}
 
-      <PaginationFooter
-        offset={offset}
-        pageSize={PAGE_SIZE}
-        rendered={reports.length}
-        total={total}
-        onChange={setOffset}
-      />
+      {!isError && (
+        <PaginationFooter
+          offset={offset}
+          pageSize={PAGE_SIZE}
+          rendered={reports.length}
+          total={total}
+          onChange={setOffset}
+        />
+      )}
     </div>
   );
 }
