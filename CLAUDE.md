@@ -288,12 +288,17 @@ Keep new indexes/constraints declared in BOTH a migration and the model.
 
 | Service | Image | Host Port | Internal Port |
 |---------|-------|-----------|---------------|
-| db | postgres:15 | 5438 | 5432 |
-| redis | redis:7-alpine | 6380 | 6379 |
+| db | postgres:15 | 127.0.0.1:5438 | 5432 |
+| redis | redis:7-alpine | 127.0.0.1:6380 | 6379 |
 | backend | Dockerfile | 9001 | 8000 |
 | celery-worker | Dockerfile | — | — |
 | celery-beat | Dockerfile | — | — |
 | frontend | Dockerfile | 3174 | 5173 |
+
+`db` and `redis` are published on loopback only. Docker publishes ports past
+the host firewall, so a bare `"5438:5432"` exposes a database with a known
+password on any machine that runs this file — the production droplet included.
+Keep new dev-only ports for stateful services bound to `127.0.0.1`.
 
 ## Environment Variables
 

@@ -5,8 +5,14 @@ services:
       POSTGRES_USER: fetch
       POSTGRES_PASSWORD: fetch
       POSTGRES_DB: fetch
+    # Loopback only. Docker publishes ports past the host firewall, so the
+    # bare "5438:5432" put a Postgres with the password "fetch" on every
+    # interface of whatever machine ran this file — including the production
+    # droplet, where the dev stack has been started before. The server carried
+    # a local edit deleting these lines; bound to 127.0.0.1 it doesn't need
+    # one, and psql / a GUI on this machine still connect as before.
     ports:
-      - "5438:5432"
+      - "127.0.0.1:5438:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +24,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"  # loopback only, as for db above
     volumes:
       - redisdata:/data
     healthcheck:
