@@ -180,12 +180,26 @@ _HEAD_STYLES = """
 """
 
 
+def _paw_prints(base: str) -> str:
+    """Our own drawing of the 🐾 sign-off, after a heading (Brand Book: never
+    emoji, which look different on every phone and can't take our colors).
+    An image because mail clients don't render inline SVG; the 3x PNG is a
+    render of frontend/src/components/brand/PawPrints.tsx. The non-breaking
+    space keeps it with the last word, and the empty alt keeps a client that
+    blocks images from showing a broken box: it's decoration."""
+    return (
+        f'&nbsp;<img src="{base}/email-paw-prints.png" width="25" height="21" alt="" '
+        'style="display:inline-block;width:25px;height:21px;border:0;vertical-align:-3px;">'
+    )
+
+
 def _layout(
     heading: str,
     body: str,
     cta_url: str | None = None,
     cta_label: str | None = None,
     preheader: str | None = None,
+    paw_prints: bool = False,
 ) -> str:
     """Wrap body HTML in the branded email shell.
 
@@ -197,8 +211,13 @@ def _layout(
 
     ``preheader`` is the grey snippet mail apps show after the subject in the
     inbox list. Left unset, they scrape the opening body text instead.
+
+    ``paw_prints`` ends the heading with the drawn paw prints, for the warm
+    moments that used to reach for 🐾. Subjects stay plain text: they can't
+    carry a drawing, and the brand doesn't use the emoji instead.
     """
     base = settings.FRONTEND_BASE_URL.rstrip("/")
+    heading_mark = _paw_prints(base) if paw_prints else ""
 
     preheader_block = ""
     if preheader:
@@ -255,7 +274,7 @@ def _layout(
 </td></tr>
 
 <tr><td class="pad content" style="padding:18px 40px 34px;font-family:{FONT};font-size:15px;line-height:23px;color:#44476b;">
-  <h1 style="margin:0 0 14px;font-family:{FONT};font-size:24px;line-height:30px;font-weight:800;color:{NAVY};letter-spacing:-0.5px;">{html.escape(heading)}</h1>
+  <h1 style="margin:0 0 14px;font-family:{FONT};font-size:24px;line-height:30px;font-weight:800;color:{NAVY};letter-spacing:-0.5px;">{html.escape(heading)}{heading_mark}</h1>
   {body}
   {button}
 </td></tr>
@@ -331,13 +350,14 @@ async def send_waitlist_confirmation_email(to: str) -> bool:
         to,
         "You're on the Fetchpawz waitlist",
         _layout(
-            "You're on the list 🐾",
+            "You're on the list",
             "<p>Fetchpawz is invite-only while we get it ready. You're in line "
             "now — when a spot opens, your invite lands in this inbox. "
             "Nothing else to do.</p>",
             cta_url=settings.FRONTEND_BASE_URL,
             cta_label="Sniff around the site",
             preheader="You are in line — your invite lands in this inbox.",
+            paw_prints=True,
         ),
         kind="waitlist",
     )
@@ -349,9 +369,9 @@ async def send_invite_email(to: str, code: str) -> bool:
     url = f"{settings.FRONTEND_BASE_URL}/signup?invite={code}"
     return await send_email(
         to,
-        "Your Fetchpawz invite is here 🐾",
+        "Your Fetchpawz invite is here",
         _layout(
-            "You're in! 🐾",
+            "You're in!",
             "<p>A spot opened up and we saved it for you. Tap below to create your "
             "account — your invite code is already applied.</p>"
             f'<p style="color:#5d6085;font-size:13px;">Invite code: '
@@ -359,6 +379,7 @@ async def send_invite_email(to: str, code: str) -> bool:
             cta_url=url,
             cta_label="Accept your invite",
             preheader="A spot opened up and your code is already applied.",
+            paw_prints=True,
         ),
         kind="invite",
     )
@@ -426,7 +447,7 @@ async def send_transfer_invite_email(
 
     return await send_email(
         to,
-        f"{pet_name} is waiting for you 🐾",
+        f"{pet_name} is waiting for you",
         _layout(
             # Raw names here and in the preheader: _layout escapes both itself,
             # so passing the escaped copies rendered "Paws &amp; Claws".
@@ -670,13 +691,14 @@ async def send_test_email(to: str) -> tuple[bool, str]:
         to,
         "Fetchpawz test email",
         _layout(
-            "Email is working 🐾",
+            "Email is working",
             "<p>An admin sent this from Admin → System to confirm that "
             "transactional email is configured correctly. Nothing to do.</p>"
             f'<p style="color:#5d6085;font-size:13px;">Sender: '
             f"<strong>{html.escape(settings.EMAIL_FROM)}</strong><br>"
             f"Environment: <strong>{html.escape(settings.ENVIRONMENT)}</strong></p>",
             preheader="If this arrived, transactional email is working.",
+            paw_prints=True,
         ),
         kind="test",
     )

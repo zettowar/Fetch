@@ -218,3 +218,52 @@ async def test_lost_alerts_email_subscribers(client: AsyncClient, monkeypatch):
 
     assert subscriber_email in sent
     assert reporter_email not in sent
+
+
+# --- The paw prints: our drawing, never the emoji ---
+
+PAW_EMOJI = "\U0001F43E"
+
+
+@pytest.fixture
+def captured_sends(monkeypatch):
+    sent: list[dict] = []
+
+    async def _fake_deliver(to, subject, body_html, **kwargs):
+        sent.append({"to": to, "subject": subject, "html": body_html})
+        return True, "accepted"
+
+    monkeypatch.setattr(email_service, "_deliver", _fake_deliver)
+    return sent
+
+
+def test_layout_draws_paw_prints_after_the_heading():
+    html = email_service._layout("You're in!", "<p>Hi</p>", paw_prints=True)
+    h1 = html[html.index("<h1"): html.index("</h1>")]
+    assert "email-paw-prints.png" in h1
+    assert 'alt=""' in h1  # decoration: blocked images show nothing, not a broken box
+    assert "&nbsp;<img" in h1  # stays with the last word
+    title = html[html.index("<title>"): html.index("</title>")]
+    assert "<img" not in title and "You&#x27;re in!" in title
+
+
+def test_layout_has_no_paw_prints_by_default():
+    assert "email-paw-prints.png" not in email_service._layout("Reset your password", "<p>x</p>")
+
+
+@pytest.mark.asyncio
+async def test_warm_emails_use_the_drawing_not_the_emoji(captured_sends):
+    await email_service.send_waitlist_confirmation_email("a@example.dev")
+    await email_service.send_invite_email("b@example.dev", "K7QM2RXP")
+    await email_service.send_test_email("c@example.dev")
+    await email_service.send_transfer_invite_email(
+        "d@example.dev", pet_name="Mabel", rescue_name="Bayfront Rescue",
+        signup_code=None, expires_days=14,
+    )
+    assert len(captured_sends) == 4
+    for mail in captured_sends:
+        # Subjects are plain text: no drawing fits there, and no emoji either.
+        assert PAW_EMOJI not in mail["subject"]
+        assert PAW_EMOJI not in mail["html"]
+    for mail in captured_sends[:3]:
+        assert "email-paw-prints.png" in mail["html"]

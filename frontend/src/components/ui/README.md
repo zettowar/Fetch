@@ -150,7 +150,11 @@ danger red. Pins sit inside a privacy circle, never on a house.
 
 No emoji in labels, headings, buttons, tiles, toasts or empty states — they
 render differently on every phone and can't take our colours. Use a
-`<BrandIcon>` or nothing. (A push notification may carry one.)
+`<BrandIcon>` or nothing. (A push notification may carry one.) Where copy
+wants the 🐾 sign-off, use `<PawPrints>` (`components/brand`): two Crown Paw
+prints walking up and to the right, 1em tall, `currentColor`. Emails get the
+same drawing as `public/email-paw-prints.png` via `_layout(paw_prints=True)`;
+subject lines stay plain text.
 
 ## States
 

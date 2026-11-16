@@ -19,6 +19,7 @@ import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import Skeleton, { ListSkeleton } from '../components/ui/Skeleton';
 import TimeAgo from '../components/TimeAgo';
+import NotificationBody from '../components/NotificationBody';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 // One drawn icon per kind, always in the same white tile: the icon's own
@@ -115,11 +116,7 @@ function InboxTab() {
                 >
                   {n.title}
                 </span>
-                {n.body && (
-                  <span className="block text-xs text-gray-600 dark:text-gray-300 truncate mt-0.5">
-                    {n.body}
-                  </span>
-                )}
+                {n.body && <NotificationBody type={n.type} body={n.body} />}
                 <span className="block text-2xs text-gray-500 dark:text-gray-400 mt-0.5">
                   <TimeAgo value={n.created_at} />
                 </span>

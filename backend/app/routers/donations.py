@@ -307,7 +307,10 @@ async def _mark_succeeded(
             donation.user_id,
             type="donation_thanks",
             title=f"Thanks for your {amount} donation!",
-            body=f"Your donation to {donation.recipient_name} was received. 🐾",
+            # No 🐾: the inbox draws the brand's own paw prints after a
+            # donation_thanks body (NotificationsPage), and the digest email
+            # shows bodies as plain text, where an emoji would be off-brand.
+            body=f"Your donation to {donation.recipient_name} was received.",
             link="/app/donations",
         )
     if donation.recipient_type == "rescue" and donation.rescue_id:

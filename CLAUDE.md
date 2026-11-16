@@ -182,7 +182,8 @@ brand colours. Fonts: Figtree (sans), Bagel Fat One (`font-display`, every
 `.seg`, `.surface`, `.field`, `.field-label`, `.link`, `.toy`, `.font-plain`.
 Brand art lives in `src/components/brand/` (`Lockup`, `Wordmark`, `BrandIcon`
 — 36 drawn icons, `PetPortrait` — 39 breed portraits, `RankMedal`/`Crown`);
-`PawMark` is the Crown Paw; the doodles are in `flair/doodles.ts`. Rules that
+`PawMark` is the Crown Paw and `PawPrints` our own 🐾 (never the emoji); the
+doodles are in `flair/doodles.ts`. Rules that
 are easy to break: navy text on any colour fill (never white on orange), no
 gradients, no emoji in UI, gold only for earned things, pink only for
 rescue/adoption, and Lost & Found in the calm register (`<PageHeader plain>`,
