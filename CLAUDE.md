@@ -187,7 +187,11 @@ are easy to break: navy text on any colour fill (never white on orange), no
 gradients, no emoji in UI, gold only for earned things, pink only for
 rescue/adoption, and Lost & Found in the calm register (`<PageHeader plain>`,
 never red). The icon/portrait/doodle data files are generated from the brand
-book — edit the book, not the data.
+book — edit the book, not the data. The static icons in `public/`
+(favicon `.svg`/`.ico`, PWA icons, `og-image.png`) are cached by URL, so
+their links carry `?v=N` in `index.html`, `manifest.webmanifest` and
+`routers/share.py`: bump all three when the mark changes, or browsers and
+link previews keep showing the old one (they did, after Edition 2).
 
 **Shared components:**
 - `Button` — variants: primary, secondary, danger, ghost. Sizes: sm, md, lg. Has `loading` prop.

@@ -45,6 +45,12 @@ def _base() -> str:
     return settings.FRONTEND_BASE_URL.rstrip("/")
 
 
+# Brand icons and the share image are cached by URL (browsers, link
+# scrapers), so a redrawn file at the same URL keeps showing the old one. Same
+# version as frontend/index.html; bump both when the mark changes.
+_ASSET_V = "?v=2"
+
+
 def _abs(url: str | None) -> str | None:
     if not url:
         return None
@@ -111,7 +117,7 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
     pet = report.pet
     name = (pet.name if pet else None) or ("A missing pet" if missing else "A found pet")
     breed = breed_display(pet.mix_type, pet.breeds, pet.species) if pet else None
-    photo = _pet_photo_url(pet) or _abs("/og-image.png")
+    photo = _pet_photo_url(pet) or _abs(f"/og-image.png{_ASSET_V}")
 
     kind_label = "Missing" if missing else "Found"
     # The calm register (Brand Book): a missing pet is navy with an orange dot,
@@ -205,7 +211,9 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
 <meta name="description" content="{html.escape(og_desc)}">
 {'<meta name="robots" content="noindex">' if resolved else '<meta name="robots" content="index,follow">'}
 <link rel="canonical" href="{public_url}">
-<link rel="icon" type="image/svg+xml" href="{_abs('/favicon.svg')}">
+<link rel="icon" href="{_abs('/favicon.ico' + _ASSET_V)}" sizes="32x32">
+<link rel="icon" type="image/svg+xml" href="{_abs('/favicon.svg' + _ASSET_V)}">
+<link rel="apple-touch-icon" href="{_abs('/apple-touch-icon.png' + _ASSET_V)}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Fetchpawz">
 <meta property="og:title" content="{title}">
