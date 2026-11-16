@@ -53,7 +53,12 @@ export default function DonatePage() {
   useDocumentTitle('Donate · Fetchpawz');
   const [params, setParams] = useSearchParams();
 
-  const { data: config, isLoading: configLoading } = useQuery({
+  const {
+    data: config,
+    isLoading: configLoading,
+    isError: configFailed,
+    refetch: refetchConfig,
+  } = useQuery({
     queryKey: ['donation-config'],
     queryFn: getDonationConfig,
   });
@@ -163,11 +168,14 @@ export default function DonatePage() {
 
       {configLoading ? (
         <ListSkeleton rows={4} />
+      ) : configFailed && !config ? (
+        // A request that failed is not "coming soon".
+        <ErrorState message="Couldn't load donations." onRetry={() => refetchConfig()} />
       ) : !config?.enabled ? (
         <>
           <EmptyState
             illustration="sleeping"
-            title="In-app donations are coming soon"
+            title={config?.paused ? 'Donations are paused for the moment' : 'In-app donations are coming soon'}
             body="Meanwhile, many rescues take donations directly through their own pages."
           />
           <RescueLinkList rescues={rescues} loading={rescuesLoading} />

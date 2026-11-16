@@ -1,5 +1,6 @@
-import { Component, lazy, Suspense, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { Navigate, Routes, Route } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { AuthProvider } from './store/AuthContext';
 import { ThemeProvider } from './store/ThemeContext';
 import AuthGuard from './components/AuthGuard';
@@ -14,51 +15,20 @@ import FlagGate from './components/FlagGate';
 // Marketing website (web-first, unauthenticated front door)
 import MarketingLayout from './marketing/MarketingLayout';
 import MarketingHome from './marketing/MarketingHome';
-import AboutPage from './marketing/AboutPage';
-import MissionPage from './marketing/MissionPage';
-import NewsPage from './marketing/NewsPage';
-import PrivacyPage from './marketing/PrivacyPage';
-import TermsPage from './marketing/TermsPage';
 import PublicPetPage from './marketing/PublicPetPage';
-import PublicRescuePage from './marketing/PublicRescuePage';
 import TagLandingPage from './marketing/TagLandingPage';
 import AuthLayout from './marketing/AuthLayout';
 
 // Auth screens
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
-import RescueSignupPage from './pages/RescueSignupPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import VerifyEmailPage from './pages/VerifyEmailPage';
-import ConfirmEmailChangePage from './pages/ConfirmEmailChangePage';
-import OAuthCallbackPage from './pages/OAuthCallbackPage';
-import LikedPetsPage from './pages/LikedPetsPage';
 
 // Authenticated app pages
-import RescueDashboardPage from './pages/RescueDashboardPage';
-import TransfersPage from './pages/TransfersPage';
 import HomePage from './pages/HomePage';
 import SwipePage from './pages/SwipePage';
 import MyPetsPage from './pages/MyPetsPage';
-import PetEditorPage from './pages/PetEditorPage';
 import PetDetailPage from './pages/PetDetailPage';
 import RankingsPage from './pages/RankingsPage';
-import UserProfilePage from './pages/UserProfilePage';
-import ProfileEditPage from './pages/ProfileEditPage';
-import SecurityPage from './pages/SecurityPage';
-import NotificationsPage from './pages/NotificationsPage';
-import FollowingPage from './pages/FollowingPage';
-import ExplorePage from './pages/ExplorePage';
-import RescuesHubPage from './pages/RescuesHubPage';
-import RescuesPage from './pages/RescuesPage';
-import BillingPage from './pages/BillingPage';
-import DonatePage from './pages/DonatePage';
-import DonateReturnPage from './pages/DonateReturnPage';
-import DonationHistoryPage from './pages/DonationHistoryPage';
-import ShopPage from './pages/ShopPage';
-import ShopProductPage from './pages/ShopProductPage';
-import CartPage from './pages/CartPage';
 
 // Admin pages
 
@@ -68,6 +38,46 @@ import NotFoundPage from './pages/NotFoundPage';
 // pulled out of the main bundle: maplibre-gl alone is ~1 MB, and an
 // unauthenticated visitor reading the marketing site was downloading it (plus
 // the whole admin tree) before anything rendered.
+//
+// The same goes for everything that isn't a front door. What stays in the main
+// bundle is what a first visit can land on and must paint at once: the
+// marketing home, the public pet page and the QR-tag page (a stranger holding
+// a lost pet, possibly on one bar of signal), log in and sign up, and the
+// app's core loop — Home, Swipe, a pet, My pets, Rankings. The legal pages,
+// the editor, the shop, donations, account settings and the rest load when
+// asked for; the commonly used ones are warmed once the shell is idle (below).
+// That took the main bundle from 896 kB to 700 kB.
+const AboutPage = lazy(() => import('./marketing/AboutPage'));
+const MissionPage = lazy(() => import('./marketing/MissionPage'));
+const NewsPage = lazy(() => import('./marketing/NewsPage'));
+const PrivacyPage = lazy(() => import('./marketing/PrivacyPage'));
+const TermsPage = lazy(() => import('./marketing/TermsPage'));
+const PublicRescuePage = lazy(() => import('./marketing/PublicRescuePage'));
+const RescueSignupPage = lazy(() => import('./pages/RescueSignupPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
+const ConfirmEmailChangePage = lazy(() => import('./pages/ConfirmEmailChangePage'));
+const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'));
+const LikedPetsPage = lazy(() => import('./pages/LikedPetsPage'));
+const RescueDashboardPage = lazy(() => import('./pages/RescueDashboardPage'));
+const TransfersPage = lazy(() => import('./pages/TransfersPage'));
+const PetEditorPage = lazy(() => import('./pages/PetEditorPage'));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
+const ProfileEditPage = lazy(() => import('./pages/ProfileEditPage'));
+const SecurityPage = lazy(() => import('./pages/SecurityPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const FollowingPage = lazy(() => import('./pages/FollowingPage'));
+const ExplorePage = lazy(() => import('./pages/ExplorePage'));
+const RescuesHubPage = lazy(() => import('./pages/RescuesHubPage'));
+const RescuesPage = lazy(() => import('./pages/RescuesPage'));
+const BillingPage = lazy(() => import('./pages/BillingPage'));
+const DonatePage = lazy(() => import('./pages/DonatePage'));
+const DonateReturnPage = lazy(() => import('./pages/DonateReturnPage'));
+const DonationHistoryPage = lazy(() => import('./pages/DonationHistoryPage'));
+const ShopPage = lazy(() => import('./pages/ShopPage'));
+const ShopProductPage = lazy(() => import('./pages/ShopProductPage'));
+const CartPage = lazy(() => import('./pages/CartPage'));
 const SupportPage = lazy(() => import('./pages/SupportPage'));
 const TicketThreadPage = lazy(() => import('./pages/TicketThreadPage'));
 const UnsubscribePage = lazy(() => import('./marketing/UnsubscribePage'));
@@ -107,6 +117,33 @@ const RescueDetailPage = lazy(() => import('./pages/RescueDetailPage'));
 const RescuesMapPage = lazy(() => import('./pages/RescuesMapPage'));
 const VetDetailPage = lazy(() => import('./pages/VetDetailPage'));
 const VetsPage = lazy(() => import('./pages/VetsPage'));
+
+// Fetched once the app shell has gone quiet, so the first tap on these doesn't
+// wait on the network. `lazy()` and these calls share the module cache.
+const WARM_WHEN_IDLE = [
+  () => import('./pages/RescuesHubPage'),
+  () => import('./pages/NotificationsPage'),
+  () => import('./pages/UserProfilePage'),
+  () => import('./pages/FollowingPage'),
+  () => import('./pages/LikedPetsPage'),
+  () => import('./pages/PetEditorPage'),
+];
+
+function WarmAppRoutes() {
+  useEffect(() => {
+    // Not on a metered or data-saving connection: this is a nicety.
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (conn?.saveData) return;
+    const run = () => WARM_WHEN_IDLE.forEach((load) => void load().catch(() => undefined));
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(run, { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const t = window.setTimeout(run, 2000);
+    return () => window.clearTimeout(t);
+  }, []);
+  return null;
+}
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -187,6 +224,7 @@ function AppContent() {
           path="/app"
           element={
             <AuthGuard>
+              <WarmAppRoutes />
               <AppShell />
             </AuthGuard>
           }
@@ -282,11 +320,16 @@ function AppContent() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </ThemeProvider>
+      {/* The global CSS rule only quiets CSS animations. The deck, the modals
+          and the end states are framer-motion, and kept springing for people
+          who had asked their device to reduce motion. */}
+      <MotionConfig reducedMotion="user">
+        <ThemeProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </ThemeProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

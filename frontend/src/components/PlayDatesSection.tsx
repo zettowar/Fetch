@@ -13,6 +13,7 @@ import { getMyPets } from '../api/pets';
 import Button from './ui/Button';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../store/AuthContext';
+import { apiErrorMessage } from '../utils/apiError';
 
 // Form controls drawn like <Input>: 2px navy line, orange focus.
 const FIELD =
@@ -207,7 +208,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       setNotes('');
       invalidate();
     },
-    onError: () => toast.error("Couldn't create the meetup. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't create the meetup. Try again.")),
   });
 
   const cancelMutation = useMutation({
@@ -216,7 +217,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       toast.success('Meetup cancelled');
       invalidate();
     },
-    onError: () => toast.error("Couldn't cancel. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't cancel. Try again.")),
   });
 
   const rsvpMutation = useMutation({
@@ -226,13 +227,13 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
       setDogPickerOpenFor(null);
       invalidate();
     },
-    onError: () => toast.error("Couldn't save your RSVP. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't save your RSVP. Try again.")),
   });
 
   const removeRsvpMutation = useMutation({
     mutationFn: ({ id, petId }: { id: string; petId: string }) => removeRsvp(id, petId),
     onSuccess: invalidate,
-    onError: () => toast.error("Couldn't leave. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't leave. Try again.")),
   });
 
   const canCreate = myDogs.length > 0;
@@ -266,6 +267,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
         <div className="surface p-3 flex flex-col gap-2.5 mb-3">
           <input
             type="datetime-local"
+            aria-label="Date and time"
             className={`min-h-[48px] ${FIELD}`}
             value={when}
             min={minLocalIsoForInput()}
@@ -275,6 +277,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
             type="text"
             className={`min-h-[48px] ${FIELD}`}
             placeholder="Title (optional, e.g. Puppy social)"
+            aria-label="Title (optional)"
             value={title}
             maxLength={200}
             onChange={(e) => setTitle(e.target.value)}
@@ -283,6 +286,7 @@ export default function PlayDatesSection({ parkId }: { parkId: string }) {
             className={`resize-none ${FIELD}`}
             rows={2}
             placeholder="Notes (optional)"
+            aria-label="Notes (optional)"
             value={notes}
             maxLength={1000}
             onChange={(e) => setNotes(e.target.value)}

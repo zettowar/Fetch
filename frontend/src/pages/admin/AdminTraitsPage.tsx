@@ -125,7 +125,7 @@ export default function AdminTraitsPage() {
       <PageHeader
         title="Personality traits"
         className="mb-5"
-        action={<Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>Add Trait</Button>}
+        action={<Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>Add trait</Button>}
         subtitle={
           <>
             Owners can type their own trait on any pet. New ones land here as

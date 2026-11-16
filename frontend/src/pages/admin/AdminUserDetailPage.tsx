@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { X } from 'lucide-react';
-import { apiErrorMessage } from '../../utils/apiError';
+import { apiErrorMessage, isNotFound } from '../../utils/apiError';
 import client from '../../api/client';
 import {
   getAdminUser,
@@ -38,9 +38,6 @@ import TimeAgo from '../../components/TimeAgo';
 import BrandIcon from '../../components/brand/BrandIcon';
 import { FIELD, LINK, ROWS, segItem } from './adminStyles';
 
-function errDetail(e: unknown): string | undefined {
-  return (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-}
 
 type Tab = 'strikes' | 'filed' | 'against' | 'rescue' | 'audit';
 
@@ -64,7 +61,7 @@ export default function AdminUserDetailPage() {
   const [showDelete, setShowDelete] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
 
-  const { data: user, isLoading, isError } = useQuery({
+  const { data: user, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-user', id],
     queryFn: () => getAdminUser(id!),
     enabled: !!id,
@@ -96,13 +93,13 @@ export default function AdminUserDetailPage() {
       toast.success(hasPackPlus ? 'Pack+ revoked' : 'Pack+ granted');
       invalidate();
     },
-    onError: () => toast.error('Failed to update Pack+'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to update Pack+')),
   });
 
   const revokeMutation = useMutation({
     mutationFn: (key: string) => revokeEntitlement(id!, key),
     onSuccess: () => { toast.success('Entitlement revoked'); invalidate(); },
-    onError: () => toast.error('Failed to revoke'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to revoke')),
   });
 
   const suspendMutation = useMutation({
@@ -128,30 +125,29 @@ export default function AdminUserDetailPage() {
       navigate('/admin/users');
     },
     onError: (e: unknown) => {
-      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(detail || 'Failed to delete account');
+      toast.error(apiErrorMessage(e, 'Failed to delete account'));
       setShowDelete(false);
     },
   });
   const roleMutation = useMutation({
     mutationFn: (role: 'user' | 'moderator' | 'admin') => setUserRole(id!, role),
     onSuccess: () => { toast.success('Role updated'); invalidate(); },
-    onError: (e: unknown) => toast.error(errDetail(e) || 'Failed to change role'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to change role')),
   });
   const verifyMutation = useMutation({
     mutationFn: () => markVerified(id!),
     onSuccess: () => { toast.success('Marked verified'); invalidate(); },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
   const resendMutation = useMutation({
     mutationFn: () => resendVerification(id!),
     onSuccess: (r) => toast.success(r.detail),
-    onError: (e: unknown) => toast.error(errDetail(e) || 'Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'That did not go through. Try again.')),
   });
   const resetMutation = useMutation({
     mutationFn: () => sendPasswordReset(id!),
     onSuccess: (r) => toast.success(r.detail),
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
   const impersonateMutation = useMutation({
     mutationFn: () => impersonateUser(id!),
@@ -163,23 +159,27 @@ export default function AdminUserDetailPage() {
       sessionStorage.setItem('imp_name', r.display_name);
       window.location.assign('/app/home');
     },
-    onError: (e: unknown) => toast.error(errDetail(e) || 'Cannot impersonate'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Cannot impersonate')),
   });
   const editMutation = useMutation({
     mutationFn: (data: { display_name?: string; email?: string }) => editUser(id!, data),
     onSuccess: () => { toast.success('User updated'); setShowEdit(false); invalidate(); },
-    onError: (e: unknown) => toast.error(errDetail(e) || 'Failed to update'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to update')),
   });
   const grantMutation = useMutation({
     mutationFn: () => grantEntitlement({ user_id: id!, entitlement_key: grantKey, source: 'admin_grant' }),
-    onSuccess: () => { toast.success('Entitlement granted'); setShowGrant(false); },
-    onError: () => toast.error('Failed to grant'),
+    onSuccess: () => { toast.success('Entitlement granted'); setShowGrant(false); invalidate(); },
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to grant')),
   });
 
   if (isLoading) {
     return <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>;
   }
-  if (isError || !user) {
+  // Only a 404 is "not found"; anything else can be retried.
+  if (isError && !isNotFound(error)) {
+    return <ErrorState message="Couldn't load this user." onRetry={() => refetch()} />;
+  }
+  if (!user) {
     return <ErrorState message="User not found." hint={NOT_FOUND_HINT} />;
   }
 
@@ -249,7 +249,7 @@ export default function AdminUserDetailPage() {
             if (confirm(`Open a support session as ${user.display_name}? This is logged.`)) impersonateMutation.mutate();
           }}>Log in as</Button>
         )}
-        <Button size="sm" variant="secondary" onClick={() => setShowGrant(!showGrant)}>Grant Entitlement</Button>
+        <Button size="sm" variant="secondary" onClick={() => setShowGrant(!showGrant)}>Grant entitlement</Button>
         <Button
           size="sm"
           variant={hasPackPlus ? 'danger' : 'primary'}
@@ -517,11 +517,14 @@ function DeleteAccountModal({
 }
 
 function StrikesTab({ userId }: { userId: string }) {
-  const { data = [], isLoading } = useQuery({
+  const { data = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-strikes', userId],
     queryFn: () => getUserStrikes(userId),
   });
   if (isLoading) return <ListSkeleton rows={3} />;
+  // A failed request is not an empty record: a moderator deciding on a
+  // suspension must not read "No strikes on record" off a network error.
+  if (isError) return <ErrorState message="Couldn't load strikes." onRetry={() => refetch()} />;
   if (!data.length) return <EmptyState className="py-6" title="No strikes on record" />;
   return (
     <Card as="ul" padding="none" className={ROWS}>
@@ -537,21 +540,23 @@ function StrikesTab({ userId }: { userId: string }) {
 }
 
 function ReportsFiledTab({ userId }: { userId: string }) {
-  const { data = [], isLoading } = useQuery({
+  const { data = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-reports-filed', userId],
     queryFn: () => getUserReportsFiled(userId),
   });
   if (isLoading) return <ListSkeleton rows={3} />;
+  if (isError) return <ErrorState message="Couldn't load reports." onRetry={() => refetch()} />;
   if (!data.length) return <EmptyState className="py-6" title="This user hasn't filed any reports" />;
   return <ReportList items={data} />;
 }
 
 function ReportsAgainstTab({ userId }: { userId: string }) {
-  const { data = [], isLoading } = useQuery({
+  const { data = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-reports-against', userId],
     queryFn: () => getUserReportsAgainst(userId),
   });
   if (isLoading) return <ListSkeleton rows={3} />;
+  if (isError) return <ErrorState message="Couldn't load reports." onRetry={() => refetch()} />;
   if (!data.length) return <EmptyState className="py-6" title="No reports filed against this user" />;
   return <ReportList items={data} />;
 }
@@ -581,12 +586,13 @@ function ReportList({ items }: { items: Array<{ id: string; target_type: string;
 }
 
 function RescueProfileTab({ userId }: { userId: string }) {
-  const { data, isLoading } = useQuery<RescueProfile | null>({
+  const { data, isLoading, isError, refetch } = useQuery<RescueProfile | null>({
     queryKey: ['admin-user-rescue-profile', userId],
     queryFn: async () =>
       (await client.get(`/admin/users/${userId}/rescue-profile`)).data,
   });
   if (isLoading) return <Spinner className="h-5 w-5 my-4" />;
+  if (isError) return <ErrorState message="Couldn't load the rescue profile." onRetry={() => refetch()} />;
   if (!data) {
     return <EmptyState className="py-6" title="This user isn't a rescue account" />;
   }
@@ -622,15 +628,28 @@ function RescueProfileTab({ userId }: { userId: string }) {
 }
 
 function AuditTab({ userId }: { userId: string }) {
-  const { data: byActor = [], isLoading: loadingActor } = useQuery({
+  const actor = useQuery({
     queryKey: ['admin-audit-by-actor', userId],
     queryFn: () => getAuditLog({ actor_id: userId, limit: 100 }),
   });
-  const { data: byTarget = [], isLoading: loadingTarget } = useQuery({
+  const target = useQuery({
     queryKey: ['admin-audit-by-target', userId],
     queryFn: () => getAuditLog({ target_id: userId, limit: 100 }),
   });
-  if (loadingActor || loadingTarget) return <ListSkeleton rows={3} />;
+  if (actor.isLoading || target.isLoading) return <ListSkeleton rows={3} />;
+  if (actor.isError || target.isError) {
+    return (
+      <ErrorState
+        message="Couldn't load the audit log."
+        onRetry={() => {
+          actor.refetch();
+          target.refetch();
+        }}
+      />
+    );
+  }
+  const byActor = actor.data ?? [];
+  const byTarget = target.data ?? [];
 
   const merged = [...byActor, ...byTarget]
     .filter((e, i, arr) => arr.findIndex((x) => x.id === e.id) === i)

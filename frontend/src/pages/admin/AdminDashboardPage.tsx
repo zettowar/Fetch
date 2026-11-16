@@ -88,7 +88,12 @@ export default function AdminDashboardPage() {
               </Link>
             )}
           </div>
-          <Link to="/admin/reports" className="shrink-0 text-xs font-bold text-navy dark:text-biscuit hover:underline underline-offset-2">
+          {/* Go to whichever queue the strip is actually about: with only
+              tickets open, "Review" landed on an empty reports page. */}
+          <Link
+            to={stats.pending_reports > 0 ? '/admin/reports' : '/admin/tickets'}
+            className="shrink-0 text-xs font-bold text-navy dark:text-biscuit hover:underline underline-offset-2"
+          >
             Review &rarr;
           </Link>
         </div>
@@ -97,19 +102,19 @@ export default function AdminDashboardPage() {
       {/* 14-day trends */}
       {series && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <TrendCard label="New Users" values={series.new_users} />
-          <TrendCard label="New Reports" values={series.new_reports} />
-          <TrendCard label="New Pets" values={series.new_dogs} />
+          <TrendCard label="New users" values={series.new_users} />
+          <TrendCard label="New reports" values={series.new_reports} />
+          <TrendCard label="New pets" values={series.new_dogs} />
         </div>
       )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-        <StatCard label="Total Users" value={stats.total_users} />
+        <StatCard label="Total users" value={stats.total_users} />
         <StatCard label="Active" value={stats.active_users} color="text-success-700 dark:text-success-400" />
         <StatCard label="Suspended" value={stats.suspended_users} color={stats.suspended_users > 0 ? 'text-danger-600 dark:text-danger-400' : 'text-gray-500 dark:text-gray-400'} />
         <StatCard label="New (7d)" value={stats.users_last_7d} color="text-brand-700 dark:text-brand-300" />
-        <StatCard label="Total Pets" value={stats.total_pets} />
+        <StatCard label="Total pets" value={stats.total_pets} />
         <StatCard label="Reports (7d)" value={stats.reports_last_7d} />
       </div>
 
@@ -121,20 +126,20 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Quick actions */}
-      <SectionHeader title="Quick Actions" />
+      <SectionHeader title="Quick actions" />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-7">
-        <QuickAction to="/admin/reports" icon="flag" label="Review Reports" count={stats.pending_reports} urgent={stats.pending_reports > 0} />
-        <QuickAction to="/admin/tickets" icon="chat" label="Handle Tickets" count={stats.open_tickets} urgent={stats.open_tickets > 0} />
-        <QuickAction to="/admin/rescues" icon="rescue" label="Verify Rescues" count={stats.unverified_rescues} />
-        <QuickAction to="/admin/invites" icon="mail" label="Manage Invites" count={stats.unused_invites} />
+        <QuickAction to="/admin/reports" icon="flag" label="Review reports" count={stats.pending_reports} urgent={stats.pending_reports > 0} />
+        <QuickAction to="/admin/tickets" icon="chat" label="Handle tickets" count={stats.open_tickets} urgent={stats.open_tickets > 0} />
+        <QuickAction to="/admin/rescues" icon="rescue" label="Verify rescues" count={stats.unverified_rescues} />
+        <QuickAction to="/admin/invites" icon="mail" label="Manage invites" count={stats.unused_invites} />
       </div>
 
       {/* Beta health */}
-      <SectionHeader title="Beta Program" />
+      <SectionHeader title="Beta program" />
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Feedback" value={stats.total_feedback} link="/admin/feedback" />
-        <StatCard label="Unused Invites" value={stats.unused_invites} link="/admin/invites" />
-        <StatCard label="Unverified Rescues" value={stats.unverified_rescues} link="/admin/rescues" />
+        <StatCard label="Unused invites" value={stats.unused_invites} link="/admin/invites" />
+        <StatCard label="Unverified rescues" value={stats.unverified_rescues} link="/admin/rescues" />
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ export async function shareLink(url: string, title?: string): Promise<void> {
   }
   try {
     await navigator.clipboard.writeText(url);
-    toast.success('Link copied!');
+    toast.success('Link copied');
   } catch {
     toast('Could not copy link');
   }

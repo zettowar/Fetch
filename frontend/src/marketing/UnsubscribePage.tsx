@@ -69,7 +69,7 @@ export default function UnsubscribePage() {
             )}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Link to="/app/notifications" className="btn btn-primary">
+            <Link to="/app/notifications?tab=settings" className="btn btn-primary">
               Notification settings
             </Link>
             <Link to="/" className="btn btn-secondary">

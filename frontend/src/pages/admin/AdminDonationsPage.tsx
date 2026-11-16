@@ -12,6 +12,7 @@ import PaginationFooter from '../../components/ui/PaginationFooter';
 import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ROWS, ROW_HOVER, STAT_INK, STAT_NUMBER, segItem } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 const PAGE_SIZE = 50;
 
@@ -38,8 +39,7 @@ export default function AdminDonationsPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-donations'] });
     },
     onError: (e: unknown) => {
-      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(detail || 'Refund failed');
+      toast.error(apiErrorMessage(e, 'Refund failed'));
     },
   });
 

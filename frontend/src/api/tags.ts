@@ -11,6 +11,8 @@ export interface OwnerTag {
 export interface PublicTag {
   assigned: boolean;
   pet: PublicDog | null;
+  /** False when a finder's message can't reach the owner (inactive pet or account). */
+  contactable?: boolean;
 }
 
 // --- Public scan ---

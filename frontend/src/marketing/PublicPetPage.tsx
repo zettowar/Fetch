@@ -15,14 +15,7 @@ import FoundPetForm from './FoundPetForm';
 import { photoIn } from '../utils/photoIn';
 import Rosette from '../components/brand/Rosette';
 import { formatWeekOf, weekBucket } from '../utils/weeklyReset';
-
-function ageLabel(birthday: string | null): string | null {
-  if (!birthday) return null;
-  const b = new Date(birthday);
-  const months = Math.max(0, Math.floor((Date.now() - b.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
-  if (months < 12) return `${months} mo`;
-  return `${Math.floor(months / 12)} yrs`;
-}
+import { petAge } from '../utils/time';
 
 // A drawn icon inside a colour badge: the bean takes the ink, not its own colour.
 const BEAN_INK = { '--bean': 'currentColor' } as CSSProperties;
@@ -68,9 +61,13 @@ export default function PublicPetPage() {
     );
   }
 
-  const age = ageLabel(pet.birthday);
+  // The app's own age helper: the local copy here read "1 yrs" for a
+  // one-year-old and drifted a month for dates parsed as UTC.
+  const age = petAge(pet.birthday, pet.species);
 
   const latestCrown = pet.crown_weeks[0];
+  // `photo_urls` includes the primary photo, which is already the hero.
+  const morePhotos = pet.photo_urls.filter((url) => url !== pet.primary_photo_url);
 
   return (
     <div className="animate-fade-in">
@@ -125,8 +122,12 @@ export default function PublicPetPage() {
 
           {/* Identity */}
           <div className="p-5 sm:p-6">
-            <h1 className="flex flex-wrap items-center gap-2 text-[40px] leading-none text-navy dark:text-biscuit [overflow-wrap:anywhere]">
-              {pet.name}
+            {/* The crowns sit beside the heading, not inside it: in the h1,
+                every week won was read out as part of the pet's name. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-[40px] leading-none text-navy dark:text-biscuit [overflow-wrap:anywhere]">
+                {pet.name}
+              </h1>
               {/* Gold is earned: a crown per week this pet wore it. */}
               {pet.crown_weeks.map((week) => (
                 <span
@@ -139,7 +140,7 @@ export default function PublicPetPage() {
                   <Crown className="w-5" />
                 </span>
               ))}
-            </h1>
+            </div>
             <p className="mt-2 text-[15px] font-semibold text-gray-600 dark:text-gray-300">
               {[pet.breed_display, age].filter(Boolean).join(' · ')}
             </p>
@@ -170,17 +171,17 @@ export default function PublicPetPage() {
         )}
 
         {pet.bio && (
-          <p className="mt-6 text-base leading-relaxed text-gray-700 dark:text-gray-200">{pet.bio}</p>
+          <p className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-gray-700 dark:text-gray-200 [overflow-wrap:anywhere]">{pet.bio}</p>
         )}
 
-        {/* Extra photos */}
-        {pet.photo_urls.length > 1 && (
+        {/* Extra photos — the ones that aren't already the hero above. */}
+        {morePhotos.length > 0 && (
           <div className="mt-6 grid grid-cols-3 gap-2">
-            {pet.photo_urls.slice(0, 6).map((url, i) => (
+            {morePhotos.slice(0, 6).map((url, i) => (
               <img
                 key={url}
                 src={url}
-                alt={`Photo ${i + 1} of ${pet.name}`}
+                alt={`Photo ${i + 2} of ${pet.name}`}
                 loading="lazy"
                 className="aspect-square w-full rounded-lg border border-gray-200 bg-brand-100 object-cover dark:border-white/10 dark:bg-night-raised"
               />

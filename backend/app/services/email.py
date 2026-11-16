@@ -193,6 +193,20 @@ def _paw_prints(base: str) -> str:
     )
 
 
+def text_to_html(text: str) -> str:
+    """Plain text someone typed, as safe HTML that keeps its shape.
+
+    Escaped, blank lines become paragraphs and single newlines become breaks.
+    Escaping alone ran a three-line message from a finder together into one
+    paragraph; not escaping at all (the announcement body) let a typed `<` or
+    `&` corrupt the markup.
+    """
+    paragraphs = [p.strip() for p in text.replace("\r\n", "\n").split("\n\n")]
+    return "".join(
+        f"<p>{html.escape(p).replace(chr(10), '<br>')}</p>" for p in paragraphs if p
+    )
+
+
 def _layout(
     heading: str,
     body: str,
@@ -200,6 +214,7 @@ def _layout(
     cta_label: str | None = None,
     preheader: str | None = None,
     paw_prints: bool = False,
+    after_cta: str = "",
 ) -> str:
     """Wrap body HTML in the branded email shell.
 
@@ -215,6 +230,11 @@ def _layout(
     ``paw_prints`` ends the heading with the drawn paw prints, for the warm
     moments that used to reach for 🐾. Subjects stay plain text: they can't
     carry a drawing, and the brand doesn't use the emoji instead.
+
+    ``after_cta`` is HTML placed below the button — where the unsubscribe line
+    of a bulk email belongs. Appended to ``body`` it landed *above* the button,
+    so those emails read: content, "Unsubscribe from these emails", then the
+    call to action.
     """
     base = settings.FRONTEND_BASE_URL.rstrip("/")
     heading_mark = _paw_prints(base) if paw_prints else ""
@@ -277,6 +297,7 @@ def _layout(
   <h1 style="margin:0 0 14px;font-family:{FONT};font-size:24px;line-height:30px;font-weight:800;color:{NAVY};letter-spacing:-0.5px;">{html.escape(heading)}{heading_mark}</h1>
   {body}
   {button}
+  {after_cta}
 </td></tr>
 
 <tr><td class="pad" style="padding:20px 40px 24px;border-top:1px solid #f1e4d4;background:#fff8f0;border-radius:0 0 18px 18px;">
@@ -402,7 +423,7 @@ async def send_contact_relay_email(
             f"about “{html.escape(report_title)}” through Fetchpawz:</p>"
             '<blockquote style="border-left:4px solid #ff6a1f;margin:16px 0;'
             'padding:8px 16px;color:#44476b;background:#fff2e3;border-radius:0 8px 8px 0;">'
-            f"{html.escape(message)}</blockquote>"
+            f"{html.escape(message).replace(chr(10), '<br>')}</blockquote>"
             "<p>Reply to this email to answer them directly.</p>",
             preheader="Reply to this email to answer them directly.",
         ),
@@ -522,8 +543,8 @@ async def send_weekly_recap_email(
         _layout(
             heading,
             f"<p>Here is how your pets did in the week of {html.escape(week_label)}:</p>"
-            f"<ul style='padding-left:18px'>{''.join(rows)}</ul>"
-            + unsubscribe_footer(user_id, "recap"),
+            f"<ul style='padding-left:18px'>{''.join(rows)}</ul>",
+            after_cta=unsubscribe_footer(user_id, "recap"),
             cta_url=f"{settings.FRONTEND_BASE_URL}/app/rankings",
             cta_label="See the leaderboard",
             preheader=(
@@ -669,7 +690,7 @@ async def send_tag_found_email(
             f"{safe_pet}'s Fetchpawz collar tag and left you a message:</p>"
             '<blockquote style="border-left:4px solid #ff6a1f;margin:16px 0;'
             'padding:8px 16px;color:#44476b;background:#fff2e3;border-radius:0 8px 8px 0;">'
-            f"{html.escape(message)}</blockquote>"
+            f"{html.escape(message).replace(chr(10), '<br>')}</blockquote>"
             "<p><strong>Reach them at:</strong> "
             f"{html.escape(finder_contact)}</p>"
             f'<p style="color:#5d6085;font-size:13px">Tag code '
@@ -740,7 +761,8 @@ async def send_lost_alert_email(
         subject,
         _layout(
             heading,
-            f"<p>{html.escape(description[:300])}</p>" + ask + footer,
+            f"<p>{html.escape(description[:300])}</p>" + ask,
+            after_cta=footer,
             cta_url=url,
             cta_label="View the report",
             preheader=preheader,

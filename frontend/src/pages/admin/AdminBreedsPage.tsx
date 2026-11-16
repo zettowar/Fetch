@@ -103,7 +103,7 @@ export default function AdminBreedsPage() {
       <PageHeader
         title="Breeds"
         className="mb-5"
-        action={<Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>Add Breed</Button>}
+        action={<Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>Add breed</Button>}
       />
 
       <SearchInput

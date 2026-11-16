@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { useTheme } from '../store/ThemeContext';
 import { logout as apiLogout } from '../api/auth';
-import { exitImpersonation, getRefreshToken, impersonationToken } from '../api/client';
+import { exitImpersonation, getRefreshToken, impersonationToken, storedRefreshToken } from '../api/client';
 import { getUnreadCount } from '../api/notifications';
 import { useCart } from '../utils/useCart';
 import Lockup from './brand/Lockup';
@@ -74,7 +74,10 @@ export default function NavBar() {
       exitImpersonation();
       return;
     }
-    const rt = getRefreshToken();
+    // Revoke the token every tab shares, not only the copy in this tab's
+    // memory: that one is already spent if another tab refreshed more
+    // recently, and revoking it left the live session standing.
+    const rt = storedRefreshToken() || getRefreshToken();
     if (rt) {
       try {
         await apiLogout(rt);

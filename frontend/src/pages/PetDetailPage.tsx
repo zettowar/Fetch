@@ -36,6 +36,7 @@ import { occasionShort, occasionToday } from '../utils/occasions';
 import { apiErrorMessage, isNotFound } from '../utils/apiError';
 import { photoIn } from '../utils/photoIn';
 import { DESKTOP_UP, useMediaQuery } from '../hooks/useMediaQuery';
+import { useSectionOpen } from '../hooks/usePublicFlags';
 
 export default function PetDetailPage() {
   const { id } = useParams();
@@ -89,11 +90,17 @@ export default function PetDetailPage() {
     }
   }, [userCoords]);
 
-  const { data: nearbyParks = [] } = useQuery({
+  const {
+    data: nearbyParks = [],
+    isLoading: parksLoading,
+    isError: parksFailed,
+  } = useQuery({
     queryKey: ['parks-nearby-checkin', userCoords?.lat, userCoords?.lng],
     queryFn: () => getNearbyParks(userCoords!.lat, userCoords!.lng, 25),
     enabled: isOwner && showCheckinPicker && !!userCoords,
   });
+  // Parks is a flag-gated section; with it off, checking in leads nowhere.
+  const parksOpen = useSectionOpen('explore_parks_enabled');
 
   const checkinMutation = useMutation({
     mutationFn: (parkId: string) => checkinPark(parkId, id!),
@@ -512,7 +519,7 @@ export default function PetDetailPage() {
         </div>
 
         {/* Check-in widget (owner only) */}
-        {isOwner && (
+        {isOwner && parksOpen && (
           <div className="mt-4">
             <button
               onClick={() => showCheckinPicker ? setShowCheckinPicker(false) : handleOpenCheckinPicker()}
@@ -523,7 +530,14 @@ export default function PetDetailPage() {
             </button>
             {showCheckinPicker && (
               <div className="mt-2 flex flex-col gap-2">
-                {nearbyParks.length === 0 ? (
+                {/* "No parks found nearby" is an answer; it used to show while
+                    the location prompt was still open, while loading, and on
+                    failure. */}
+                {!userCoords || parksLoading ? (
+                  <p role="status" className="text-sm text-gray-500 dark:text-gray-400">Finding parks near you…</p>
+                ) : parksFailed ? (
+                  <p role="status" className="text-sm text-gray-600 dark:text-gray-300">Couldn&rsquo;t load nearby parks. Try again in a moment.</p>
+                ) : nearbyParks.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">No parks found nearby</p>
                 ) : (
                   nearbyParks.map((park) => (

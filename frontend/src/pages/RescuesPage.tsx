@@ -173,6 +173,17 @@ export default function RescuesPage() {
           <div className={`p-4 ${COLUMN}`}>
             {search ? (
               <EmptyState illustration="sniffing" title={`No results for "${search}"`} />
+            ) : filter !== 'all' ? (
+              // A filter with no matches is not an empty directory.
+              <EmptyState
+                illustration="sniffing"
+                title="No rescues match that filter"
+                action={
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setFilter('all')}>
+                    Show all rescues
+                  </button>
+                }
+              />
             ) : (
               <EmptyState
                 illustration="sleeping"

@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
       toast.success('Entitlement granted');
       setShowGrant(false);
     },
-    onError: () => toast.error('Failed to grant'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to grant')),
   });
 
   const promoteMutation = useMutation({

@@ -10,10 +10,7 @@ import Badge from '../components/ui/Badge';
 import PageHeader from '../components/ui/PageHeader';
 import DeleteAccountCard from '../components/DeleteAccountCard';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
-
-function errDetail(e: unknown): string | undefined {
-  return (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-}
+import { apiErrorMessage } from '../utils/apiError';
 
 export default function SecurityPage() {
   useDocumentTitle('Security · Fetchpawz');
@@ -27,7 +24,7 @@ export default function SecurityPage() {
   const setup = useMutation({
     mutationFn: totpSetup,
     onSuccess: (r) => { setSecret(r.secret); setUri(r.otpauth_uri); },
-    onError: (e) => toast.error(errDetail(e) || 'Could not start setup'),
+    onError: (e) => toast.error(apiErrorMessage(e, 'Could not start setup')),
   });
   const enable = useMutation({
     mutationFn: () => totpEnable(code),
@@ -36,7 +33,7 @@ export default function SecurityPage() {
       setSecret(null); setUri(null); setCode('');
       await refreshUser();
     },
-    onError: (e) => toast.error(errDetail(e) || 'Invalid code'),
+    onError: (e) => toast.error(apiErrorMessage(e, 'Invalid code')),
   });
   const disable = useMutation({
     // Either proof works on the server. The form used to send a password
@@ -50,7 +47,7 @@ export default function SecurityPage() {
       setDisableCode('');
       await refreshUser();
     },
-    onError: (e) => toast.error(errDetail(e) || 'Could not disable'),
+    onError: (e) => toast.error(apiErrorMessage(e, 'Could not disable')),
   });
 
   const enabled = user?.totp_enabled;

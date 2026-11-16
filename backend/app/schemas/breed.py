@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
+
+from app.schemas.common import reject_explicit_nulls
 
 
 class BreedOut(BaseModel):
@@ -51,6 +53,12 @@ class BreedUpdate(BaseModel):
     name: str | None = None
     group: str | None = None
     is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def required_fields_not_null(self) -> "BreedUpdate":
+        # `{"name": null}` reached slugify(None) and came back as a 500.
+        reject_explicit_nulls(self, "name", "is_active")
+        return self
 
     @field_validator("name")
     @classmethod

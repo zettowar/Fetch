@@ -199,7 +199,7 @@ export const searchTickets = async (
   return { items: res.data, total: readTotal(res.headers, res.data.length) };
 };
 
-export const updateTicket = async (id: string, data: { status: string; admin_notes?: string }) =>
+export const updateTicket = async (id: string, data: { status?: string; admin_notes?: string }) =>
   (await client.post(`/admin/tickets/${id}/update`, data)).data;
 
 export interface StaffTicketMessage {

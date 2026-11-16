@@ -95,7 +95,7 @@ export default function OsmLibraryPage({ config }: { config: OsmLibraryConfig })
             onClick={() => setTab(t)}
             className={segItem(tab === t)}
           >
-            {t === 'import' ? 'OSM Import' : 'Manual Entries'}
+            {t === 'import' ? 'OSM Import' : 'Manual entries'}
           </button>
         ))}
       </div>

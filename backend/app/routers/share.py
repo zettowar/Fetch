@@ -115,9 +115,18 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
 
     missing = report.kind == "missing"
     pet = report.pet
-    name = (pet.name if pet else None) or ("A missing pet" if missing else "A found pet")
+    pet_name = pet.name if pet else None
+    name = pet_name or ("A missing pet" if missing else "A found pet")
     breed = breed_display(pet.mix_type, pet.breeds, pet.species) if pet else None
-    photo = _pet_photo_url(pet) or _abs(f"/og-image.png{_ASSET_V}")
+    # Two different images, and they must not be confused. `pet_photo` is the
+    # animal and may be absent: a found report never has a pet attached, and a
+    # missing one may have no approved photo. `og_image` always exists, because
+    # a link preview needs a picture — but it falls back to the brand card, and
+    # that card (a cartoon dog under a "#1 this week" rosette) used to be drawn
+    # in the page itself as "Photo of A found pet".
+    pet_photo = _pet_photo_url(pet)
+    og_image = pet_photo or _abs(f"/og-image.png{_ASSET_V}")
+    og_image_alt = f"Photo of {name}" if pet_photo else "Fetchpawz"
 
     kind_label = "Missing" if missing else "Found"
     # The calm register (Brand Book): a missing pet is navy with an orange dot,
@@ -134,7 +143,12 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
     og_desc = " ".join(desc.split())[:197]
     if len(" ".join(desc.split())) > 197:
         og_desc += "…"
-    title = f"{kind_label}: {e_name}" + (f" ({e_breed})" if e_breed else "")
+    # Without a name the placeholder already says which kind of report this is;
+    # "Found: A found pet" said it twice.
+    title = (
+        f"{kind_label}: {e_name}" + (f" ({e_breed})" if e_breed else "")
+        if pet_name else f"{kind_label} pet"
+    )
 
     # --- fuzzed location (never the true point) ---
     map_link = None
@@ -155,7 +169,8 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
 
     # --- share targets ---
     where_bit = " near this area" if map_link else ""
-    share_line = f"{kind_label.upper()}: {name}{where_bit}. Please share to help."
+    share_subject = f"{kind_label.upper()}: {name}" if pet_name else f"{kind_label.upper()} PET"
+    share_line = f"{share_subject}{where_bit}. Please share to help."
     nd_body = quote(f"{share_line} {public_url}")
     nextdoor = f"https://nextdoor.com/sharekit/?source=fetchpawz&body={nd_body}"
     facebook = f"https://www.facebook.com/sharer/sharer.php?u={quote(public_url)}"
@@ -175,28 +190,35 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
         f"<span style=\"font-size:14px\">Thank you to everyone who looked and shared.</span></div>"
         if resolved else ""
     )
+    # Colours live in the stylesheet, not inline: an inline colour cannot be
+    # overridden by the dark-mode block, which left this text navy-grey on navy.
     photo_block = (
-        f"<img src=\"{html.escape(photo)}\" alt=\"Photo of {e_name}\" "
-        f"style=\"width:100%;max-height:420px;object-fit:cover;display:block;border-bottom:2px solid #1c1f45\">"
-        if photo else ""
+        f"<img class=\"photo\" src=\"{html.escape(pet_photo)}\" alt=\"Photo of {e_name}\">"
+        if pet_photo else ""
     )
-    breed_block = f"<p style=\"margin:2px 0 0;color:#5d6085;font-weight:600\">{e_breed}</p>" if e_breed else ""
+    breed_block = f"<p class=\"breed\">{e_breed}</p>" if e_breed else ""
+    # The fuzz protects whoever posted: the owner's home on a missing report,
+    # the finder's on a found one.
+    fuzz_reason = "to protect the owner's home" if missing else "to protect the finder's privacy"
     loc_block = (
-        f"<p style=\"margin:16px 0 4px;font-weight:800\">{'Last seen near' if missing else 'Found near'} "
-        f"<span style=\"font-weight:500;color:#5d6085;font-size:.9em\">(within ~{radius_txt}, "
-        f"to protect the owner's home)</span></p>"
-        f"<a href=\"{map_link}\" target=\"_blank\" rel=\"noopener nofollow\" "
-        f"style=\"display:inline-block;color:#c94a0d;font-weight:800;text-decoration:none\">"
+        f"<p class=\"loc\">{'Last seen near' if missing else 'Found near'} "
+        f"<span class=\"note\">(within ~{radius_txt}, {fuzz_reason})</span></p>"
+        f"<a class=\"maplink\" href=\"{map_link}\" target=\"_blank\" rel=\"noopener nofollow\">"
         f"View the area on a map →</a>"
         if map_link else ""
     )
     # Sightings/contact loop lives in the app (auth'd relay keeps the reporter's
-    # address hidden). Anonymous finders are funnelled there.
-    cta_block = "" if resolved else (
-        f"<a href=\"{app_url}\" style=\"display:block;text-align:center;background:#22b07a;"
-        f"color:#1c1f45;font-weight:800;padding:14px;border-radius:999px;text-decoration:none;"
-        f"border:2px solid #1c1f45;margin-top:20px\">Seen {e_name}? Report a sighting in the app →</a>"
-    )
+    # address hidden). Anonymous finders are funnelled there. The two kinds ask
+    # opposite things of the reader — a found report has no sighting to send,
+    # it has a finder to reach — and an unnamed pet is "this pet", not
+    # "Seen A found pet?".
+    if not missing:
+        cta_text = "Is this your pet? Message the finder in the app →"
+    elif pet_name:
+        cta_text = f"Seen {e_name}? Report a sighting in the app →"
+    else:
+        cta_text = "Seen this pet? Report a sighting in the app →"
+    cta_block = "" if resolved else f"<a class=\"cta\" href=\"{app_url}\">{cta_text}</a>"
 
     page = f"""<!doctype html>
 <html lang="en">
@@ -219,12 +241,12 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{html.escape(og_desc)}">
 <meta property="og:url" content="{public_url}">
-<meta property="og:image" content="{html.escape(photo)}">
-<meta property="og:image:alt" content="Photo of {e_name}">
+<meta property="og:image" content="{html.escape(og_image)}">
+<meta property="og:image:alt" content="{html.escape(og_image_alt)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{title}">
 <meta name="twitter:description" content="{html.escape(og_desc)}">
-<meta name="twitter:image" content="{html.escape(photo)}">
+<meta name="twitter:image" content="{html.escape(og_image)}">
 <style>
   /* Brand book, the calm register: Biscuit page, Leash Navy ink, Figtree only,
      flat cards, no tilt, no jokes. */
@@ -235,7 +257,14 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
   .brand{{display:inline-block;margin-bottom:18px}}
   .brand img{{display:block;width:150px;height:auto}}
   .card{{background:#fff;border-radius:20px;overflow:hidden;border:2px solid #1c1f45}}
+  .photo{{width:100%;max-height:420px;object-fit:cover;display:block;border-bottom:2px solid #1c1f45}}
   .pad{{padding:20px}}
+  .breed{{margin:2px 0 0;color:#5d6085;font-weight:600}}
+  .loc{{margin:16px 0 4px;font-weight:800}}
+  .loc .note{{font-weight:500;color:#5d6085;font-size:.9em}}
+  .maplink{{display:inline-block;color:#c94a0d;font-weight:800;text-decoration:none}}
+  .cta{{display:block;text-align:center;background:#22b07a;color:#1c1f45;font-weight:800;padding:14px;
+    border-radius:999px;text-decoration:none;border:2px solid #1c1f45;margin-top:20px}}
   .badge{{display:inline-flex;align-items:center;gap:6px;{badge_style};font-weight:800;font-size:12px;
     letter-spacing:.08em;text-transform:uppercase;padding:5px 11px;border-radius:999px;border:1.5px solid #1c1f45}}
   .badge:before{{content:"";width:7px;height:7px;border-radius:50%;background:{'#ff6a1f' if missing else '#1c1f45'}}}
@@ -255,7 +284,10 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
     body{{background:#11132e;color:#fff2e3}} .card{{background:#1b1e44;border-color:#3a3d6e}}
     h1{{color:#fff2e3}} .desc{{color:#c6c8de}} .chips{{border-color:#262a58}}
     .share a,.share button{{background:#1b1e44;color:#fff2e3;border-color:rgba(255,242,227,.3)}}
-    .muted,footer{{color:#a9abcb}} .chips a,footer a{{color:#ff8445}}
+    .muted,footer,.breed,.loc .note{{color:#a9abcb}} .chips a,footer a,.maplink{{color:#ff8445}}
+    /* The lockup is a navy wordmark: it needs its Biscuit ground after dark. */
+    .brand{{background:#fff2e3;border-radius:12px;padding:7px 12px}}
+    .photo{{border-color:#3a3d6e}} .badge{{border-color:rgba(255,242,227,.45)}}
   }}
 </style>
 </head>
@@ -276,7 +308,7 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
         <a class="nd" href="{nextdoor}" target="_blank" rel="noopener nofollow">Share to Nextdoor</a>
         <a class="fb" href="{facebook}" target="_blank" rel="noopener nofollow">Share to Facebook</a>
         <a class="tw" href="{twitter}" target="_blank" rel="noopener nofollow">Share to X</a>
-        <button class="cp" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('{public_url}').then(()=>{{this.textContent='Link copied!'}})">Copy link</button>
+        <button class="cp" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('{public_url}').then(()=>{{this.textContent='Link copied'}})">Copy link</button>
       </div>
       <div class="chips">
         <span class="muted">Found a pet? Check the chip:</span><br>
@@ -287,7 +319,7 @@ async def lost_share_page(report_id: UUID, db: AsyncSession = Depends(get_db)):
     </div>
   </div>
   <footer>
-    Posted on <a href="{_base()}">Fetchpawz</a> — the pet app with a rescue mission.
+    Posted on <a href="{_base()}">Fetchpawz</a> — the app that gets pets home.
   </footer>
 </div>
 </body>

@@ -12,6 +12,12 @@ vi.mock('react-hot-toast', () => ({
   default: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
 
+// Rewind is a Pack+ perk; the tests that need it flip this on.
+const plan = vi.hoisted(() => ({ subscriber: false }));
+vi.mock('../utils/useSubscription', () => ({
+  useSubscription: () => ({ isSubscriber: plan.subscriber, entitlement: null, isLoading: false }),
+}));
+
 function makeDog(id: string, overrides: Record<string, unknown> = {}) {
   return {
     id,
@@ -50,6 +56,7 @@ function renderDeck() {
 
 beforeEach(() => {
   localStorage.clear();
+  plan.subscriber = false;
 });
 
 afterEach(() => {
@@ -147,7 +154,7 @@ describe('SwipeDeck', () => {
     expect(await screen.findByText(/Couldn't load the feed/i)).toBeInTheDocument();
   });
 
-  it('restarts from the top when a refill replaces the deck', async () => {
+  it('keeps dealing when a refill arrives', async () => {
     const first = [makeDog('d1'), makeDog('d2'), makeDog('d3')];
     const refill = [makeDog('d4'), makeDog('d5'), makeDog('d6')];
     vi.spyOn(feedApi, 'getFeed')
@@ -166,5 +173,83 @@ describe('SwipeDeck', () => {
     // card instead of the premature end state.
     expect(await screen.findByText('Pet d4')).toBeInTheDocument();
     expect(screen.queryByText(/rated everyone this week/i)).toBeNull();
+    // And the count is the session's, not the position in the newest batch.
+    expect(screen.getByText(/3 rated this session/)).toBeInTheDocument();
+  });
+
+  it('does not deal a pet twice when a refill returns it again', async () => {
+    // The refill is requested in the same tick as the vote that triggered it,
+    // so the server can still list the pet just swiped.
+    vi.spyOn(feedApi, 'getFeed')
+      .mockResolvedValueOnce([makeDog('d1'), makeDog('d2')] as never)
+      .mockResolvedValue([makeDog('d1'), makeDog('d2'), makeDog('d3')] as never);
+    const cast = vi.spyOn(votesApi, 'castVote').mockResolvedValue({} as never);
+
+    renderDeck();
+    const like = await screen.findByLabelText('Like');
+    fireEvent.click(like);
+    await waitFor(() => expect(cast).toHaveBeenCalledWith('d1', 1));
+    fireEvent.click(like);
+    await waitFor(() => expect(cast).toHaveBeenCalledWith('d2', 1));
+
+    expect(await screen.findByText('Pet d3')).toBeInTheDocument();
+    fireEvent.click(like);
+    await waitFor(() => expect(cast).toHaveBeenCalledWith('d3', 1));
+    // Three pets, three votes: d1 and d2 were never offered a second time.
+    expect(cast).toHaveBeenCalledTimes(3);
+  });
+
+  it('Rewind returns to the card it was swiped from, even after a refill', async () => {
+    plan.subscriber = true;
+    vi.spyOn(feedApi, 'getFeed')
+      .mockResolvedValueOnce([makeDog('d1'), makeDog('d2'), makeDog('d3')] as never)
+      .mockResolvedValue([makeDog('d4'), makeDog('d5'), makeDog('d6')] as never);
+    vi.spyOn(votesApi, 'castVote').mockResolvedValue({} as never);
+    const takeBack = vi.spyOn(votesApi, 'takeBackVote').mockResolvedValue(undefined as never);
+
+    renderDeck();
+    fireEvent.click(await screen.findByLabelText('Like'));
+    // The swipe triggered a refill (three or fewer cards were left). The
+    // refill used to clear Rewind, and restore an index into the wrong deck.
+    await screen.findByText('Pet d2');
+    fireEvent.click(await screen.findByLabelText('Undo last swipe'));
+
+    await waitFor(() => expect(takeBack).toHaveBeenCalledWith('d1'));
+    expect(await screen.findByText('Pet d1')).toBeInTheDocument();
+  });
+
+  it('moves on when the pet has left the deck, instead of wedging on it', async () => {
+    vi.spyOn(feedApi, 'getFeed').mockResolvedValue(
+      [makeDog('d1'), makeDog('d2'), makeDog('d3'), makeDog('d4'), makeDog('d5')] as never,
+    );
+    const gone = Object.assign(new Error('gone'), { response: { status: 404 } });
+    const cast = vi
+      .spyOn(votesApi, 'castVote')
+      .mockRejectedValueOnce(gone)
+      .mockResolvedValue({} as never);
+
+    renderDeck();
+    const like = await screen.findByLabelText('Like');
+    fireEvent.click(like);
+    await waitFor(() => expect(cast).toHaveBeenCalledWith('d1', 1));
+    // A 404 will never succeed: the deck stays on the next card.
+    await waitFor(() => expect(screen.getByText('Pet d2')).toBeInTheDocument());
+    fireEvent.click(like);
+    await waitFor(() => expect(cast).toHaveBeenCalledWith('d2', 1));
+  });
+
+  it('keeps the cards on screen when a background refill fails', async () => {
+    vi.spyOn(feedApi, 'getFeed')
+      .mockResolvedValueOnce([makeDog('d1'), makeDog('d2'), makeDog('d3')] as never)
+      .mockRejectedValue(new Error('offline'));
+    const cast = vi.spyOn(votesApi, 'castVote').mockResolvedValue({} as never);
+
+    renderDeck();
+    fireEvent.click(await screen.findByLabelText('Like'));
+    await waitFor(() => expect(cast).toHaveBeenCalledTimes(1));
+
+    await waitFor(() => expect(feedApi.getFeed).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('Pet d2')).toBeInTheDocument();
+    expect(screen.queryByText(/Couldn't load the feed/i)).toBeNull();
   });
 });

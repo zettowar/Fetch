@@ -31,6 +31,9 @@ export default function SearchInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        // A placeholder is not a name: it vanishes on input and many screen
+        // readers skip it. Callers can still pass their own aria-label.
+        aria-label={placeholder.replace(/[.…]+$/, '')}
         className="w-full min-h-[44px] rounded-full border-2 border-navy/25 dark:border-white/20 bg-white dark:bg-night-surface pl-10 pr-9 py-2 text-[15px] font-semibold text-navy dark:text-biscuit placeholder:font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 dark:hover:border-white/35 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:focus:border-brand-400 [&::-webkit-search-cancel-button]:hidden"
         {...rest}
       />

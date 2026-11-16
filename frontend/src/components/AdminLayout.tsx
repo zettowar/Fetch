@@ -26,7 +26,7 @@ const NAV_ITEMS: { path: string; label: string; end?: boolean; adminOnly?: boole
   { path: '/admin/vets', label: 'Vets', adminOnly: true },
   { path: '/admin/settings', label: 'Settings', adminOnly: true },
   { path: '/admin/system', label: 'System', adminOnly: true },
-  { path: '/admin/audit', label: 'Audit Log' },
+  { path: '/admin/audit', label: 'Audit log' },
 ];
 
 export default function AdminLayout() {

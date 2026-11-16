@@ -57,9 +57,18 @@ def _presets() -> list[int]:
 
 
 @router.get("/config", response_model=DonationConfig)
-async def donation_config(user: User = Depends(get_current_user)):
+async def donation_config(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+):
+    # The setting is described to admins as "Hide donation calls-to-action and
+    # reject new checkouts". Only the second half was true: every Donate button
+    # stayed up and the donor met a 503 at checkout. Reporting the pause here
+    # is what lets the client hide them.
+    from app.services import settings_service
+    paused = bool(await settings_service.get_setting(db, "donations_paused"))
     return DonationConfig(
-        enabled=stripe_enabled(),
+        enabled=stripe_enabled() and not paused,
+        paused=paused and stripe_enabled(),
         presets_cents=_presets(),
         min_cents=settings.DONATION_MIN_CENTS,
         max_cents=settings.DONATION_MAX_CENTS,

@@ -92,6 +92,10 @@ services:
       - "3174:5173"
     volumes:
       - ./frontend/src:/app/src
+      # Static assets too. Without this mount `public/` was whatever the image
+      # was last built with, so an icon or email image added since then 404'd
+      # in dev (Vite answered with index.html) until someone ran a rebuild.
+      - ./frontend/public:/app/public
       - ./frontend/index.html:/app/index.html
       - ./frontend/tailwind.config.js:/app/tailwind.config.js
       - ./frontend/postcss.config.js:/app/postcss.config.js

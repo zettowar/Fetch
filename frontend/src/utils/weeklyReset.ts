@@ -11,6 +11,35 @@ export function nextWeeklyReset(now: Date = new Date()): Date {
   return next;
 }
 
+const clock = (d: Date): string =>
+  d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+/**
+ * When the week turns over, in the reader's own time: "Sunday at 7:00 p.m." in
+ * Toronto, "Monday at 1:00 a.m." in Berlin.
+ *
+ * The reset is Monday 00:00 UTC, and the copy used to say "Monday" everywhere.
+ * For the launch market that is wrong by most of a day: an owner in the lead
+ * was told to "hold on until Monday" while the crown was settled on Sunday
+ * evening.
+ */
+export function weeklyResetAt(now: Date = new Date()): string {
+  const at = nextWeeklyReset(now);
+  return `${at.toLocaleDateString(undefined, { weekday: 'long' })} at ${clock(at)}`;
+}
+
+/** Just the weekday the week turns over on, locally ("Sunday"). */
+export function weeklyResetDay(now: Date = new Date()): string {
+  return nextWeeklyReset(now).toLocaleDateString(undefined, { weekday: 'long' });
+}
+
+/** When the daily swipe allowance refills (00:00 UTC), as a local clock time. */
+export function dailyResetAt(now: Date = new Date()): string {
+  const at = new Date(now);
+  at.setUTCHours(24, 0, 0, 0);
+  return clock(at);
+}
+
 /**
  * Rankings reset every Monday 00:00 UTC. Returns a short countdown string
  * ("2d 4h 17m", "42m"). Minutes are always included so the value visibly

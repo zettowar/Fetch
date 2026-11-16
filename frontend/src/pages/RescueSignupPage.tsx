@@ -64,7 +64,7 @@ export default function RescueSignupPage() {
     <div className="flex flex-col pb-10">
       <AuthHero
         tone="purple"
-        title="Rescue / Shelter Account"
+        title="Rescue or shelter account"
         subtitle="Create a verified account so your adoptable pets can appear in Fetchpawz — with inquiry tools, a public page, and optional in-app donations. Applications are reviewed by our team; we'll reach out if we need more info."
         icon={<BrandIcon name="rescue" size={32} />}
       />
@@ -112,7 +112,7 @@ export default function RescueSignupPage() {
             label="Location"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="City, State"
+            placeholder="City, province or state"
           />
           <Input
             label="Website"
@@ -136,7 +136,7 @@ export default function RescueSignupPage() {
               rows={2}
               value={proof}
               onChange={(e) => setProof(e.target.value)}
-              placeholder="EIN / 501(c)(3), registration number, or a link to your verification"
+              placeholder="Charity registration number (CRA or EIN), or a link to your verification"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Helps us verify your application faster. You can add this later if needed.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Sun } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
@@ -138,7 +138,12 @@ export default function MarketingLayout() {
 
       {/* Page content */}
       <main className="flex-1">
-        <Outlet />
+        {/* Its own boundary, like the app shell's: with only the one above
+            the layout, a page whose chunk wasn't cached blanked the header
+            and footer along with the page. */}
+        <Suspense fallback={<div className="min-h-[60vh]" aria-busy="true" aria-live="polite" />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <MarketingFooter />

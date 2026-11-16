@@ -18,6 +18,20 @@ async def _create_report(client: AsyncClient, headers: dict, **overrides) -> dic
     return res.json()
 
 
+async def _verify_account(client: AsyncClient, headers: dict) -> None:
+    """Found reports need a verified (or week-old) account; fixtures are neither."""
+    from sqlalchemy import update
+
+    from app.models.user import User
+    from tests.conftest import test_session_factory
+
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    assert me.status_code == 200, me.text
+    async with test_session_factory() as db:
+        await db.execute(update(User).where(User.id == me.json()["id"]).values(is_verified=True))
+        await db.commit()
+
+
 @pytest.mark.asyncio
 async def test_is_public_defaults_true(client: AsyncClient, auth_headers: dict):
     data = await _create_report(client, auth_headers)
@@ -53,6 +67,46 @@ async def test_public_share_page_renders_og_and_share_targets(
     assert "Fluffy the beagle" in body
     # Location is surfaced only as a fuzzed map link, never raw coordinates
     assert "openstreetmap.org" in body
+
+
+@pytest.mark.asyncio
+async def test_share_page_without_a_pet_photo_draws_no_photo(
+    client: AsyncClient, auth_headers: dict
+):
+    """The brand card is the link preview's fallback, never the pet's picture.
+
+    A found report has no pet attached, so there is no photo of the animal. The
+    page used to draw the og-image — a cartoon dog under a "#1 this week"
+    rosette — in the card as "Photo of A found pet".
+    """
+    await _verify_account(client, auth_headers)
+    data = await _create_report(client, auth_headers, kind="found")
+    body = (await client.get(f"/lost/{data['id']}")).text
+    # Scrapers still get an image…
+    assert 'property="og:image" content=' in body
+    assert "og-image.png" in body
+    # …but the page body shows none, and nothing calls the brand card a photo.
+    assert "<img class=\"photo\"" not in body
+    assert "Photo of" not in body
+
+
+@pytest.mark.asyncio
+async def test_found_share_page_asks_for_the_owner_not_a_sighting(
+    client: AsyncClient, auth_headers: dict
+):
+    """A found report has a finder to reach, not a pet to spot."""
+    await _verify_account(client, auth_headers)
+    found = await _create_report(client, auth_headers, kind="found")
+    body = (await client.get(f"/lost/{found['id']}")).text
+    assert "Is this your pet?" in body
+    assert "Report a sighting" not in body
+    assert "Seen A found pet" not in body
+    assert "<title>Found pet · Fetchpawz</title>" in body
+
+    missing = await _create_report(client, auth_headers)
+    body = (await client.get(f"/lost/{missing['id']}")).text
+    assert "Seen this pet? Report a sighting" in body
+    assert "<title>Missing pet · Fetchpawz</title>" in body
 
 
 @pytest.mark.asyncio

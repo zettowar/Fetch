@@ -30,7 +30,8 @@ export interface UseSwipeQuota {
   canEarnMore: boolean;
   consume: () => void;
   refund: () => void;
-  grantReward: () => void;
+  /** Resolves with the fresh quota once the server has granted the reward. */
+  grantReward: () => Promise<SwipeQuota>;
   /** Re-sync with the server (e.g. after a 429). Clears the optimistic delta. */
   sync: () => void;
 }
@@ -76,7 +77,7 @@ export function useSwipeQuota(enabled: boolean): UseSwipeQuota {
       qc.setQueryData(QUOTA_KEY, fresh);
     },
   });
-  const grantReward = useCallback(() => rewardMutation.mutate(), [rewardMutation]);
+  const grantReward = useCallback(() => rewardMutation.mutateAsync(), [rewardMutation]);
 
   return useMemo(
     () => ({

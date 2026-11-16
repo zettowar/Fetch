@@ -206,8 +206,10 @@ export default function LostPetsPage() {
           </span>
         </div>
 
-        {/* Empty state — only when not loading and no results for the filter */}
-        {!isLoading && reports.length === 0 && (
+        {/* Empty state — only when the request succeeded and found nothing. A
+            failed request also has no reports, and it used to put the
+            all-clear on the map while the list beside it showed the error. */}
+        {!isLoading && !isError && reports.length === 0 && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-2xl border border-gray-200 bg-white/95 px-4 py-3 text-center text-sm font-semibold text-gray-700 backdrop-blur dark:border-white/10 dark:bg-night-surface/95 dark:text-gray-200 max-w-[90%] z-10">
             {filterMeta[filter].emptyMsg}
           </div>

@@ -16,7 +16,7 @@ from app.models.user import User
 from app.models.vote import Vote
 from app.schemas.pet import PetOut
 from app.schemas.vote import VoteCreate, VoteOut
-from app.services.blocks import is_blocked_between
+from app.services.blocks import blocked_user_ids_subquery, is_blocked_between
 from app.services.pet_serializer import pet_to_out
 from app.services.feed_service import current_week_bucket
 from app.services import quota as quota_service
@@ -170,7 +170,12 @@ async def liked_pets(
             selectinload(Pet.breeds),
             selectinload(Pet.owner).selectinload(User.rescue_profile),
         )
-        .where(Pet.is_active == True)  # noqa: E712
+        .where(
+            Pet.is_active == True,  # noqa: E712
+            # A block hides the pet everywhere else (GET /pets/{id} 404s); the
+            # liked list kept returning it, photos and bio included.
+            Pet.owner_id.notin_(blocked_user_ids_subquery(user.id)),
+        )
         .order_by(liked_sq.c.liked_at.desc())
         .limit(limit)
         .offset(offset)

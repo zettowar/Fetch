@@ -27,6 +27,10 @@ export function apiErrorMessage(err: unknown, fallback = 'Something went wrong')
       return detail[0].msg;
     }
     if (!err.response) return 'Network error — check your connection.';
+    // The server answered but said nothing usable. Axios's own message here is
+    // "Request failed with status code 500", which the caller's fallback
+    // always beats.
+    return fallback;
   }
   if (err instanceof Error && err.message) return err.message;
   return fallback;

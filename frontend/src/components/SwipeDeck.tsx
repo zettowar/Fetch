@@ -21,6 +21,9 @@ import { useSpeciesFilter, filterToSpecies } from '../hooks/useSpeciesFilter';
 import { useSubscription } from '../utils/useSubscription';
 import { useSwipeQuota, REWARD_INCREMENT } from '../utils/swipeQuota';
 import { onboarding } from '../utils/onboarding';
+import { apiErrorMessage } from '../utils/apiError';
+import { dailyResetAt, weeklyResetAt } from '../utils/weeklyReset';
+import type { Pet } from '../types';
 
 const SEEN_PROMPTS_KEY = 'fetch.adoption_prompts_seen';
 
@@ -77,9 +80,20 @@ export default function SwipeDeck() {
 
   const quotaBlocked = !isSubscriber && quota.blocked;
   const remaining = quota.remaining;
+  // The meter is for people on a daily allowance. A Pack+ member whose billing
+  // status hasn't loaded yet (or failed to) is `!isSubscriber` with an
+  // unlimited quota, and the counter read "Infinity swipes left today".
+  const metered = Boolean(user) && !isSubscriber && !quota.unlimited;
 
   const [speciesFilter, setSpeciesFilter] = useSpeciesFilter();
-  const { data: pets = [], isLoading, isError, refetch } = useQuery({
+  const {
+    data: batch,
+    dataUpdatedAt,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['feed', speciesFilter],
     queryFn: () => getFeed(30, filterToSpecies(speciesFilter)),
     // Never reuse a deck across visits. The cached batch still contains the
@@ -87,24 +101,46 @@ export default function SwipeDeck() {
     // mount — so coming back within the cache window dealt the same cards
     // again, each of which the server then refused as a duplicate.
     gcTime: 0,
+    // The deck asks for more cards when it runs low. Coming back to the tab is
+    // not a reason to deal.
+    refetchOnWindowFocus: false,
   });
 
-  // A feed refetch returns a fresh re-shuffled batch that excludes pets the
-  // user already voted on — it replaces the deck wholesale, so any index into
-  // the old deck is meaningless. When the data's identity changes, restart
-  // from the top of the new batch and drop state tied to the old one. An
-  // empty refill keeps the current index so the end state can report the
-  // session count (and any adoption prompt) from the deck just finished.
-  const feedIdentity = `${pets[0]?.id ?? 'none'}:${pets.length}`;
-  const [deckIdentity, setDeckIdentity] = useState(feedIdentity);
-  if (feedIdentity !== deckIdentity) {
-    setDeckIdentity(feedIdentity);
-    if (pets.length > 0) {
-      setCurrentIndex(0);
-      setLastVote(null);
-      setPrompt(null);
-    }
+  // The deck belongs to this component; the query only supplies cards for it.
+  //
+  // It used to *be* the query's data. Every refill returned a fresh shuffled
+  // batch that replaced the deck and reset the index to 0, and a great deal
+  // went wrong from that one decision: Rewind lost its button on the last
+  // three cards of every batch (the refill cleared it), or restored an index
+  // into a deck that no longer existed and skipped two dozen unrated pets;
+  // "N rated this session" counted from the last refill; a refill racing the
+  // vote that triggered it dealt the pet just swiped a second time; and a
+  // refill that failed in the background replaced a deck that still had cards
+  // in it with an error screen.
+  //
+  // Now a batch is appended: pets already dealt are skipped, the index only
+  // ever means "position in this deck", and the deck starts over in exactly
+  // one case — the species tab changed.
+  const [deck, setDeck] = useState<{ filter: typeof speciesFilter; pets: Pet[]; mergedAt: number }>({
+    filter: speciesFilter,
+    pets: [],
+    mergedAt: 0,
+  });
+  if (deck.filter !== speciesFilter) {
+    setDeck({ filter: speciesFilter, pets: [], mergedAt: 0 });
+    setCurrentIndex(0);
+    setLastVote(null);
+    setPrompt(null);
+  } else if (batch && dataUpdatedAt !== deck.mergedAt) {
+    const dealt = new Set(deck.pets.map((p) => p.id));
+    const fresh = batch.filter((p) => !dealt.has(p.id));
+    setDeck({
+      filter: deck.filter,
+      pets: fresh.length ? [...deck.pets, ...fresh] : deck.pets,
+      mergedAt: dataUpdatedAt,
+    });
   }
+  const pets = deck.pets;
 
   const voteMutation = useMutation({
     mutationFn: ({ petId, value }: { petId: string; value: 1 | -1; index: number }) =>
@@ -118,6 +154,16 @@ export default function SwipeDeck() {
         // Give the local swipe back (the server counted nothing new) and
         // let the deck move on.
         if (!isSubscriber) quota.refund();
+        return;
+      }
+      if (status === 404 || status === 400) {
+        // The pet left the deck after it was dealt: deactivated, its owner's
+        // account closed or suspended, or a block between you. That will never
+        // succeed, and rewinding to the card (as for a network failure) wedged
+        // the deck on it — every swipe earned the same 404. Same remedy as the
+        // 409: give the swipe back and move on. There is no vote to rewind.
+        if (!isSubscriber) quota.refund();
+        setLastVote((lv) => (lv?.petId === vars.petId ? null : lv));
         return;
       }
       const quotaHit = status === 429;
@@ -241,10 +287,22 @@ export default function SwipeDeck() {
     toast('Swipe undone.');
   };
 
-  const handleReward = () => {
-    if (!user) return;
-    quota.grantReward();
-    toast.success(`+${REWARD_INCREMENT} swipes unlocked`);
+  // Say it worked once it has. The toast used to fire before the request was
+  // even sent, so a failed grant read "+25 swipes unlocked" over a deck that
+  // stayed blocked. The ref stops a double tap claiming twice while the modal
+  // animates out.
+  const claiming = useRef(false);
+  const handleReward = async () => {
+    if (!user || claiming.current) return;
+    claiming.current = true;
+    try {
+      await quota.grantReward();
+      toast.success(`+${REWARD_INCREMENT} swipes unlocked`);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Couldn't unlock more swipes. Try again."));
+    } finally {
+      claiming.current = false;
+    }
   };
 
   if (isLoading) {
@@ -256,7 +314,11 @@ export default function SwipeDeck() {
     );
   }
 
-  if (isError) {
+  const remainingDogs = pets.slice(currentIndex);
+
+  // Only when there is nothing to show. A refill that fails in the background
+  // also sets `isError`, and the cards already dealt are still good.
+  if (isError && remainingDogs.length === 0) {
     return (
       <ErrorState
         message="Couldn't load the feed."
@@ -265,7 +327,18 @@ export default function SwipeDeck() {
     );
   }
 
-  const remainingDogs = pets.slice(currentIndex);
+  // The last card went while a refill was still on its way: wait for it rather
+  // than flash "you've rated everyone" and then deal more.
+  if (remainingDogs.length === 0 && isFetching) {
+    return (
+      <div className={`px-4 sm:mx-auto sm:max-w-sm ${ROOMY_WIDTH}`}>
+        <CardSkeleton />
+      </div>
+    );
+  }
+
+  // Position in this deck, which is the number rated on this tab: the deck is
+  // only ever appended to, and starts again when the species tab changes.
   const ratedCount = currentIndex;
   // The end state has to tell two different stories. "You've rated everyone"
   // is only true for someone who just rated; a first-time visitor whose deck
@@ -278,11 +351,15 @@ export default function SwipeDeck() {
       : scopedSpecies
         ? `You've rated every ${scopedSpecies} this week!`
         : "You've rated everyone this week!";
+  // The week turns over at Monday 00:00 UTC, which is Sunday evening across
+  // the Americas. "Come back Monday" sent people in Toronto a day late, so the
+  // copy names the reset in the reader's own time.
+  const resetAt = weeklyResetAt();
   const endBody = scopedSpecies
-    ? `No more ${scopedSpecies}s to rate right now. Try the full deck, or come back Monday for a fresh round.`
+    ? `No more ${scopedSpecies}s to rate right now. Try the full deck, or come back ${resetAt} for a fresh round.`
     : ratedCount === 0
-      ? 'No pets to rate right now. New pets join all the time, and votes reset every Monday.'
-      : 'Come back Monday for a fresh batch of pets.';
+      ? `No pets to rate right now. New pets join all the time, and votes reset ${resetAt}.`
+      : `Come back ${resetAt} for a fresh batch of pets.`;
 
   if (remainingDogs.length === 0) {
     return (
@@ -355,7 +432,7 @@ export default function SwipeDeck() {
     <div className="flex flex-col items-center">
       {/* Vote counter / quota indicator */}
       <div className={`w-full max-w-sm px-4 mb-2 flex flex-col gap-1 ${ROOMY_WIDTH}`}>
-        {!isSubscriber && user ? (
+        {metered ? (
           <>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-600 dark:text-gray-300">
@@ -415,7 +492,7 @@ export default function SwipeDeck() {
                     Watch ad · +{REWARD_INCREMENT} swipes
                   </Button>
                 ) : (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Daily cap reached. Come back tomorrow.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Daily cap reached. Swipes refill at {dailyResetAt()}.</p>
                 )}
                 <Link to="/app/billing" className="text-sm font-extrabold text-brand-700 hover:underline dark:text-brand-400">
                   Subscribe to Pack+ →

@@ -245,6 +245,12 @@ class PublicTagOut(BaseModel):
     """Resolution for a scanned QR tag."""
     assigned: bool = False
     pet: PublicPetOut | None = None
+    # Whether a finder's message can reach the owner (POST …/contact). True for
+    # a hidden-but-live pet; false when the pet or its owner's account is no
+    # longer active. The page used to promise "you can still let their owner
+    # know" for both, and the second kind answered the finder's message with
+    # "Unknown tag".
+    contactable: bool = False
 
 
 @router.get("/tags/{code}", response_model=PublicTagOut)
@@ -266,16 +272,22 @@ async def public_tag(code: str, db: AsyncSession = Depends(get_db)):
             selectinload(Pet.breeds),
             selectinload(Pet.owner).selectinload(User.rescue_profile),
         )
-        .where(Pet.id == tag.pet_id, Pet.is_active == True, Pet.is_public == True)  # noqa: E712
+        .where(Pet.id == tag.pet_id, Pet.is_active == True)  # noqa: E712
     )).scalar_one_or_none()
-    if not pet:
-        return PublicTagOut(assigned=True, pet=None)
+    # The same test the contact relay applies below.
+    contactable = bool(pet and pet.owner is not None and pet.owner.is_active)
+    if not pet or not pet.is_public:
+        return PublicTagOut(assigned=True, pet=None, contactable=contactable)
 
     owner = pet.owner
     rescue_name = None
     if owner is not None and owner.rescue_profile and owner.rescue_profile.status == "approved":
         rescue_name = owner.rescue_profile.org_name
-    return PublicTagOut(assigned=True, pet=_serialize_public_pet(pet, rescue_name=rescue_name))
+    return PublicTagOut(
+        assigned=True,
+        pet=_serialize_public_pet(pet, rescue_name=rescue_name),
+        contactable=contactable,
+    )
 
 
 class TagContactRequest(BaseModel):

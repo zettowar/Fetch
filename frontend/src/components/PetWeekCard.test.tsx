@@ -76,4 +76,32 @@ describe('PetWeekCard', () => {
     await show(pet(), stats(), [entry('pete', 2)]);
     expect(screen.getByText('No votes yet this week')).toBeInTheDocument();
   });
+  it('does not crown a leader whose score is not net-positive', async () => {
+    // The crown needs more likes than passes; the live board has no such floor.
+    await show(pet(), stats({ week_score: -1, week_rank: 1 }), [entry('luna', -1)]);
+    expect(screen.getByText('Out in front, no crown yet')).toBeInTheDocument();
+    expect(screen.queryByText('Wearing the crown')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Rank /)).not.toBeInTheDocument();
+  });
+
+  it('does not invent a tie when the board has not loaded', async () => {
+    // Stats say #3; with no board there is no leader to measure against.
+    await show(pet(), stats({ week_score: 2, week_rank: 3 }), []);
+    expect(screen.getByText('#3 this week')).toBeInTheDocument();
+    expect(screen.queryByText('Tied for the lead')).not.toBeInTheDocument();
+  });
+
+  it('survives a failed stats request for a pet that is on the board', async () => {
+    // `stats!.week_total` here used to throw and take Home down with it.
+    vi.spyOn(rankingsApi, 'getPetStats').mockRejectedValue(new Error('offline'));
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+          <PetWeekCard pets={[pet()]} species="dog" board={[entry('pete', 7), entry('luna', 3)]} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('4 likes behind the crown')).toBeInTheDocument();
+    expect(screen.getByText('#2 this week.')).toBeInTheDocument();
+  });
 });

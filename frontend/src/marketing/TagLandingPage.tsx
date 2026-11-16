@@ -46,6 +46,29 @@ export default function TagLandingPage() {
   // Registered tag whose pet is hidden from the public share page. The owner
   // still wants to hear that their pet was found — "don't list me" is not
   // "don't tell me" — so the relay is offered here instead of the profile.
+  // A registered tag whose pet or owner account is no longer active. The
+  // relay would refuse the message, so don't offer it: say what a finder can
+  // do instead. (Calm register — someone is holding a stranger's pet.)
+  if (data?.assigned && !data.pet && data.contactable === false) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-24 text-center">
+        <TagMark />
+        <h1 className="mt-5 font-plain text-2xl text-navy dark:text-biscuit text-balance">
+          This tag isn&rsquo;t active
+        </h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-300">
+          We can&rsquo;t pass a message to its owner from here. A vet or shelter can
+          scan for a microchip, and a found-pet report puts them on the local map.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <Link to="/" className="btn btn-secondary">
+            Meet Fetchpawz
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (data?.assigned && !data.pet) {
     return (
       <div className="mx-auto max-w-md px-4 py-16">

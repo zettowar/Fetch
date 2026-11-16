@@ -20,7 +20,7 @@ from app.schemas.playdate import (
     PlayDateRsvpCreate,
     PlayDateRsvpOut,
 )
-from app.services.blocks import is_blocked_between
+from app.services.blocks import blocked_user_ids_subquery, is_blocked_between
 from app.services.pet_serializer import display_photo_url
 
 router = APIRouter()
@@ -41,8 +41,19 @@ def _rsvp_to_out(rsvp: PlayDateRsvp) -> PlayDateRsvpOut:
     )
 
 
-def _playdate_to_out(pd: PlayDate, include_rsvps: bool = True) -> PlayDateOut:
-    rsvps = list(pd.rsvps) if pd.rsvps else []
+async def _blocked_ids(db: AsyncSession, viewer_id: UUID) -> set[UUID]:
+    """Everyone the viewer has blocked, or who has blocked the viewer."""
+    result = await db.execute(blocked_user_ids_subquery(viewer_id))
+    return set(result.scalars().all())
+
+
+def _playdate_to_out(
+    pd: PlayDate, include_rsvps: bool = True, hidden: frozenset[UUID] | set[UUID] = frozenset()
+) -> PlayDateOut:
+    # `hidden` is the viewer's block list. A play date says where someone will
+    # be and when, so an RSVP from either side of a block is left out of what
+    # the other one sees — the counts included.
+    rsvps = [r for r in (pd.rsvps or []) if r.user_id not in hidden]
     going_count = sum(1 for r in rsvps if r.status == "going")
     return PlayDateOut(
         id=pd.id,
@@ -163,9 +174,15 @@ async def list_upcoming(
         my_rsvps = select(PlayDateRsvp.playdate_id).where(PlayDateRsvp.user_id == user.id)
         query = query.where(or_(PlayDate.host_id == user.id, PlayDate.id.in_(my_rsvps)))
 
+    # Blocks apply here as they do to RSVPs. Without this, someone who had
+    # been blocked could still read "A is hosting at Park X, Saturday 5pm".
+    hidden = await _blocked_ids(db, user.id)
+    if hidden:
+        query = query.where(PlayDate.host_id.notin_(hidden))
+
     result = await db.execute(query)
     playdates = result.scalars().unique().all()
-    return [_playdate_to_out(pd) for pd in playdates]
+    return [_playdate_to_out(pd, hidden=hidden) for pd in playdates]
 
 
 @router.get("/{playdate_id}", response_model=PlayDateOut)
@@ -175,7 +192,10 @@ async def get_playdate(
     db: AsyncSession = Depends(get_db),
 ):
     pd = await _load_playdate(playdate_id, db)
-    return _playdate_to_out(pd)
+    hidden = await _blocked_ids(db, user.id)
+    if pd.host_id in hidden:
+        raise HTTPException(status_code=404, detail="Play date not found")
+    return _playdate_to_out(pd, hidden=hidden)
 
 
 @router.delete("/{playdate_id}")

@@ -71,7 +71,7 @@ export default function AdminAuditPage() {
   return (
     <div>
       <PageHeader
-        title="Audit Log"
+        title="Audit log"
         className="mb-5"
         action={
           <Button size="sm" variant="ghost" onClick={() => refetch()}>

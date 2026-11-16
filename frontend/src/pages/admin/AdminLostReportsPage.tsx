@@ -17,6 +17,7 @@ import PaginationFooter from '../../components/ui/PaginationFooter';
 import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { LINK, ROWS, segItem } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 const PAGE_SIZE = 50;
 
@@ -66,7 +67,7 @@ export default function AdminLostReportsPage() {
       toast.success('Report closed');
       queryClient.invalidateQueries({ queryKey: ['admin-lost-reports'] });
     },
-    onError: () => toast.error('Failed to close report'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to close report')),
   });
 
   const { missingCount, foundCount } = useMemo(() => ({
@@ -76,7 +77,7 @@ export default function AdminLostReportsPage() {
 
   return (
     <div>
-      <PageHeader plain title="Lost & Found Reports" className="mb-5" />
+      <PageHeader plain title="Lost & Found reports" className="mb-5" />
 
       <div className="seg mb-4">
         {STATUS_TABS.map((tab) => (
@@ -113,7 +114,7 @@ export default function AdminLostReportsPage() {
       ) : isError ? (
         <ErrorState message="Couldn't load lost & found reports." onRetry={() => refetch()} />
       ) : reports.length === 0 ? (
-        <EmptyState className="py-6" title={`No reports with status "${statusFilter}"`} />
+        <EmptyState className="py-6" title={statusFilter === 'all' ? 'No reports yet' : `No ${statusFilter} reports`} />
       ) : (
         <Card padding="none" className={ROWS}>
           {reports.map((report: AdminLostReport) => (

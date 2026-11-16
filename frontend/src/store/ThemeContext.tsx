@@ -15,8 +15,12 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readStoredMode(): ThemeMode {
   if (typeof window === 'undefined') return 'system';
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  return raw === 'light' || raw === 'dark' || raw === 'system' ? raw : 'system';
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw === 'light' || raw === 'dark' || raw === 'system' ? raw : 'system';
+  } catch {
+    return 'system'; // storage blocked: follow the system, don't crash the site
+  }
 }
 
 function systemPrefersDark(): boolean {
@@ -45,7 +49,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (resolved === 'dark') root.classList.add('dark');
     else root.classList.remove('dark');
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0b0f16' : '#ee7a10');
+    // Brand Book: Night (#11132E) after dark, Ball Orange by day — the same
+    // value index.html and the manifest ship. These were still the old
+    // palette's orange and near-black, so the browser chrome reverted to the
+    // previous brand the moment the app booted.
+    if (meta) meta.setAttribute('content', resolved === 'dark' ? '#11132e' : '#ff6a1f');
   }, [resolved]);
 
   const setMode = (next: ThemeMode) => {

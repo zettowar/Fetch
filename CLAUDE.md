@@ -11,7 +11,7 @@ cp .env.example .env
 make up          # Start all 6 Docker services
 make migrate     # Run database migrations
 make seed        # Create 10 test users + 25 pets (each with a placeholder photo)
-make test        # Run all tests (~570 backend + ~135 frontend)
+make test        # Run all tests (~610 backend + ~200 frontend)
 ```
 
 - **Frontend:** http://localhost:3174
@@ -55,7 +55,7 @@ Fetchpawz/
 │   │   └── tasks/            # 7 Celery tasks (weekly_winner, weekly_recap,
 │   │                         #   lost_alerts, token_cleanup, digest,
 │   │                         #   announcements, schedule_defaults)
-│   ├── tests/                # backend test suite (~570 tests)
+│   ├── tests/                # backend test suite (~610 tests)
 │   ├── alembic/              # ~47 migrations (linear chain)
 │   └── pyproject.toml
 ├── frontend/
@@ -100,6 +100,11 @@ admin: User = Depends(require_admin)
 # Approved rescue accounts only
 user: User = Depends(require_approved_rescue)
 ```
+
+**A block hides where someone is going to be.** Beyond feeds, follows and
+comments, `blocked_user_ids_subquery` is applied to play-date listings (and
+their RSVP lists), park check-ins and the liked list. A new surface that shows
+another member's pet, plans or location needs the same filter.
 
 **All ForeignKeys must have `ondelete`** — use `CASCADE` for owned data, `SET NULL` for references.
 
@@ -200,6 +205,10 @@ link previews keep showing the old one (they did, after Edition 2).
 - `PasswordInput` — extends Input with show/hide toggle and optional `showStrength` bar.
 - `BackButton` — browser back with fallback path.
 - `Skeleton`, `CardSkeleton`, `ListSkeleton` — loading placeholders.
+- `apiErrorMessage(err, fallback)` (`utils/apiError.ts`) — the only way an
+  error reaches a toast. A 422's `detail` is an array of objects; handed to
+  `toast.error` raw it throws inside the Toaster, which sits outside the error
+  boundary and blanks the page.
 - `ErrorState` — error display with retry button. The "check your connection"
   line only appears when there is an `onRetry`; a definitive answer ("Pet not
   found") passes `hint={NOT_FOUND_HINT}` instead.
@@ -411,6 +420,12 @@ except `explore`). Leave it off — the default — for the feed, `public.py`,
 Withheld photos come back with `url: null`, because `/photos/file/{key}` still
 404s anything not approved; the owner's own copy is served by the authenticated
 `GET /photos/{id}/file` and rendered from a blob by `components/PetPhoto.tsx`.
+`/photos/file/{key}` serves a key only in its **exact stored spelling**
+(`_is_canonical_key`). The guard matches the key as a string and storage
+resolves it as a path, so `<key>/`, `./<key>` and `x/../<key>` matched no Photo
+row and were served as "row-less" files — a withheld photo was one trailing
+slash from public.
+
 The point is that an upload held for review used to vanish silently and read as
 a failed upload — the upload toast, the "In review" badge and this rule exist to
 say what actually happened. A non-approved photo can never be `primary_photo_id`
@@ -528,8 +543,28 @@ for the same pet is a 409. Three things follow from that and are easy to break:
 - **The deck is never reused across visits** (`gcTime: 0` on the feed query in
   `SwipeDeck`). A cached batch still holds the pets just voted on and the
   component's index restarts at 0, so a quick return re-dealt them.
+- **The deck belongs to the component; a refill is appended, never swapped
+  in.** It used to *be* the query's data, so every refill replaced it and reset
+  the index — which cleared Rewind on the last three cards of each batch (or
+  rewound into the wrong deck), restarted "N rated", re-dealt a pet when the
+  refill raced its own vote, and replaced live cards with an error when a
+  background refill failed. Pets already dealt are skipped; the deck starts
+  over only when the species tab changes.
 - **A 409 on a vote is not a failure** — the vote already exists. The deck
-  moves on instead of rewinding to a card that can never be passed.
+  moves on instead of rewinding to a card that can never be passed. A 404 or
+  400 is the same shape (the pet left the deck after it was dealt): move on,
+  don't rewind. Only network errors, 5xx and 429 put the card back.
+- **First on the board is not the crown.** The live board has no net-positive
+  floor; the crown does. `PetWeekCard` says "Wearing the crown" only with a
+  score above zero, and the crown *moment* only fires from winner rows read
+  after the Monday tally has had time to run (`CROWN_SETTLE_MS`) — the history
+  carries the running week's provisional leader.
+- **The week turns over Monday 00:00 UTC — Sunday evening across the
+  Americas.** In-app copy names the reset in the reader's own time
+  (`weeklyResetAt()`, `dailyResetAt()` in `utils/weeklyReset.ts`); never write
+  "Monday" or "tomorrow" by hand. (Marketing copy still says "every Monday";
+  whether the reset should move to the launch market's local time is an open
+  product decision.)
 
 A crown takes a net-positive score (`HAVING sum(value) > 0`), and when nobody
 qualifies any more the week's `weekly_winners` row is removed rather than left
@@ -558,6 +593,17 @@ owner must not land in an account that still answers to that password.
 
 2FA can be switched off with a current code *or* the password — SSO-only
 accounts have no password.
+
+**Tabs share one session and have to hear about each other.** `AuthProvider`
+listens for `storage` events: the shared `refresh_token` disappearing signs
+this tab out, and `fetch.session_user` changing to another id reloads it.
+Without that, "Log out" in one tab left the others refreshing with their
+in-memory copy and writing a live token back, and signing in as a second
+account left other tabs showing the first user while acting as the second.
+Logout revokes the *stored* token (the in-memory one may already be spent).
+All token storage goes through `rememberRefreshToken` / `forgetRefreshToken` /
+`storedRefreshToken` in `api/client.ts`, which are guarded — with cookies
+blocked, a bare `localStorage` read at boot took the whole site down.
 
 ## Notification delivery — one channel, and it is not the inbox
 
@@ -641,6 +687,19 @@ point server-side to decide who to email. Guarded by
 `tests/test_lost_location_privacy.py`, which runs the actual attack.
 
 Related rules in the same spirit:
+- **A pin is placed by a person, never by the device.** `LocationPicker` uses
+  geolocation only to centre the map; `onChange` fires on a map tap or the
+  explicit "Use my current location" button. It used to pin the device's
+  position on mount, which put a rescue volunteer's living room on the public
+  rescue map when they opened the editor to fix a typo.
+- **A report names only the reporter's own pet, and only as missing.** A found
+  report with a `pet_id` is a 400: the public share page renders the linked
+  pet's name and photo, so any pet could be published under someone else's
+  text.
+- **`closed` is terminal and hidden.** `/resolve` 409s on a closed report (it
+  used to turn a staff takedown back into a public "home safe" page), staff
+  close and suspension both clear `is_public`, and the in-app report and
+  sightings routes 404 a closed report for everyone but its reporter and staff.
 - `PATCH /lost/subscriptions/mine` enforces the same 1–100 km radius as create.
   Alerts match on the TRUE point, so a radius that could be shrunk to metres
   would be a far better oracle than `/nearby` ever was.

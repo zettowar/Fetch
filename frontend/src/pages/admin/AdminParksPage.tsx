@@ -18,6 +18,15 @@ const config: OsmLibraryConfig = {
     },
   ],
   presets: [
+    // The launch market first.
+    { key: 'toronto', label: 'Toronto', bbox: [43.58, -79.64, 43.86, -79.12] },
+    { key: 'vancouver', label: 'Vancouver', bbox: [49.00, -123.30, 49.40, -122.40] },
+    { key: 'montreal', label: 'Montréal', bbox: [45.40, -73.98, 45.71, -73.47] },
+    { key: 'calgary', label: 'Calgary', bbox: [50.84, -114.32, 51.21, -113.86] },
+    { key: 'edmonton', label: 'Edmonton', bbox: [53.39, -113.72, 53.72, -113.27] },
+    { key: 'ottawa', label: 'Ottawa', bbox: [45.20, -76.00, 45.54, -75.40] },
+    { key: 'winnipeg', label: 'Winnipeg', bbox: [49.76, -97.33, 49.98, -96.95] },
+    { key: 'ca', label: 'Canada', bbox: [41.67, -141.00, 83.11, -52.62], note: '~30-60s' },
     { key: 'sf', label: 'San Francisco', bbox: [37.70, -122.52, 37.83, -122.35] },
     { key: 'nyc', label: 'New York City', bbox: [40.48, -74.26, 40.92, -73.70] },
     { key: 'la', label: 'Los Angeles', bbox: [33.70, -118.67, 34.34, -118.15] },

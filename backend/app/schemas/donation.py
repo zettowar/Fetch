@@ -10,6 +10,10 @@ from app.config import settings
 class DonationConfig(BaseModel):
     """What the client needs to render the donate UI."""
     enabled: bool
+    # Admin → Settings "donations_paused". `enabled` is already false while
+    # paused; this says why, so the page can read "paused" rather than
+    # "coming soon".
+    paused: bool = False
     currency: str = "usd"
     presets_cents: list[int]
     min_cents: int

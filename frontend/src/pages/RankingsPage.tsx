@@ -16,7 +16,7 @@ import type { LeaderboardEntry } from '../types';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
 import { useAuth } from '../store/AuthContext';
-import { formatWeekOf, useWeeklyResetCountdown, weekBucket } from '../utils/weeklyReset';
+import { formatWeekOf, useWeeklyResetCountdown, weekBucket, weeklyResetDay } from '../utils/weeklyReset';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { photoIn } from '../utils/photoIn';
 
@@ -210,7 +210,7 @@ export default function RankingsPage() {
           {/* The sign-off: the toy box on a navy band, Bagel over the pattern,
               the small print on a plain plate (Brand Book, Shapes → the toy box). */}
           <section className="toybox-navy mt-6 rounded-3xl border-[2.5px] border-navy bg-navy px-5 py-6 text-center text-biscuit dark:border-white/15 lg:col-start-2 lg:row-start-3">
-            <p className="font-display text-[36px] leading-[0.95]">Fresh shot Monday</p>
+            <p className="font-display text-[36px] leading-[0.95]">Fresh shot {weeklyResetDay()}</p>
             <p className="mx-auto mt-3 w-fit rounded-full bg-navy px-3 py-1 text-sm font-semibold text-balance">
               Every pet starts the week at zero.
             </p>

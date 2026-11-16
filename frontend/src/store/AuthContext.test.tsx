@@ -119,4 +119,65 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('auth').textContent).toBe('false');
     expect(localStorage.getItem('refresh_token')).toBeNull();
   });
+  it('signs out when another tab removes the shared session', async () => {
+    // "Log out" in one tab used to leave every other tab signed in, and they
+    // would write a live token back to storage on their next refresh.
+    localStorage.setItem('refresh_token', 'old-refresh');
+    vi.spyOn(authApi, 'refreshTokens').mockResolvedValue({
+      tokens: { access_token: 'a', refresh_token: 'r' },
+    });
+    vi.spyOn(authApi, 'getMe').mockResolvedValue({ id: 'u1', email: 'me@x.com' } as never);
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('auth').textContent).toBe('true'));
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', { key: 'refresh_token', oldValue: 'r', newValue: null }),
+      );
+    });
+    await waitFor(() => expect(screen.getByTestId('auth').textContent).toBe('false'));
+  });
+
+  it('keeps the winner\'s token when two tabs boot on the same one', async () => {
+    // Both tabs read T; the other tab's refresh won and stored T2. Our 401 is
+    // for a spent token, not an ended session.
+    localStorage.setItem('refresh_token', 'T');
+    const refresh = vi.spyOn(authApi, 'refreshTokens').mockImplementation(async (token: string) => {
+      if (token === 'T') {
+        localStorage.setItem('refresh_token', 'T2'); // the other tab got there first
+        throw Object.assign(new Error('spent'), { response: { status: 401 } });
+      }
+      return { tokens: { access_token: 'a3', refresh_token: 'T3' } };
+    });
+    vi.spyOn(authApi, 'getMe').mockResolvedValue({ id: 'u1', email: 'me@x.com' } as never);
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'));
+    expect(refresh).toHaveBeenCalledWith('T2');
+    expect(screen.getByTestId('auth').textContent).toBe('true');
+    expect(localStorage.getItem('refresh_token')).toBe('T3');
+  });
+
+  it('boots signed out, not crashed, when storage is blocked', async () => {
+    const blocked = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError');
+    });
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'));
+    expect(screen.getByTestId('auth').textContent).toBe('false');
+    blocked.mockRestore();
+  });
 });

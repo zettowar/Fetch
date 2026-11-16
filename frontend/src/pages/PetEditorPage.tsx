@@ -245,11 +245,11 @@ export default function PetEditorPage() {
             `Pet created, but ${uploadFailures} photo${uploadFailures > 1 ? 's' : ''} failed to upload. You can add them on the profile page.`,
           );
         }
-        queryClient.invalidateQueries({ queryKey: ['my-pets'] });
+        refreshPetLists();
         navigate(`/app/pets/${newDog.id}`);
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ['my-pets'] });
+      refreshPetLists();
     } catch (err) {
       toast.error(apiErrorMessage(err, "Couldn't save. Try again."));
     } finally {
@@ -258,12 +258,21 @@ export default function PetEditorPage() {
     }
   };
 
+  // Every list a pet appears in, not just "my pets": the profile grid reads
+  // its own keys, so a pet deleted here was still listed there (and opened to
+  // "Pet not found"), and a new one was missing.
+  const refreshPetLists = () => {
+    queryClient.invalidateQueries({ queryKey: ['my-pets'] });
+    queryClient.invalidateQueries({ queryKey: ['user-pets'] });
+    queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+  };
+
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to remove this pet?')) return;
     try {
       await deletePet(id!);
       toast.success('Pet removed');
-      queryClient.invalidateQueries({ queryKey: ['my-pets'] });
+      refreshPetLists();
       navigate('/app/pets');
     } catch (err) {
       toast.error(apiErrorMessage(err, "Couldn't delete. Try again."));

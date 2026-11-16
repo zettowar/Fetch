@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { getSiteBanner } from '../api/publicSite';
@@ -35,10 +35,35 @@ export default function MaintenanceBanner() {
   });
 
   const text = data?.banner?.trim();
-  if (!text || dismissed === text) return null;
+  const shown = Boolean(text) && dismissed !== text;
+
+  // The banner sits in normal flow above the app shell, and the map pages'
+  // shell is exactly one viewport tall. With a banner up they overflowed by
+  // its height: the body scrolled again and, on a phone, the tab bar covered
+  // the bottom of the list. Publishing the height lets the shell subtract it.
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const el = ref.current;
+    if (!shown || !el) {
+      root.style.removeProperty('--site-banner-h');
+      return;
+    }
+    const update = () => root.style.setProperty('--site-banner-h', `${el.offsetHeight}px`);
+    update();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      root.style.removeProperty('--site-banner-h');
+    };
+  }, [shown, text]);
+
+  if (!text || !shown) return null;
 
   return (
     <div
+      ref={ref}
       role="status"
       // An operational notice is information, not an achievement: a flat
       // white strip with a hairline and the bell, never Crown Gold.

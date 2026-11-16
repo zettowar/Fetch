@@ -36,6 +36,7 @@ import { useAuth } from '../store/AuthContext';
 import { apiErrorMessage } from '../utils/apiError';
 import type { Pet } from '../types';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { ListSkeleton } from '../components/ui/Skeleton';
 
 // Loaded on demand: this page ships in the main bundle, and the map picker
 // (with the map library behind it) is only needed once a rescue opens the
@@ -64,7 +65,12 @@ export default function RescueDashboardPage() {
 
   const approved = profile?.status === 'approved';
 
-  const { data: pets = [], refetch: refetchDogs } = useQuery<Pet[]>({
+  const {
+    data: pets = [],
+    refetch: refetchDogs,
+    isLoading: petsLoading,
+    isError: petsFailed,
+  } = useQuery<Pet[]>({
     // Same key as every other "my pets" list: the pet editor invalidates
     // ['my-pets'] on create/edit/delete, and under a private key this
     // dashboard kept showing the old list after coming back from it.
@@ -73,7 +79,12 @@ export default function RescueDashboardPage() {
     enabled: approved,
   });
 
-  const { data: inquiries = [], refetch: refetchInquiries } = useQuery<AdoptionInquiry[]>({
+  const {
+    data: inquiries = [],
+    refetch: refetchInquiries,
+    isLoading: inquiriesLoading,
+    isError: inquiriesFailed,
+  } = useQuery<AdoptionInquiry[]>({
     queryKey: ['rescue-my-inquiries'],
     queryFn: listMyInquiries,
     enabled: approved,
@@ -166,8 +177,15 @@ export default function RescueDashboardPage() {
 
       <div className="contents lg:block lg:min-w-0">
       <section className="mb-8">
-        <SectionHeader title={`Adoptable (${unadopted.length})`} />
-        {unadopted.length === 0 ? (
+        {/* Loading and failure get their own states. Both used to fall through
+            to "No adoptable pets yet — Post your first": on every cold load,
+            and for good when the request failed. */}
+        <SectionHeader title={petsLoading || petsFailed ? 'Adoptable' : `Adoptable (${unadopted.length})`} />
+        {petsLoading ? (
+          <ListSkeleton rows={2} />
+        ) : petsFailed ? (
+          <ErrorState message="Couldn't load your pets." onRetry={() => refetchDogs()} />
+        ) : unadopted.length === 0 ? (
           <EmptyState
             illustration="sleeping"
             title="No adoptable pets yet"
@@ -201,8 +219,12 @@ export default function RescueDashboardPage() {
       </section>
 
       <section className="mb-8">
-        <SectionHeader title={`Inquiries (${inquiries.length})`} />
-        {inquiries.length === 0 ? (
+        <SectionHeader title={inquiriesLoading || inquiriesFailed ? 'Inquiries' : `Inquiries (${inquiries.length})`} />
+        {inquiriesLoading ? (
+          <ListSkeleton rows={2} />
+        ) : inquiriesFailed ? (
+          <ErrorState message="Couldn't load your inquiries." onRetry={() => refetchInquiries()} />
+        ) : inquiries.length === 0 ? (
           <EmptyState
             illustration="sleeping"
             title="No adoption inquiries yet"

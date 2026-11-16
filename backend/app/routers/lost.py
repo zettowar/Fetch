@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
-from app.deps import get_current_user
+from app.deps import STAFF_ROLES, get_current_user
 from app.limiter import limiter
 from app.models.pet import Pet
 from app.models.lost_report import (
@@ -88,6 +88,20 @@ def _sighting_to_out(
         note=sighting.note,
         photo_url=storage.url(sighting.photo_key) if sighting.photo_key else None,
         created_at=sighting.created_at,
+    )
+
+
+def _hidden_from(report: LostReport, user: User) -> bool:
+    """A closed report is a takedown: gone for everyone but its reporter and staff.
+
+    "closed" is what a moderator sets on an abusive report (and what closing an
+    account sets on that account's reports). The public share page already 404s
+    it; the in-app routes kept serving it to any signed-in user.
+    """
+    return (
+        report.status == "closed"
+        and report.reporter_id != user.id
+        and user.role not in STAFF_ROLES
     )
 
 
@@ -163,13 +177,26 @@ async def create_report(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Validate pet ownership if provided
+    # A report may only name the reporter's own pet, and only as missing.
+    #
+    # Ownership used to be checked for "missing" alone, so a *found* report
+    # could carry anybody's pet_id — and the public share page (unauthenticated,
+    # indexable, in the sitemap) renders the linked pet's name, breed and photo
+    # under the reporter's own text and chosen location, whether or not that
+    # pet's owner had opted it out of public pages. The owner could not take it
+    # down. A finder doesn't know whose pet it is; that is what the description
+    # is for.
     if body.pet_id:
+        if body.kind != "missing":
+            raise HTTPException(
+                status_code=400,
+                detail="A found report can't be linked to a pet. Describe them instead.",
+            )
         result = await db.execute(select(Pet).where(Pet.id == body.pet_id))
         pet = result.scalar_one_or_none()
         if not pet:
             raise HTTPException(status_code=404, detail="Pet not found")
-        if body.kind == "missing" and pet.owner_id != user.id:
+        if pet.owner_id != user.id:
             raise HTTPException(status_code=403, detail="Can only report your own pet as missing")
 
     # For 'found' reports, check account age >= 7 days
@@ -288,7 +315,7 @@ async def get_report(
         .where(LostReport.id == report_id)
     )
     report = result.scalar_one_or_none()
-    if not report:
+    if not report or _hidden_from(report, user):
         raise HTTPException(status_code=404, detail="Report not found")
 
     is_owner = report.reporter_id == user.id
@@ -359,6 +386,13 @@ async def resolve_report(
         raise HTTPException(status_code=404, detail="Report not found")
     if report.reporter_id != user.id:
         raise HTTPException(status_code=403, detail="Not your report")
+    # "closed" is terminal. Without this the reporter of a report staff had
+    # taken down could resolve it, and "resolved" is a state the public share
+    # page serves — the takedown was undone by the person it was applied to.
+    if report.status == "closed":
+        raise HTTPException(
+            status_code=409, detail="This report was closed and can't be reopened"
+        )
 
     was_open = report.status == "open"
     report.status = "resolved"
@@ -527,7 +561,7 @@ async def list_sightings(
         select(LostReport).where(LostReport.id == report_id)
     )
     report = report_result.scalar_one_or_none()
-    if not report:
+    if not report or _hidden_from(report, user):
         raise HTTPException(status_code=404, detail="Report not found")
     is_owner = report.reporter_id == user.id
     fuzz_m = report.location_fuzz_m or 500

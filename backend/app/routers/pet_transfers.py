@@ -78,16 +78,15 @@ async def list_my_transfers(
     db: AsyncSession = Depends(get_db),
 ):
     """All transfers addressed to me — by user_id or by invited_email."""
-    # Match both direct user_id assignment and latent email invites.
+    # Match both direct user_id assignment and latent email invites — the
+    # latter only for a verified address. Accepting already requires one; the
+    # list did not, so an account registered with someone else's email could
+    # read that person's pending transfer (pet name, photo, rescue).
+    mine = PetTransfer.to_user_id == user.id
+    if user.is_verified:
+        mine = or_(mine, PetTransfer.invited_email == user.email)
     result = await db.execute(
-        select(PetTransfer)
-        .where(
-            or_(
-                PetTransfer.to_user_id == user.id,
-                PetTransfer.invited_email == user.email,
-            )
-        )
-        .order_by(PetTransfer.created_at.desc())
+        select(PetTransfer).where(mine).order_by(PetTransfer.created_at.desc())
     )
     transfers = list(result.scalars().all())
     return await _serialize_transfers(transfers, db)

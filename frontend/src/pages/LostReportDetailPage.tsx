@@ -55,7 +55,11 @@ export default function LostReportDetailPage() {
       : null,
   );
 
-  const { data: sightings = [] } = useQuery({
+  const {
+    data: sightings = [],
+    isError: sightingsFailed,
+    refetch: refetchSightings,
+  } = useQuery({
     queryKey: ['sightings', id],
     queryFn: () => getSightings(id!),
     enabled: !!id,
@@ -90,7 +94,7 @@ export default function LostReportDetailPage() {
       );
       queryClient.invalidateQueries({ queryKey: ['lost-report', id] });
     },
-    onError: () => toast.error("Couldn't mark it resolved. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't mark it resolved. Try again.")),
   });
 
   const sightingMutation = useMutation({
@@ -120,7 +124,7 @@ export default function LostReportDetailPage() {
       setShowContactForm(false);
       setContactMessage('');
     },
-    onError: () => toast.error("Couldn't send your message. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't send your message. Try again.")),
   });
 
   if (isLoading) {
@@ -188,9 +192,11 @@ export default function LostReportDetailPage() {
       {/* Pet info */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          {report.pet_name && (
-            <h1 className="font-plain text-[26px] leading-tight text-navy dark:text-biscuit">{report.pet_name}</h1>
-          )}
+          {/* Always a heading: a found report has no name, and without this
+              the page had no h1 at all. */}
+          <h1 className="font-plain text-[26px] leading-tight text-navy dark:text-biscuit">
+            {report.pet_name || (report.kind === 'missing' ? 'Missing pet' : 'Found pet')}
+          </h1>
           {report.pet_breed && <p className="text-gray-600 dark:text-gray-300">{report.pet_breed}</p>}
         </div>
         <button
@@ -440,6 +446,7 @@ export default function LostReportDetailPage() {
             className={FIELD}
             rows={3}
             placeholder="Your message..."
+            aria-label="Your message"
             value={contactMessage}
             onChange={(e) => setContactMessage(e.target.value)}
           />
@@ -454,7 +461,19 @@ export default function LostReportDetailPage() {
         <h3 className="text-lg font-extrabold text-navy dark:text-biscuit mb-2">
           Sightings <span className="text-gray-500 dark:text-gray-400 font-bold">({sightings.length})</span>
         </h3>
-        {sightings.length === 0 ? (
+        {sightingsFailed ? (
+          // A failed load is not "no sightings": to an owner waiting on news,
+          // that zero is the worst thing this page could get wrong.
+          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm dark:border-white/10 dark:bg-night-surface">
+            <p className="font-bold text-navy dark:text-biscuit">Couldn&rsquo;t load sightings</p>
+            <p className="mt-0.5 text-gray-600 dark:text-gray-300">
+              There may be some. Check your connection and try again.
+            </p>
+            <button type="button" onClick={() => refetchSightings()} className="btn btn-secondary btn-sm mt-2.5">
+              Try again
+            </button>
+          </div>
+        ) : sightings.length === 0 ? (
           // No doodle: the calm register keeps Lost & Found plain.
           <EmptyState
             icon={<BrandIcon name="eye" size={26} />}

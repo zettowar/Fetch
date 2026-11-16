@@ -13,19 +13,27 @@ import { formatWeekOf } from '../utils/weeklyReset';
 import { photoIn } from '../utils/photoIn';
 
 const SEEN_PREFIX = 'fetch.crown-moment.';
+const seenKey = (w: WeeklyWinner) => `${SEEN_PREFIX}${w.week_bucket}.${w.pet_id}`;
+
+// Remembered for this page load as well as in storage. Storage can be readable
+// and not writable (full, or a locked-down browser); then nothing was recorded,
+// the win still looked unseen, and Close and Escape did nothing at all.
+const seenThisLoad = new Set<string>();
 
 /** Has this owner already had the moment for this win? */
 export function crownMomentSeen(w: WeeklyWinner): boolean {
+  if (seenThisLoad.has(seenKey(w))) return true;
   try {
-    return localStorage.getItem(`${SEEN_PREFIX}${w.week_bucket}.${w.pet_id}`) === '1';
+    return localStorage.getItem(seenKey(w)) === '1';
   } catch {
     return true; // no storage: don't risk showing it on every visit
   }
 }
 
 function markSeen(w: WeeklyWinner) {
+  seenThisLoad.add(seenKey(w));
   try {
-    localStorage.setItem(`${SEEN_PREFIX}${w.week_bucket}.${w.pet_id}`, '1');
+    localStorage.setItem(seenKey(w), '1');
   } catch {
     /* ignore */
   }

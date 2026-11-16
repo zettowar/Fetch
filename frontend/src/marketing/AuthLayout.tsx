@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import Lockup from '../components/brand/Lockup';
 
@@ -29,7 +30,9 @@ export default function AuthLayout() {
 
       <main className="flex-1 flex items-start sm:items-center justify-center px-4 py-8 sm:py-12">
         <div className="w-full max-w-md">
-          <Outlet />
+          <Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" aria-live="polite" />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

@@ -402,6 +402,18 @@ async def _suspend_with_dogs(user: User, db: AsyncSession) -> list[str]:
         .values(is_active=False)
         .returning(Pet.id)
     )
+    # Their lost/found reports come off the public web as well. The share page
+    # and the sitemap key off the report alone, so a user suspended for abuse
+    # kept live, indexable pages showing the now-deactivated pet, with a
+    # "report a sighting" button that notified an account nobody could reach.
+    # Closing an account already did this (routers/users.py); suspension did
+    # not. Reports are hidden, not closed, so reinstatement can leave an honest
+    # missing-pet report for its owner to switch back on.
+    await db.execute(
+        update(LostReport)
+        .where(LostReport.reporter_id == user.id)
+        .values(is_public=False)
+    )
     return [str(pet_id) for pet_id in result.scalars().all()]
 
 
@@ -1029,10 +1041,12 @@ async def update_ticket(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     previous = ticket.status
-    ticket.status = body.status
-    ticket.assigned_to = admin.id
-    # Any staff action takes the ticket out of the "waiting on us" queue.
-    ticket.awaiting_staff = False
+    if body.status is not None:
+        ticket.status = body.status
+        ticket.assigned_to = admin.id
+        # Any staff action on the ticket's state takes it out of the "waiting
+        # on us" queue. A note alone does not: the reporter is still waiting.
+        ticket.awaiting_staff = False
     # Persist the internal note (previously accepted by the schema but silently
     # dropped). Only overwrite when the caller actually supplied one.
     if body.admin_notes is not None:
@@ -1041,7 +1055,7 @@ async def update_ticket(
     # Tell the reporter their ticket moved. In-app only, with no note text: the
     # admin note is internal, and emailing "status changed" with no explanation
     # is noise. A status change worth explaining goes through /reply instead.
-    if body.status != previous and body.status in _STATUS_NOTICE:
+    if body.status is not None and body.status != previous and body.status in _STATUS_NOTICE:
         await notify(
             db,
             ticket.user_id,
@@ -1588,6 +1602,9 @@ async def close_lost_report(
     if not report:
         raise HTTPException(status_code=404, detail="Lost report not found")
     report.status = "closed"
+    # A takedown is not something the reporter can toggle back: the share page
+    # 404s on "closed" already, and this keeps it out of the sitemap too.
+    report.is_public = False
     report.resolved_at = datetime.now(timezone.utc)
     report.resolved_by = admin.id
     await _log(db, actor_id=admin.id, action="lost_report.close", target_type="lost_report", target_id=report_id)

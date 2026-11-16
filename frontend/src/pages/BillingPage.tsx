@@ -13,7 +13,7 @@ const PERKS: { icon: BrandIconName; title: string; body: string }[] = [
 ];
 
 export default function BillingPage() {
-  useDocumentTitle('Pack+');
+  useDocumentTitle('Pack+ · Fetchpawz');
   const subscription = useSubscription();
 
   return (

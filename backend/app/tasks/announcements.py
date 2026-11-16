@@ -49,8 +49,11 @@ async def _dispatch(announcement_id: uuid.UUID, session_factory=None) -> int:
     from app.models.announcement import Announcement
     from app.models.notification import Notification
     from app.models.notification import NotificationPreference
+    from html import escape as _escape
+
+    from app.config import settings
     from app.services.email import (
-        send_email, unsubscribe_footer, unsubscribe_headers, _layout,
+        send_email, text_to_html, unsubscribe_footer, unsubscribe_headers, _layout,
     )
 
     async with task_session(session_factory) as db:
@@ -60,6 +63,15 @@ async def _dispatch(announcement_id: uuid.UUID, session_factory=None) -> int:
         if ann is None:
             logger.warning("announcement_missing", id=str(announcement_id))
             return 0
+        # Tasks are acked late, so a worker killed mid-send (a deploy, an OOM)
+        # has this redelivered. `recipient_count` is written once the inbox
+        # rows are in; seeing it set means this is the second delivery, and
+        # running again would give everyone a second inbox row and a second
+        # email. Stopping here can leave the tail of the email fan-out unsent,
+        # which is the lesser harm for a broadcast.
+        if ann.recipient_count:
+            logger.warning("announcement_already_dispatched", id=str(announcement_id))
+            return ann.recipient_count
 
         rows = (await db.execute(_segment_user_query(ann.segment))).all()
         total = 0
@@ -104,13 +116,28 @@ async def _dispatch(announcement_id: uuid.UUID, session_factory=None) -> int:
 
         sent = 0
         skipped = 0
+        # The composer is a plain textarea, so the body is text, not markup:
+        # interpolated raw, paragraphs ran together and a typed "<" or "&"
+        # corrupted the email. The link was dropped from the email entirely.
+        body_html = text_to_html(ann.body)
+        cta_url = None
+        if ann.link:
+            if ann.link.startswith("/"):
+                cta_url = f"{settings.FRONTEND_BASE_URL}{ann.link}"
+            elif ann.link.startswith(("https://", "http://")):
+                cta_url = ann.link
+            if cta_url:
+                cta_url = _escape(cta_url, quote=True)  # it lands in an href
         for uid, email in rows:
             if uid in opted_out:
                 skipped += 1
                 continue
             html = _layout(
                 ann.title,
-                ann.body + unsubscribe_footer(uid, "announcements"),
+                body_html,
+                cta_url=cta_url,
+                cta_label="Take a look" if cta_url else None,
+                after_cta=unsubscribe_footer(uid, "announcements"),
             )
             if await send_email(
                 email, ann.title, html,

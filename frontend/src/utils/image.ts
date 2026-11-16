@@ -52,7 +52,11 @@ export async function normalizeImageFile(file: File, maxEdge = MAX_EDGE): Promis
     const img = await loadImage(url).catch(() => {
       throw new UnreadableImageError();
     });
-    const canvas = downscaleToCanvas(img, maxEdge);
+    // White underneath: this is re-encoded as JPEG, which has no alpha, and a
+    // canvas turns transparent pixels black. A rescue's transparent-PNG logo
+    // came out as a black disc. (The server flattens on white too, but by then
+    // it was being handed an already-black JPEG.)
+    const canvas = downscaleToCanvas(img, maxEdge, '#FFFFFF');
     const blob = await canvasToBlob(canvas);
     const name = file.name.replace(/\.[^.]+$/, '') || 'photo';
     return new File([blob], `${name}.jpg`, { type: 'image/jpeg' });

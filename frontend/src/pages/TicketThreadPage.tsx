@@ -26,7 +26,7 @@ export default function TicketThreadPage() {
     enabled: !!id,
   });
 
-  useDocumentTitle(ticket ? `${ticket.subject} · Support` : 'Support · Fetchpawz');
+  useDocumentTitle(ticket ? `${ticket.subject} · Fetchpawz` : 'Support · Fetchpawz');
 
   // Opening the thread clears the unread watermark server-side, so the badge in
   // the shell has to be refetched or it keeps claiming there is something new.

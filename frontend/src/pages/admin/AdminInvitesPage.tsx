@@ -11,6 +11,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import { FIELD, ROWS, ROW_HOVER, segItem } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 export default function AdminInvitesPage() {
   const [count, setCount] = useState(10);
@@ -29,7 +30,7 @@ export default function AdminInvitesPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-invites'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const invites = filter === 'all' ? allInvites :
@@ -60,7 +61,7 @@ export default function AdminInvitesPage() {
 
   return (
     <div>
-      <PageHeader title="Invite Codes" className="mb-5" />
+      <PageHeader title="Invite codes" className="mb-5" />
 
       {/* Generate section */}
       <Card className="mb-4">
@@ -111,7 +112,7 @@ export default function AdminInvitesPage() {
       ) : isError ? (
         <ErrorState message="Couldn't load invite codes." onRetry={() => refetch()} />
       ) : invites.length === 0 ? (
-        <EmptyState className="py-6" title={`No ${filter} invite codes`} />
+        <EmptyState className="py-6" title={filter === 'all' ? 'No invite codes yet' : `No ${filter} invite codes`} />
       ) : (
         <Card padding="none" className={ROWS}>
           {invites.map((inv) => (
@@ -152,15 +153,23 @@ function WaitlistSection() {
   const inviteMutation = useMutation({
     mutationFn: inviteWaitlistEntry,
     onSuccess: async (res) => {
+      // Say "link copied" only if it was: the clipboard can be blocked, and
+      // the toast claimed it either way.
+      let copied = true;
       try {
         await navigator.clipboard.writeText(res.signup_url);
       } catch {
-        /* clipboard may be blocked; the invite still went out */
+        copied = false;
       }
-      toast.success(res.email_sent ? 'Invite emailed — link copied' : 'Invite created — link copied');
+      const what = res.email_sent ? 'Invite emailed' : 'Invite created';
+      toast.success(copied ? `${what} — link copied` : what);
       queryClient.invalidateQueries({ queryKey: ['admin-waitlist'] });
+      // This minted an invite code, so the code list and its counts above
+      // changed too.
+      queryClient.invalidateQueries({ queryKey: ['admin-invites'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     },
-    onError: () => toast.error('Failed to send invite'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to send invite')),
   });
 
   const deleteMutation = useMutation({
@@ -169,7 +178,7 @@ function WaitlistSection() {
       toast.success('Removed from waitlist');
       queryClient.invalidateQueries({ queryKey: ['admin-waitlist'] });
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const copyAllEmails = async () => {
@@ -226,7 +235,9 @@ function WaitlistSection() {
               <Button
                 size="sm"
                 variant="danger"
-                onClick={() => deleteMutation.mutate(entry.id)}
+                onClick={() => {
+                  if (confirm(`Remove ${entry.email} from the waitlist?`)) deleteMutation.mutate(entry.id);
+                }}
                 loading={deleteMutation.isPending && deleteMutation.variables === entry.id}
               >
                 Remove

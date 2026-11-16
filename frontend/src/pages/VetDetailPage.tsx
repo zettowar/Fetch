@@ -7,6 +7,7 @@ import { Spinner } from '../components/ui/Skeleton';
 import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
 import Map, { MAP_PIN } from '../components/Map';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { isNotFound } from '../utils/apiError';
 
 // Same pins as the Vets map: neutral navy, Ball Orange for emergency.
 const VET_PIN_COLOR = MAP_PIN.ink;
@@ -22,11 +23,12 @@ const ATTRIBUTE_LABELS: Record<string, string> = {
 
 export default function VetDetailPage() {
   const { id } = useParams();
-  const { data: vet, isLoading, isError } = useQuery({
+  const { data: vet, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['vet', id],
     queryFn: () => getVet(id!),
     enabled: !!id,
-    retry: false,
+    // A 404 is an answer; anything else deserves another go.
+    retry: (count, err) => !isNotFound(err) && count < 1,
   });
   useDocumentTitle(`${vet?.name ?? 'Vet'} · Fetchpawz`);
 
@@ -37,7 +39,17 @@ export default function VetDetailPage() {
       </div>
     );
   }
-  if (isError || !vet) {
+  // Only a 404 means "not found". Every failure used to say so, with no way
+  // to retry — a dropped connection read as "It may have been removed".
+  if (isError && !isNotFound(error)) {
+    return (
+      <div className="p-6">
+        <BackButton fallback="/app/vets" />
+        <ErrorState message="Couldn't load this clinic." onRetry={() => refetch()} />
+      </div>
+    );
+  }
+  if (!vet) {
     return (
       <div className="p-6">
         <BackButton fallback="/app/vets" />

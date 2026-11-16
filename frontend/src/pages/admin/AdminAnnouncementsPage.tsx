@@ -13,6 +13,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import SectionHeader from '../../components/ui/SectionHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { CHECK, FIELD, ROWS } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 const SEGMENTS = [
   { value: 'all', label: 'All users' },
@@ -42,7 +43,7 @@ export default function AdminAnnouncementsPage() {
       setTitle(''); setBody(''); setLink(''); setSendEmail(false);
       queryClient.invalidateQueries({ queryKey: ['admin-announcements'] });
     },
-    onError: () => toast.error('Failed to send announcement'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to send announcement')),
   });
 
   const canSend = title.trim().length > 0 && body.trim().length > 0;
@@ -66,7 +67,7 @@ export default function AdminAnnouncementsPage() {
               placeholder="Body of the announcement"
             />
           </div>
-          <Input label="Link (optional)" value={link} onChange={(e) => setLink(e.target.value)} placeholder="/app/news" />
+          <Input label="Link (optional)" value={link} onChange={(e) => setLink(e.target.value)} placeholder="/news" />
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2">
               <span className="field-label">Audience</span>{' '}

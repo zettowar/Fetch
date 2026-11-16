@@ -13,6 +13,7 @@ import { FIELD, ROWS } from './adminStyles';
 
 // Fetchpawz FAQ via support endpoint (public, but admin can manage)
 import client from '../../api/client';
+import { apiErrorMessage } from '../../utils/apiError';
 const getFAQ = async (): Promise<FAQEntry[]> => (await client.get('/support/faq')).data;
 
 export default function AdminFAQPage() {
@@ -35,7 +36,7 @@ export default function AdminFAQPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-faq'] });
       resetForm();
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const updateMutation = useMutation({
@@ -45,7 +46,7 @@ export default function AdminFAQPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-faq'] });
       resetForm();
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const deleteMutation = useMutation({
@@ -54,7 +55,7 @@ export default function AdminFAQPage() {
       toast.success('FAQ deleted');
       queryClient.invalidateQueries({ queryKey: ['admin-faq'] });
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const resetForm = () => {
@@ -76,11 +77,11 @@ export default function AdminFAQPage() {
   return (
     <div>
       <PageHeader
-        title="FAQ Management"
+        title="FAQ management"
         className="mb-5"
         action={
           <Button size="sm" variant={showForm ? 'secondary' : 'primary'} onClick={() => { resetForm(); setShowForm(!showForm); }}>
-            {showForm ? 'Cancel' : 'Add Entry'}
+            {showForm ? 'Cancel' : 'Add entry'}
           </Button>
         }
       />

@@ -19,6 +19,7 @@ import { useDocumentTitle } from '../utils/useDocumentTitle';
 export default function ProfileEditPage() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   useDocumentTitle('Edit profile · Fetchpawz');
 
   const [displayName, setDisplayName] = useState('');
@@ -58,6 +59,9 @@ export default function ProfileEditPage() {
         species_preference: speciesPreference,
       });
       setUser(updated);
+      // The profile page reads its own cached copy, so without this it showed
+      // the old name and location straight after "Profile saved".
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user.id] });
       toast.success('Profile saved');
       navigate(`/app/users/${user.id}`);
     } catch {
@@ -285,7 +289,7 @@ function BlockedUsersSection() {
       queryClient.invalidateQueries({ queryKey: ['my-blocks'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
-    onError: () => toast.error("Couldn't unblock right now"),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't unblock right now")),
   });
 
   // A failed load must not read as "you've blocked no one".

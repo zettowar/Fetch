@@ -54,8 +54,8 @@ export default function AppShell() {
             // edge. Inside a bounded h-dvh this padding can't create
             // document overflow the way pb-20 + min-h-screen did. From `sm`
             // the tab bar is hidden and the var measures 0.
-            'h-dvh flex flex-col overflow-hidden pb-[var(--tab-bar-h,80px)]'
-          : 'min-h-screen pb-20 sm:pb-0'
+            'h-[calc(100dvh-var(--site-banner-h,0px))] flex flex-col overflow-hidden pb-[var(--tab-bar-h,80px)]'
+          : 'min-h-screen pb-[var(--tab-bar-h,80px)] sm:pb-0'
       }`}
     >
       {/* Keyboard users would otherwise tab through the top bar and, on a

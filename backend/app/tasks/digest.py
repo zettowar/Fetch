@@ -87,10 +87,10 @@ async def _run(session_factory=None) -> int:
             heading = f"You have {len(unread)} new notification" + ("s" if len(unread) != 1 else "")
             html = _layout(
                 heading,
-                f"<ul style='padding-left:18px'>{items}</ul>"
+                f"<ul style='padding-left:18px'>{items}</ul>",
                 # Recurring scheduled mail, so it carries a visible opt-out and
                 # the one-click headers Gmail/Yahoo expect from bulk senders.
-                + unsubscribe_footer(user_id, "digest"),
+                after_cta=unsubscribe_footer(user_id, "digest"),
                 cta_url=f"{settings.FRONTEND_BASE_URL}/app/notifications",
                 cta_label="Open your inbox",
             )

@@ -8,6 +8,7 @@ import PetPortrait from './brand/PetPortrait';
 import RankMedal from './brand/RankMedal';
 import { petHeroPhoto } from '../utils/time';
 import { photoIn } from '../utils/photoIn';
+import { weeklyResetAt } from '../utils/weeklyReset';
 
 const MAX_PETS = 4;
 
@@ -129,12 +130,28 @@ export default function PetWeekCard({
   }
 
   const onBoard = board.findIndex((e) => e.pet_id === pet.id);
+  // Nothing to go on: this pet's stats request failed and it isn't on the
+  // board we have. Saying "No votes yet this week" would be a guess.
+  if (!stats && onBoard < 0) return null;
+
   const rank = onBoard >= 0 ? onBoard + 1 : stats?.week_rank ?? null;
-  const score = stats?.week_score ?? 0;
-  const won = rank === 1;
-  const leader = won ? score : board[0]?.score ?? score;
-  const gap = Math.max(0, leader - score);
-  const pct = rank == null || leader <= 0 ? 0 : Math.min(100, Math.max(4, (score / leader) * 100));
+  const score = stats?.week_score ?? board[onBoard]?.score ?? 0;
+  // First on the board is not the crown. The crown needs a net-positive score
+  // (the tally's `HAVING sum(value) > 0`), and the live board has no such
+  // floor — so early in the week, a pet whose only vote was a pass read
+  // "Wearing the crown, -1 likes so far" under a hero saying "No winner yet".
+  const leading = rank === 1;
+  const won = leading && score > 0;
+  // Behind the leader, the gap needs the leader's score. With the board still
+  // loading (or failed) it used to fall back to this pet's own score, which
+  // made every pet "Tied for the lead".
+  const leaderScore = leading ? score : board[0]?.score;
+  const raceKnown = leaderScore != null;
+  const gap = raceKnown ? Math.max(0, leaderScore - score) : 0;
+  const pct =
+    rank == null || !raceKnown || leaderScore <= 0
+      ? 0
+      : Math.min(100, Math.max(4, (score / leaderScore) * 100));
 
   let headline: string;
   let sub: string;
@@ -143,7 +160,13 @@ export default function PetWeekCard({
     sub = `${pet.name} is in the deck. Fresh week, fresh shot.`;
   } else if (won) {
     headline = 'Wearing the crown';
-    sub = `${score} ${score === 1 ? 'like' : 'likes'} so far. Hold on until Monday.`;
+    sub = `${score} ${score === 1 ? 'like' : 'likes'} so far. Hold on until ${weeklyResetAt()}.`;
+  } else if (leading) {
+    headline = 'Out in front, no crown yet';
+    sub = 'A crown takes more likes than passes. One like would do it.';
+  } else if (!raceKnown) {
+    headline = `#${rank} this week`;
+    sub = `${score} ${score === 1 ? 'like' : 'likes'} so far.`;
   } else if (gap === 0) {
     // Level on likes but behind on the tiebreak (earliest votes win), so a
     // rank number here would contradict the headline. Explain it instead.
@@ -151,7 +174,11 @@ export default function PetWeekCard({
     sub = 'Ties go to whoever got there first. One more like takes it.';
   } else {
     headline = `${gap} ${gap === 1 ? 'like' : 'likes'} behind the crown`;
-    sub = `#${rank} of ${stats!.week_total} ${plural} this week.`;
+    // The rank can come from the live board while this pet's own stats request
+    // failed, so the total may be missing. `stats!` here took Home down with it.
+    sub = stats?.week_total
+      ? `#${rank} of ${stats.week_total} ${plural} this week.`
+      : `#${rank} this week.`;
   }
 
   return (
@@ -164,10 +191,10 @@ export default function PetWeekCard({
       <div className="min-w-0 flex-1">
         <p className="eyebrow">{pet.name}'s week</p>
         <p className="mt-0.5 text-[17px] font-extrabold leading-tight">{headline}</p>
-        {rank != null && <RaceTrack pct={pct} won={won} />}
+        {rank != null && raceKnown && <RaceTrack pct={pct} won={won} />}
         <p className="mt-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{sub}</p>
       </div>
-      {rank != null && (won || gap > 0) && <RankMedal rank={rank} size="lg" className={won ? 'mt-2' : ''} />}
+      {rank != null && (won || (raceKnown && gap > 0)) && <RankMedal rank={rank} size="lg" className={won ? 'mt-2' : ''} />}
     </Link>
   );
 }

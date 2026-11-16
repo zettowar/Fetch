@@ -30,7 +30,7 @@ export default function MissionPage() {
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
             <Pillar icon="rescue" title="Adoptables in the feed" body="Adoptable pets appear in the main feed, right between the neighborhood regulars. There is no separate tab to forget about." />
             <Pillar icon="chat" title="Tools rescues use" body="Listings, inquiries, and handoffs live in one place, so a volunteer's evening goes to the pets." />
-            <Pillar icon="donate" title="Support in a couple of taps" body="Donate to a rescue right from their profile, without leaving the app. Rescues that prefer their own donation page keep that link — always." />
+            <Pillar icon="donate" title="Support in a couple of taps" body="Donate to a rescue from their profile. Rescues that prefer their own donation page can link to it instead." />
             <Pillar icon="clock" title="A faster match" body="The right person sees the right pet sooner. Waits get shorter and kennels get emptier." />
           </div>
         </section>

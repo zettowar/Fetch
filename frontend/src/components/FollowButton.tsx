@@ -78,9 +78,19 @@ export default function FollowButton({ petId }: FollowButtonProps) {
 
   return (
     <button
-      onClick={() => (isFollowing ? unfollowMutation : followMutation).mutate()}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onClick={() => {
+        // Following should read "Following", not flip straight to a red
+        // "Unfollow" because the pointer is still resting on the button.
+        setHovered(false);
+        (isFollowing ? unfollowMutation : followMutation).mutate();
+      }}
+      // A real mouse only. Touch browsers fire mouseenter on tap and never
+      // clear it, so on a phone the button sat on "Unfollow" in danger red
+      // from the moment you followed.
+      onPointerEnter={(e) => {
+        if (e.pointerType === 'mouse') setHovered(true);
+      }}
+      onPointerLeave={() => setHovered(false)}
       // Never btn-primary: this sits on every card in a list, and a screen
       // gets one primary. Follow is the white pill with the follow icon;
       // Following is the selected state (an orange tint on a soft line), and

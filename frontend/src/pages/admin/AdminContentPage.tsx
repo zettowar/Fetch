@@ -24,6 +24,7 @@ import PaginationFooter from '../../components/ui/PaginationFooter';
 import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { CHECK, LINK, ROWS, ROW_HOVER } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 const SECTION_TITLE = 'text-lg font-extrabold tracking-tight text-navy dark:text-biscuit mb-3 flex items-center gap-2';
 
@@ -54,12 +55,12 @@ function FlaggedPhotoQueue() {
   const approveMutation = useMutation({
     mutationFn: approvePhoto,
     onSuccess: () => { toast.success('Photo approved'); invalidate(); },
-    onError: () => toast.error('Failed to approve photo'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to approve photo')),
   });
   const rejectMutation = useMutation({
     mutationFn: rejectPhoto,
     onSuccess: () => { toast.success('Photo rejected and deleted'); invalidate(); },
-    onError: () => toast.error('Failed to reject photo'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to reject photo')),
   });
 
   return (
@@ -158,7 +159,7 @@ export default function AdminContentPage() {
       toast.success('Pet deactivated');
       queryClient.invalidateQueries({ queryKey: ['admin-pets'] });
     },
-    onError: () => toast.error('Failed to deactivate'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to deactivate')),
   });
 
   const reactivateMutation = useMutation({
@@ -167,12 +168,12 @@ export default function AdminContentPage() {
       toast.success('Pet reactivated');
       queryClient.invalidateQueries({ queryKey: ['admin-pets'] });
     },
-    onError: () => toast.error('Failed to reactivate'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to reactivate')),
   });
 
   return (
     <div>
-      <PageHeader title="Content Moderation" className="mb-5" />
+      <PageHeader title="Content moderation" className="mb-5" />
 
       <FlaggedPhotoQueue />
 

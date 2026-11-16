@@ -55,7 +55,10 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             type="button"
             onClick={() => setVisible(!visible)}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-2.5 py-1 text-xs font-extrabold text-gray-600 hover:bg-navy/5 hover:text-navy dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-biscuit"
-            tabIndex={-1}
+            // Reachable by keyboard: it was tabIndex={-1}, which left anyone
+            // not using a pointer unable to check what they had typed.
+            aria-label={visible ? 'Hide password' : 'Show password'}
+            aria-pressed={visible}
           >
             {visible ? 'Hide' : 'Show'}
           </button>

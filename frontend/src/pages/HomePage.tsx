@@ -1,4 +1,4 @@
-import { useReducer, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router-dom';
 import { ArrowLeftRight, ArrowRight, Check, ChevronRight } from 'lucide-react';
@@ -23,7 +23,7 @@ import { getNearbyReports } from '../api/lost';
 import { getDonationConfig } from '../api/donations';
 import { useAuth } from '../store/AuthContext';
 import { petHeroPhoto } from '../utils/time';
-import { useWeeklyResetCountdown, nextWeeklyReset, weekBucket } from '../utils/weeklyReset';
+import { useWeeklyResetCountdown, nextWeeklyReset, weekBucket, dailyResetAt } from '../utils/weeklyReset';
 import { onboarding } from '../utils/onboarding';
 import { useSwipeQuota } from '../utils/swipeQuota';
 import { useSubscription } from '../utils/useSubscription';
@@ -40,6 +40,9 @@ const PEEKERS: Record<Species, string[]> = {
   dog: ['golden', 'corgi', 'beagle', 'shiba', 'frenchie', 'pom', 'cavalier', 'husky'],
   cat: ['ginger', 'calico', 'siamese', 'white', 'tabby', 'persian'],
 };
+
+/** The weekly tally runs at 00:05 UTC on Monday; give it ten minutes. */
+const CROWN_SETTLE_MS = 10 * 60_000;
 
 /** A stable peeker per person, so Home doesn't reshuffle on every visit. */
 function peekFor(species: Species, seed: string): string {
@@ -197,8 +200,15 @@ export default function HomePage() {
   });
   const pendingTransfers = transfers.filter((t) => t.status === 'pending');
 
+  // Ticks once a minute; the crown check below rides on it.
+  const resetsIn = useWeeklyResetCountdown();
+
   // The crown moment: last week's settled crown, when it went to one of mine.
-  const { data: recentWinners = [] } = useQuery({
+  const {
+    data: recentWinners = [],
+    dataUpdatedAt: winnersFetchedAt,
+    refetch: refetchWinners,
+  } = useQuery({
     queryKey: ['crown-moment-winners'],
     queryFn: () => getWinnerHistory(4),
     enabled: !isRescue,
@@ -206,11 +216,26 @@ export default function HomePage() {
   });
   const [, recheckCrown] = useReducer((n: number) => n + 1, 0);
   const lastWeek = weekBucket(1);
-  const myCrown = recentWinners.find(
+  // "Settled" is a claim about *when the rows were read*, not just which week
+  // they are filed under. The history carries the running week's provisional
+  // leader, and `lastWeek` flips at 00:00 UTC while the tally runs at 00:05 —
+  // so a Home left open on Sunday evening, holding rows fetched before a rival
+  // overtook, told the pet that lost "…is Top Dog. The win stays on their
+  // profile for good." Only rows read after the tally has had time to run
+  // count; older ones are refetched (the countdown re-renders this each
+  // minute, which is what notices).
+  const crownSettledAt = Date.parse(`${weekBucket(0)}T00:00:00Z`) + CROWN_SETTLE_MS;
+  const crownSettled = winnersFetchedAt >= crownSettledAt;
+  useEffect(() => {
+    if (isRescue || !winnersFetchedAt || crownSettled) return;
+    if (Date.now() >= crownSettledAt) void refetchWinners();
+  }, [resetsIn, isRescue, winnersFetchedAt, crownSettled, crownSettledAt, refetchWinners]);
+  const settledWinners = crownSettled ? recentWinners : [];
+  const myCrown = settledWinners.find(
     (w) => w.week_bucket === lastWeek && myDogs.some((p) => p.id === w.pet_id) && !crownMomentSeen(w),
   );
   const myCrownPet = myCrown ? myDogs.find((p) => p.id === myCrown.pet_id) : undefined;
-  const lastWinner = recentWinners.find((w) => w.week_bucket === lastWeek && w.species === homeSpecies) ?? null;
+  const lastWinner = settledWinners.find((w) => w.week_bucket === lastWeek && w.species === homeSpecies) ?? null;
 
   // Your pet's week: the owner's pets in the home species, against the leader.
   const myHomePets = myDogs.filter((p) => p.species === homeSpecies && p.is_active);
@@ -225,7 +250,6 @@ export default function HomePage() {
   const celebrated = myDogs
     .map((pet) => ({ pet, occasion: occasionToday(pet) }))
     .find((x) => x.occasion !== null);
-  const resetsIn = useWeeklyResetCountdown();
 
   // Live bits for the CTA cards: swipes left today + missing pets nearby.
   const { isSubscriber } = useSubscription();
@@ -446,11 +470,11 @@ export default function HomePage() {
           <div className="min-w-0">
             <p className="text-lg font-extrabold leading-tight">Ready to swipe?</p>
             <p className="mt-0.5 text-sm font-semibold">
-              {isSubscriber
+              {isSubscriber || homeQuota.unlimited
                 ? 'Unlimited swipes, fresh pets waiting'
                 : swipesLeft > 0
                   ? `${swipesLeft} ${swipesLeft === 1 ? 'swipe' : 'swipes'} left today`
-                  : 'Out of swipes. They reset tomorrow.'}
+                  : `Out of swipes. They refill at ${dailyResetAt()}.`}
             </p>
           </div>
           <span className="btn btn-secondary btn-sm shrink-0 pointer-events-none">

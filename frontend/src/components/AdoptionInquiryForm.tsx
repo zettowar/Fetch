@@ -7,6 +7,7 @@ import Input from './ui/Input';
 import { submitAdoptionInquiry } from '../api/adoption';
 import { useAuth } from '../store/AuthContext';
 import type { Pet } from '../types';
+import { apiErrorMessage } from '../utils/apiError';
 
 // Same field treatment as <Input>, for the select and textarea it can't render.
 const FIELD =
@@ -52,12 +53,12 @@ export default function AdoptionInquiryForm({
       setPhone('');
       onSubmitted?.();
     },
-    onError: (err: unknown) => {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-        ?? "Couldn't send your inquiry. Try again.";
-      toast.error(detail);
-    },
+    // A 422's `detail` is an array of objects, not a string. Handing that to
+    // the toast threw inside the Toaster, which sits outside the error
+    // boundary, so an email the browser accepted and the server didn't
+    // ("sam@gmail") blanked the page.
+    onError: (err: unknown) =>
+      toast.error(apiErrorMessage(err, "Couldn't send your inquiry. Try again.")),
   });
 
   const canSubmit =

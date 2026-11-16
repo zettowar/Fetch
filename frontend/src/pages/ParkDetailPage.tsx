@@ -8,7 +8,7 @@ import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState, { NOT_FOUND_HINT } from '../components/ui/ErrorState';
-import { isNotFound } from '../utils/apiError';
+import { isNotFound, apiErrorMessage } from '../utils/apiError';
 import Avatar from '../components/ui/Avatar';
 import { Spinner } from '../components/ui/Skeleton';
 import PlayDatesSection from '../components/PlayDatesSection';
@@ -86,7 +86,7 @@ export default function ParkDetailPage() {
       setShowCheckinPicker(false);
       queryClient.invalidateQueries({ queryKey: ['park-checkins', id] });
     },
-    onError: () => toast.error("Couldn't check you in. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't check you in. Try again.")),
   });
 
   const checkoutMutation = useMutation({
@@ -95,7 +95,7 @@ export default function ParkDetailPage() {
       toast.success('Checked out');
       queryClient.invalidateQueries({ queryKey: ['park-checkins', id] });
     },
-    onError: () => toast.error("Couldn't start checkout. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't start checkout. Try again.")),
   });
 
   // Review form
@@ -118,7 +118,7 @@ export default function ParkDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['park-reviews', id] });
       queryClient.invalidateQueries({ queryKey: ['park', id] });
     },
-    onError: () => toast.error("Couldn't post your review. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't post your review. Try again.")),
   });
 
   if (isLoading) {
@@ -323,6 +323,7 @@ export default function ParkDetailPage() {
             ))}
           </div>
           <select
+            aria-label="Crowd level (optional)"
             className={`min-h-[48px] ${FIELD}`}
             value={crowdLevel}
             onChange={(e) => setCrowdLevel(e.target.value)}
@@ -338,6 +339,7 @@ export default function ParkDetailPage() {
             className={`resize-none ${FIELD}`}
             rows={3}
             placeholder="Your review..."
+            aria-label="Your review"
             value={reviewBody}
             onChange={(e) => setReviewBody(e.target.value)}
           />

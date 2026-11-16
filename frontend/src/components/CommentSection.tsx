@@ -8,6 +8,7 @@ import Avatar from './ui/Avatar';
 import Linkify from './Linkify';
 import { ReportButton } from './ReportDialog';
 import TimeAgo from './TimeAgo';
+import { apiErrorMessage } from '../utils/apiError';
 
 interface CommentSectionProps {
   targetType: string;
@@ -33,7 +34,7 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
       setBody('');
       queryClient.invalidateQueries({ queryKey: ['comments', targetType, targetId] });
     },
-    onError: () => toast.error("Couldn't post your comment. Try again."),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't post your comment. Try again.")),
   });
 
   const deleteMutation = useMutation({
@@ -116,6 +117,7 @@ export default function CommentSection({ targetType, targetId }: CommentSectionP
         <input
           className="flex-1 min-w-0 min-h-[40px] rounded-full border-2 border-navy/25 bg-white px-4 py-2 text-sm font-semibold text-navy placeholder:font-medium placeholder:text-gray-400 outline-none transition-[border-color,box-shadow] duration-150 ease-soft-out hover:border-navy/40 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/25 dark:border-white/20 dark:bg-night-surface dark:text-biscuit dark:placeholder:text-gray-500 dark:hover:border-white/35 dark:focus:border-brand-400"
           placeholder="Add a comment..."
+          aria-label="Add a comment"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => {

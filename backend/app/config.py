@@ -116,6 +116,16 @@ class Settings(BaseSettings):
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
+    @field_validator("FRONTEND_BASE_URL", "OAUTH_REDIRECT_BASE")
+    @classmethod
+    def no_trailing_slash(cls, v: str) -> str:
+        # Every link is built as f"{base}/path". With "https://fetchpawz.com/"
+        # in .env — which preflight accepts — the one-click unsubscribe header
+        # became "…com//api/v1/public/unsubscribe/…", matched no route and
+        # 404'd silently. Normalise once, here, instead of at each of the
+        # two dozen places that build a link.
+        return v.rstrip("/")
+
     @field_validator("JWT_SECRET")
     @classmethod
     def strong_jwt_secret(cls, v: str) -> str:

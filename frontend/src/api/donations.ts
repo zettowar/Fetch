@@ -3,6 +3,8 @@ import { formatMoney } from './shop';
 
 export interface DonationConfig {
   enabled: boolean;
+  /** An admin has paused donations; `enabled` is false while this is true. */
+  paused?: boolean;
   currency: string;
   presets_cents: number[];
   min_cents: number;

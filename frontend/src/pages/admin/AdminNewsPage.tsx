@@ -18,6 +18,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import { CHECK, FIELD, ROWS } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 /** Marketing-site news articles. Published posts show on /news immediately;
  *  drafts stay here until published. */
@@ -58,7 +59,7 @@ export default function AdminNewsPage() {
       invalidate();
       resetForm();
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const updateMutation = useMutation({
@@ -68,7 +69,7 @@ export default function AdminNewsPage() {
       invalidate();
       resetForm();
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const publishMutation = useMutation({
@@ -77,7 +78,7 @@ export default function AdminNewsPage() {
       toast.success('Published');
       invalidate();
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const deleteMutation = useMutation({
@@ -86,7 +87,7 @@ export default function AdminNewsPage() {
       toast.success('Deleted');
       invalidate();
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const resetForm = () => {
@@ -123,7 +124,7 @@ export default function AdminNewsPage() {
             variant={showForm ? 'secondary' : 'primary'}
             onClick={() => { const opening = !showForm; resetForm(); setShowForm(opening); }}
           >
-            {showForm ? 'Cancel' : 'New Post'}
+            {showForm ? 'Cancel' : 'New post'}
           </Button>
         }
       />

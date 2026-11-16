@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class AuditLogOut(BaseModel):
@@ -98,15 +98,24 @@ class AdminUserOut(BaseModel):
 
 
 class TicketStatusUpdate(BaseModel):
-    status: str
-    admin_notes: str | None = None
+    # Optional: a triage note can be saved without moving the ticket. It used
+    # to be required, so the only way to keep a note on an in-progress ticket
+    # was to resolve or close it.
+    status: str | None = None
+    admin_notes: str | None = Field(default=None, max_length=4000)
 
     @field_validator("status")
     @classmethod
-    def valid_status(cls, v: str) -> str:
-        if v not in ("in_progress", "resolved", "closed"):
+    def valid_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in ("in_progress", "resolved", "closed"):
             raise ValueError("Status must be in_progress, resolved, or closed")
         return v
+
+    @model_validator(mode="after")
+    def something_to_do(self) -> "TicketStatusUpdate":
+        if self.status is None and self.admin_notes is None:
+            raise ValueError("Nothing to update")
+        return self
 
 
 class FAQCreate(BaseModel):

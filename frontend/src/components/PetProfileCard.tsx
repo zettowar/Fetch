@@ -61,7 +61,10 @@ export default function PetProfileCard({ pet, showEdit, rank }: PetProfileCardPr
             {photoCount}
           </span>
         )}
-        {pet.rescue_id && (
+        {/* `adoptable`, not `rescue_id`: every rescue-owned pet has a rescue_id,
+            including the ones already adopted, which still read "Needs a home"
+            here while their own page said "Adopted". */}
+        {pet.adoptable && (
           <span
             className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full border-[1.5px] border-navy bg-pink-500 px-2 py-0.5 text-2xs font-extrabold text-navy"
             title={pet.rescue_name ?? 'Rescue pet'}

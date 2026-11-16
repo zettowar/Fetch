@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import Map, { MAP_PIN } from './Map';
 import { DEFAULT_MAP_CENTER } from '../utils/useUserLocation';
 
@@ -39,20 +39,69 @@ export default function LocationPicker({
   accentColor = MAP_PIN.play,
 }: Props) {
   const radiusLabelId = useId();
-  // Prompt the browser for location on mount if we don't already have one.
-  const [requestedGeo, setRequestedGeo] = useState(false);
+
+  // Where the map is looking, which is not the same thing as where the pin is.
+  //
+  // The picker used to treat them as one: on mount it asked the device where it
+  // was and called `onChange` with the answer. That placed a pin nobody had
+  // placed. A rescue opening "Edit your details" to fix a typo got a pin at
+  // wherever they were sitting, and Save published it on the public rescue
+  // map. The fix also arrived up to six seconds late and overwrote a pin the
+  // person had already tapped in.
+  //
+  // So the device's position only ever moves the *view*. A pin is a statement,
+  // and it is made by tapping the map or pressing "Use my current location".
+  const [view, setView] = useState<[number, number]>(
+    value ? [value.lng, value.lat] : fallbackCenter,
+  );
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   useEffect(() => {
-    if (value || requestedGeo || !navigator.geolocation) return;
-    setRequestedGeo(true);
+    if (valueRef.current || !navigator.geolocation) return;
+    let cancelled = false;
     navigator.geolocation.getCurrentPosition(
-      (pos) => onChange({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => { /* user denied — they can still tap */ },
-      { enableHighAccuracy: true, timeout: 6000 },
+      (pos) => {
+        // Only a starting view: skip it if a pin went down in the meantime.
+        if (cancelled || valueRef.current) return;
+        setView([pos.coords.longitude, pos.coords.latitude]);
+      },
+      () => { /* denied or unavailable — the map stays on the fallback */ },
+      // Centring needs a neighbourhood, not a doorstep, so a cached coarse fix
+      // is fine and comes back at once.
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 5 * 60 * 1000 },
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { cancelled = true; };
   }, []);
 
-  const center: [number, number] = value ? [value.lng, value.lat] : fallbackCenter;
+  const [locating, setLocating] = useState(false);
+  const [locateFailed, setLocateFailed] = useState(false);
+  const pinMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocateFailed(true);
+      return;
+    }
+    setLocating(true);
+    setLocateFailed(false);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        onChange(here);
+        setView([here.lng, here.lat]);
+      },
+      () => {
+        setLocating(false);
+        setLocateFailed(true);
+      },
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  };
+
+  // The view follows the device or the "use my location" button, never a tap:
+  // a tap is already on screen, and recentring on it also reset the zoom, which
+  // undid the zooming-in someone had just done to place the pin precisely.
+  const center = view;
   const markers = value
     ? [{ id: 'picked', lat: value.lat, lng: value.lng, color: accentColor, label: 'Selected location' }]
     : [];
@@ -108,9 +157,24 @@ export default function LocationPicker({
             </button>
           </>
         ) : (
-          'Tap the map to pin the location, or use the locate button.'
+          'Tap the map to drop a pin.'
         )}
       </p>
+      <div className="-mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <button
+          type="button"
+          onClick={pinMyLocation}
+          disabled={locating}
+          className="font-bold text-navy underline decoration-brand-500 decoration-2 underline-offset-2 hover:decoration-navy disabled:opacity-60 dark:text-biscuit dark:hover:decoration-biscuit"
+        >
+          {locating ? 'Finding you…' : 'Use my current location'}
+        </button>
+        {locateFailed && (
+          <span role="status" className="text-gray-600 dark:text-gray-300">
+            Couldn&rsquo;t get your location. Tap the map instead.
+          </span>
+        )}
+      </div>
 
       {onRadiusChange && (
         <div className="flex flex-col gap-1.5">

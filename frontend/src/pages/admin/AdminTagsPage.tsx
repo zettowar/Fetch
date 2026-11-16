@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
-import { generateTags, listAdminTags, adminAssignTag, type AdminTag } from '../../api/tags';
+import { generateTags, listAdminTags, adminAssignTag, unlinkTag, type AdminTag } from '../../api/tags';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
@@ -13,6 +13,7 @@ import SearchInput from '../../components/ui/SearchInput';
 import PageHeader from '../../components/ui/PageHeader';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import { FIELD, ROWS, segItem } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 type Filter = 'all' | 'unassigned' | 'assigned';
 
@@ -43,7 +44,7 @@ export default function AdminTagsPage() {
       toast.success(`Generated ${codes.length} tags`);
       queryClient.invalidateQueries({ queryKey: ['admin-tags'] });
     },
-    onError: () => toast.error('Failed to generate tags'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to generate tags')),
   });
 
   if (printMode) {
@@ -52,7 +53,7 @@ export default function AdminTagsPage() {
 
   return (
     <div>
-      <PageHeader title="QR Tags" className="mb-5" />
+      <PageHeader title="QR tags" className="mb-5" />
 
       <Card className="mb-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -108,7 +109,7 @@ export default function AdminTagsPage() {
       ) : isError ? (
         <ErrorState message="Couldn't load tags." onRetry={() => refetch()} />
       ) : tags.length === 0 ? (
-        <EmptyState className="py-6" title={`No ${filter} tags`} />
+        <EmptyState className="py-6" title={filter === 'all' ? 'No tags yet' : `No ${filter} tags`} />
       ) : (
         <>
           <p className="font-mono text-xs text-gray-500 dark:text-gray-400 mb-2">{total} total</p>
@@ -136,7 +137,18 @@ function TagRow({ tag }: { tag: AdminTag }) {
       setPetId('');
       queryClient.invalidateQueries({ queryKey: ['admin-tags'] });
     },
-    onError: () => toast.error('Assign failed — check the pet ID'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Assign failed — check the pet ID')),
+  });
+
+  // Admin → Tags is where a mis-assigned tag gets undone. The endpoint has
+  // always allowed staff; the row only ever showed a "Linked" badge.
+  const unlink = useMutation({
+    mutationFn: () => unlinkTag(tag.code),
+    onSuccess: () => {
+      toast.success(`Unlinked ${tag.code}`);
+      queryClient.invalidateQueries({ queryKey: ['admin-tags'] });
+    },
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't unlink that tag")),
   });
 
   const copy = async () => {
@@ -166,7 +178,21 @@ function TagRow({ tag }: { tag: AdminTag }) {
           ) : null}
         </span>
         {tag.pet_id ? (
-          <Badge variant="success">Linked</Badge>
+          <>
+            <Badge variant="success">Linked</Badge>
+            <Button
+              size="sm"
+              variant="ghost"
+              loading={unlink.isPending}
+              onClick={() => {
+                if (confirm(`Unlink ${tag.code} from ${tag.pet_name ?? 'this pet'}? The tag goes back to unassigned.`)) {
+                  unlink.mutate();
+                }
+              }}
+            >
+              Unlink
+            </Button>
+          </>
         ) : (
           <>
             <Badge variant="neutral">Unassigned</Badge>

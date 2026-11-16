@@ -12,6 +12,7 @@ from app.limiter import limiter
 from app.models.pet import Pet
 from app.models.park import Park, ParkCheckin, ParkIncident, ParkReview
 from app.models.user import User
+from app.services.blocks import blocked_user_ids_subquery
 from app.services.breed_display import breed_display
 from app.services.geo import bounding_box
 from app.services.pet_serializer import display_photo_url
@@ -444,6 +445,9 @@ async def list_checkins(
             ParkCheckin.park_id == park_id,
             ParkCheckin.checked_out_at == None,  # noqa: E711
             ParkCheckin.created_at > _active_checkin_cutoff(),
+            # "Who is at this park right now" is exactly what a block is meant
+            # to withhold, in both directions.
+            ParkCheckin.user_id.notin_(blocked_user_ids_subquery(user.id)),
         )
         .order_by(ParkCheckin.created_at.desc())
     )

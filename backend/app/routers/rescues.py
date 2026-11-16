@@ -16,6 +16,7 @@ from fastapi import (
     APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Request,
     UploadFile, status,
 )
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -168,7 +169,11 @@ async def _set_rescue_image(
 
     data = await file.read()
     try:
-        out, content_type, _w, _h = prepare_rescue_image(data, _IMAGE_MAX_DIM[kind])
+        # Decode + resize + re-encode is CPU-bound. Inline, a large PNG held
+        # this worker's event loop for seconds and nothing else was served.
+        out, content_type, _w, _h = await run_in_threadpool(
+            prepare_rescue_image, data, _IMAGE_MAX_DIM[kind]
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -190,7 +195,9 @@ async def _set_rescue_image(
 
 
 @router.post("/me/logo", response_model=RescueProfileOut)
+@limiter.limit("30/hour")
 async def upload_rescue_logo(
+    request: Request,
     file: UploadFile = File(...),
     user: User = Depends(require_approved_rescue),
     db: AsyncSession = Depends(get_db),
@@ -199,7 +206,9 @@ async def upload_rescue_logo(
 
 
 @router.post("/me/cover", response_model=RescueProfileOut)
+@limiter.limit("30/hour")
 async def upload_rescue_cover(
+    request: Request,
     file: UploadFile = File(...),
     user: User = Depends(require_approved_rescue),
     db: AsyncSession = Depends(get_db),

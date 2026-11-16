@@ -20,6 +20,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ListSkeleton, Spinner } from '../../components/ui/Skeleton';
 import { CHECK, FIELD, LINK, ROWS, ROW_HOVER, TRAY, segItem } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 const PAGE_SIZE = 50;
 
@@ -61,7 +62,7 @@ export default function AdminTicketsPage() {
 
   return (
     <div>
-      <PageHeader title="Support Tickets" className="mb-5" />
+      <PageHeader title="Support tickets" className="mb-5" />
 
       <form
         onSubmit={(e) => { e.preventDefault(); setSearchTerm(query); setOffset(0); setExpanded(null); }}
@@ -110,7 +111,9 @@ export default function AdminTicketsPage() {
               ? 'Nothing is waiting on a reply.'
               : tab === 'open'
                 ? 'No open tickets. Great job!'
-                : `No ${tab.replace('_', ' ')} tickets`
+                : tab === 'all'
+                  ? 'No tickets yet'
+                  : `No ${tab.replace('_', ' ')} tickets`
           }
         />
       ) : (
@@ -175,7 +178,7 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
       setReply('');
       invalidate();
     },
-    onError: () => toast.error('Failed to send the reply'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to send the reply')),
   });
 
   const statusMutation = useMutation({
@@ -185,7 +188,20 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
       toast.success('Ticket updated');
       invalidate();
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
+  });
+
+  // The note on its own. It used to travel only inside a status change, so on
+  // an in-progress ticket the one way to keep a note was to resolve or close
+  // it — otherwise it was gone when the row collapsed.
+  const noteMutation = useMutation({
+    mutationFn: () => updateTicket(ticketId, { admin_notes: notes ?? '' }),
+    onSuccess: () => {
+      toast.success('Note saved');
+      setNotes(null);
+      invalidate();
+    },
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't save the note. Try again.")),
   });
 
   // A failed load used to fall through to `!ticket` and spin forever.
@@ -308,6 +324,11 @@ function TicketDetail({ ticketId }: { ticketId: string }) {
               onChange={(e) => setNotes(e.target.value)}
             />
             <div className="mt-2 flex flex-wrap gap-2">
+              {notes !== null && notes !== (ticket.admin_notes ?? '') && (
+                <Button size="sm" variant="secondary" loading={noteMutation.isPending} onClick={() => noteMutation.mutate()}>
+                  Save note
+                </Button>
+              )}
               {ticket.status === 'open' && (
                 <Button size="sm" variant="secondary" loading={statusMutation.isPending && statusMutation.variables === 'in_progress'} onClick={() => statusMutation.mutate('in_progress')}>
                   Start working

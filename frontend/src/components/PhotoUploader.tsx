@@ -59,6 +59,9 @@ export default function PhotoUploader({ petId, onUploaded, onSelect, compact }: 
   };
 
   const handleCropConfirm = async (blob: Blob) => {
+    // Cancel released the picked file's object URL; confirm dropped it on the
+    // floor, so every photo added kept its source image alive in memory.
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
 
     if (isQueueMode) {

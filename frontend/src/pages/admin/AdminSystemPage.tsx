@@ -25,11 +25,9 @@ import SectionHeader from '../../components/ui/SectionHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import { CHECK, FIELD, ROWS, ROW_HOVER, STAT_INK, STAT_NUMBER } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 const inputClasses = FIELD;
-
-const errDetail = (e: unknown): string | undefined =>
-  (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
 
 const BLANK = {
   name: '',
@@ -153,7 +151,7 @@ export default function AdminSystemPage() {
     },
     onError: (e: unknown) => {
       if (e instanceof Error && e.message === 'invalid') return; // toast already shown
-      toast.error(errDetail(e) ?? 'Failed to save job');
+      toast.error(apiErrorMessage(e, 'Failed to save job'));
     },
   });
 
@@ -163,13 +161,13 @@ export default function AdminSystemPage() {
       toast.success(job.enabled ? 'Enabled' : 'Disabled');
       invalidate();
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const runMutation = useMutation({
     mutationFn: (id: string) => runScheduledTask(id),
     onSuccess: (res) => toast.success(res.detail ?? 'Enqueued'),
-    onError: (e: unknown) => toast.error(errDetail(e) ?? 'Could not enqueue'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Could not enqueue')),
   });
 
   const deleteMutation = useMutation({
@@ -178,7 +176,7 @@ export default function AdminSystemPage() {
       toast.success('Deleted');
       invalidate();
     },
-    onError: () => toast.error('Failed'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "That didn't go through. Try again.")),
   });
 
   const testEmailMutation = useMutation({
@@ -191,7 +189,7 @@ export default function AdminSystemPage() {
     },
     onError: (e: unknown) => {
       setTestResult(null);
-      toast.error(errDetail(e) ?? 'Could not send test email');
+      toast.error(apiErrorMessage(e, 'Could not send test email'));
     },
   });
 

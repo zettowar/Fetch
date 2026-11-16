@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -149,8 +149,11 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
       </div>
       {/* Toggle: Ball Orange when on, always on a navy line. */}
       <button
+        type="button"
         role="switch"
         aria-checked={checked}
+        // Without a name every one of these announced as "switch, on".
+        aria-label={label}
         onClick={() => onChange(!checked)}
         className={`relative flex-shrink-0 w-12 h-7 rounded-full border-2 transition-colors ${
           checked
@@ -170,7 +173,12 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
 
 export default function NotificationsPage() {
   useDocumentTitle('Notifications · Fetchpawz');
-  const [tab, setTab] = useState<'inbox' | 'settings'>('inbox');
+  // `?tab=settings` opens on Settings: that is where the unsubscribe page's
+  // "Notification settings" button means to send people, not to the inbox.
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<'inbox' | 'settings'>(
+    params.get('tab') === 'settings' ? 'settings' : 'inbox',
+  );
   const { data: unread = 0 } = useQuery({
     queryKey: ['inbox-unread'],
     queryFn: getUnreadCount,
@@ -211,7 +219,7 @@ export default function NotificationsPage() {
 function SettingsTab() {
   const queryClient = useQueryClient();
 
-  const { data: prefs, isLoading } = useQuery({
+  const { data: prefs, isLoading, isError, refetch } = useQuery({
     queryKey: ['notification-prefs'],
     queryFn: getPreferences,
   });
@@ -233,6 +241,11 @@ function SettingsTab() {
     },
   });
 
+  // Without this a failed request sat on the skeleton below for good: four
+  // shimmering bars, no message, nothing to press.
+  if (isError && !prefs) {
+    return <ErrorState message="Couldn't load your notification settings." onRetry={() => refetch()} />;
+  }
   if (isLoading || !prefs) {
     return (
       <div>

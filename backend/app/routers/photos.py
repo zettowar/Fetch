@@ -1,4 +1,5 @@
 import asyncio
+import posixpath
 from uuid import UUID
 
 import structlog
@@ -241,10 +242,31 @@ async def get_own_photo_file(
     )
 
 
+def _is_canonical_key(key: str) -> bool:
+    """True when `key` is spelled the one way the database stores it.
+
+    The moderation guard below looks the key up by string equality; storage then
+    resolves it as a *path*. Those disagree about what "the same key" means:
+    `abc.webp/`, `./abc.webp` and `x/../abc.webp` match no Photo row, so they
+    were waved through as row-less keys, and all resolve to the file `abc.webp`.
+    A photo held by moderation was one trailing slash away from being public,
+    with a shared-cache header on it.
+
+    So only the canonical spelling is served. Generated keys are lowercase
+    (`uuid4` + extension), which also closes the case variant on a
+    case-insensitive volume.
+    """
+    if not key or "\\" in key or "\x00" in key or key.startswith(("/", ".")):
+        return False
+    return posixpath.normpath(key) == key and key == key.lower()
+
+
 @router.get("/photos/file/{key:path}")
 async def get_photo_file(
     key: str, request: Request, db: AsyncSession = Depends(get_db)
 ):
+    if not _is_canonical_key(key):
+        raise HTTPException(status_code=404, detail="File not found")
     # Withhold pet photos that haven't passed moderation — otherwise sharing
     # the direct file URL bypasses every feed-level filter. Keys with no Photo
     # row (e.g. sighting photos, which are reject-on-upload) pass through.

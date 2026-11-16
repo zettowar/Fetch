@@ -21,7 +21,7 @@ import { getUnreadTicketCount } from '../api/support';
 import { useAuth } from '../store/AuthContext';
 import ErrorState from '../components/ui/ErrorState';
 import { ReportButton } from '../components/ReportDialog';
-import { isNotFound } from '../utils/apiError';
+import { isNotFound, apiErrorMessage } from '../utils/apiError';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { shareLink } from '../utils/shareLink';
 import { useSubscription } from '../utils/useSubscription';
@@ -55,7 +55,7 @@ export default function UserProfilePage() {
         toast.success('Verification email sent');
       }
     },
-    onError: () => toast.error('Could not send verification email'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Could not send verification email')),
   });
 
   useDocumentTitle(profile ? `${profile.display_name} · Fetchpawz` : null);
@@ -324,7 +324,7 @@ function InviteSection() {
       toast.success('Invite codes ready');
       queryClient.invalidateQueries({ queryKey: ['my-invites'] });
     },
-    onError: () => toast.error("Couldn't generate invites right now"),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't generate invites right now")),
   });
 
   const copy = async (code: string) => {
@@ -398,12 +398,12 @@ function BlockControl({ userId, displayName }: { userId: string; displayName: st
   const blockMutation = useMutation({
     mutationFn: () => blockUser(userId),
     onSuccess: () => { toast.success(`${displayName} blocked`); invalidate(); },
-    onError: () => toast.error("Couldn't block right now"),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't block right now")),
   });
   const unblockMutation = useMutation({
     mutationFn: () => unblockUser(userId),
     onSuccess: () => { toast.success(`${displayName} unblocked`); invalidate(); },
-    onError: () => toast.error("Couldn't unblock right now"),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, "Couldn't unblock right now")),
   });
 
   return (

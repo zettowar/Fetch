@@ -14,6 +14,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import TimeAgo from '../../components/TimeAgo';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import { CHECK, FIELD, LINK, ROWS, ROW_HOVER, TRAY, segItem } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 const TABS = ['pending', 'reviewed', 'dismissed', 'all'] as const;
 const PAGE_SIZE = 50;
@@ -61,7 +62,7 @@ export default function AdminReportsPage() {
       setStrikeReason('');
       setAdminNotes('');
     },
-    onError: () => toast.error('Failed to review'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to review')),
   });
 
   return (
@@ -87,7 +88,7 @@ export default function AdminReportsPage() {
       ) : reports.length === 0 ? (
         <EmptyState
           className="py-6"
-          title={tab === 'pending' ? 'Queue is clear' : `No ${tab} reports`}
+          title={tab === 'pending' ? 'Queue is clear' : tab === 'all' ? 'No reports yet' : `No ${tab} reports`}
           body={tab === 'pending' ? 'All reports have been reviewed.' : undefined}
         />
       ) : (

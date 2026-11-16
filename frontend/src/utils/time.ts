@@ -58,13 +58,20 @@ export function timeUntil(dateStr: string): string {
 export function petAge(
   birthdayStr: string | null,
   species: 'dog' | 'cat' = 'dog',
+  now: Date = new Date(),
 ): string | null {
   if (!birthdayStr) return null;
-  const birth = new Date(birthdayStr);
-  const now = new Date();
-  const years = now.getFullYear() - birth.getFullYear();
-  const months = now.getMonth() - birth.getMonth();
-  const totalMonths = years * 12 + months;
+  // A birthday is a calendar date, so read its parts rather than parsing it.
+  // `new Date('2025-12-01')` is midnight *UTC*, which is the evening of
+  // November 30 anywhere west of Greenwich — every pet born on the 1st (the
+  // day people pick when they don't know) read a month older across Canada.
+  const parts = /^(\d{4})-(\d{2})-(\d{2})/.exec(birthdayStr);
+  if (!parts) return null;
+  const [year, month, day] = [Number(parts[1]), Number(parts[2]), Number(parts[3])];
+  let totalMonths = (now.getFullYear() - year) * 12 + (now.getMonth() + 1 - month);
+  // A month isn't up until its day comes round: born Nov 30 is not "1 yr" on
+  // Nov 1, a month before the birthday card says so.
+  if (now.getDate() < day) totalMonths -= 1;
 
   if (totalMonths < 1) return species === 'cat' ? 'Kitten' : 'Puppy';
   if (totalMonths < 12) return `${totalMonths} mo`;

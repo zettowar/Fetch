@@ -46,7 +46,7 @@ export default function FeedbackWidget() {
           onClick={() => setOpen(!open)}
           // A thing you touch: white on a navy line with the small toy shadow.
           // The orange bean in the icon is the only colour until hovered.
-          className="pointer-events-auto absolute bottom-[4.5rem] right-3 sm:bottom-6 sm:right-6 w-11 h-11 rounded-full border-2 border-navy bg-white text-navy shadow-toy-sm transition-[transform,box-shadow,background-color] duration-150 ease-soft-out hover:bg-brand-100 active:translate-x-[2px] active:translate-y-[3px] active:shadow-none dark:border-white/30 dark:bg-night-raised dark:text-biscuit dark:hover:bg-night-surface flex items-center justify-center"
+          className="pointer-events-auto absolute bottom-[calc(var(--tab-bar-h,4.25rem)+0.375rem)] right-3 sm:bottom-6 sm:right-6 w-11 h-11 rounded-full border-2 border-navy bg-white text-navy shadow-toy-sm transition-[transform,box-shadow,background-color] duration-150 ease-soft-out hover:bg-brand-100 active:translate-x-[2px] active:translate-y-[3px] active:shadow-none dark:border-white/30 dark:bg-night-raised dark:text-biscuit dark:hover:bg-night-surface flex items-center justify-center"
           title="Send feedback"
           aria-label="Send feedback"
         >
@@ -55,12 +55,13 @@ export default function FeedbackWidget() {
 
         {/* Feedback panel — a flat panel, no soft shadow */}
         {open && (
-          <div className="surface pointer-events-auto absolute bottom-[7rem] right-3 sm:bottom-20 sm:right-6 w-72 p-4">
+          <div className="surface pointer-events-auto absolute bottom-[calc(var(--tab-bar-h,4.25rem)+3.5rem)] right-3 sm:bottom-20 sm:right-6 w-72 p-4">
             <h3 className="text-base font-extrabold tracking-tight text-navy dark:text-biscuit mb-2">Send feedback</h3>
             <textarea
               className="w-full rounded-lg border-[1.5px] border-gray-300 bg-white px-3 py-2 text-sm text-navy placeholder:text-gray-500 resize-none outline-none focus:border-navy focus:ring-2 focus:ring-brand-500/40 dark:border-white/20 dark:bg-night-raised dark:text-biscuit dark:placeholder:text-gray-400 dark:focus:border-biscuit"
               rows={3}
               placeholder="Bug report, feature idea, or just say hi..."
+              aria-label="Your feedback"
               value={body}
               onChange={(e) => setBody(e.target.value)}
             />

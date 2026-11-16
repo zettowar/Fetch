@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
+
+from app.schemas.common import reject_explicit_nulls
 
 from app.services.traits import TRAIT_SPECIES, TRAIT_STATUSES, normalize_trait
 
@@ -71,6 +73,12 @@ class PetTraitUpdate(BaseModel):
     species: str | None = None
     status: str | None = None
     sort_order: int | None = None
+
+    @model_validator(mode="after")
+    def required_fields_not_null(self) -> "PetTraitUpdate":
+        # All four columns are NOT NULL; `{"label": null}` was a 500.
+        reject_explicit_nulls(self, "label", "species", "status", "sort_order")
+        return self
 
     @field_validator("label")
     @classmethod

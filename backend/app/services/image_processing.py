@@ -27,6 +27,9 @@ from dataclasses import dataclass
 from PIL import Image, ImageOps
 
 
+_MAX_ICC_BYTES = 1_000_000
+
+
 class ImageRejected(ValueError):
     """The upload isn't an image we accept. The message is safe to show."""
 
@@ -107,7 +110,11 @@ def process_image(
     except Exception:
         raise ImageRejected("Invalid image file")
 
-    content_type = f"image/{img.format.lower()}" if img.format else fallback_content_type
+    # MPO is a JPEG with extra frames appended (depth map, burst) — what a fair
+    # number of phone cameras write. Pillow names it separately, so it used to
+    # be turned away as "not a JPEG". The first frame is the photo.
+    fmt = "JPEG" if img.format == "MPO" else img.format
+    content_type = f"image/{fmt.lower()}" if fmt else fallback_content_type
     if content_type not in allowed_types:
         raise ImageRejected("Only JPEG, PNG, and WebP are allowed")
 
@@ -115,13 +122,19 @@ def process_image(
     if width * height > max_pixels:
         raise ImageRejected("Image dimensions are too large (over 30 megapixels)")
 
-    save_format = (img.format or "JPEG").upper()
+    save_format = (fmt or "JPEG").upper()
     source_family = _colour_family(img.mode)
     icc = img.info.get("icc_profile")
+    # A colour profile is a few kilobytes. It is copied through unparsed, so
+    # without a ceiling it is also somewhere to park megabytes of anything.
+    if icc and len(icc) > _MAX_ICC_BYTES:
+        icc = None
 
     try:
         # Upright first, while the orientation tag is still there to read.
-        img = ImageOps.exif_transpose(img)
+        # In place: the default returns a second full bitmap, which doubled the
+        # peak memory of every upload (two 30 MP images are ~240 MB a worker).
+        ImageOps.exif_transpose(img, in_place=True)
         img = _fit(img, max_dim)
         if save_format == "PNG":
             img = _for_png(img)
@@ -138,6 +151,9 @@ def process_image(
     extra = {}
     if icc and _colour_family(img.mode) == source_family:
         extra["icc_profile"] = icc
+    # "No metadata" has to include the JPEG comment segment, which Pillow's
+    # writer copies from `info` unasked.
+    img.info.pop("comment", None)
 
     buf = io.BytesIO()
     if save_format == "PNG":

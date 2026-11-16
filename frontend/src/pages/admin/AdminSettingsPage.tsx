@@ -10,6 +10,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import ErrorState from '../../components/ui/ErrorState';
 import { ListSkeleton } from '../../components/ui/Skeleton';
 import { FIELD, LINK } from './adminStyles';
+import { apiErrorMessage } from '../../utils/apiError';
 
 export default function AdminSettingsPage() {
   const queryClient = useQueryClient();
@@ -24,7 +25,7 @@ export default function AdminSettingsPage() {
       toast.success('Setting saved');
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
     },
-    onError: () => toast.error('Failed to save setting'),
+    onError: (e: unknown) => toast.error(apiErrorMessage(e, 'Failed to save setting')),
   });
 
   return (

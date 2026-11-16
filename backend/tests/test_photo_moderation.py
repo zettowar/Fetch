@@ -58,6 +58,45 @@ async def test_flagged_photo_file_is_withheld(client: AsyncClient, auth_headers:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "spelling",
+    ["{key}/", "./{key}", "x/../{key}", "{key}//", "{upper}"],
+)
+async def test_flagged_photo_is_withheld_under_every_spelling_of_its_key(
+    client: AsyncClient, auth_headers: dict, monkeypatch, spelling: str
+):
+    """The guard matches the key as a string; storage resolves it as a path.
+
+    A trailing slash (or `./`, or `x/../`) matched no Photo row, so the request
+    was treated as a row-less key and served — the withheld file, publicly,
+    with `Cache-Control: public`. Only the exact key was ever tested.
+    """
+    photo = await _upload_flagged(client, auth_headers, monkeypatch)
+    key = photo["storage_key"]
+    variant = spelling.format(key=key, upper=key.upper())
+    res = await client.get(f"/api/v1/photos/file/{variant}")
+    assert res.status_code == 404, variant
+
+
+@pytest.mark.asyncio
+async def test_approved_photo_is_served_only_by_its_exact_key(
+    client: AsyncClient, auth_headers: dict
+):
+    """The canonical-key rule must not cost approved photos their URL."""
+    pet = await client.post("/api/v1/pets", json={"name": "Canon"}, headers=auth_headers)
+    assert pet.status_code == 201, pet.text
+    up = await client.post(
+        f"/api/v1/pets/{pet.json()['id']}/photos",
+        files={"file": ("pup.jpg", _jpeg(), "image/jpeg")},
+        headers=auth_headers,
+    )
+    assert up.status_code == 201, up.text
+    key = up.json()["storage_key"]
+    assert (await client.get(f"/api/v1/photos/file/{key}")).status_code == 200
+    assert (await client.get(f"/api/v1/photos/file/{key}/")).status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_owner_sees_own_flagged_photo_marked_in_review(
     client: AsyncClient, auth_headers: dict, monkeypatch
 ):

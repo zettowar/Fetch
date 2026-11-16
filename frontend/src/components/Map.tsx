@@ -169,6 +169,7 @@ export default function Map({
   cooperative = false,
 }: MapProps) {
   const mapRef = useRef<MapRef | null>(null);
+  const locatePressed = useRef(false);
 
   const initialViewState = useMemo(
     () => ({ longitude: center[0], latitude: center[1], zoom }),
@@ -264,6 +265,24 @@ export default function Map({
             position="top-right"
             trackUserLocation
             positionOptions={{ enableHighAccuracy: true, timeout: 8000 }}
+            // The fly-to after "locate me" has no user event behind it, so
+            // handleMoveEnd drops it with the other programmatic moves — and
+            // the page's list, pins and "alert me near here" all stayed on the
+            // area the map had just left. Pressing the button is the user's
+            // act, so the first fix after each press is reported as a move.
+            // (Only the first: tracking keeps emitting as they walk.)
+            onTrackUserLocationStart={() => {
+              locatePressed.current = true;
+            }}
+            onGeolocate={(e) => {
+              if (!locatePressed.current || !onViewChange) return;
+              locatePressed.current = false;
+              onViewChange(
+                e.coords.latitude,
+                e.coords.longitude,
+                mapRef.current?.getZoom() ?? zoom,
+              );
+            }}
           />
         )}
 
